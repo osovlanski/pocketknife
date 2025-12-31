@@ -1,0 +1,301 @@
+import { Request, Response } from 'express';
+import cvAnalysisService from '../services/cvAnalysisService';
+import jobSourceService from '../services/jobSourceService';
+import jobMatchingService from '../services/jobMatchingService';
+import fs from 'fs';
+import path from 'path';
+
+// Simple file-based storage for MVP
+const STORAGE_PATH = path.join(process.cwd(), 'data');
+const CV_DATA_FILE = path.join(STORAGE_PATH, 'cv-data.json');
+const JOB_LISTINGS_FILE = path.join(STORAGE_PATH, 'job-listings.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(STORAGE_PATH)) {
+  fs.mkdirSync(STORAGE_PATH, { recursive: true });
+}
+
+export const uploadCV = async (req: Request, res: Response) => {
+  try {
+    const { cvText } = req.body;
+    
+    if (!cvText) {
+      return res.status(400).json({ error: 'CV text is required' });
+    }
+
+    console.log('📄 Analyzing CV...');
+    const io = req.app.get('io');
+    io.emit('log', { message: '📄 Analyzing your CV with AI...', type: 'info' });
+
+    // Analyze CV with Claude
+    const cvData = await cvAnalysisService.analyzeCV(cvText);
+    
+    // Generate job preferences
+    const preferences = cvAnalysisService.generateJobPreferences(cvData);
+
+    // Save to file
+    fs.writeFileSync(CV_DATA_FILE, JSON.stringify({ cvData, preferences }, null, 2));
+
+    io.emit('log', { 
+      message: `✅ CV analyzed! Found ${cvData.skills.length} skills and ${cvData.experience.length} experience entries`, 
+      type: 'success' 
+    });
+
+    res.json({
+      message: 'CV analyzed successfully',
+      cvData,
+      preferences
+    });
+  } catch (error: any) {
+    console.error('❌ Error uploading CV:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCVData = async (req: Request, res: Response) => {
+  try {
+    if (!fs.existsSync(CV_DATA_FILE)) {
+      return res.status(404).json({ error: 'No CV data found. Please upload a CV first.' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
+    res.json(data);
+  } catch (error: any) {
+    console.error('❌ Error getting CV data:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const searchJobs = async (req: Request, res: Response) => {
+  try {
+    const { query, location, remoteOnly, companySize, industry, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
+    const io = req.app.get('io');
+
+    io.emit('log', { message: '🔍 Starting job search...', type: 'info' });
+    
+    // Get CV data
+    const cvDataPath = path.join(__dirname, '../../data/cv-data.json');
+    if (!fs.existsSync(cvDataPath)) {
+      return res.status(400).json({ error: 'Please upload your CV first' });
+    }
+
+    const cvData = JSON.parse(fs.readFileSync(cvDataPath, 'utf-8'));
+    
+    // Use CV-based query or user-provided query
+    const searchQuery = query || cvData.jobSearchQuery || `${cvData.seniorityLevel || ''} ${cvData.currentRole || 'developer'}`.trim();
+    
+    io.emit('log', { 
+      message: `🎯 Search Query: "${searchQuery}"`, 
+      type: 'info' 
+    });
+    
+    // Extract location preferences from CV
+    const preferredLocations = cvData.preferredLocations || [];
+    if (cvData.location && !preferredLocations.includes(cvData.location)) {
+      preferredLocations.push(cvData.location);
+    }
+    
+    if (preferredLocations.length > 0) {
+      io.emit('log', { 
+        message: `📍 Preferred Locations (from CV): ${preferredLocations.join(', ')}`, 
+        type: 'info' 
+      });
+    }
+
+    // Get job preferences
+    const preferences = cvAnalysisService.generateJobPreferences(cvData);
+
+    // Notify about API status
+    if (process.env.RAPIDAPI_KEY) {
+      io.emit('log', { 
+        message: '✨ JSearch API enabled (LinkedIn, Glassdoor, Indeed)', 
+        type: 'success' 
+      });
+    } else {
+      io.emit('log', { 
+        message: '💡 Tip: Add RAPIDAPI_KEY for LinkedIn/Glassdoor/Indeed jobs', 
+        type: 'info' 
+      });
+    }
+
+    if (process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
+      io.emit('log', { 
+        message: '✨ Adzuna API enabled (International job boards)', 
+        type: 'success' 
+      });
+    } else {
+      io.emit('log', { 
+        message: '💡 Tip: Add ADZUNA credentials for more job sources', 
+        type: 'info' 
+      });
+    }
+
+    io.emit('log', { message: '📡 Fetching jobs from all sources...', type: 'info' });
+
+    // Search all job sources with CV-based query and location + advanced filters
+    const jobs = await jobSourceService.searchAllSources(searchQuery, {
+      location: preferredLocations[0] || location,
+      remoteOnly: remoteOnly,
+      radius: 50,
+      companySize,
+      industry,
+      salaryMin,
+      salaryMax,
+      experienceLevel,
+      jobType
+    }, io);
+    
+    if (jobs.length === 0) {
+      io.emit('log', { 
+        message: '❌ No jobs found matching your criteria', 
+        type: 'error' 
+      });
+      io.emit('log', { 
+        message: '💡 Try: Different keywords, broader location, or remove filters', 
+        type: 'info' 
+      });
+      return res.json({
+        message: 'No jobs found matching your criteria',
+        jobs: [],
+        stats: { total: 0, matched: 0 }
+      });
+    }
+
+    io.emit('log', { 
+      message: `✅ Found ${jobs.length} unique job listings!`, 
+      type: 'success' 
+    });
+
+    // Show breakdown by source
+    const sourceBreakdown = jobs.reduce((acc: any, job) => {
+      acc[job.source] = (acc[job.source] || 0) + 1;
+      return acc;
+    }, {});
+    
+    Object.entries(sourceBreakdown).forEach(([source, count]) => {
+      io.emit('log', { 
+        message: `  📌 ${source}: ${count} jobs`, 
+        type: 'info' 
+      });
+    });
+
+    io.emit('log', { 
+      message: '🤖 AI is analyzing job matches (this may take a moment)...', 
+      type: 'info' 
+    });
+    
+    io.emit('log', { 
+      message: '✨ Good matches (75%+) will appear in real-time below!', 
+      type: 'info' 
+    });
+
+    // Match jobs using AI with real-time streaming (75% threshold for streaming)
+    const matchedJobs = await jobMatchingService.matchMultipleJobs(jobs, cvData, io, 75);
+    
+    // Calculate statistics
+    const highMatch = matchedJobs.filter(j => j.matchScore >= 80).length;
+    const mediumMatch = matchedJobs.filter(j => j.matchScore >= 60 && j.matchScore < 80).length;
+    const lowMatch = matchedJobs.filter(j => j.matchScore < 60).length;
+    
+    // Filter by threshold
+    const goodMatches = matchedJobs.filter(j => j.matchScore >= preferences.notificationThreshold);
+    
+    // Save results
+    fs.writeFileSync(JOB_LISTINGS_FILE, JSON.stringify(matchedJobs, null, 2));
+
+    // Generate summary report
+    const summary = jobSourceService.generateJobSummary(matchedJobs, cvData);
+    const summaryFile = path.join(STORAGE_PATH, 'job-summary.md');
+    fs.writeFileSync(summaryFile, summary);
+
+    // Detailed results logging
+    io.emit('log', { 
+      message: `✅ AI Matching Complete!`, 
+      type: 'success' 
+    });
+
+    io.emit('log', { 
+      message: `📊 Match Distribution:`, 
+      type: 'info' 
+    });
+    
+    io.emit('log', { 
+      message: `  🟢 High Match (80%+): ${highMatch} jobs`, 
+      type: 'success' 
+    });
+    
+    io.emit('log', { 
+      message: `  🟡 Medium Match (60-79%): ${mediumMatch} jobs`, 
+      type: 'info' 
+    });
+    
+    io.emit('log', { 
+      message: `  🔴 Low Match (<60%): ${lowMatch} jobs`, 
+      type: 'info' 
+    });
+
+    io.emit('log', { 
+      message: `✨ ${goodMatches.length} jobs meet your ${preferences.notificationThreshold}% threshold`, 
+      type: 'success' 
+    });
+
+    io.emit('log', { 
+      message: `� Summary report: ${path.basename(summaryFile)}`, 
+      type: 'info' 
+    });
+
+    res.json({
+      message: 'Job search completed',
+      jobs: matchedJobs,
+      summary,
+      summaryFile,
+      stats: {
+        total: jobs.length,
+        matched: goodMatches.length,
+        highMatch: matchedJobs.filter(j => j.matchScore >= 80).length,
+        mediumMatch: matchedJobs.filter(j => j.matchScore >= 60 && j.matchScore < 80).length,
+        lowMatch: matchedJobs.filter(j => j.matchScore < 60).length
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Error searching jobs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getJobListings = async (req: Request, res: Response) => {
+  try {
+    if (!fs.existsSync(JOB_LISTINGS_FILE)) {
+      return res.json({ jobs: [] });
+    }
+
+    const jobs = JSON.parse(fs.readFileSync(JOB_LISTINGS_FILE, 'utf-8'));
+    res.json({ jobs });
+  } catch (error: any) {
+    console.error('❌ Error getting job listings:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateJobPreferences = async (req: Request, res: Response) => {
+  try {
+    const { preferences } = req.body;
+    
+    if (!fs.existsSync(CV_DATA_FILE)) {
+      return res.status(400).json({ error: 'Please upload your CV first' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
+    data.preferences = { ...data.preferences, ...preferences };
+    
+    fs.writeFileSync(CV_DATA_FILE, JSON.stringify(data, null, 2));
+
+    res.json({
+      message: 'Preferences updated successfully',
+      preferences: data.preferences
+    });
+  } catch (error: any) {
+    console.error('❌ Error updating preferences:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

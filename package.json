@@ -1,0 +1,50 @@
+{
+  "name": "pocketknife",
+  "version": "2.0.0",
+  "description": "Pocketknife - Multi-agent AI platform for emails, jobs, travel, and learning",
+  "main": "backend/src/index.ts",
+  "scripts": {
+    "start": "node backend/dist/index.js",
+    "build": "tsc -p backend/tsconfig.json",
+    "dev": "ts-node-dev backend/src/index.ts",
+    "frontend": "vite --config frontend/vite.config.ts",
+    "frontend:build": "vite build --config frontend/vite.config.ts"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "dotenv": "^10.0.0",
+    "axios": "^0.21.1",
+    "twilio": "^3.66.0",
+    "winston": "^3.3.3",
+    "googleapis": "^39.2.0",
+    "typescript": "^4.4.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.0.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.4.3",
+    "vite": "^2.5.0",
+    "tailwindcss": "^2.2.19",
+    "postcss": "^8.3.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osovlanski/pocketknife.git"
+  },
+  "keywords": [
+    "pocketknife",
+    "ai",
+    "multi-agent",
+    "email",
+    "jobs",
+    "travel",
+    "learning",
+    "automation"
+  ],
+  "author": "Itay Osov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/osovlanski/pocketknife/issues"
+  },
+  "homepage": "https://github.com/osovlanski/pocketknife#readme"
+}
