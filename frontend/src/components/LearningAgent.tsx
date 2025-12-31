@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Settings } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 interface LearningResource {
@@ -22,6 +22,13 @@ interface SearchFilters {
   timeRange: 'day' | 'week' | 'month' | 'all';
 }
 
+interface LinkedInInfo {
+  configured: boolean;
+  isPremium: boolean;
+  instructions: string;
+  features: string[];
+}
+
 const LearningAgent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [resources, setResources] = useState<LearningResource[]>([]);
@@ -29,9 +36,11 @@ const LearningAgent = () => {
   const [logs, setLogs] = useState<Array<{ message: string; type: string; timestamp: string }>>([]);
   const [expandedResources, setExpandedResources] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showLinkedInInfo, setShowLinkedInInfo] = useState(false);
+  const [linkedInInfo, setLinkedInInfo] = useState<LinkedInInfo | null>(null);
   const [filters, setFilters] = useState<SearchFilters>({
     topics: [],
-    sources: ['linkedin', 'devto', 'medium', 'hackernews', 'reddit'],
+    sources: ['linkedin', 'devto', 'newsletters', 'hackernews', 'reddit'],
     timeRange: 'week'
   });
   const socketRef = useRef<Socket | null>(null);
@@ -50,12 +59,44 @@ const LearningAgent = () => {
     'Code review techniques'
   ];
 
+  // Source categories with icons
+  const sourceCategories = {
+    social: {
+      label: 'Social',
+      sources: [
+        { id: 'linkedin', name: 'LinkedIn', icon: <Linkedin className="w-4 h-4 text-blue-500" />, premium: true },
+        { id: 'reddit', name: 'Reddit', icon: <Globe className="w-4 h-4 text-orange-500" /> }
+      ]
+    },
+    blogs: {
+      label: 'Blogs & Forums',
+      sources: [
+        { id: 'devto', name: 'Dev.to', icon: <Globe className="w-4 h-4 text-gray-300" /> },
+        { id: 'medium', name: 'Medium', icon: <FileText className="w-4 h-4 text-green-400" /> },
+        { id: 'hackernews', name: 'Hacker News', icon: <Globe className="w-4 h-4 text-orange-400" /> }
+      ]
+    },
+    newsletters: {
+      label: '📰 Newsletters',
+      sources: [
+        { id: 'newsletters', name: 'All Newsletters', icon: <Newspaper className="w-4 h-4 text-purple-400" /> },
+        { id: 'systemdesign', name: 'System Design', icon: <Newspaper className="w-4 h-4 text-blue-400" /> },
+        { id: 'bytebytego', name: 'ByteByteGo', icon: <Newspaper className="w-4 h-4 text-green-400" /> },
+        { id: 'tldr', name: 'TLDR', icon: <Newspaper className="w-4 h-4 text-yellow-400" /> }
+      ]
+    }
+  };
+
   const sourceIcons: Record<string, JSX.Element> = {
     linkedin: <Linkedin className="w-4 h-4 text-blue-500" />,
     devto: <Globe className="w-4 h-4 text-gray-300" />,
     medium: <FileText className="w-4 h-4 text-green-400" />,
     hackernews: <Globe className="w-4 h-4 text-orange-400" />,
     reddit: <Globe className="w-4 h-4 text-orange-500" />,
+    newsletters: <Newspaper className="w-4 h-4 text-purple-400" />,
+    systemdesign: <Newspaper className="w-4 h-4 text-blue-400" />,
+    bytebytego: <Newspaper className="w-4 h-4 text-green-400" />,
+    tldr: <Newspaper className="w-4 h-4 text-yellow-400" />,
     gemini: <Brain className="w-4 h-4 text-purple-400" />,
     claude: <Sparkles className="w-4 h-4 text-amber-400" />
   };
@@ -75,10 +116,25 @@ const LearningAgent = () => {
       });
     });
 
+    // Fetch LinkedIn integration info
+    fetchLinkedInInfo();
+
     return () => {
       socketRef.current?.disconnect();
     };
   }, []);
+
+  const fetchLinkedInInfo = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/learning/linkedin-info');
+      if (response.ok) {
+        const data = await response.json();
+        setLinkedInInfo(data);
+      }
+    } catch (error) {
+      console.warn('Could not fetch LinkedIn info');
+    }
+  };
 
   const addLog = (message: string, type = 'info') => {
     setLogs(prev => [...prev, {
@@ -249,39 +305,114 @@ const LearningAgent = () => {
           ))}
         </div>
 
-        {/* Source Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <span className="text-slate-400 text-sm">Sources:</span>
-          {['linkedin', 'devto', 'medium', 'hackernews', 'reddit'].map((source) => (
+        {/* Source Filters - Organized by Category */}
+        <div className="space-y-3">
+          {/* Social & Blogs */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-400 text-sm w-16">Sources:</span>
+            {['linkedin', 'devto', 'medium', 'hackernews', 'reddit'].map((source) => (
+              <button
+                key={source}
+                onClick={() => toggleSource(source)}
+                className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors ${
+                  filters.sources.includes(source)
+                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
+                    : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
+                }`}
+              >
+                {sourceIcons[source]}
+                {source.charAt(0).toUpperCase() + source.slice(1)}
+                {source === 'linkedin' && linkedInInfo?.isPremium && (
+                  <Crown className="w-3 h-3 text-yellow-400 ml-1" />
+                )}
+              </button>
+            ))}
+            {/* LinkedIn Premium Info Button */}
             <button
-              key={source}
-              onClick={() => toggleSource(source)}
-              className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors ${
-                filters.sources.includes(source)
-                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
-                  : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
-              }`}
+              onClick={() => setShowLinkedInInfo(!showLinkedInInfo)}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-colors"
+              title="LinkedIn Premium Integration"
             >
-              {sourceIcons[source]}
-              {source.charAt(0).toUpperCase() + source.slice(1)}
+              <Info className="w-3 h-3" />
             </button>
-          ))}
-          
-          <span className="text-slate-400 text-sm ml-4">Time:</span>
-          {['day', 'week', 'month', 'all'].map((range) => (
-            <button
-              key={range}
-              onClick={() => setFilters(prev => ({ ...prev, timeRange: range as any }))}
-              className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                filters.timeRange === range
-                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
-                  : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
-              }`}
-            >
-              {range === 'day' ? 'Today' : range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
-            </button>
-          ))}
+          </div>
+
+          {/* Newsletters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Newspaper className="w-4 h-4 text-purple-400" />
+            <span className="text-slate-400 text-sm w-16">Newsletters:</span>
+            {['newsletters', 'systemdesign', 'bytebytego', 'tldr'].map((source) => (
+              <button
+                key={source}
+                onClick={() => toggleSource(source)}
+                className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors ${
+                  filters.sources.includes(source)
+                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-300'
+                    : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
+                }`}
+              >
+                {sourceIcons[source]}
+                {source === 'newsletters' ? 'All Newsletters' : 
+                 source === 'systemdesign' ? 'System Design' :
+                 source === 'bytebytego' ? 'ByteByteGo' : 'TLDR'}
+              </button>
+            ))}
+          </div>
+
+          {/* Time Filter */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-slate-400 text-sm w-16 ml-5">Time:</span>
+            {['day', 'week', 'month', 'all'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setFilters(prev => ({ ...prev, timeRange: range as any }))}
+                className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                  filters.timeRange === range
+                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
+                    : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
+                }`}
+              >
+                {range === 'day' ? 'Today' : range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
+              </button>
+            ))}
+          </div>
+
+          {/* LinkedIn Premium Info Panel */}
+          {showLinkedInInfo && linkedInInfo && (
+            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-blue-300 flex items-center gap-2">
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn Premium Integration
+                  {linkedInInfo.isPremium && <Crown className="w-4 h-4 text-yellow-400" />}
+                </h4>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  linkedInInfo.configured 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {linkedInInfo.configured ? '✓ Connected' : '⚠ Not Configured'}
+                </span>
+              </div>
+              
+              <div className="text-xs text-slate-300 space-y-2">
+                <p className="font-semibold">Premium Features:</p>
+                <ul className="space-y-1 ml-2">
+                  {linkedInInfo.features.map((feature, idx) => (
+                    <li key={idx} className="text-slate-400">{feature}</li>
+                  ))}
+                </ul>
+                
+                {!linkedInInfo.configured && (
+                  <div className="mt-3 p-2 bg-white/5 rounded text-slate-400">
+                    <p className="font-semibold text-slate-300 mb-1">Setup Instructions:</p>
+                    <pre className="text-xs whitespace-pre-wrap">{linkedInInfo.instructions}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -332,19 +463,19 @@ const LearningAgent = () => {
                   ))}
                 </div>
 
-                {/* Summary Section */}
+                {/* Summary Section - Expert Level with Formatting */}
                 {resource.summary && (
-                  <div className={`bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-3 ${
+                  <div className={`bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-4 mb-3 ${
                     expandedResources.has(resource.id) ? '' : 'hidden'
                   }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        AI Summary
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-amber-400 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Expert AI Summary
                       </span>
                       <button
                         onClick={() => copyToClipboard(resource.summary!, resource.id)}
-                        className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                        className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-white/5 px-2 py-1 rounded"
                       >
                         {copiedId === resource.id ? (
                           <><Check className="w-3 h-3" /> Copied!</>
@@ -353,7 +484,37 @@ const LearningAgent = () => {
                         )}
                       </button>
                     </div>
-                    <p className="text-sm text-slate-200 whitespace-pre-wrap">{resource.summary}</p>
+                    {/* Render formatted summary */}
+                    <div className="text-sm text-slate-200 space-y-2 summary-content">
+                      {resource.summary.split('\n').map((line, idx) => {
+                        // Style different sections
+                        if (line.startsWith('📋') || line.startsWith('🔑') || line.startsWith('📊') || 
+                            line.startsWith('⚠️') || line.startsWith('💡')) {
+                          return (
+                            <h4 key={idx} className="font-bold text-amber-300 mt-3 first:mt-0">
+                              {line}
+                            </h4>
+                          );
+                        }
+                        if (line.startsWith('•') || line.startsWith('-')) {
+                          return (
+                            <p key={idx} className="ml-4 text-slate-300">
+                              {line}
+                            </p>
+                          );
+                        }
+                        if (line.startsWith('```')) {
+                          return null; // Skip code block markers
+                        }
+                        if (line.trim() === '---') {
+                          return <hr key={idx} className="border-amber-500/30 my-2" />;
+                        }
+                        if (line.trim()) {
+                          return <p key={idx}>{line}</p>;
+                        }
+                        return null;
+                      })}
+                    </div>
                   </div>
                 )}
 
