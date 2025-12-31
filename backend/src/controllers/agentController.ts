@@ -81,6 +81,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
             processed: 0,
             invoices: 0,
             jobOffers: 0,
+            official: 0,
             spam: 0,
             errors: 0,
             total: emails.length
@@ -144,6 +145,20 @@ export const processAllEmails = async (req: Request, res: Response) => {
                             await emailProcessor.handleSpam(email);
                             results.spam++;
                             break;
+                        
+                        case 'OFFICIAL':
+                            io.emit('log', { 
+                                message: `🏛️ Classified as OFFICIAL (${Math.round(classification.confidence * 100)}% confident) - Government/Municipality email`, 
+                                type: 'success',
+                                details: { category: 'OFFICIAL', confidence: classification.confidence }
+                            });
+                            await emailProcessor.handleOfficial(email, classification);
+                            io.emit('log', { 
+                                message: `📁 Official email saved and labeled`, 
+                                type: 'success'
+                            });
+                            results.official++;
+                            break;
                     }
                     
                     await gmailService.addLabel(email.id, 'processed');
@@ -180,7 +195,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
 
         console.log('✅ All emails processed:', results);
         io.emit('log', { 
-            message: `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 
+            message: `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 
             type: 'success',
             details: results
         });

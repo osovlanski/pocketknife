@@ -99,6 +99,37 @@ ${email.body}`;
     console.log('🗑️ Moving spam to folder');
     await gmailService.moveToFolder(email.id, 'Spam-Commercial');
   }
+
+  async handleOfficial(email: any, classification: any) {
+    console.log('🏛️ Processing official/government email');
+    
+    // Save official emails to Drive for record keeping
+    const content = `Official Email
+Subject: ${email.subject}
+From: ${email.from}
+Date: ${email.date}
+Category: Government/Municipality/Official
+Key Details: ${classification.key_details || 'N/A'}
+
+${email.body || email.snippet}`;
+
+    try {
+      const filename = `official_${email.subject.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '_').substring(0, 50)}_${new Date().toISOString().substring(0, 10)}.txt`;
+      
+      await driveService.uploadInvoice(
+        filename,
+        content,
+        'text/plain'
+      );
+      
+      console.log(`📁 Official email saved: ${filename}`);
+    } catch (error) {
+      console.warn('⚠️ Could not save official email to Drive:', error);
+    }
+
+    await gmailService.addLabel(email.id, 'Official');
+    console.log('✅ Official email processed');
+  }
 }
 
 export default new EmailProcessor();

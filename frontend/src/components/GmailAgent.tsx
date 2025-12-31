@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, XCircle, Square } from 'lucide-react';
+import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, XCircle, Square, Building2 } from 'lucide-react';
 import { processAllEmails, testNotification } from '../services/api';
 import InvoiceList from './InvoiceList';
 import { io, Socket } from 'socket.io-client';
@@ -8,7 +8,7 @@ const GmailAgent = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [logs, setLogs] = useState<Array<{ message: string; type: string; timestamp: string }>>([]);
-  const [stats, setStats] = useState({ invoices: 0, jobOffers: 0, spam: 0, processed: 0 });
+  const [stats, setStats] = useState({ invoices: 0, jobOffers: 0, official: 0, spam: 0, processed: 0 });
   const [config, setConfig] = useState({
     notificationMethod: 'email',
     checkInterval: 60
@@ -45,6 +45,9 @@ const GmailAgent = () => {
         }
         if (data.details.jobOffers !== undefined) {
           setStats(prev => ({ ...prev, jobOffers: data.details.jobOffers }));
+        }
+        if (data.details.official !== undefined) {
+          setStats(prev => ({ ...prev, official: data.details.official }));
         }
         if (data.details.spam !== undefined) {
           setStats(prev => ({ ...prev, spam: data.details.spam }));
@@ -92,6 +95,7 @@ const GmailAgent = () => {
           processed: result.results.processed,
           invoices: result.results.invoices,
           jobOffers: result.results.jobOffers,
+          official: result.results.official || 0,
           spam: result.results.spam
         });
       }
@@ -180,7 +184,7 @@ const GmailAgent = () => {
         </div>
 
         {/* Stats Display */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
             <div className="flex items-center gap-2 text-blue-400 mb-2">
               <CheckCircle className="w-5 h-5" />
@@ -201,6 +205,13 @@ const GmailAgent = () => {
               <span className="text-sm">Job Offers</span>
             </div>
             <div className="text-3xl font-bold">{stats.jobOffers}</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+            <div className="flex items-center gap-2 text-amber-400 mb-2">
+              <Building2 className="w-5 h-5" />
+              <span className="text-sm">Official</span>
+            </div>
+            <div className="text-3xl font-bold">{stats.official}</div>
           </div>
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
             <div className="flex items-center gap-2 text-red-400 mb-2">
