@@ -38,7 +38,16 @@ async function getTokens() {
 
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
+    terminal: false  // Disable terminal mode to avoid setRawMode issues
+  });
+
+  // Handle readline errors gracefully
+  rl.on('error', (err) => {
+    // Ignore EPERM errors on close
+    if ((err as NodeJS.ErrnoException).code !== 'EPERM') {
+      console.error('Readline error:', err);
+    }
   });
 
   rl.question('', async (code) => {
@@ -70,7 +79,16 @@ async function getTokens() {
       console.log('   2. Didn\'t include any extra spaces');
       console.log('   3. Used the code immediately (they expire quickly)');
     }
-    rl.close();
+    
+    // Close readline safely
+    try {
+      rl.close();
+    } catch {
+      // Ignore close errors
+    }
+    
+    // Exit cleanly
+    process.exit(0);
   });
 }
 

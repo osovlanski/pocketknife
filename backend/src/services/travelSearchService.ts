@@ -1,11 +1,5 @@
 import axios from 'axios';
-import https from 'https';
 import type { TripSearchRequest, FlightOffer, HotelOffer, TravelSearchResult, FlexibleDateResult } from '../types/travel';
-
-// HTTPS agent to handle SSL certificate issues in corporate environments
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false
-});
 
 class TravelSearchService {
   private amadeusToken: string | null = null;
@@ -40,8 +34,7 @@ class TravelSearchService {
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          httpsAgent
+          }
         }
       );
 
@@ -102,9 +95,7 @@ class TravelSearchService {
           params,
           headers: {
             'Authorization': `Bearer ${token}`
-          },
-          httpsAgent
-        }
+          }        }
       );
 
       const offers = response.data.data || [];
@@ -226,9 +217,7 @@ class TravelSearchService {
           params: hotelListParams,
           headers: {
             'Authorization': `Bearer ${token}`
-          },
-          httpsAgent
-        }
+          }        }
       );
 
       const hotelList = hotelListResponse.data.data || [];
@@ -260,9 +249,7 @@ class TravelSearchService {
           params: offersParams,
           headers: {
             'Authorization': `Bearer ${token}`
-          },
-          httpsAgent
-        }
+          }        }
       );
 
       const offers = offersResponse.data.data || [];
