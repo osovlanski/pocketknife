@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, XCircle, Square } from 'lucide-react';
 import { processAllEmails, testNotification } from '../services/api';
 import InvoiceList from './InvoiceList';
 import { io, Socket } from 'socket.io-client';
 
 const GmailAgent = () => {
   const [isRunning, setIsRunning] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [logs, setLogs] = useState<Array<{ message: string; type: string; timestamp: string }>>([]);
   const [stats, setStats] = useState({ invoices: 0, jobOffers: 0, spam: 0, processed: 0 });
   const [config, setConfig] = useState({
@@ -14,6 +15,7 @@ const GmailAgent = () => {
   });
   const socketRef = useRef<Socket | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll to bottom of logs
   const scrollToBottom = () => {
@@ -79,28 +81,46 @@ const GmailAgent = () => {
   const handleProcessAll = async () => {
     try {
       setIsRunning(true);
+      setIsStopping(false);
+      abortControllerRef.current = new AbortController();
       
       const result = await processAllEmails();
       
       // Final update from API response
-      setStats({
-        processed: result.results.processed,
-        invoices: result.results.invoices,
-        jobOffers: result.results.jobOffers,
-        spam: result.results.spam
-      });
+      if (result.results) {
+        setStats({
+          processed: result.results.processed,
+          invoices: result.results.invoices,
+          jobOffers: result.results.jobOffers,
+          spam: result.results.spam
+        });
+      }
       
     } catch (error: any) {
-      const errorMsg = error.message || 'Unknown error';
-      if (errorMsg.includes('APIConnectionError') || errorMsg.includes('Connection error')) {
-        addLog(`❌ API Connection Error: Unable to connect to Claude API. Please check your internet connection.`, 'error');
-      } else if (errorMsg.includes('authentication')) {
-        addLog(`❌ Authentication Error: ${errorMsg}`, 'error');
+      if (error.name === 'AbortError' || isStopping) {
+        addLog('⏹️ Processing stopped by user', 'warning');
       } else {
-        addLog(`❌ Error: ${errorMsg}`, 'error');
+        const errorMsg = error.message || 'Unknown error';
+        if (errorMsg.includes('APIConnectionError') || errorMsg.includes('Connection error')) {
+          addLog(`❌ API Connection Error: Unable to connect to Claude API. Please check your internet connection.`, 'error');
+        } else if (errorMsg.includes('authentication')) {
+          addLog(`❌ Authentication Error: ${errorMsg}`, 'error');
+        } else {
+          addLog(`❌ Error: ${errorMsg}`, 'error');
+        }
       }
     } finally {
       setIsRunning(false);
+      setIsStopping(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      setIsStopping(true);
+      abortControllerRef.current.abort();
+      addLog('⏳ Stopping processing...', 'warning');
     }
   };
 
@@ -203,23 +223,33 @@ const GmailAgent = () => {
                 <AlertCircle className="w-5 h-5" />
                 Test Notification
               </button>
-              <button
-                onClick={handleProcessAll}
-                disabled={isRunning}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-6 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-              >
-                {isRunning ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    Process All Emails
-                  </>
-                )}
-              </button>
+              {isRunning ? (
+                <button
+                  onClick={handleStop}
+                  disabled={isStopping}
+                  className="flex items-center gap-2 bg-red-500 hover:bg-red-600 px-6 py-2 rounded-lg transition-all disabled:opacity-50 font-semibold"
+                >
+                  {isStopping ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Stopping...
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-5 h-5" />
+                      Stop
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleProcessAll}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-6 py-2 rounded-lg transition-all font-semibold"
+                >
+                  <Play className="w-5 h-5" />
+                  Process All Emails
+                </button>
+              )}
             </div>
           </div>
         </div>

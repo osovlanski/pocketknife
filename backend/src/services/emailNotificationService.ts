@@ -24,41 +24,47 @@ class EmailNotificationService {
     try {
       if (this.initialized) return;
 
-      // For development, use a simple SMTP or log to console
-      if (process.env.NODE_ENV === 'development') {
-        // Create a test account for development
-        const testAccount = await nodemailer.createTestAccount();
-        
+      // Check if SMTP is configured via environment variables
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         this.transporter = nodemailer.createTransport({
-          host: 'smtp.ethereal.email',
-          port: 587,
-          secure: false,
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
           auth: {
-            user: testAccount.user,
-            pass: testAccount.pass,
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
           },
         });
+        console.log('✅ Email notification service initialized with SMTP');
       } else if (oauth2Client) {
         // Production with Gmail OAuth2
-        const accessToken = await oauth2Client.getAccessToken();
-
-        this.transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            type: 'OAuth2',
-            user: process.env.GMAIL_USER_EMAIL,
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            refreshToken: oauth2Client.credentials.refresh_token,
-            accessToken: accessToken.token || '',
-          },
-        });
+        try {
+          const accessToken = await oauth2Client.getAccessToken();
+          this.transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              type: 'OAuth2',
+              user: process.env.GMAIL_USER_EMAIL,
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              refreshToken: oauth2Client.credentials.refresh_token,
+              accessToken: accessToken.token || '',
+            },
+          });
+          console.log('✅ Email notification service initialized with Gmail OAuth');
+        } catch (oauthError) {
+          console.warn('⚠️ Gmail OAuth not available for notifications');
+        }
+      } else {
+        // No email configured - notifications will be logged only
+        console.log('ℹ️ Email notifications disabled (no SMTP/OAuth configured)');
+        console.log('   To enable, set SMTP_HOST, SMTP_USER, SMTP_PASS in .env');
       }
 
       this.initialized = true;
-      console.log('✅ Email notification service initialized');
     } catch (error) {
       console.error('❌ Error initializing email service:', error);
+      this.initialized = true; // Mark as initialized to prevent retries
       // Don't throw, just log - service will skip sending
     }
   }
