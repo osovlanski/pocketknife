@@ -216,3 +216,4 @@ class IsraeliJobsService {
 
 export default new IsraeliJobsService();
 
+

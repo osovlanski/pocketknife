@@ -670,5 +670,3 @@ Create the expert summary:`
 
 export default new LearningService();
 
-export default new LearningService();
-

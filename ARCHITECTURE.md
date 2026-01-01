@@ -269,3 +269,4 @@ The architecture supports:
 - [ ] WhatsApp notification integration
 - [ ] Mobile app (React Native)
 
+
