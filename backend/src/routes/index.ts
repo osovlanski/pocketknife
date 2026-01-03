@@ -19,6 +19,7 @@ import learningRoutes from './learning';
 import problemSolvingRoutes from './problemSolving';
 import authRoutes from './auth';
 import agentsRoutes from './agents';
+import autocompleteRoutes from './autocomplete';
 
 const router = Router();
 
@@ -58,5 +59,8 @@ router.use('/auth', authRoutes);
 
 // Unified Agent API routes
 router.use('/agents', agentsRoutes);
+
+// Autocomplete routes (with caching)
+router.use('/autocomplete', autocompleteRoutes);
 
 export default router;

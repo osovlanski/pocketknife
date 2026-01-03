@@ -100,6 +100,83 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       throw error;
     }
   }
+
+  /**
+   * Analyze email patterns to suggest new rules
+   * Looks for repetitive senders/subjects that don't have existing rules
+   */
+  async analyzeEmailPatterns(emails: any[], existingRules: string[] = []): Promise<{
+    suggestedRules: Array<{
+      pattern: string;
+      type: 'sender' | 'subject' | 'domain';
+      suggestedCategory: string;
+      sampleEmails: string[];
+      confidence: number;
+    }>;
+    summary: string;
+  }> {
+    try {
+      this.initializeClient();
+      
+      if (!this.client) {
+        throw new Error('Failed to initialize Anthropic client');
+      }
+
+      // Group emails by sender domain and subject patterns
+      const emailSummary = emails.slice(0, 50).map(e => ({
+        from: e.from,
+        subject: e.subject,
+        domain: e.from?.match(/@([^>]+)/)?.[1] || 'unknown'
+      }));
+
+      const message = await this.client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: `Analyze these emails and suggest new filtering rules for repetitive patterns.
+
+Existing rules (don't suggest these): ${existingRules.join(', ') || 'None'}
+
+Emails to analyze:
+${JSON.stringify(emailSummary, null, 2)}
+
+Find patterns like:
+1. Sender domains that appear 3+ times
+2. Subject line patterns (newsletters, notifications, etc.)
+3. Marketing/promotional patterns
+4. Recurring transactional emails
+
+Respond ONLY with valid JSON:
+{
+  "suggestedRules": [
+    {
+      "pattern": "regex or text pattern",
+      "type": "sender" | "subject" | "domain",
+      "suggestedCategory": "INVOICE" | "NEWSLETTER" | "PROMOTIONAL" | "NOTIFICATION" | "SOCIAL",
+      "sampleEmails": ["sample subject 1", "sample subject 2"],
+      "confidence": 0.0 to 1.0
+    }
+  ],
+  "summary": "Brief summary of findings"
+}`
+        }]
+      });
+
+      const firstBlock = message.content[0];
+      const responseText = firstBlock.type === 'text' ? firstBlock.text : '';
+      const cleanText = responseText.replace(/```json|```/g, '').trim();
+      const result = JSON.parse(cleanText);
+
+      return result;
+    } catch (error) {
+      console.error('Error analyzing email patterns:', error);
+      return {
+        suggestedRules: [],
+        summary: 'Failed to analyze patterns'
+      };
+    }
+  }
 }
 
 export default new ClaudeService();

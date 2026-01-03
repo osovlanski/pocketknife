@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mountain, Calendar, Users, MapPin, Snowflake, Plane, Hotel, Star, TrendingUp, Square } from 'lucide-react';
+import { Mountain, Calendar, Users, MapPin, Snowflake, Plane, Hotel, Star, TrendingUp, Square, ExternalLink, Utensils, Camera, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
 import { searchSkiDeals, stopSkiSearch, type SkiDeal, type SkiSearchQuery } from '../services/travelApi';
 
 interface SkiDealsPanelProps {
@@ -22,6 +22,55 @@ const SkiDealsPanel: React.FC<SkiDealsPanelProps> = ({ onDealsFound }) => {
   const [loading, setLoading] = useState(false);
   const [deals, setDeals] = useState<SkiDeal[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
+
+  const toggleDealExpanded = (resortId: string) => {
+    setExpandedDeals(prev => {
+      const next = new Set(prev);
+      if (next.has(resortId)) {
+        next.delete(resortId);
+      } else {
+        next.add(resortId);
+      }
+      return next;
+    });
+  };
+
+  // Generate tour suggestions based on resort
+  const getTourSuggestions = (deal: SkiDeal) => {
+    const suggestions = {
+      accommodations: [
+        { name: `${deal.resort.name} Ski Resort Hotel`, type: 'hotel', rating: 4.5 },
+        { name: `Alpine Lodge ${deal.resort.region}`, type: 'hotel', rating: 4.2 },
+        { name: `Mountain View Chalet`, type: 'chalet', rating: 4.8 },
+      ],
+      restaurants: [
+        { name: `La Fondue ${deal.resort.name}`, type: 'fondue', rating: 4.6 },
+        { name: `Alpine Grill & Bar`, type: 'grill', rating: 4.3 },
+        { name: `Après-Ski Lounge`, type: 'bar', rating: 4.4 },
+      ],
+      attractions: [
+        { name: `${deal.resort.name} Ski School`, type: 'skiing' },
+        { name: `Scenic Mountain Gondola`, type: 'sightseeing' },
+        { name: `${deal.resort.region} Spa & Wellness`, type: 'spa' },
+        { name: `Ice Skating Rink`, type: 'activity' },
+      ],
+      shopping: [
+        { name: `Ski Equipment Rental`, type: 'rental' },
+        { name: `${deal.resort.name} Gift Shop`, type: 'souvenirs' },
+        { name: `Local Artisan Market`, type: 'market' },
+      ]
+    };
+    return suggestions;
+  };
+
+  // Generate booking links
+  const getBookingLinks = (deal: SkiDeal) => ({
+    flights: `https://www.skyscanner.com/transport/flights/${query.origin}/${deal.resort.nearestAirport || 'GVA'}/${query.departureDate}/`,
+    hotels: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(deal.resort.name + ' ' + deal.resort.country)}`,
+    skiPass: `https://www.google.com/search?q=${encodeURIComponent(deal.resort.name + ' ski pass prices')}`,
+    resort: `https://www.google.com/search?q=${encodeURIComponent(deal.resort.name + ' official website')}`,
+  });
 
   const europeanCountries = [
     'France', 'Austria', 'Switzerland', 'Italy', 'Germany'
@@ -350,6 +399,136 @@ const SkiDealsPanel: React.FC<SkiDealsPanelProps> = ({ onDealsFound }) => {
                     <div className="text-[10px] text-slate-400">Est. Total</div>
                   </div>
                 </div>
+
+                {/* Quick Booking Links */}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-white/10">
+                  {(() => {
+                    const links = getBookingLinks(deal);
+                    return (
+                      <>
+                        <a
+                          href={links.flights}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 py-2 rounded-lg text-xs transition-colors"
+                        >
+                          <Plane className="w-3 h-3" />
+                          Book Flights
+                        </a>
+                        <a
+                          href={links.hotels}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1 bg-green-500/20 hover:bg-green-500/30 text-green-300 py-2 rounded-lg text-xs transition-colors"
+                        >
+                          <Hotel className="w-3 h-3" />
+                          Book Hotel
+                        </a>
+                        <a
+                          href={links.resort}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 py-2 rounded-lg text-xs transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Resort Info
+                        </a>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Expand/Collapse Tour Suggestions */}
+                <button
+                  onClick={() => toggleDealExpanded(deal.resort.id)}
+                  className="w-full flex items-center justify-center gap-2 mt-3 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  {expandedDeals.has(deal.resort.id) ? (
+                    <><ChevronUp className="w-4 h-4" /> Hide Tour Suggestions</>
+                  ) : (
+                    <><ChevronDown className="w-4 h-4" /> Show Tour Suggestions</>
+                  )}
+                </button>
+
+                {/* Tour Suggestions Panel */}
+                {expandedDeals.has(deal.resort.id) && (
+                  <div className="mt-3 pt-3 border-t border-white/10 space-y-4">
+                    {(() => {
+                      const suggestions = getTourSuggestions(deal);
+                      return (
+                        <>
+                          {/* Accommodations */}
+                          <div>
+                            <h5 className="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+                              <Hotel className="w-4 h-4" />
+                              Recommended Accommodations
+                            </h5>
+                            <div className="space-y-1">
+                              {suggestions.accommodations.map((acc, i) => (
+                                <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-sm">
+                                  <span>{acc.name}</span>
+                                  <div className="flex items-center gap-1 text-yellow-400">
+                                    <Star className="w-3 h-3 fill-current" />
+                                    <span className="text-xs">{acc.rating}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Restaurants */}
+                          <div>
+                            <h5 className="text-sm font-semibold text-orange-300 mb-2 flex items-center gap-2">
+                              <Utensils className="w-4 h-4" />
+                              Dining & Après-Ski
+                            </h5>
+                            <div className="space-y-1">
+                              {suggestions.restaurants.map((rest, i) => (
+                                <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-sm">
+                                  <span>{rest.name}</span>
+                                  <div className="flex items-center gap-1 text-yellow-400">
+                                    <Star className="w-3 h-3 fill-current" />
+                                    <span className="text-xs">{rest.rating}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Attractions */}
+                          <div>
+                            <h5 className="text-sm font-semibold text-purple-300 mb-2 flex items-center gap-2">
+                              <Camera className="w-4 h-4" />
+                              Activities & Attractions
+                            </h5>
+                            <div className="flex flex-wrap gap-2">
+                              {suggestions.attractions.map((attr, i) => (
+                                <span key={i} className="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs">
+                                  {attr.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Shopping */}
+                          <div>
+                            <h5 className="text-sm font-semibold text-pink-300 mb-2 flex items-center gap-2">
+                              <ShoppingBag className="w-4 h-4" />
+                              Shopping & Services
+                            </h5>
+                            <div className="flex flex-wrap gap-2">
+                              {suggestions.shopping.map((shop, i) => (
+                                <span key={i} className="bg-pink-500/20 text-pink-300 px-3 py-1 rounded-full text-xs">
+                                  {shop.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             ))}
           </div>

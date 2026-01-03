@@ -186,6 +186,26 @@ export const processAllEmails = async (req: Request, res: Response) => {
         } else {
             console.log('✅ All emails processed:', results);
             emitLog(io, `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 'success');
+            
+            // Analyze patterns for rule suggestions (only when processing completed)
+            if (emails.length >= 5 && !wasStopped) {
+                try {
+                    emitLog(io, '🔍 Analyzing email patterns for new rules...', 'info');
+                    const patternAnalysis = await claudeService.analyzeEmailPatterns(emails);
+                    
+                    if (patternAnalysis.suggestedRules.length > 0) {
+                        emitLog(io, `💡 Found ${patternAnalysis.suggestedRules.length} potential new rules`, 'success');
+                        patternAnalysis.suggestedRules.forEach(rule => {
+                            emitLog(io, `  📋 ${rule.type}: "${rule.pattern}" → ${rule.suggestedCategory} (${Math.round(rule.confidence * 100)}%)`, 'info');
+                        });
+                    }
+                    
+                    // Add suggested rules to response
+                    (results as any).suggestedRules = patternAnalysis.suggestedRules;
+                } catch (patternError) {
+                    console.warn('Pattern analysis failed:', patternError);
+                }
+            }
         }
 
         res.status(200).json({ 
