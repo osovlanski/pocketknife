@@ -7,7 +7,7 @@ interface ProcessState {
   processId: string | null;
 }
 
-type AgentType = 'email' | 'jobs' | 'travel' | 'learning' | 'problems';
+type AgentType = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'ski';
 
 /**
  * Centralized service for managing process control (start/stop) across all agents.
@@ -20,7 +20,7 @@ class ProcessControlService {
 
   constructor() {
     // Initialize all agent states
-    const agents: AgentType[] = ['email', 'jobs', 'travel', 'learning', 'problems'];
+    const agents: AgentType[] = ['email', 'jobs', 'travel', 'learning', 'problems', 'ski'];
     agents.forEach(agent => {
       this.processStates.set(agent, {
         isRunning: false,

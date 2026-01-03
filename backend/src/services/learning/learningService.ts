@@ -455,6 +455,11 @@ class LearningService {
         message: `🔍 Searching for "${query}" across ${sources.length} sources...`,
         type: 'info'
       });
+      io.emit('log', {
+        message: `🔍 Searching for "${query}" across ${sources.length} sources...`,
+        type: 'info',
+        agent: 'learning'
+      });
     }
 
     const searchPromises: Promise<LearningResource[]>[] = [];
@@ -493,17 +498,15 @@ class LearningService {
       if (result.status === 'fulfilled') {
         allResources.push(...result.value);
         if (io && result.value.length > 0) {
-          io.emit('learning-log', {
-            message: `✅ Found ${result.value.length} resources from ${sourceNames[index] || `source ${index + 1}`}`,
-            type: 'success'
-          });
+          const msg = `✅ Found ${result.value.length} resources from ${sourceNames[index] || `source ${index + 1}`}`;
+          io.emit('learning-log', { message: msg, type: 'success' });
+          io.emit('log', { message: msg, type: 'success', agent: 'learning' });
         }
       } else {
         if (io) {
-          io.emit('learning-log', {
-            message: `⚠️ ${sourceNames[index] || `Source ${index + 1}`} search failed`,
-            type: 'warning'
-          });
+          const msg = `⚠️ ${sourceNames[index] || `Source ${index + 1}`} search failed`;
+          io.emit('learning-log', { message: msg, type: 'warning' });
+          io.emit('log', { message: msg, type: 'warning', agent: 'learning' });
         }
       }
     });
@@ -530,10 +533,9 @@ class LearningService {
     console.log(`✅ Total learning resources found: ${uniqueResources.length}`);
     
     if (io) {
-      io.emit('learning-log', {
-        message: `✅ Found ${uniqueResources.length} unique learning resources`,
-        type: 'success'
-      });
+      const msg = `✅ Found ${uniqueResources.length} unique learning resources`;
+      io.emit('learning-log', { message: msg, type: 'success' });
+      io.emit('log', { message: msg, type: 'success', agent: 'learning' });
     }
 
     return uniqueResources;

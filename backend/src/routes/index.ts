@@ -18,6 +18,7 @@ import travelRoutes from './travel';
 import learningRoutes from './learning';
 import problemSolvingRoutes from './problemSolving';
 import authRoutes from './auth';
+import agentsRoutes from './agents';
 
 const router = Router();
 
@@ -54,5 +55,8 @@ router.post('/config', configController.updateConfig);
 
 // Auth routes (Google OAuth)
 router.use('/auth', authRoutes);
+
+// Unified Agent API routes
+router.use('/agents', agentsRoutes);
 
 export default router;

@@ -21,6 +21,7 @@ import processControlService from './services/core/processControlService';
 import { databaseService } from './services/core/databaseService';
 import { cacheService } from './services/core/cacheService';
 import { configService } from './services/core/configService';
+import { initializeAgents, agentRegistry } from './agents';
 
 const app = express();
 const server = createServer(app);
@@ -99,6 +100,11 @@ async function initializeServices() {
     // Initialize Process Control service first (for stop signals)
     console.log('🎛️ Initializing Process Control service...');
     processControlService.initialize(io);
+    
+    // Initialize Agent Registry
+    console.log('🤖 Initializing Agent Registry...');
+    initializeAgents();
+    agentRegistry.initialize(io);
     
     // Initialize Google Auth service
     console.log('🔐 Initializing Google Auth service...');

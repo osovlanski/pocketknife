@@ -9,6 +9,14 @@ import processControlService from '../services/core/processControlService';
 import fs from 'fs';
 import path from 'path';
 
+// Helper for consistent logging
+const emitLog = (io: any, message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+  if (io) {
+    io.emit('log', { message, type, agent: 'jobs' });
+    io.emit('job-log', { message, type }); // Keep legacy event for backward compatibility
+  }
+};
+
 // Simple file-based storage for MVP
 const STORAGE_PATH = path.join(process.cwd(), 'data');
 const CV_DATA_FILE = path.join(STORAGE_PATH, 'cv-data.json');
@@ -29,7 +37,7 @@ export const uploadCV = async (req: Request, res: Response) => {
 
     console.log('📄 Analyzing CV...');
     const io = req.app.get('io');
-    io.emit('log', { message: '📄 Analyzing your CV with AI...', type: 'info' });
+    emitLog(io, '📄 Analyzing your CV with AI...', 'info');
 
     // Analyze CV with Claude
     const cvData = await cvAnalysisService.analyzeCV(cvText);
@@ -40,10 +48,7 @@ export const uploadCV = async (req: Request, res: Response) => {
     // Save to file
     fs.writeFileSync(CV_DATA_FILE, JSON.stringify({ cvData, preferences }, null, 2));
 
-    io.emit('log', { 
-      message: `✅ CV analyzed! Found ${cvData.skills.length} skills and ${cvData.experience.length} experience entries`, 
-      type: 'success' 
-    });
+    emitLog(io, `✅ CV analyzed! Found ${cvData.skills.length} skills and ${cvData.experience.length} experience entries`, 'success');
 
     res.json({
       message: 'CV analyzed successfully',
@@ -78,7 +83,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Start process and track it
     processControlService.startProcess('jobs');
 
-    io.emit('log', { message: '🔍 Starting job search...', type: 'info' });
+    emitLog(io, '🔍 Starting job search...', 'info');
     
     // Get CV data
     const cvDataPath = path.join(__dirname, '../../data/cv-data.json');
@@ -96,10 +101,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Use CV-based query or user-provided query
     const searchQuery = query || cvData.jobSearchQuery || `${cvData.seniorityLevel || ''} ${cvData.currentRole || 'developer'}`.trim();
     
-    io.emit('log', { 
-      message: `🎯 Search Query: "${searchQuery}"`, 
-      type: 'info' 
-    });
+    emitLog(io, `🎯 Search Query: "${searchQuery}"`, 'info');
     
     // Extract location preferences from CV
     const preferredLocations = cvData.preferredLocations || [];
@@ -108,10 +110,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     }
     
     if (preferredLocations.length > 0) {
-      io.emit('log', { 
-        message: `📍 Preferred Locations (from CV): ${preferredLocations.join(', ')}`, 
-        type: 'info' 
-      });
+      emitLog(io, `📍 Preferred Locations (from CV): ${preferredLocations.join(', ')}`, 'info');
     }
 
     // Get job preferences
@@ -119,30 +118,18 @@ export const searchJobs = async (req: Request, res: Response) => {
 
     // Notify about API status
     if (process.env.RAPIDAPI_KEY) {
-      io.emit('log', { 
-        message: '✨ JSearch API enabled (LinkedIn, Glassdoor, Indeed)', 
-        type: 'success' 
-      });
+      emitLog(io, '✨ JSearch API enabled (LinkedIn, Glassdoor, Indeed)', 'success');
     } else {
-      io.emit('log', { 
-        message: '💡 Tip: Add RAPIDAPI_KEY for LinkedIn/Glassdoor/Indeed jobs', 
-        type: 'info' 
-      });
+      emitLog(io, '💡 Tip: Add RAPIDAPI_KEY for LinkedIn/Glassdoor/Indeed jobs', 'info');
     }
 
     if (process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
-      io.emit('log', { 
-        message: '✨ Adzuna API enabled (International job boards)', 
-        type: 'success' 
-      });
+      emitLog(io, '✨ Adzuna API enabled (International job boards)', 'success');
     } else {
-      io.emit('log', { 
-        message: '💡 Tip: Add ADZUNA credentials for more job sources', 
-        type: 'info' 
-      });
+      emitLog(io, '💡 Tip: Add ADZUNA credentials for more job sources', 'info');
     }
 
-    io.emit('log', { message: '📡 Fetching jobs from all sources...', type: 'info' });
+    emitLog(io, '📡 Fetching jobs from all sources...', 'info');
 
     // Search all job sources with CV-based query and location + advanced filters
     const jobs = await jobSourceService.searchAllSources(searchQuery, {
@@ -158,14 +145,8 @@ export const searchJobs = async (req: Request, res: Response) => {
     }, io);
     
     if (jobs.length === 0) {
-      io.emit('log', { 
-        message: '❌ No jobs found matching your criteria', 
-        type: 'error' 
-      });
-      io.emit('log', { 
-        message: '💡 Try: Different keywords, broader location, or remove filters', 
-        type: 'info' 
-      });
+      emitLog(io, '❌ No jobs found matching your criteria', 'error');
+      emitLog(io, '💡 Try: Different keywords, broader location, or remove filters', 'info');
       return res.json({
         message: 'No jobs found matching your criteria',
         jobs: [],
@@ -173,10 +154,7 @@ export const searchJobs = async (req: Request, res: Response) => {
       });
     }
 
-    io.emit('log', { 
-      message: `✅ Found ${jobs.length} unique job listings!`, 
-      type: 'success' 
-    });
+    emitLog(io, `✅ Found ${jobs.length} unique job listings!`, 'success');
 
     // Show breakdown by source
     const sourceBreakdown = jobs.reduce((acc: any, job) => {
@@ -185,21 +163,11 @@ export const searchJobs = async (req: Request, res: Response) => {
     }, {});
     
     Object.entries(sourceBreakdown).forEach(([source, count]) => {
-      io.emit('log', { 
-        message: `  📌 ${source}: ${count} jobs`, 
-        type: 'info' 
-      });
+      emitLog(io, `  📌 ${source}: ${count} jobs`, 'info');
     });
 
-    io.emit('log', { 
-      message: '🤖 AI is analyzing job matches (this may take a moment)...', 
-      type: 'info' 
-    });
-    
-    io.emit('log', { 
-      message: '✨ Good matches (75%+) will appear in real-time below!', 
-      type: 'info' 
-    });
+    emitLog(io, '🤖 AI is analyzing job matches (this may take a moment)...', 'info');
+    emitLog(io, '✨ Good matches (75%+) will appear in real-time below!', 'info');
 
     // Match jobs using AI with real-time streaming (75% threshold for streaming)
     // Pass shouldStop callback to allow cancellation
@@ -228,40 +196,13 @@ export const searchJobs = async (req: Request, res: Response) => {
     fs.writeFileSync(summaryFile, summary);
 
     // Detailed results logging
-    io.emit('log', { 
-      message: `✅ AI Matching Complete!`, 
-      type: 'success' 
-    });
-
-    io.emit('log', { 
-      message: `📊 Match Distribution:`, 
-      type: 'info' 
-    });
-    
-    io.emit('log', { 
-      message: `  🟢 High Match (80%+): ${highMatch} jobs`, 
-      type: 'success' 
-    });
-    
-    io.emit('log', { 
-      message: `  🟡 Medium Match (60-79%): ${mediumMatch} jobs`, 
-      type: 'info' 
-    });
-    
-    io.emit('log', { 
-      message: `  🔴 Low Match (<60%): ${lowMatch} jobs`, 
-      type: 'info' 
-    });
-
-    io.emit('log', { 
-      message: `✨ ${goodMatches.length} jobs meet your ${preferences.notificationThreshold}% threshold`, 
-      type: 'success' 
-    });
-
-    io.emit('log', { 
-      message: `📋 Summary report: ${path.basename(summaryFile)}`, 
-      type: 'info' 
-    });
+    emitLog(io, '✅ AI Matching Complete!', 'success');
+    emitLog(io, '📊 Match Distribution:', 'info');
+    emitLog(io, `  🟢 High Match (80%+): ${highMatch} jobs`, 'success');
+    emitLog(io, `  🟡 Medium Match (60-79%): ${mediumMatch} jobs`, 'info');
+    emitLog(io, `  🔴 Low Match (<60%): ${lowMatch} jobs`, 'info');
+    emitLog(io, `✨ ${goodMatches.length} jobs meet your ${preferences.notificationThreshold}% threshold`, 'success');
+    emitLog(io, `📋 Summary report: ${path.basename(summaryFile)}`, 'info');
 
     // Check if process was stopped
     const wasStopped = processControlService.shouldStop('jobs');
@@ -339,7 +280,7 @@ export const aiSearch = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Please provide your job requirements' });
     }
 
-    io.emit('log', { message: '🤖 AI analyzing your job requirements...', type: 'info' });
+    emitLog(io, '🤖 AI analyzing your job requirements...', 'info');
 
     const result = await aiJobSearchService.searchByRequirements({
       prompt,
@@ -349,15 +290,8 @@ export const aiSearch = async (req: Request, res: Response) => {
       companyTypes
     });
 
-    io.emit('log', { 
-      message: `✅ Found ${result.companies.length} matching companies!`, 
-      type: 'success' 
-    });
-
-    io.emit('log', { 
-      message: `📝 Generated ${result.searchQueries.length} optimized search queries`, 
-      type: 'info' 
-    });
+    emitLog(io, `✅ Found ${result.companies.length} matching companies!`, 'success');
+    emitLog(io, `📝 Generated ${result.searchQueries.length} optimized search queries`, 'info');
 
     res.json({
       success: true,
@@ -387,14 +321,11 @@ export const getCareerPath = async (req: Request, res: Response) => {
     const fileContent = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
     const cvData = fileContent.cvData || fileContent;
 
-    io.emit('log', { message: '🎯 Analyzing your career path...', type: 'info' });
+    emitLog(io, '🎯 Analyzing your career path...', 'info');
 
     const careerPath = await aiJobSearchService.getCareerPath(cvData);
 
-    io.emit('log', { 
-      message: `✅ Career path analysis complete!`, 
-      type: 'success' 
-    });
+    emitLog(io, '✅ Career path analysis complete!', 'success');
 
     res.json({
       success: true,
@@ -414,14 +345,11 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
     const { query } = req.body;
     const io = req.app.get('io');
 
-    io.emit('log', { message: '🇮🇱 Searching Israeli tech job sites...', type: 'info' });
+    emitLog(io, '🇮🇱 Searching Israeli tech job sites...', 'info');
 
     const jobs = await israelTechScraperService.getAllIsraeliJobs(query);
 
-    io.emit('log', { 
-      message: `✅ Found ${jobs.length} jobs from Israeli tech sites`, 
-      type: 'success' 
-    });
+    emitLog(io, `✅ Found ${jobs.length} jobs from Israeli tech sites`, 'success');
 
     // Get CV data for matching if available
     let matchedJobs: any[] = jobs;
@@ -429,7 +357,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
       const fileContent = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
       const cvData = fileContent.cvData || fileContent;
       
-      io.emit('log', { message: '🤖 Matching jobs with your CV...', type: 'info' });
+      emitLog(io, '🤖 Matching jobs with your CV...', 'info');
       
       // Convert to expected format and match
       const formattedJobs = jobs.map(job => ({
