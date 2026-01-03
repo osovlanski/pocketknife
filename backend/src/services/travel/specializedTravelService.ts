@@ -1,6 +1,6 @@
 import axios from 'axios';
 import travelSearchService from './travelSearchService';
-import type { TripSearchRequest, FlightOffer, HotelOffer } from '../types/travel';
+import type { TripSearchRequest, FlightOffer, HotelOffer } from '../../types/travel';
 
 interface SkiResort {
   id: string;

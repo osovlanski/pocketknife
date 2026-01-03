@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { TripSearchRequest, FlightOffer, HotelOffer, TravelSearchResult, FlexibleDateResult } from '../types/travel';
+import type { TripSearchRequest, FlightOffer, HotelOffer, TravelSearchResult, FlexibleDateResult } from '../../types/travel';
 
 class TravelSearchService {
   private amadeusToken: string | null = null;

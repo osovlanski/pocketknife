@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { TripSearchRequest, TripPlan } from '../types/travel';
+import type { TripSearchRequest, TripPlan } from '../../types/travel';
 
 class TripPlanningService {
   private client: Anthropic | null = null;

@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import gmailService from './gmailService';
-import claudeService from './claudeService';
-import emailProcessor from '../utils/emailProcessor';
+import claudeService from '../core/claudeService';
+import emailProcessor from '../../utils/emailProcessor';
 
 interface SchedulerConfig {
   enabled: boolean;
