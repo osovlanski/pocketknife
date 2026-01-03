@@ -506,3 +506,125 @@ export async function getSolvedProblemCode(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * Run code against local test cases
+ */
+export async function runTests(req: Request, res: Response) {
+  try {
+    const { code, language, testCases } = req.body;
+
+    if (!code || !language || !testCases || !Array.isArray(testCases)) {
+      return res.status(400).json({ 
+        error: 'Code, language, and testCases array are required' 
+      });
+    }
+
+    console.log(`🧪 Running ${testCases.length} test cases for ${language} code`);
+
+    // Use Claude to simulate running the tests
+    const claudeService = (await import('../services/core/claudeService')).default;
+    
+    const prompt = `You are a code execution simulator. Analyze this ${language} code and determine what it would output for each test case.
+
+CODE:
+\`\`\`${language}
+${code}
+\`\`\`
+
+TEST CASES:
+${testCases.map((tc: { input: string; expected: string }, i: number) => 
+  `Test ${i + 1}: Input = ${tc.input}, Expected = ${tc.expected}`
+).join('\n')}
+
+For each test case, simulate running the code and determine:
+1. What the actual output would be
+2. Whether it matches the expected output
+
+IMPORTANT: 
+- Parse the input correctly (e.g., "[1,1,1,2,2,3]" is a list)
+- For the given code, identify the main function and call it with the parsed input
+- Return the result in the exact format expected
+
+Respond in this JSON format only:
+{
+  "results": [
+    {
+      "testCase": 1,
+      "input": "the input value",
+      "expected": "the expected value",
+      "actual": "the simulated output",
+      "passed": true/false,
+      "explanation": "brief explanation of what happened"
+    }
+  ],
+  "summary": {
+    "total": number,
+    "passed": number,
+    "failed": number
+  },
+  "codeIssues": ["any issues found in the code, like syntax errors or missing self parameter"]
+}`;
+
+    const response = await claudeService.generateText(prompt);
+    
+    // Try to parse the JSON response
+    let testResults;
+    try {
+      // Extract JSON from the response
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        testResults = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseError) {
+      // If parsing fails, return a formatted error response
+      testResults = {
+        results: testCases.map((tc: { input: string; expected: string }, i: number) => ({
+          testCase: i + 1,
+          input: tc.input,
+          expected: tc.expected,
+          actual: 'Unable to simulate',
+          passed: false,
+          explanation: 'Code simulation failed - check for syntax errors'
+        })),
+        summary: {
+          total: testCases.length,
+          passed: 0,
+          failed: testCases.length
+        },
+        codeIssues: ['Could not parse test results - please verify code syntax'],
+        rawResponse: response
+      };
+    }
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'problems',
+        action: 'run-tests',
+        details: `Ran ${testCases.length} test cases`,
+        metadata: {
+          language,
+          testCount: testCases.length,
+          passed: testResults.summary?.passed || 0,
+          failed: testResults.summary?.failed || 0
+        },
+        status: 'success'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...testResults
+    });
+  } catch (error: any) {
+    console.error('❌ Run tests error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to run tests'
+    });
+  }
+}

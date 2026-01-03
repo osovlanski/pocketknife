@@ -11,7 +11,8 @@ import {
   getCuratedLists,
   saveSolvedProblem,
   getSolvedProblems,
-  getSolvedProblemCode
+  getSolvedProblemCode,
+  runTests
 } from '../controllers/problemSolvingController';
 
 const router = Router();
@@ -51,6 +52,9 @@ router.get('/solved', getSolvedProblems);
 
 // Get specific solved problem with code
 router.get('/solved/:problemId/:source?', getSolvedProblemCode);
+
+// Run code against test cases
+router.post('/test', runTests);
 
 export default router;
 

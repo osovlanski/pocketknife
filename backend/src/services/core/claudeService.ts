@@ -177,6 +177,36 @@ Respond ONLY with valid JSON:
       };
     }
   }
+
+  /**
+   * General purpose text generation
+   */
+  async generateText(prompt: string, maxTokens: number = 4096): Promise<string> {
+    try {
+      this.initializeClient();
+      
+      if (!this.client) {
+        throw new Error('Failed to initialize Anthropic client');
+      }
+
+      const message = await this.client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      const textBlock = message.content.find(block => block.type === 'text');
+      return textBlock?.type === 'text' ? textBlock.text : '';
+    } catch (error) {
+      console.error('Error generating text:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ClaudeService();
