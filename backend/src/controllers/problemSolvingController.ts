@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import problemSolvingService from '../services/problemSolving/problemSolvingService';
 import { getCompanyProfile, getAllCompanyNames } from '../data/companyMappings';
 import { BLIND_75, NEETCODE_EXTRA, GRIND_75 } from '../data/curatedProblems';
+import { databaseService, getPrisma } from '../services/core/databaseService';
 
 /**
  * Search for coding problems from various sources
@@ -295,6 +296,213 @@ export async function getCuratedLists(req: Request, res: Response) {
     console.error('❌ Get curated lists error:', error);
     res.status(500).json({
       error: error.message || 'Failed to get curated lists'
+    });
+  }
+}
+
+/**
+ * Save a solved problem to the database
+ */
+export async function saveSolvedProblem(req: Request, res: Response) {
+  try {
+    const { 
+      problemId, 
+      title, 
+      source, 
+      difficulty, 
+      language, 
+      code, 
+      score,
+      topics,
+      companyTags,
+      listTags,
+      hints,
+      attempts
+    } = req.body;
+
+    // Validation
+    if (!problemId || !title || !source || !difficulty || !language || !code) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: problemId, title, source, difficulty, language, code' 
+      });
+    }
+
+    const prisma = getPrisma();
+    if (!prisma) {
+      return res.status(503).json({ 
+        error: 'Database not available. Your solution was evaluated but not saved.' 
+      });
+    }
+
+    // Get or create default user
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(500).json({ error: 'Failed to get/create user' });
+    }
+
+    console.log(`💾 Saving solved problem: "${title}" for user ${user.email}`);
+
+    // Upsert the solved problem (update if exists, create if not)
+    const solvedProblem = await prisma.solvedProblem.upsert({
+      where: {
+        userId_problemId_source: {
+          userId: user.id,
+          problemId: problemId,
+          source: source
+        }
+      },
+      update: {
+        code: code,
+        language: language,
+        score: score || null,
+        topics: topics || [],
+        companyTags: companyTags || [],
+        listTags: listTags || [],
+        hints: hints || 0,
+        attempts: { increment: 1 },
+        updatedAt: new Date()
+      },
+      create: {
+        userId: user.id,
+        problemId: problemId,
+        title: title,
+        source: source,
+        difficulty: difficulty,
+        language: language,
+        code: code,
+        score: score || null,
+        topics: topics || [],
+        companyTags: companyTags || [],
+        listTags: listTags || [],
+        hints: hints || 0,
+        attempts: attempts || 1
+      }
+    });
+
+    // Log activity
+    await databaseService.logActivity({
+      userId: user.id,
+      agent: 'problem',
+      action: 'save_solution',
+      details: `Saved solution for "${title}" in ${language}`,
+      metadata: { problemId, source, score, difficulty },
+      status: 'success'
+    });
+
+    console.log(`✅ Problem saved successfully: ${solvedProblem.id}`);
+
+    res.json({
+      success: true,
+      message: 'Solution saved successfully',
+      solvedProblem: {
+        id: solvedProblem.id,
+        problemId: solvedProblem.problemId,
+        title: solvedProblem.title,
+        score: solvedProblem.score,
+        attempts: solvedProblem.attempts,
+        solvedAt: solvedProblem.solvedAt
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Save solved problem error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to save solution'
+    });
+  }
+}
+
+/**
+ * Get user's solved problems
+ */
+export async function getSolvedProblems(req: Request, res: Response) {
+  try {
+    const prisma = getPrisma();
+    if (!prisma) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(500).json({ error: 'Failed to get user' });
+    }
+
+    const { source, difficulty, limit } = req.query;
+
+    const where: any = { userId: user.id };
+    if (source) where.source = source;
+    if (difficulty) where.difficulty = difficulty;
+
+    const solvedProblems = await prisma.solvedProblem.findMany({
+      where,
+      orderBy: { solvedAt: 'desc' },
+      take: limit ? parseInt(limit as string) : 50,
+      select: {
+        id: true,
+        problemId: true,
+        title: true,
+        source: true,
+        difficulty: true,
+        language: true,
+        score: true,
+        attempts: true,
+        hints: true,
+        topics: true,
+        companyTags: true,
+        listTags: true,
+        solvedAt: true
+      }
+    });
+
+    res.json({
+      success: true,
+      count: solvedProblems.length,
+      solvedProblems
+    });
+  } catch (error: any) {
+    console.error('❌ Get solved problems error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to get solved problems'
+    });
+  }
+}
+
+/**
+ * Get a specific solved problem's code
+ */
+export async function getSolvedProblemCode(req: Request, res: Response) {
+  try {
+    const { problemId, source } = req.params;
+
+    const prisma = getPrisma();
+    if (!prisma) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(500).json({ error: 'Failed to get user' });
+    }
+
+    const solvedProblem = await prisma.solvedProblem.findFirst({
+      where: {
+        userId: user.id,
+        problemId: problemId,
+        source: source || undefined
+      }
+    });
+
+    if (!solvedProblem) {
+      return res.status(404).json({ error: 'Solved problem not found' });
+    }
+
+    res.json({
+      success: true,
+      solvedProblem
+    });
+  } catch (error: any) {
+    console.error('❌ Get solved problem code error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to get solved problem code'
     });
   }
 }

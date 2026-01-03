@@ -66,6 +66,9 @@ const ProblemSolvingAgent = () => {
   // Method signature generation
   const [isGeneratingSignature, setIsGeneratingSignature] = useState(false);
 
+  // Save status for DB persistence
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
+
   const [selectedList, setSelectedList] = useState<string>('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['curated', 'leetcode', 'codeforces']);
 
@@ -600,6 +603,7 @@ func main() {
     try {
       setIsEvaluating(true);
       setEvaluation(null);
+      setSaveStatus(null);
 
       const response = await fetch('http://localhost:5000/api/problems/evaluate', {
         method: 'POST',
@@ -615,6 +619,39 @@ func main() {
       const data = await response.json();
       if (data.evaluation) {
         setEvaluation(data.evaluation);
+        
+        // Save to database after successful evaluation
+        try {
+          const saveResponse = await fetch('http://localhost:5000/api/problems/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              problemId: selectedProblem.id,
+              title: selectedProblem.title,
+              source: selectedProblem.source,
+              difficulty: selectedProblem.difficulty,
+              language: language,
+              code: code,
+              score: data.evaluation.score,
+              topics: selectedProblem.tags || [],
+              companyTags: selectedProblem.company ? [selectedProblem.company] : [],
+              listTags: [],
+              hints: hints.length > 0 ? 1 : 0
+            })
+          });
+          
+          const saveData = await saveResponse.json();
+          if (saveData.success) {
+            setSaveStatus({ type: 'success', message: 'Solution saved!' });
+            // Clear status after 3 seconds
+            setTimeout(() => setSaveStatus(null), 3000);
+          } else {
+            setSaveStatus({ type: 'warning', message: saveData.error || 'Could not save solution' });
+          }
+        } catch (saveError: any) {
+          console.warn('Failed to save solution:', saveError.message);
+          setSaveStatus({ type: 'warning', message: 'Evaluated but not saved (DB unavailable)' });
+        }
       }
     } catch (error: any) {
       console.error('Failed to evaluate code:', error.message);
@@ -1035,10 +1072,10 @@ func main() {
 
           {/* Right Panel - Code Editor & Evaluation */}
           {selectedProblem && (
-            <div className="flex-1 flex flex-col gap-4 min-w-0">
+            <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
               {/* Code Editor */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden flex-1 flex flex-col">
-                <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/10">
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden flex-1 flex flex-col min-h-[300px]">
+                <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/10 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Code className="w-4 h-4 text-blue-400" />
                     <span className="text-sm font-semibold">Code Editor</span>
@@ -1094,7 +1131,7 @@ func main() {
                     </button>
                   </div>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-h-0">
                   {showDiffView ? (
                     <DiffEditor
                       height="100%"
@@ -1156,7 +1193,20 @@ func main() {
                       <Trophy className={`w-6 h-6 ${getScoreColor(evaluation.score)}`} />
                       <div>
                         <h3 className="text-lg font-bold">Evaluation Result</h3>
-                        <p className="text-xs text-slate-400">AI-powered code analysis</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-slate-400">AI-powered code analysis</p>
+                          {saveStatus && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              saveStatus.type === 'success' 
+                                ? 'bg-green-500/30 text-green-300' 
+                                : saveStatus.type === 'warning'
+                                  ? 'bg-amber-500/30 text-amber-300'
+                                  : 'bg-red-500/30 text-red-300'
+                            }`}>
+                              {saveStatus.message}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className={`text-4xl font-bold ${getScoreColor(evaluation.score)}`}>

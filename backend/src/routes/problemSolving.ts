@@ -8,7 +8,10 @@ import {
   generateImprovedCode,
   getCompanyInterviewProfile,
   getAllCompanies,
-  getCuratedLists
+  getCuratedLists,
+  saveSolvedProblem,
+  getSolvedProblems,
+  getSolvedProblemCode
 } from '../controllers/problemSolvingController';
 
 const router = Router();
@@ -39,6 +42,15 @@ router.get('/companies', getAllCompanies);
 
 // Get curated problem lists info
 router.get('/curated-lists', getCuratedLists);
+
+// Save solved problem to database
+router.post('/save', saveSolvedProblem);
+
+// Get user's solved problems
+router.get('/solved', getSolvedProblems);
+
+// Get specific solved problem with code
+router.get('/solved/:problemId/:source?', getSolvedProblemCode);
 
 export default router;
 
