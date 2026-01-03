@@ -20,7 +20,9 @@ interface LearningResource {
 interface SearchFilters {
   topics: string[];
   sources: string[];
-  timeRange: 'day' | 'week' | 'month' | 'all';
+  timeRange: 'day' | 'week' | 'month' | 'year' | 'custom' | 'all';
+  customDateFrom?: string;
+  customDateTo?: string;
 }
 
 interface LinkedInInfo {
@@ -51,6 +53,7 @@ const LearningAgent = () => {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [savedArticles, setSavedArticles] = useState<LearningResource[]>([]);
   const [showSavedArticles, setShowSavedArticles] = useState(false);
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -524,20 +527,70 @@ const LearningAgent = () => {
           {/* Time Filter */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-slate-400 text-sm w-16 ml-5">Time:</span>
-            {['day', 'week', 'month', 'all'].map((range) => (
+            {['day', 'week', 'month', 'year', 'all'].map((range) => (
               <button
                 key={range}
-                onClick={() => setFilters(prev => ({ ...prev, timeRange: range as any }))}
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, timeRange: range as any }));
+                  setShowCustomDatePicker(false);
+                }}
                 className={`text-xs px-3 py-1 rounded-full transition-colors ${
                   filters.timeRange === range
                     ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
                     : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
                 }`}
               >
-                {range === 'day' ? 'Today' : range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
+                {range === 'day' ? 'Today' : 
+                 range === 'week' ? 'This Week' : 
+                 range === 'month' ? 'This Month' : 
+                 range === 'year' ? 'This Year' : 'All Time'}
               </button>
             ))}
+            {/* Custom Date Button */}
+            <button
+              onClick={() => {
+                setFilters(prev => ({ ...prev, timeRange: 'custom' }));
+                setShowCustomDatePicker(true);
+              }}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                filters.timeRange === 'custom'
+                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
+                  : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
+              }`}
+            >
+              Custom
+            </button>
           </div>
+          
+          {/* Custom Date Picker */}
+          {showCustomDatePicker && (
+            <div className="flex items-center gap-3 ml-5 mt-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">From:</span>
+                <input
+                  type="date"
+                  value={filters.customDateFrom || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, customDateFrom: e.target.value }))}
+                  className="text-xs bg-slate-700/50 border border-slate-600/50 rounded px-2 py-1 text-white focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">To:</span>
+                <input
+                  type="date"
+                  value={filters.customDateTo || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, customDateTo: e.target.value }))}
+                  className="text-xs bg-slate-700/50 border border-slate-600/50 rounded px-2 py-1 text-white focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <button
+                onClick={() => setShowCustomDatePicker(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* LinkedIn Premium Info Panel */}
           {showLinkedInInfo && linkedInInfo && (

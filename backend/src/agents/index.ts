@@ -43,3 +43,5 @@ export const initializeAgents = () => {
   console.log(`   📦 Registered: ${agentRegistry.getAll().map(a => a.metadata.name).join(', ')}`);
 };
 
+
+

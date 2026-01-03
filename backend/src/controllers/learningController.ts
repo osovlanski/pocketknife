@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import learningService from '../services/learning/learningService';
+import { databaseService } from '../services/core/databaseService';
 
 // Initialize LinkedIn from environment on startup
 if (process.env.LINKEDIN_ACCESS_TOKEN) {
@@ -31,6 +32,19 @@ export async function searchLearningResources(req: Request, res: Response) {
       timeRange
     }, io);
 
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'learning',
+        action: 'search',
+        details: `Searched for: ${query}`,
+        metadata: { query, sources, timeRange, resultsCount: resources.length },
+        status: 'success'
+      });
+    }
+
     res.json({
       success: true,
       query,
@@ -59,6 +73,19 @@ export async function summarizeArticle(req: Request, res: Response) {
     console.log(`📝 Expert summarize request for: ${title || url}`);
 
     const summary = await learningService.summarizeArticle(url, title || 'Article');
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'learning',
+        action: 'summarize-article',
+        details: `Summarized: ${title || url}`,
+        metadata: { url, title, summaryLength: summary.length },
+        status: 'success'
+      });
+    }
 
     res.json({
       success: true,
@@ -133,6 +160,19 @@ export async function generateTopicSummary(req: Request, res: Response) {
     console.log(`📚 Generating topic summary for: "${topic}"`);
 
     const summary = await learningService.generateTopicSummary(topic);
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'learning',
+        action: 'topic-summary',
+        details: `Generated topic summary for: ${topic}`,
+        metadata: { topic, summaryLength: summary.length },
+        status: 'success'
+      });
+    }
 
     res.json({
       success: true,

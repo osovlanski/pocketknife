@@ -6,6 +6,7 @@ import aiJobSearchService from '../services/jobs/aiJobSearchService';
 import israelTechScraperService from '../services/jobs/israelTechScraperService';
 import companyEnrichmentService from '../services/jobs/companyEnrichmentService';
 import processControlService from '../services/core/processControlService';
+import { databaseService } from '../services/core/databaseService';
 import fs from 'fs';
 import path from 'path';
 
@@ -49,6 +50,23 @@ export const uploadCV = async (req: Request, res: Response) => {
     fs.writeFileSync(CV_DATA_FILE, JSON.stringify({ cvData, preferences }, null, 2));
 
     emitLog(io, `✅ CV analyzed! Found ${cvData.skills.length} skills and ${cvData.experience.length} experience entries`, 'success');
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'jobs',
+        action: 'upload-cv',
+        details: `CV analyzed with ${cvData.skills.length} skills`,
+        metadata: {
+          skillsCount: cvData.skills.length,
+          experienceCount: cvData.experience.length,
+          educationCount: cvData.education?.length || 0
+        },
+        status: 'success'
+      });
+    }
 
     res.json({
       message: 'CV analyzed successfully',
@@ -207,6 +225,26 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Check if process was stopped
     const wasStopped = processControlService.shouldStop('jobs');
     processControlService.completeProcess('jobs', wasStopped);
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'jobs',
+        action: 'search',
+        details: `Job search: ${searchQuery}`,
+        metadata: {
+          query: searchQuery,
+          location: location || preferredLocations.join(', '),
+          totalJobs: jobs.length,
+          matchedJobs: goodMatches.length,
+          highMatchCount: highMatch,
+          mediumMatchCount: mediumMatch
+        },
+        status: wasStopped ? 'warning' : 'success'
+      });
+    }
 
     res.json({
       message: wasStopped ? 'Job search stopped by user' : 'Job search completed',

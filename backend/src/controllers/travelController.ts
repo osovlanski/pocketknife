@@ -3,6 +3,7 @@ import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
 import processControlService from '../services/core/processControlService';
+import { databaseService } from '../services/core/databaseService';
 import type { TripSearchRequest } from '../types/travel';
 
 /**
@@ -81,6 +82,25 @@ export const searchTravel = async (req: Request, res: Response) => {
     }
 
     console.log(`✅ Travel search complete: ${results.flights.length} flights, ${results.hotels.length} hotels`);
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'travel',
+        action: 'search',
+        details: `Searched: ${searchRequest.origin} → ${searchRequest.destinations[0]}`,
+        metadata: {
+          origin: searchRequest.origin,
+          destination: searchRequest.destinations[0],
+          departureDate: searchRequest.departureDate,
+          flightsFound: results.flights.length,
+          hotelsFound: results.hotels.length
+        },
+        status: 'success'
+      });
+    }
 
     // Complete the process
     const wasStopped = processControlService.shouldStop('travel');
@@ -181,6 +201,25 @@ export const searchSkiDeals = async (req: Request, res: Response) => {
     processControlService.completeProcess('ski', wasStopped);
 
     emitLog(io, `✅ Found ${skiDeals.length} ski deals`, 'success');
+
+    // Log activity to database
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'travel',
+        action: 'search-ski',
+        details: `Ski search from ${origin}`,
+        metadata: {
+          origin,
+          departureDate,
+          returnDate,
+          preferences,
+          dealsFound: skiDeals.length
+        },
+        status: 'success'
+      });
+    }
 
     res.json({
       success: true,
