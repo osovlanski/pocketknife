@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node backend/dist/index.js",
     "build": "tsc -p backend/tsconfig.json",
-    "dev": "ts-node-dev backend/src/index.ts",
-    "frontend": "vite --config frontend/vite.config.ts",
-    "frontend:build": "vite build --config frontend/vite.config.ts"
+    "dev": "cd backend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build"
   },
   "dependencies": {
     "express": "^4.17.1",

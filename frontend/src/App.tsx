@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Briefcase, Plane, BookOpen, Wrench } from 'lucide-react';
+import { Mail, Briefcase, Plane, BookOpen, Code, CheckCircle, XCircle, X, Wrench } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import GmailAgent from './components/GmailAgent';
 import JobSearchPanel from './components/JobSearchPanel';
@@ -9,11 +9,21 @@ import FlightResults from './components/FlightResults';
 import HotelResults from './components/HotelResults';
 import TripPlanner from './components/TripPlanner';
 import LearningAgent from './components/LearningAgent';
+import ProblemSolvingAgent from './components/ProblemSolvingAgent';
+import ActivityLog from './components/ActivityLog';
+import useSearchController from './hooks/useSearchController';
 import { searchTravel, type TravelSearchResponse } from './services/travelApi';
 import type { TravelSearchQuery } from './types/travel';
 
+interface LogEntry {
+  id: string;
+  timestamp: Date;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
+
 const App = () => {
-  const [activeTab, setActiveTab] = useState<'email' | 'jobs' | 'travel' | 'learning'>('email');
+  const [activeTab, setActiveTab] = useState<'email' | 'jobs' | 'travel' | 'learning' | 'problems'>('email');
   const [jobs, setJobs] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveMatches, setLiveMatches] = useState<number>(0);
@@ -22,6 +32,40 @@ const App = () => {
   const [travelResults, setTravelResults] = useState<TravelSearchResponse | null>(null);
   const [travelLoading, setTravelLoading] = useState(false);
   const [travelError, setTravelError] = useState<string | null>(null);
+  
+  // Auth notification state
+  const [authNotification, setAuthNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
+  // Activity log state
+  const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
+  
+  // Global search controller for job search
+  const jobSearchController = useSearchController('jobs');
+
+  // Handle Google OAuth callback from URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authStatus = urlParams.get('auth');
+    const authMessage = urlParams.get('message');
+    
+    if (authStatus === 'success') {
+      setAuthNotification({
+        type: 'success',
+        message: 'Google account connected successfully! You can now use Gmail and Drive features.'
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => setAuthNotification(null), 5000);
+    } else if (authStatus === 'error') {
+      setAuthNotification({
+        type: 'error',
+        message: authMessage || 'Failed to connect Google account. Please try again.'
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Initialize Socket.io connection
   useEffect(() => {
@@ -46,16 +90,34 @@ const App = () => {
       setLiveMatches(prev => prev + 1);
     });
 
+    // Listen for activity logs
+    newSocket.on('log', (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => {
+      const newLog: LogEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(),
+        message: data.message,
+        type: data.type || 'info'
+      };
+      
+      setActivityLogs(prevLogs => [...prevLogs, newLog]);
+    });
+
     return () => {
       newSocket.close();
     };
   }, []);
+
+  const handleClearLogs = () => {
+    setActivityLogs([]);
+  };
 
   const handleCVUploaded = (data: any) => {
     console.log('CV uploaded:', data);
   };
 
   const handleJobSearch = async (location?: string, remoteOnly?: boolean, filters?: any) => {
+    const controller = jobSearchController.start();
+    
     try {
       // Clear previous jobs and reset live matches counter
       setJobs([]);
@@ -64,7 +126,8 @@ const App = () => {
       const response = await fetch('http://localhost:5000/api/jobs/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location, remoteOnly, ...filters })
+        body: JSON.stringify({ location, remoteOnly, ...filters }),
+        signal: controller.signal
       });
       const data = await response.json();
       
@@ -76,10 +139,27 @@ const App = () => {
       if (data.summary) {
         console.log('Job Search Summary:\n', data.summary);
       }
-    } catch (error) {
-      console.error('Error searching jobs:', error);
-      alert('Error searching for jobs');
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Job search was stopped by user');
+        // Add log entry for stopped search
+        setActivityLogs(prev => [...prev, {
+          id: `${Date.now()}`,
+          timestamp: new Date(),
+          message: '🛑 Search stopped by user',
+          type: 'warning'
+        }]);
+      } else {
+        console.error('Error searching jobs:', error);
+        alert('Error searching for jobs');
+      }
+    } finally {
+      jobSearchController.reset();
     }
+  };
+
+  const handleStopJobSearch = () => {
+    jobSearchController.stop();
   };
 
   const handleTravelSearch = async (query: TravelSearchQuery) => {
@@ -112,6 +192,37 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      {/* Auth Notification Toast */}
+      {authNotification && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-xl shadow-2xl border backdrop-blur-lg ${
+          authNotification.type === 'success' 
+            ? 'bg-green-500/20 border-green-500/50' 
+            : 'bg-red-500/20 border-red-500/50'
+        }`}>
+          <div className="flex items-start gap-3">
+            {authNotification.type === 'success' ? (
+              <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+            ) : (
+              <XCircle className="w-6 h-6 text-red-400 flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              <p className={`font-semibold ${
+                authNotification.type === 'success' ? 'text-green-300' : 'text-red-300'
+              }`}>
+                {authNotification.type === 'success' ? 'Success!' : 'Error'}
+              </p>
+              <p className="text-sm text-slate-200 mt-1">{authNotification.message}</p>
+            </div>
+            <button 
+              onClick={() => setAuthNotification(null)}
+              className="text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-black/50 border-b border-white/10 py-4">
         <div className="max-w-7xl mx-auto px-6">
@@ -188,6 +299,17 @@ const App = () => {
               <BookOpen className="w-5 h-5" />
               Learning
             </button>
+            <button
+              onClick={() => setActiveTab('problems')}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
+                activeTab === 'problems'
+                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-cyan-400 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Code className="w-5 h-5" />
+              Problem Solving
+            </button>
           </div>
         </div>
       </div>
@@ -208,6 +330,9 @@ const App = () => {
             <JobSearchPanel
               onCVUploaded={handleCVUploaded}
               onSearch={handleJobSearch}
+              onStop={handleStopJobSearch}
+              isSearching={jobSearchController.state.isSearching}
+              isStopping={jobSearchController.state.isStopping}
             />
 
             {jobs.length > 0 && (
@@ -255,7 +380,12 @@ const App = () => {
         )}
 
         {activeTab === 'learning' && <LearningAgent />}
+        
+        {activeTab === 'problems' && <ProblemSolvingAgent />}
       </div>
+      
+      {/* Activity Log - global across all tabs */}
+      <ActivityLog logs={activityLogs} onClear={handleClearLogs} />
     </div>
   );
 };

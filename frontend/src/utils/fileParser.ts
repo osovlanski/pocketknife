@@ -2,6 +2,9 @@
  * Extract text from different file types
  */
 
+// Initialize PDF.js worker once
+let pdfWorkerInitialized = false;
+
 export async function extractTextFromFile(file: File): Promise<string> {
   const fileType = file.type;
   const fileName = file.name.toLowerCase();
@@ -41,17 +44,25 @@ async function readAsText(file: File): Promise<string> {
 
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    // Use pdfjs-dist library
-    const pdfjsLib = await import('pdfjs-dist') as any;
+    // Dynamically import pdfjs-dist
+    const pdfjs = await import('pdfjs-dist');
     
-    // Set worker path
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+    // Configure worker - use CDN for pdfjs-dist v4.x
+    if (!pdfWorkerInitialized) {
+      // Use CDN worker that matches our installed version (4.4.168)
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+      pdfWorkerInitialized = true;
+    }
 
     // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
     // Load PDF
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(arrayBuffer),
+    });
+    
+    const pdf = await loadingTask.promise;
     
     let fullText = '';
     
@@ -65,10 +76,52 @@ async function extractTextFromPDF(file: File): Promise<string> {
       fullText += pageText + '\n';
     }
     
-    return fullText;
-  } catch (error) {
+    // Check if we got any meaningful text
+    const trimmedText = fullText.trim();
+    if (!trimmedText || trimmedText.length < 20) {
+      throw new Error('scanned-pdf');
+    }
+    
+    return trimmedText;
+  } catch (error: any) {
     console.error('Error parsing PDF:', error);
-    throw new Error('Failed to parse PDF. Please try uploading as a .txt file or paste the text directly.');
+    
+    // Provide more helpful error messages
+    if (error.message === 'scanned-pdf') {
+      throw new Error('This PDF appears to be scanned/image-based and cannot be read automatically. Please copy the text manually or use a text-based PDF.');
+    }
+    
+    // Try alternative approach with a fallback
+    console.log('Primary PDF parsing failed, trying fallback...');
+    return await extractTextFromPDFFallback(file);
+  }
+}
+
+/**
+ * Fallback PDF extraction using a simpler approach
+ */
+async function extractTextFromPDFFallback(file: File): Promise<string> {
+  try {
+    // Use a simpler approach - try to read as text (works for some PDFs)
+    const text = await readAsText(file);
+    
+    // Try to extract readable text from binary PDF
+    // PDFs often have text content between stream markers
+    const textMatches = text.match(/\((.*?)\)/g);
+    if (textMatches && textMatches.length > 10) {
+      const extractedText = textMatches
+        .map(m => m.slice(1, -1))
+        .filter(t => t.length > 0 && /[a-zA-Z]/.test(t))
+        .join(' ');
+      
+      if (extractedText.length > 100) {
+        return extractedText;
+      }
+    }
+    
+    throw new Error('Could not extract text');
+  } catch {
+    throw new Error('Failed to parse PDF. Please try one of these options:\n• Save your CV as a .docx file and upload\n• Copy and paste your CV text directly into the text box\n• Use a text-based PDF (not scanned)');
   }
 }
 

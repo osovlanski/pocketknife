@@ -1,8 +1,8 @@
-import gmailService from '../services/gmailService';
-import driveService from '../services/driveService';
-import emailNotificationService from '../services/emailNotificationService';
-import discordNotificationService from '../services/discordNotificationService';
-import telegramNotificationService from '../services/telegramNotificationService';
+import gmailService from '../services/email/gmailService';
+import driveService from '../services/email/driveService';
+import emailNotificationService from '../services/email/emailNotificationService';
+import discordNotificationService from '../services/notifications/discordNotificationService';
+import telegramNotificationService from '../services/notifications/telegramNotificationService';
 
 class EmailProcessor {
   async initialize(oauth2Client: any) {

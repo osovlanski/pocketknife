@@ -6,6 +6,7 @@ import {
     processAllEmails, 
     testNotification,
     getInvoices,
+    getGoogleAuthStatus,
     getSchedulerStatus,
     startScheduler,
     stopScheduler,
@@ -15,6 +16,8 @@ import * as configController from '../controllers/configController';
 import jobRoutes from './jobs';
 import travelRoutes from './travel';
 import learningRoutes from './learning';
+import problemSolvingRoutes from './problemSolving';
+import authRoutes from './auth';
 
 const router = Router();
 
@@ -25,6 +28,7 @@ router.get('/agent/emails', getUnprocessedEmails);
 router.post('/agent/process-all', processAllEmails);
 router.post('/agent/test-notification', testNotification);
 router.get('/agent/invoices', getInvoices);
+router.get('/agent/google-auth-status', getGoogleAuthStatus);
 
 // Email Scheduler routes (automation)
 router.get('/agent/scheduler/status', getSchedulerStatus);
@@ -41,8 +45,14 @@ router.use('/travel', travelRoutes);
 // Learning agent routes
 router.use('/learning', learningRoutes);
 
+// Problem solving agent routes
+router.use('/problems', problemSolvingRoutes);
+
 // Configuration routes
 router.get('/config', configController.getConfig);
 router.post('/config', configController.updateConfig);
+
+// Auth routes (Google OAuth)
+router.use('/auth', authRoutes);
 
 export default router;

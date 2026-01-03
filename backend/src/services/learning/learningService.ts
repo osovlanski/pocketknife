@@ -533,6 +533,51 @@ class LearningService {
   }
 
   /**
+   * Generate AI-powered topic summary for improving developer skills
+   * Uses Claude Sonnet 4.5 to provide comprehensive topic overview
+   */
+  async generateTopicSummary(topic: string): Promise<string> {
+    this.initializeAnthropic();
+
+    if (!this.anthropicClient) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    try {
+      console.log(`📚 Generating topic summary for: ${topic}`);
+
+      const message = await this.anthropicClient.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `You are a senior software engineer and expert technical educator. We would like to improve skills in some features for developers from both technical and design perspectives.
+
+For the topic: "${topic}"
+
+Please provide a comprehensive summary that includes:
+
+1. **Overview** - A brief introduction to the topic and why it matters for developers
+2. **Key Concepts** - Bullet points covering the fundamental concepts and principles
+3. **Technical Deep Dive** - Important technical details, patterns, and best practices
+4. **Design & Architecture** - High-level design flows, architectural patterns, and system design considerations
+5. **Common Pitfalls** - What to watch out for and common mistakes
+6. **Practical Applications** - Real-world use cases and examples
+7. **Learning Path** - Recommended steps to master this topic
+
+Format the response with clear sections using emojis and bullet points for easy reading. Make it actionable and comprehensive, suitable for developers looking to improve their skills in this area.`
+        }]
+      });
+
+      const firstBlock = message.content[0];
+      return firstBlock.type === 'text' ? firstBlock.text.trim() : 'Summary not available';
+    } catch (error: any) {
+      console.error('❌ Topic summary generation failed:', error.message);
+      throw new Error('Failed to generate topic summary');
+    }
+  }
+
+  /**
    * Summarize an article using Claude AI - Expert Level Summary
    * Like a student summarizing for a professor: structured, detailed, actionable
    */

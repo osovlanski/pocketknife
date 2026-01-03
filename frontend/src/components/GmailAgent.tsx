@@ -1,44 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, XCircle, Square, Building2 } from 'lucide-react';
+import { Mail, FileText, MessageSquare, Trash2, Play, CheckCircle, AlertCircle, Square, Building2 } from 'lucide-react';
 import { processAllEmails, testNotification } from '../services/api';
 import InvoiceList from './InvoiceList';
 import { io, Socket } from 'socket.io-client';
+import useSearchController from '../hooks/useSearchController';
 
 const GmailAgent = () => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [isStopping, setIsStopping] = useState(false);
-  const [logs, setLogs] = useState<Array<{ message: string; type: string; timestamp: string }>>([]);
+  const searchController = useSearchController('email');
   const [stats, setStats] = useState({ invoices: 0, jobOffers: 0, official: 0, spam: 0, processed: 0 });
   const [config, setConfig] = useState({
     notificationMethod: 'email',
     checkInterval: 60
   });
   const socketRef = useRef<Socket | null>(null);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll to bottom of logs
-  const scrollToBottom = () => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [logs]);
-
-  // Connect to Socket.io for real-time logs
+  // Connect to Socket.io for real-time stats updates
   useEffect(() => {
     socketRef.current = io('http://localhost:5000');
     
-    socketRef.current.on('connect', () => {
-      console.log('✅ Connected to backend');
-      addLog('🔌 Connected to backend server', 'success');
-    });
-
     socketRef.current.on('log', (data: { message: string; type: string; details?: any }) => {
-      addLog(data.message, data.type);
-      
-      // Update stats if details included
+      // Update stats if details included (logs go to global ActivityLog now)
       if (data.details) {
         if (data.details.invoices !== undefined) {
           setStats(prev => ({ ...prev, invoices: data.details.invoices }));
@@ -58,35 +39,15 @@ const GmailAgent = () => {
       }
     });
 
-    socketRef.current.on('disconnect', () => {
-      console.log('❌ Disconnected from backend');
-      addLog('🔌 Disconnected from backend server', 'warning');
-    });
-
     return () => {
       socketRef.current?.disconnect();
     };
   }, []);
 
-  const addLog = (message: string, type = 'info') => {
-    setLogs(prev => [...prev, { 
-      message, 
-      type, 
-      timestamp: new Date().toLocaleTimeString() 
-    }].slice(-100)); // Keep last 100 logs
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
-    addLog('🧹 Activity log cleared', 'info');
-  };
-
   const handleProcessAll = async () => {
+    searchController.start();
+    
     try {
-      setIsRunning(true);
-      setIsStopping(false);
-      abortControllerRef.current = new AbortController();
-      
       const result = await processAllEmails();
       
       // Final update from API response
@@ -101,31 +62,18 @@ const GmailAgent = () => {
       }
       
     } catch (error: any) {
-      if (error.name === 'AbortError' || isStopping) {
-        addLog('⏹️ Processing stopped by user', 'warning');
+      if (error.name === 'AbortError') {
+        console.log('Processing stopped by user');
       } else {
-        const errorMsg = error.message || 'Unknown error';
-        if (errorMsg.includes('APIConnectionError') || errorMsg.includes('Connection error')) {
-          addLog(`❌ API Connection Error: Unable to connect to Claude API. Please check your internet connection.`, 'error');
-        } else if (errorMsg.includes('authentication')) {
-          addLog(`❌ Authentication Error: ${errorMsg}`, 'error');
-        } else {
-          addLog(`❌ Error: ${errorMsg}`, 'error');
-        }
+        console.error('Processing error:', error.message);
       }
     } finally {
-      setIsRunning(false);
-      setIsStopping(false);
-      abortControllerRef.current = null;
+      searchController.reset();
     }
   };
 
   const handleStop = () => {
-    if (abortControllerRef.current) {
-      setIsStopping(true);
-      abortControllerRef.current.abort();
-      addLog('⏳ Stopping processing...', 'warning');
-    }
+    searchController.stop();
   };
 
   const handleTestNotification = async () => {
@@ -234,23 +182,14 @@ const GmailAgent = () => {
                 <AlertCircle className="w-5 h-5" />
                 Test Notification
               </button>
-              {isRunning ? (
+              {searchController.state.isSearching ? (
                 <button
                   onClick={handleStop}
-                  disabled={isStopping}
+                  disabled={searchController.state.isStopping}
                   className="flex items-center gap-2 bg-red-500 hover:bg-red-600 px-6 py-2 rounded-lg transition-all disabled:opacity-50 font-semibold"
                 >
-                  {isStopping ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Stopping...
-                    </>
-                  ) : (
-                    <>
-                      <Square className="w-5 h-5" />
-                      Stop
-                    </>
-                  )}
+                  <Square className="w-5 h-5" />
+                  Stop
                 </button>
               ) : (
                 <button
@@ -265,50 +204,8 @@ const GmailAgent = () => {
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Activity Log */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Activity Log</h2>
-              <button
-                onClick={clearLogs}
-                disabled={logs.length === 0}
-                className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Clear activity log"
-              >
-                <XCircle className="w-4 h-4" />
-                Clear
-              </button>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-              {logs.length === 0 ? (
-                <p className="text-slate-400 text-center py-8">No activity yet. Click "Process All Emails" to start.</p>
-              ) : (
-                <>
-                  {logs.map((log, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg text-sm animate-fadeIn ${
-                        log.type === 'success' ? 'bg-green-500/20 text-green-200 border border-green-500/30' :
-                        log.type === 'error' ? 'bg-red-500/20 text-red-200 border border-red-500/30' :
-                        log.type === 'warning' ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-500/30' :
-                        'bg-blue-500/20 text-blue-200 border border-blue-500/30'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-slate-400 text-xs flex-shrink-0">[{log.timestamp}]</span>
-                        <span className="flex-1">{log.message}</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={logsEndRef} />
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Invoice List */}
+        {/* Invoice List - Full Width */}
+        <div className="mb-6">
           <InvoiceList />
         </div>
 

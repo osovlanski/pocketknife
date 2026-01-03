@@ -8,13 +8,27 @@ dist/
 build/
 .vite/
 
-# Environment variables
+# Environment variables (NEVER commit these)
 .env
+.env.*
+!.env.example
+!env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 *.env
+
+# Secrets and sensitive files
+SECRETS.md
+secrets.md
+secrets.txt
+*.pem
+*.key
+*.p12
+*.pfx
+private/
+.secrets/
 
 # Credentials (sensitive)
 credentials/

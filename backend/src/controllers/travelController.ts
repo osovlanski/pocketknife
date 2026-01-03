@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import travelSearchService from '../services/travelSearchService';
-import tripPlanningService from '../services/tripPlanningService';
-import specializedTravelService from '../services/specializedTravelService';
+import travelSearchService from '../services/travel/travelSearchService';
+import tripPlanningService from '../services/travel/tripPlanningService';
+import specializedTravelService from '../services/travel/specializedTravelService';
 import type { TripSearchRequest } from '../types/travel';
 
 export const searchTravel = async (req: Request, res: Response) => {

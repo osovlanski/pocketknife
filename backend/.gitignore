@@ -1,0 +1,45 @@
+# Backend-specific .gitignore
+
+# Environment variables (NEVER commit)
+.env
+.env.*
+!env.example
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Credentials and tokens
+credentials/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Token files (OAuth)
+token.json
+tokens.json
+*-token.json
+*-tokens.json
+
+# Data files (local development)
+data/*.json
+data/*.md
+!data/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
+.idea/
+.vscode/
+*.swp
+

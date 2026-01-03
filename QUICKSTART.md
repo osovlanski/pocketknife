@@ -26,7 +26,43 @@ npm run dev
 
 ## 📝 Before First Run (30 seconds)
 
-Edit `backend\.env` - Update these 2 lines:
+### ⚠️ IMPORTANT: Upgrade Node.js First (Required: Node 18+)
+
+**Why upgrade?**
+- ✅ Better performance and security
+- ✅ Access to modern JavaScript features
+- ✅ Compatible with latest packages (tsx, modern TypeScript, etc.)
+- ✅ Industry best practice - Node 14 is EOL (End of Life)
+
+**Current Node.js version:**
+```powershell
+node --version
+```
+
+**If you see `v14.x` or `v16.x`, upgrade now:**
+
+#### Option 1: Direct Install (Recommended)
+1. Download Node.js LTS from [nodejs.org](https://nodejs.org/) (v20.x LTS)
+2. Run the installer (it will replace your old version)
+3. Restart your terminal/PowerShell
+4. Verify: `node --version` (should show v20.x)
+
+#### Option 2: Use nvm-windows (If you need multiple versions)
+```powershell
+# Install nvm-windows from: https://github.com/coreybutler/nvm-windows/releases
+nvm install 20
+nvm use 20
+node --version  # Should show v20.x
+```
+
+**After upgrading, run:**
+```powershell
+cd backend
+npm install  # Reinstall with modern packages
+npm run dev  # Should work perfectly now!
+```
+
+### 2. Edit `backend\.env` - Update these 2 lines:
 ```env
 GMAIL_USER_EMAIL=your-email@gmail.com
 ALERT_EMAIL=your-email@gmail.com

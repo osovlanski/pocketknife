@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
-import cvAnalysisService from '../services/cvAnalysisService';
-import jobSourceService from '../services/jobSourceService';
-import jobMatchingService from '../services/jobMatchingService';
+import cvAnalysisService from '../services/jobs/cvAnalysisService';
+import jobSourceService from '../services/jobs/jobSourceService';
+import jobMatchingService from '../services/jobs/jobMatchingService';
+import aiJobSearchService from '../services/jobs/aiJobSearchService';
+import israelTechScraperService from '../services/jobs/israelTechScraperService';
+import companyEnrichmentService from '../services/jobs/companyEnrichmentService';
+import processControlService from '../services/core/processControlService';
 import fs from 'fs';
 import path from 'path';
 
@@ -71,6 +75,9 @@ export const searchJobs = async (req: Request, res: Response) => {
     const { query, location, remoteOnly, companySize, industry, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
     const io = req.app.get('io');
 
+    // Start process and track it
+    processControlService.startProcess('jobs');
+
     io.emit('log', { message: '🔍 Starting job search...', type: 'info' });
     
     // Get CV data
@@ -79,7 +86,12 @@ export const searchJobs = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Please upload your CV first' });
     }
 
-    const cvData = JSON.parse(fs.readFileSync(cvDataPath, 'utf-8'));
+    // CV file contains { cvData, preferences } - extract the actual cvData
+    const fileContent = JSON.parse(fs.readFileSync(cvDataPath, 'utf-8'));
+    const cvData = fileContent.cvData || fileContent; // Handle both new and old format
+    
+    // Debug: Log CV skills for verification
+    console.log(`📋 CV loaded: ${cvData.name || 'Unknown'}, ${cvData.skills?.length || 0} skills, ${cvData.experience?.length || 0} experience entries`);
     
     // Use CV-based query or user-provided query
     const searchQuery = query || cvData.jobSearchQuery || `${cvData.seniorityLevel || ''} ${cvData.currentRole || 'developer'}`.trim();
@@ -190,7 +202,14 @@ export const searchJobs = async (req: Request, res: Response) => {
     });
 
     // Match jobs using AI with real-time streaming (75% threshold for streaming)
-    const matchedJobs = await jobMatchingService.matchMultipleJobs(jobs, cvData, io, 75);
+    // Pass shouldStop callback to allow cancellation
+    const matchedJobs = await jobMatchingService.matchMultipleJobs(
+      jobs, 
+      cvData, 
+      io, 
+      75,
+      () => processControlService.shouldStop('jobs')
+    );
     
     // Calculate statistics
     const highMatch = matchedJobs.filter(j => j.matchScore >= 80).length;
@@ -240,12 +259,17 @@ export const searchJobs = async (req: Request, res: Response) => {
     });
 
     io.emit('log', { 
-      message: `� Summary report: ${path.basename(summaryFile)}`, 
+      message: `📋 Summary report: ${path.basename(summaryFile)}`, 
       type: 'info' 
     });
 
+    // Check if process was stopped
+    const wasStopped = processControlService.shouldStop('jobs');
+    processControlService.completeProcess('jobs', wasStopped);
+
     res.json({
-      message: 'Job search completed',
+      message: wasStopped ? 'Job search stopped by user' : 'Job search completed',
+      stopped: wasStopped,
       jobs: matchedJobs,
       summary,
       summaryFile,
@@ -258,6 +282,9 @@ export const searchJobs = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
+    // Make sure to complete the process on error
+    processControlService.completeProcess('jobs', false);
+    
     console.error('❌ Error searching jobs:', error);
     res.status(500).json({ error: error.message });
   }
@@ -296,6 +323,191 @@ export const updateJobPreferences = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('❌ Error updating preferences:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * AI-powered job search based on user requirements
+ */
+export const aiSearch = async (req: Request, res: Response) => {
+  try {
+    const { prompt, location, remotePreference, salaryRange, companyTypes } = req.body;
+    const io = req.app.get('io');
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Please provide your job requirements' });
+    }
+
+    io.emit('log', { message: '🤖 AI analyzing your job requirements...', type: 'info' });
+
+    const result = await aiJobSearchService.searchByRequirements({
+      prompt,
+      location,
+      remotePreference,
+      salaryRange,
+      companyTypes
+    });
+
+    io.emit('log', { 
+      message: `✅ Found ${result.companies.length} matching companies!`, 
+      type: 'success' 
+    });
+
+    io.emit('log', { 
+      message: `📝 Generated ${result.searchQueries.length} optimized search queries`, 
+      type: 'info' 
+    });
+
+    res.json({
+      success: true,
+      companies: result.companies,
+      searchQueries: result.searchQueries,
+      recommendations: result.recommendations,
+      keywords: result.keywords
+    });
+  } catch (error: any) {
+    console.error('❌ AI search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get career path recommendations based on CV
+ */
+export const getCareerPath = async (req: Request, res: Response) => {
+  try {
+    const io = req.app.get('io');
+
+    // Load CV data
+    if (!fs.existsSync(CV_DATA_FILE)) {
+      return res.status(400).json({ error: 'Please upload your CV first' });
+    }
+
+    const fileContent = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
+    const cvData = fileContent.cvData || fileContent;
+
+    io.emit('log', { message: '🎯 Analyzing your career path...', type: 'info' });
+
+    const careerPath = await aiJobSearchService.getCareerPath(cvData);
+
+    io.emit('log', { 
+      message: `✅ Career path analysis complete!`, 
+      type: 'success' 
+    });
+
+    res.json({
+      success: true,
+      careerPath
+    });
+  } catch (error: any) {
+    console.error('❌ Career path error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Search Israeli tech job sites
+ */
+export const searchIsraeliJobs = async (req: Request, res: Response) => {
+  try {
+    const { query } = req.body;
+    const io = req.app.get('io');
+
+    io.emit('log', { message: '🇮🇱 Searching Israeli tech job sites...', type: 'info' });
+
+    const jobs = await israelTechScraperService.getAllIsraeliJobs(query);
+
+    io.emit('log', { 
+      message: `✅ Found ${jobs.length} jobs from Israeli tech sites`, 
+      type: 'success' 
+    });
+
+    // Get CV data for matching if available
+    let matchedJobs = jobs;
+    if (fs.existsSync(CV_DATA_FILE)) {
+      const fileContent = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
+      const cvData = fileContent.cvData || fileContent;
+      
+      io.emit('log', { message: '🤖 Matching jobs with your CV...', type: 'info' });
+      
+      // Convert to expected format and match
+      const formattedJobs = jobs.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        description: job.description,
+        location: job.location,
+        remote: job.remote,
+        applyUrl: job.applyUrl,
+        source: job.source,
+        postedAt: job.postedAt
+      }));
+
+      matchedJobs = await jobMatchingService.matchMultipleJobs(formattedJobs as any, cvData, io, 50);
+    }
+
+    res.json({
+      success: true,
+      jobs: matchedJobs,
+      sources: ['Geektime', 'AllJobs']
+    });
+  } catch (error: any) {
+    console.error('❌ Israeli jobs search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get company enrichment info
+ */
+export const getCompanyInfo = async (req: Request, res: Response) => {
+  try {
+    const { companyName } = req.params;
+    
+    if (!companyName) {
+      return res.status(400).json({ error: 'Company name is required' });
+    }
+
+    const info = await companyEnrichmentService.getCompanyInfo(companyName);
+
+    if (info) {
+      res.json({
+        success: true,
+        company: info
+      });
+    } else {
+      res.json({
+        success: false,
+        company: null,
+        message: 'Company information not found'
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ Company info error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Batch enrich multiple companies
+ */
+export const enrichCompanies = async (req: Request, res: Response) => {
+  try {
+    const { companies } = req.body;
+    
+    if (!companies || !Array.isArray(companies)) {
+      return res.status(400).json({ error: 'Array of company names is required' });
+    }
+
+    const results = await companyEnrichmentService.enrichMultipleCompanies(companies);
+
+    res.json({
+      success: true,
+      companies: Object.fromEntries(results)
+    });
+  } catch (error: any) {
+    console.error('❌ Company enrichment error:', error);
     res.status(500).json({ error: error.message });
   }
 };

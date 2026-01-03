@@ -38,6 +38,9 @@ const LearningAgent = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showLinkedInInfo, setShowLinkedInInfo] = useState(false);
   const [linkedInInfo, setLinkedInInfo] = useState<LinkedInInfo | null>(null);
+  const [topicSummary, setTopicSummary] = useState<string | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     topics: [],
     sources: ['linkedin', 'devto', 'newsletters', 'hackernews', 'reddit'],
@@ -153,6 +156,8 @@ const LearningAgent = () => {
     try {
       setIsSearching(true);
       setResources([]);
+      setTopicSummary(null);
+      setShowSummary(false);
       addLog(`🔍 Searching for "${searchQuery}"...`, 'info');
 
       const response = await fetch('http://localhost:5000/api/learning/search', {
@@ -178,6 +183,39 @@ const LearningAgent = () => {
       addLog(`❌ Search failed: ${error.message}`, 'error');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleGenerateTopicSummary = async () => {
+    if (!searchQuery.trim()) {
+      addLog('Please enter a search topic first', 'warning');
+      return;
+    }
+
+    try {
+      setIsGeneratingSummary(true);
+      addLog(`🤖 Generating AI topic summary for "${searchQuery}"...`, 'info');
+
+      const response = await fetch('http://localhost:5000/api/learning/topic-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: searchQuery })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        addLog(`❌ Error: ${data.error}`, 'error');
+        return;
+      }
+
+      setTopicSummary(data.summary);
+      setShowSummary(true);
+      addLog(`✅ Topic summary generated`, 'success');
+    } catch (error: any) {
+      addLog(`❌ Failed to generate summary: ${error.message}`, 'error');
+    } finally {
+      setIsGeneratingSummary(false);
     }
   };
 
@@ -415,6 +453,84 @@ const LearningAgent = () => {
           )}
         </div>
       </div>
+
+      {/* AI Topic Summary Section */}
+      {topicSummary && showSummary && (
+        <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-purple-300">
+              <Sparkles className="w-5 h-5" />
+              AI Topic Summary: {searchQuery}
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => copyToClipboard(topicSummary, 'summary')}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {copiedId === 'summary' ? (
+                  <><Check className="w-3 h-3" /> Copied!</>
+                ) : (
+                  <><Copy className="w-3 h-3" /> Copy</>
+                )}
+              </button>
+              <button
+                onClick={() => setShowSummary(false)}
+                className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Hide
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-slate-200 space-y-3 summary-content prose prose-invert max-w-none">
+            {topicSummary.split('\n').map((line, idx) => {
+              if (line.startsWith('**') && line.endsWith('**')) {
+                return (
+                  <h3 key={idx} className="font-bold text-purple-300 mt-4 first:mt-0">
+                    {line.replace(/\*\*/g, '')}
+                  </h3>
+                );
+              }
+              if (line.startsWith('•') || line.startsWith('-') || /^\d+\./.test(line.trim())) {
+                return (
+                  <p key={idx} className="ml-4 text-slate-300">
+                    {line}
+                  </p>
+                );
+              }
+              if (line.trim() === '---' || line.trim() === '') {
+                return <hr key={idx} className="border-purple-500/30 my-2" />;
+              }
+              if (line.trim()) {
+                return <p key={idx} className="text-slate-200">{line}</p>;
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Generate Summary Button */}
+      {resources.length > 0 && !topicSummary && (
+        <div className="flex justify-center">
+          <button
+            onClick={handleGenerateTopicSummary}
+            disabled={isGeneratingSummary}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 px-6 py-3 rounded-xl transition-all disabled:opacity-50 font-semibold"
+          >
+            {isGeneratingSummary ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                Generating Summary...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Generate AI Topic Summary
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Results Grid */}
       {resources.length > 0 && (

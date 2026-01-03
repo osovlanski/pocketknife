@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import learningService from '../services/learningService';
+import learningService from '../services/learning/learningService';
 
 // Initialize LinkedIn from environment on startup
 if (process.env.LINKEDIN_ACCESS_TOKEN) {
@@ -115,6 +115,34 @@ export async function configureLinkedIn(req: Request, res: Response) {
     console.error('❌ Error configuring LinkedIn:', error);
     res.status(500).json({
       error: error.message || 'Failed to configure LinkedIn'
+    });
+  }
+}
+
+/**
+ * Generate AI-powered topic summary for improving developer skills
+ */
+export async function generateTopicSummary(req: Request, res: Response) {
+  try {
+    const { topic } = req.body;
+
+    if (!topic || typeof topic !== 'string') {
+      return res.status(400).json({ error: 'Topic is required' });
+    }
+
+    console.log(`📚 Generating topic summary for: "${topic}"`);
+
+    const summary = await learningService.generateTopicSummary(topic);
+
+    res.json({
+      success: true,
+      topic,
+      summary
+    });
+  } catch (error: any) {
+    console.error('❌ Topic summary generation error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to generate topic summary'
     });
   }
 }

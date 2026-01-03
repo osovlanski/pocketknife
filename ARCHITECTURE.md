@@ -18,13 +18,13 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 │  │ • Automate   │    │              │    │              │          │
 │  └──────────────┘    └──────────────┘    └──────────────┘          │
 │                                                                      │
-│  ┌──────────────┐                                                   │
-│  │Learning Agent│                                                   │
-│  │              │                                                   │
-│  │ • Aggregate  │                                                   │
-│  │ • Summarize  │                                                   │
-│  │ • Organize   │                                                   │
-│  └──────────────┘                                                   │
+│  ┌──────────────┐    ┌──────────────┐                               │
+│  │Learning Agent│    │Problem Solve │                               │
+│  │              │    │    Agent     │                               │
+│  │ • Aggregate  │    │ • LeetCode   │                               │
+│  │ • Summarize  │    │ • Codeforces │                               │
+│  │ • Organize   │    │ • Curated    │                               │
+│  └──────────────┘    └──────────────┘                               │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -34,7 +34,7 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 ### Backend
 | Technology | Purpose |
 |------------|---------|
-| **Node.js** | Runtime environment |
+| **Node.js 18+** | Runtime environment |
 | **Express.js** | REST API framework |
 | **TypeScript** | Type-safe development |
 | **Socket.io** | Real-time WebSocket communication |
@@ -47,19 +47,21 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | **TypeScript** | Type-safe development |
 | **Vite** | Build tool & dev server |
 | **Tailwind CSS** | Utility-first styling |
+| **Monaco Editor** | Code editor (Problem Solving) |
 | **Socket.io Client** | Real-time updates |
 | **Lucide React** | Icon library |
 
 ### External APIs
 | API | Agent | Purpose |
 |-----|-------|---------|
-| **Anthropic Claude** | All | AI classification, matching, summarization |
+| **Anthropic Claude** | All | AI classification, matching, summarization, code evaluation |
 | **Gmail API** | Email | Read/write emails, labels |
 | **Google Drive API** | Email | Store invoices |
 | **Amadeus** | Travel | Flight & hotel search |
 | **JSearch (RapidAPI)** | Jobs | LinkedIn, Glassdoor, Indeed aggregation |
 | **RemoteOK** | Jobs | Remote job listings |
-| **Remotive** | Jobs | Remote job listings |
+| **LeetCode GraphQL** | Problem Solving | Coding problems, descriptions |
+| **Codeforces API** | Problem Solving | Competitive programming problems |
 | **Dev.to** | Learning | Technical articles |
 | **Hacker News** | Learning | Tech discussions |
 
@@ -69,60 +71,131 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 pocketknife/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/        # Request handlers
-│   │   │   ├── agentController.ts      # Email agent endpoints
-│   │   │   ├── jobController.ts        # Job search endpoints
-│   │   │   ├── travelController.ts     # Travel search endpoints
-│   │   │   └── learningController.ts   # Learning agent endpoints
+│   │   ├── controllers/              # Request handlers
+│   │   │   ├── agentController.ts        # Email agent endpoints
+│   │   │   ├── authController.ts         # OAuth endpoints
+│   │   │   ├── jobController.ts          # Job search endpoints
+│   │   │   ├── travelController.ts       # Travel search endpoints
+│   │   │   ├── learningController.ts     # Learning agent endpoints
+│   │   │   └── problemSolvingController.ts # Problem solving endpoints
 │   │   │
-│   │   ├── services/           # Business logic
-│   │   │   ├── claudeService.ts        # AI classification
-│   │   │   ├── gmailService.ts         # Gmail API integration
-│   │   │   ├── driveService.ts         # Google Drive integration
-│   │   │   ├── jobSourceService.ts     # Multi-source job aggregation
-│   │   │   ├── jobMatchingService.ts   # AI job-CV matching
-│   │   │   ├── israeliJobsService.ts   # Israeli tech companies
-│   │   │   ├── travelSearchService.ts  # Amadeus API integration
-│   │   │   ├── specializedTravelService.ts # Ski/Beach trips
-│   │   │   ├── learningService.ts      # Content aggregation
-│   │   │   └── emailSchedulerService.ts # Cron automation
+│   │   ├── services/                 # Business logic (organized by agent)
+│   │   │   ├── email/                    # Email Agent services
+│   │   │   │   ├── gmailService.ts           # Gmail API integration
+│   │   │   │   ├── driveService.ts           # Google Drive integration
+│   │   │   │   ├── googleAuthService.ts      # OAuth handling
+│   │   │   │   ├── emailNotificationService.ts
+│   │   │   │   ├── emailSchedulerService.ts
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── jobs/                     # Job Agent services
+│   │   │   │   ├── jobSourceService.ts       # Multi-source aggregation
+│   │   │   │   ├── jobMatchingService.ts     # AI job-CV matching
+│   │   │   │   ├── aiJobSearchService.ts     # AI-powered search
+│   │   │   │   ├── cvAnalysisService.ts      # CV parsing
+│   │   │   │   ├── companyEnrichmentService.ts
+│   │   │   │   ├── israeliJobsService.ts
+│   │   │   │   ├── israelTechScraperService.ts
+│   │   │   │   ├── additionalJobAPIs.ts
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── travel/                   # Travel Agent services
+│   │   │   │   ├── travelSearchService.ts    # Amadeus API
+│   │   │   │   ├── tripPlanningService.ts
+│   │   │   │   ├── specializedTravelService.ts
+│   │   │   │   ├── destinationRecommendationsService.ts
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── learning/                 # Learning Agent services
+│   │   │   │   ├── learningService.ts        # Content aggregation
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── problemSolving/           # Problem Solving Agent services
+│   │   │   │   ├── problemSolvingService.ts  # Coding problems, evaluation
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── notifications/            # Cross-cutting notifications
+│   │   │   │   ├── discordNotificationService.ts
+│   │   │   │   ├── telegramNotificationService.ts
+│   │   │   │   ├── whatsappService.ts
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── core/                     # Shared core services
+│   │   │   │   ├── claudeService.ts          # AI client wrapper
+│   │   │   │   ├── processControlService.ts  # Stop/pause control
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   └── index.ts                  # Central export
 │   │   │
-│   │   ├── routes/             # API route definitions
-│   │   │   ├── index.ts        # Route aggregator
-│   │   │   ├── jobs.ts         # /api/jobs/*
-│   │   │   ├── travel.ts       # /api/travel/*
-│   │   │   └── learning.ts     # /api/learning/*
+│   │   ├── data/                     # Static data & mappings
+│   │   │   ├── curatedProblems.ts        # Blind 75, NeetCode 150
+│   │   │   └── companyMappings.ts        # Company interview profiles
 │   │   │
-│   │   ├── types/              # TypeScript definitions
-│   │   ├── utils/              # Utility functions
-│   │   └── index.ts            # Entry point
+│   │   ├── routes/                   # API route definitions
+│   │   │   ├── index.ts                  # Route aggregator
+│   │   │   ├── agent.ts                  # /api/agent/*
+│   │   │   ├── auth.ts                   # /api/auth/*
+│   │   │   ├── jobs.ts                   # /api/jobs/*
+│   │   │   ├── travel.ts                 # /api/travel/*
+│   │   │   ├── learning.ts               # /api/learning/*
+│   │   │   └── problemSolving.ts         # /api/problems/*
+│   │   │
+│   │   ├── types/                    # TypeScript definitions
+│   │   │   ├── index.ts
+│   │   │   └── travel.ts
+│   │   │
+│   │   ├── utils/                    # Utility functions
+│   │   │   ├── emailProcessor.ts
+│   │   │   ├── anthropicClient.ts        # Shared AI client
+│   │   │   └── logger.ts
+│   │   │
+│   │   ├── config/                   # Configuration
+│   │   │   └── credentials.ts
+│   │   │
+│   │   └── index.ts                  # Entry point
 │   │
-│   ├── credentials/            # OAuth tokens (gitignored)
-│   └── data/                   # Local data storage
+│   ├── credentials/                  # OAuth tokens (gitignored)
+│   └── data/                         # Local data storage
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # React components
-│   │   │   ├── GmailAgent.tsx          # Email processing UI
-│   │   │   ├── JobSearchPanel.tsx      # Job search form
-│   │   │   ├── JobListings.tsx         # Job results display
-│   │   │   ├── TravelSearchPanel.tsx   # Travel search form
-│   │   │   ├── FlightResults.tsx       # Flight display
-│   │   │   ├── HotelResults.tsx        # Hotel display
-│   │   │   └── LearningAgent.tsx       # Learning content UI
+│   │   ├── components/               # React components
+│   │   │   ├── GmailAgent.tsx            # Email processing UI
+│   │   │   ├── JobSearchPanel.tsx        # Job search form
+│   │   │   ├── JobListings.tsx           # Job results display
+│   │   │   ├── TravelSearchPanel.tsx     # Travel search form
+│   │   │   ├── FlightResults.tsx         # Flight display
+│   │   │   ├── HotelResults.tsx          # Hotel display
+│   │   │   ├── LearningAgent.tsx         # Learning content UI
+│   │   │   ├── ProblemSolvingAgent.tsx   # Coding problems UI
+│   │   │   ├── ActivityLog.tsx           # Global activity log
+│   │   │   ├── SearchButton.tsx          # Reusable search/stop button
+│   │   │   └── ...
 │   │   │
-│   │   ├── services/           # API client functions
-│   │   │   ├── api.ts          # Agent API calls
-│   │   │   └── travelApi.ts    # Travel API calls
+│   │   ├── services/                 # API client functions
+│   │   │   ├── api.ts                    # Agent API calls
+│   │   │   └── travelApi.ts              # Travel API calls
 │   │   │
-│   │   ├── hooks/              # Custom React hooks
-│   │   ├── types/              # TypeScript definitions
-│   │   └── App.tsx             # Main application
+│   │   ├── hooks/                    # Custom React hooks
+│   │   │   ├── useAgent.ts
+│   │   │   └── useSearchController.ts    # Global search/stop control
+│   │   │
+│   │   ├── utils/                    # Utilities
+│   │   │   └── fileParser.ts             # PDF/Word parsing
+│   │   │
+│   │   ├── types/                    # TypeScript definitions
+│   │   └── App.tsx                   # Main application
 │   │
-│   └── index.html              # Entry HTML
+│   └── index.html                    # Entry HTML
 │
-└── shared/
-    └── types.ts                # Shared type definitions
+├── shared/
+│   └── types.ts                      # Shared type definitions
+│
+├── ARCHITECTURE.md                   # This file
+├── QUICKSTART.md                     # Quick start guide
+├── GOOGLE_SETUP.md                   # Google OAuth setup
+├── SECRETS.md                        # Secrets management template
+└── README.md                         # Project overview
 ```
 
 ## Data Flow
@@ -166,35 +239,49 @@ pocketknife/
                                    ▼
                     ┌──────────────────────────┐
                     │   AI Job Matching        │
-                    │   (Claude Analysis)      │
+                    │   + Company Enrichment   │
                     └────────────┬─────────────┘
                                  │
                                  ▼
                     ┌──────────────────────────┐
                     │  Sorted Results with     │
-                    │  Match Scores (0-100%)   │
+                    │  Match Scores + Company  │
+                    │  Info (Growth, Heat)     │
                     └──────────────────────────┘
 ```
 
-### Travel Search Flow
+### Problem Solving Flow
 
 ```
-┌──────────────┐     ┌─────────────────────────────────┐
-│ Search Query │────▶│        Amadeus API              │
-│ (Origin,     │     │  • Flight Offers Search         │
-│  Dest, Date) │     │  • Hotel List by City           │
-└──────────────┘     │  • Hotel Offers                 │
-                     └───────────────┬─────────────────┘
+┌─────────────┐     ┌──────────────────────────────────────┐
+│ Search Query│────▶│         Multi-Source Search          │
+│ or Curated  │     ├──────────┬───────────┬───────────────┤
+│    List     │     │ Curated  │ LeetCode  │  Codeforces   │
+└─────────────┘     │ (Blind   │  GraphQL  │    API        │
+                    │ 75, etc) │    API    │               │
+                    └────┬─────┴─────┬─────┴───────┬───────┘
+                         │           │             │
+                         └───────────┴─────────────┘
                                      │
-                     ┌───────────────┴───────────────┐
-                     │                               │
-                     ▼                               ▼
-              ┌──────────────┐              ┌──────────────┐
-              │   Flights    │              │    Hotels    │
-              │              │              │              │
-              │ Deal Score   │              │ Deal Score   │
-              │ Calculation  │              │ Calculation  │
-              └──────────────┘              └──────────────┘
+                                     ▼
+                    ┌──────────────────────────┐
+                    │   Select Problem         │
+                    │   Write Solution         │
+                    │   (Monaco Editor)        │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   AI Code Evaluation     │
+                    │   (Correctness, Time,    │
+                    │    Space, Quality)       │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   Feedback + Suggestions │
+                    │   Apply & Review (Diff)  │
+                    └──────────────────────────┘
 ```
 
 ## API Endpoints
@@ -216,6 +303,7 @@ pocketknife/
 | POST | `/search` | Search jobs with CV matching |
 | POST | `/upload-cv` | Upload CV for analysis |
 | GET | `/resources` | Get Israeli job board links |
+| GET | `/company-info/:name` | Get company enrichment data |
 
 ### Travel Agent (`/api/travel/*`)
 | Method | Endpoint | Description |
@@ -231,6 +319,26 @@ pocketknife/
 |--------|----------|-------------|
 | POST | `/search` | Search educational content |
 | POST | `/summarize` | AI summarize article |
+| POST | `/topic-summary` | Generate topic summary |
+
+### Problem Solving Agent (`/api/problems/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/search` | Search coding problems |
+| GET | `/description/:slug` | Get problem description |
+| POST | `/hints` | Generate hints for problem |
+| POST | `/evaluate` | Evaluate code solution |
+| POST | `/signature` | Generate method signature |
+| POST | `/improve` | Apply suggestions to code |
+| GET | `/company/:name` | Get company interview profile |
+| GET | `/companies` | List all companies |
+| GET | `/curated-lists` | List curated problem sets |
+
+### Auth (`/api/auth/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/google/url` | Get Google OAuth URL |
+| GET | `/google/callback` | OAuth callback handler |
 
 ## Real-Time Communication
 
@@ -243,6 +351,7 @@ io.emit('job-match', { job: {...}, progress: {...} });
 io.emit('travel-log', { message: '...', type: 'info' });
 io.emit('learning-log', { message: '...', type: 'info' });
 io.emit('learning-resource', { resource: {...} });
+io.emit('process-status:stopped', { agentType: 'jobs|email', message: '...' });
 ```
 
 ## Security Considerations
@@ -250,7 +359,8 @@ io.emit('learning-resource', { resource: {...} });
 1. **Credentials Storage**: OAuth tokens stored locally in `credentials/` (gitignored)
 2. **API Keys**: Environment variables via `.env` file
 3. **CORS**: Configured for frontend origin only
-4. **Input Validation**: Pydantic-style validation on request bodies
+4. **Input Validation**: Request body validation on all endpoints
+5. **Secrets Management**: See `SECRETS.md` for best practices
 
 ## Scalability
 
@@ -259,6 +369,7 @@ The architecture supports:
 - **Async Processing**: All I/O operations are async/await
 - **Rate Limiting**: Built-in delays for external API calls
 - **Caching**: Token caching for OAuth (Amadeus, Gmail)
+- **Process Control**: Centralized stop/pause mechanism for long operations
 
 ## Future Enhancements
 
@@ -268,5 +379,4 @@ The architecture supports:
 - [ ] Kubernetes deployment config
 - [ ] WhatsApp notification integration
 - [ ] Mobile app (React Native)
-
-
+- [ ] More problem sources (GeeksforGeeks, InterviewBit)

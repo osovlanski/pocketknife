@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { searchLearningResources, summarizeArticle, getLinkedInInfo, configureLinkedIn } from '../controllers/learningController';
+import { searchLearningResources, summarizeArticle, getLinkedInInfo, configureLinkedIn, generateTopicSummary } from '../controllers/learningController';
 
 const router = Router();
 
@@ -14,6 +14,9 @@ router.get('/linkedin-info', getLinkedInInfo);
 
 // Configure LinkedIn integration
 router.post('/linkedin-config', configureLinkedIn);
+
+// Generate AI topic summary
+router.post('/topic-summary', generateTopicSummary);
 
 export default router;
 

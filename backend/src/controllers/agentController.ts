@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
-import gmailService from '../services/gmailService';
-import claudeService from '../services/claudeService';
-import driveService from '../services/driveService';
+import gmailService from '../services/email/gmailService';
+import claudeService from '../services/core/claudeService';
+import driveService from '../services/email/driveService';
 import emailProcessor from '../utils/emailProcessor';
-import emailSchedulerService from '../services/emailSchedulerService';
+import emailSchedulerService from '../services/email/emailSchedulerService';
+import processControlService from '../services/core/processControlService';
 // Import notification services only for test endpoint
-import emailNotificationService from '../services/emailNotificationService';
-import discordNotificationService from '../services/discordNotificationService';
-import telegramNotificationService from '../services/telegramNotificationService';
+import emailNotificationService from '../services/email/emailNotificationService';
+import discordNotificationService from '../services/notifications/discordNotificationService';
+import telegramNotificationService from '../services/notifications/telegramNotificationService';
 
 export const classifyEmail = async (req: Request, res: Response) => {
     const { email } = req.body;
@@ -66,6 +67,9 @@ export const processAllEmails = async (req: Request, res: Response) => {
     try {
         const io = req.app.get('io');
         
+        // Start process and track it
+        processControlService.startProcess('email');
+        
         console.log('📧 Starting to process all emails...');
         io.emit('log', { message: '🚀 Starting email processing...', type: 'info' });
         
@@ -87,7 +91,16 @@ export const processAllEmails = async (req: Request, res: Response) => {
             total: emails.length
         };
 
+        let wasStopped = false;
+
         for (let i = 0; i < emails.length; i++) {
+            // Check for stop signal before processing each email
+            if (processControlService.shouldStop('email')) {
+                console.log('🛑 Stop signal received - halting email processing');
+                wasStopped = true;
+                break;
+            }
+
             const email = emails[i];
             const emailNum = i + 1;
             const remaining = emails.length - i - 1;
@@ -102,6 +115,13 @@ export const processAllEmails = async (req: Request, res: Response) => {
                 
                 const classification = await claudeService.classifyEmail(email);
                 console.log(`Classification: ${classification.category} (${classification.confidence})`);
+                
+                // Check for stop signal after classification (API call)
+                if (processControlService.shouldStop('email')) {
+                    console.log('🛑 Stop signal received after classification - halting');
+                    wasStopped = true;
+                    break;
+                }
                 
                 if (classification.confidence >= parseFloat(process.env.CONFIDENCE_THRESHOLD || '0.75')) {
                     // Delegate to emailProcessor for consistent business logic
@@ -193,17 +213,33 @@ export const processAllEmails = async (req: Request, res: Response) => {
             }
         }
 
-        console.log('✅ All emails processed:', results);
-        io.emit('log', { 
-            message: `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 
-            type: 'success',
-            details: results
-        });
+        // Complete the process
+        processControlService.completeProcess('email', wasStopped);
+
+        if (wasStopped) {
+            io.emit('log', { 
+                message: `⏹️ Processing stopped. Processed: ${results.processed}/${emails.length} emails before stopping.`, 
+                type: 'warning',
+                details: results
+            });
+        } else {
+            console.log('✅ All emails processed:', results);
+            io.emit('log', { 
+                message: `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 
+                type: 'success',
+                details: results
+            });
+        }
+
         res.status(200).json({ 
-            message: 'All emails processed', 
+            message: wasStopped ? 'Processing stopped by user' : 'All emails processed', 
+            stopped: wasStopped,
             results 
         });
     } catch (error) {
+        // Make sure to complete the process on error
+        processControlService.completeProcess('email', false);
+        
         console.error('❌ Error in processAllEmails:', error);
         res.status(500).json({ 
             message: 'Error processing emails', 
@@ -266,14 +302,47 @@ export const testNotification = async (req: Request, res: Response) => {
 
 export const getInvoices = async (req: Request, res: Response) => {
     try {
-        const invoices = await driveService.listInvoices();
+        const result = await driveService.listInvoices();
+        
+        // Check if authentication is required
+        if (result.authRequired) {
+            res.status(200).json({ 
+                invoices: [],
+                authRequired: true,
+                message: result.message,
+                driveFolder: process.env.GOOGLE_DRIVE_FOLDER_ID 
+            });
+            return;
+        }
+
         res.status(200).json({ 
-            invoices,
+            invoices: result.invoices,
+            authRequired: false,
             driveFolder: process.env.GOOGLE_DRIVE_FOLDER_ID 
         });
     } catch (error) {
         res.status(500).json({ 
             message: 'Error fetching invoices', 
+            error: (error as Error).message 
+        });
+    }
+};
+
+export const getGoogleAuthStatus = async (req: Request, res: Response) => {
+    try {
+        const isAuthenticated = driveService.isAuthenticated();
+        const authUrl = !isAuthenticated ? driveService.getAuthUrl() : null;
+        
+        res.status(200).json({ 
+            authenticated: isAuthenticated,
+            authUrl: authUrl,
+            message: isAuthenticated 
+                ? 'Google services connected' 
+                : 'Google services not connected. Run "npm run auth:gmail" in the backend folder, or use the auth URL below.'
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error checking Google auth status', 
             error: (error as Error).message 
         });
     }

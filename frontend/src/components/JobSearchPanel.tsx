@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
-import { Upload, Search, Briefcase, CheckCircle, XCircle, AlertCircle, Sliders } from 'lucide-react';
+import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
 import { extractTextFromFile } from '../utils/fileParser';
 import { JobSearchFilters } from '../types';
 
 interface JobSearchPanelProps {
   onCVUploaded: (cvData: any) => void;
   onSearch: (location?: string, remoteOnly?: boolean, filters?: JobSearchFilters) => void;
+  onStop?: () => void;
+  isSearching?: boolean;
+  isStopping?: boolean;
 }
 
-const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch }) => {
+const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch, onStop, isSearching: externalSearching, isStopping = false }) => {
   const [cvText, setCVText] = useState('');
   const [cvData, setCVData] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string>('');
   const [location, setLocation] = useState('');
-  const [remoteOnly, setRemoteOnly] = useState<boolean | undefined>(undefined);
+  const [remoteOnly, setRemoteOnly] = useState<boolean | undefined>(false); // Default: Office Only
   const [useGPS, setUseGPS] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Use external searching state if provided
+  const isCurrentlySearching = externalSearching !== undefined ? externalSearching : searching;
   
   // Advanced filters
   const [filters, setFilters] = useState<JobSearchFilters>({
@@ -159,11 +165,19 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch 
           />
 
           {error && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-300">
-                <p className="font-semibold">Error reading file</p>
-                <p className="text-red-200 mt-1">{error}</p>
+                <p className="font-semibold mb-2">Error reading file</p>
+                <p className="text-red-200 whitespace-pre-line">{error}</p>
+                <div className="mt-3 bg-white/5 rounded-lg p-3">
+                  <p className="text-slate-300 text-xs font-medium mb-2">💡 Quick fix options:</p>
+                  <ul className="text-xs text-slate-400 space-y-1">
+                    <li>• <strong>Recommended:</strong> Paste your CV text directly in the box above</li>
+                    <li>• Upload as .txt or .docx file instead</li>
+                    <li>• Open the PDF in a reader, select all (Ctrl+A), copy (Ctrl+C), and paste above</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
@@ -395,23 +409,37 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch 
           </div>
         )}
         
-        <button
-          onClick={handleSearch}
-          disabled={!cvData || searching}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-        >
-          {searching ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Searching job boards...
-            </>
-          ) : (
-            <>
-              <Search className="w-5 h-5" />
-              Search Jobs with Filters
-            </>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSearch}
+            disabled={!cvData || isCurrentlySearching}
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+          >
+            {isCurrentlySearching ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Searching job boards...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search Jobs with Filters
+              </>
+            )}
+          </button>
+          
+          {isCurrentlySearching && onStop && (
+            <button
+              onClick={onStop}
+              disabled={isStopping}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 px-6 py-3 rounded-lg transition-all font-semibold disabled:opacity-50"
+              title="Stop Search"
+            >
+              <StopCircle className="w-5 h-5" />
+              Stop
+            </button>
           )}
-        </button>
+        </div>
 
         {!cvData && (
           <p className="text-sm text-slate-400 mt-2 text-center">

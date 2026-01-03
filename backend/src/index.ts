@@ -12,10 +12,12 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import routes from './routes';
-import gmailService from './services/gmailService';
-import driveService from './services/driveService';
-import emailNotificationService from './services/emailNotificationService';
-import emailSchedulerService from './services/emailSchedulerService';
+import gmailService from './services/email/gmailService';
+import driveService from './services/email/driveService';
+import emailNotificationService from './services/email/emailNotificationService';
+import emailSchedulerService from './services/email/emailSchedulerService';
+import googleAuthService from './services/email/googleAuthService';
+import processControlService from './services/core/processControlService';
 
 const app = express();
 const server = createServer(app);
@@ -55,6 +57,14 @@ async function initializeServices() {
   try {
     console.log('🚀 Initializing services...');
     
+    // Initialize Process Control service first (for stop signals)
+    console.log('🎛️ Initializing Process Control service...');
+    processControlService.initialize(io);
+    
+    // Initialize Google Auth service
+    console.log('🔐 Initializing Google Auth service...');
+    googleAuthService.initialize();
+    
     // Initialize services that don't require OAuth yet
     console.log('📧 Initializing Gmail service...');
     await gmailService.initialize();
@@ -69,6 +79,13 @@ async function initializeServices() {
     emailSchedulerService.initialize(io);
     
     console.log('✅ All services initialized successfully');
+    
+    // Show auth status
+    if (googleAuthService.isAuthenticated()) {
+      console.log('🔗 Google account connected');
+    } else {
+      console.log('⚠️  Google account not connected. Visit http://localhost:5000/api/auth/google to connect.');
+    }
   } catch (error) {
     console.error('❌ Error initializing services:', error);
     console.error('Stack:', (error as Error).stack);

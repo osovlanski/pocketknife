@@ -7,6 +7,7 @@ class DriveService {
   private drive: any = null;
   private initialized: boolean = false;
   private oauth2Client: any = null;
+  private hasValidTokens: boolean = false;
 
   async initialize() {
     if (this.initialized) return;
@@ -25,8 +26,10 @@ class DriveService {
       if (fs.existsSync(tokenPath)) {
         const tokens = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
         this.oauth2Client.setCredentials(tokens);
+        this.hasValidTokens = true;
         console.log('✅ Loaded Drive OAuth tokens (shared with Gmail)');
       } else {
+        this.hasValidTokens = false;
         console.warn('⚠️ No OAuth tokens found. Drive features will be limited.');
         console.warn('💡 Run: npm run auth:gmail to authorize Google Drive access.');
       }
@@ -88,6 +91,15 @@ class DriveService {
       throw new Error('Drive service not initialized');
     }
 
+    // Check if we have valid tokens
+    if (!this.hasValidTokens) {
+      return { 
+        invoices: [], 
+        authRequired: true,
+        message: 'Google Drive not connected. Please authenticate first.' 
+      };
+    }
+
     try {
       const response = await this.drive.files.list({
         q: `'${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
@@ -96,11 +108,44 @@ class DriveService {
         orderBy: 'createdTime desc'
       });
 
-      return response.data.files || [];
-    } catch (error) {
+      return { invoices: response.data.files || [], authRequired: false };
+    } catch (error: any) {
+      // Handle token expired or invalid
+      if (error.message?.includes('No access') || error.message?.includes('invalid_grant')) {
+        this.hasValidTokens = false;
+        return { 
+          invoices: [], 
+          authRequired: true,
+          message: 'Google authentication expired. Please re-authenticate.' 
+        };
+      }
       console.error('Error listing invoices from Drive:', error);
       throw error;
     }
+  }
+
+  /**
+   * Check if Google Drive is authenticated
+   */
+  isAuthenticated(): boolean {
+    return this.hasValidTokens;
+  }
+
+  /**
+   * Get the OAuth2 authorization URL
+   */
+  getAuthUrl(): string {
+    if (!this.oauth2Client) {
+      return '';
+    }
+    return this.oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.modify',
+        'https://www.googleapis.com/auth/drive.file'
+      ]
+    });
   }
 }
 
