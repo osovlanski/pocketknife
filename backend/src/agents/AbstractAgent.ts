@@ -88,14 +88,12 @@ export abstract class AbstractAgent implements IPersistentAgent {
       this.emitLog(`✅ ${this.metadata.name} completed successfully`, 'success');
       this.emitStatus('completed');
       
-      // Log activity to database
-      if (params.userId) {
-        await this.saveUserActivity(params.userId, 'execute', {
-          success: result.success,
-          duration,
-          params: this.sanitizeParams(params)
-        });
-      }
+      // Log activity to database (will use default user if userId not provided)
+      await this.saveUserActivity(params.userId, 'execute', {
+        success: result.success,
+        duration,
+        params: this.sanitizeParams(params)
+      });
       
       return { ...result, duration };
       
@@ -187,11 +185,24 @@ export abstract class AbstractAgent implements IPersistentAgent {
 
   /**
    * Save user activity to database
+   * If userId is not provided, will attempt to get the default user
    */
-  async saveUserActivity(userId: string, action: string, data: unknown): Promise<void> {
+  async saveUserActivity(userId: string | undefined, action: string, data: unknown): Promise<void> {
     try {
+      // Get default user if not provided
+      let effectiveUserId = userId;
+      if (!effectiveUserId && databaseService.isConfigured()) {
+        const defaultUser = await databaseService.getDefaultUser();
+        effectiveUserId = defaultUser?.id;
+      }
+
+      if (!effectiveUserId) {
+        console.warn(`Skipping activity log - no userId available for ${this.metadata.id}`);
+        return;
+      }
+
       await databaseService.logActivity({
-        userId,
+        userId: effectiveUserId,
         agent: this.metadata.id,
         action,
         details: typeof data === 'string' ? data : JSON.stringify(data),

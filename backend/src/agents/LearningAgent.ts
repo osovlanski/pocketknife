@@ -104,14 +104,12 @@ export class LearningAgent extends AbstractAgent {
     this.emitProgress(90);
     this.emitLog(`✅ Found ${resources.length} learning resources`, 'success');
 
-    // Log search activity
-    if (params.userId) {
-      await this.saveUserActivity(params.userId, 'search', {
-        query,
-        sources: searchSources,
-        resultsCount: resources.length
-      });
-    }
+    // Log search activity (will use default user if userId not provided)
+    await this.saveUserActivity(params.userId, 'search', {
+      query,
+      sources: searchSources,
+      resultsCount: resources.length
+    });
 
     return {
       success: true,
@@ -138,14 +136,12 @@ export class LearningAgent extends AbstractAgent {
       this.emitProgress(100);
       this.emitLog(`✅ Summary generated successfully`, 'success');
 
-      // Log activity
-      if (params.userId) {
-        await this.saveUserActivity(params.userId, 'summarize', {
-          articleUrl,
-          articleTitle,
-          summaryLength: summary.length
-        });
-      }
+      // Log activity (will use default user if userId not provided)
+      await this.saveUserActivity(params.userId, 'summarize', {
+        articleUrl,
+        articleTitle,
+        summaryLength: summary.length
+      });
 
       return {
         success: true,
@@ -175,12 +171,10 @@ export class LearningAgent extends AbstractAgent {
       this.emitProgress(100);
       this.emitLog(`✅ Topic summary generated`, 'success');
 
-      // Log activity
-      if (params.userId) {
-        await this.saveUserActivity(params.userId, 'topic-summary', {
-          topic: query
-        });
-      }
+      // Log activity (will use default user if userId not provided)
+      await this.saveUserActivity(params.userId, 'topic-summary', {
+        topic: query
+      });
 
       return {
         success: true,

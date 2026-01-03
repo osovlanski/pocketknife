@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Settings, Upload, X, Save, History } from 'lucide-react';
+import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import AISummaryModal from './AISummaryModal';
 
 interface LearningResource {
   id: string;
@@ -576,104 +577,34 @@ const LearningAgent = () => {
         </div>
       </div>
 
-      {/* AI Topic Summary Section - Claude-style design */}
-      {topicSummary && showSummary && (
-        <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-lg rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-6 py-4 border-b border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">AI Topic Summary</h2>
-                  <p className="text-sm text-slate-400">{searchQuery}</p>
-                </div>
+      {/* AI Summary Modal */}
+      <AISummaryModal
+        isOpen={showSummary && !!topicSummary}
+        onClose={() => setShowSummary(false)}
+        topic={searchQuery}
+        summary={topicSummary || ''}
+        onCopy={(text) => copyToClipboard(text, 'summary')}
+        isCopied={copiedId === 'summary'}
+      />
+
+      {/* AI Summary Preview Card (shows when summary exists but modal is closed) */}
+      {topicSummary && !showSummary && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 backdrop-blur-lg rounded-xl p-4 border border-amber-500/20 cursor-pointer hover:border-amber-500/40 transition-all"
+          onClick={() => setShowSummary(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => copyToClipboard(topicSummary, 'summary')}
-                  className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg transition-all"
-                >
-                  {copiedId === 'summary' ? (
-                    <><Check className="w-4 h-4 text-green-400" /> Copied!</>
-                  ) : (
-                    <><Copy className="w-4 h-4" /> Copy</>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowSummary(false)}
-                  className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div>
+                <h3 className="font-semibold text-white">AI Summary Available</h3>
+                <p className="text-sm text-slate-400">Click to view the full interactive summary for "{searchQuery}"</p>
               </div>
             </div>
-          </div>
-          
-          {/* Content - Claude-style formatting */}
-          <div className="p-6 text-slate-200 leading-relaxed">
-            <div className="prose prose-invert max-w-none prose-headings:text-amber-300 prose-strong:text-white prose-code:bg-slate-700/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-amber-300">
-              {topicSummary.split('\n').map((line, idx) => {
-                // Main headers with emoji
-                if (/^#{1,3}\s|^\*\*.*\*\*$|^[🔑📋💡⚠️📚📊🎯🔧✨]/.test(line.trim())) {
-                  const text = line.replace(/^#{1,3}\s/, '').replace(/\*\*/g, '');
-                  return (
-                    <h3 key={idx} className="text-lg font-semibold text-amber-300 mt-6 mb-3 flex items-center gap-2 first:mt-0">
-                      {text}
-                    </h3>
-                  );
-                }
-                
-                // Bullet points with custom styling
-                if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')) {
-                  const content = line.replace(/^[\s•\-*]+/, '').trim();
-                  return (
-                    <div key={idx} className="flex items-start gap-3 my-2 ml-2">
-                      <span className="text-amber-400 mt-1.5">→</span>
-                      <p className="text-slate-300 flex-1">{content}</p>
-                    </div>
-                  );
-                }
-                
-                // Numbered list
-                if (/^\d+\./.test(line.trim())) {
-                  const match = line.match(/^(\d+)\.\s*(.*)$/);
-                  if (match) {
-                    return (
-                      <div key={idx} className="flex items-start gap-3 my-2 ml-2">
-                        <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 text-sm flex items-center justify-center flex-shrink-0">
-                          {match[1]}
-                        </span>
-                        <p className="text-slate-300 flex-1">{match[2]}</p>
-                      </div>
-                    );
-                  }
-                }
-                
-                // Code blocks
-                if (line.trim().startsWith('```')) {
-                  return null;
-                }
-                
-                // Horizontal rules
-                if (line.trim() === '---' || line.trim() === '') {
-                  return <div key={idx} className="h-4" />;
-                }
-                
-                // Regular paragraphs
-                if (line.trim()) {
-                  return (
-                    <p key={idx} className="text-slate-300 my-2 text-left">
-                      {line}
-                    </p>
-                  );
-                }
-                
-                return null;
-              })}
-            </div>
+            <button className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-4 py-2 rounded-lg transition-colors">
+              Open Summary
+            </button>
           </div>
         </div>
       )}

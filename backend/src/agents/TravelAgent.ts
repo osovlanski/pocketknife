@@ -129,16 +129,14 @@ export class TravelAgent extends AbstractAgent {
 
       this.emitProgress(100);
 
-      // Log activity
-      if (params.userId) {
-        await this.saveUserActivity(params.userId, 'search', {
-          origin: searchRequest.origin,
-          destination: searchRequest.destinations[0],
-          departureDate: searchRequest.departureDate,
-          flightsFound: results.flights.length,
-          hotelsFound: results.hotels.length
-        });
-      }
+      // Log activity (will use default user if userId not provided)
+      await this.saveUserActivity(params.userId, 'search', {
+        origin: searchRequest.origin,
+        destination: searchRequest.destinations[0],
+        departureDate: searchRequest.departureDate,
+        flightsFound: results.flights.length,
+        hotelsFound: results.hotels.length
+      });
 
       return {
         success: true,
@@ -189,14 +187,12 @@ export class TravelAgent extends AbstractAgent {
       this.emitLog(`✅ Found ${skiDeals.length} ski deals`, 'success');
       this.emitProgress(100);
 
-      // Log activity
-      if (params.userId) {
-        await this.saveUserActivity(params.userId, 'search-ski', {
-          origin: searchRequest.origin,
-          skiDealsFound: skiDeals.length,
-          preferences: skiPreferences
-        });
-      }
+      // Log activity (will use default user if userId not provided)
+      await this.saveUserActivity(params.userId, 'search-ski', {
+        origin: searchRequest.origin,
+        skiDealsFound: skiDeals.length,
+        preferences: skiPreferences
+      });
 
       return {
         success: true,
