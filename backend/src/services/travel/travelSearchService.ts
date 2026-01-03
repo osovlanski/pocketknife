@@ -232,27 +232,65 @@ class TravelSearchService {
       // Step 2: Get offers for the first 20 hotels
       const hotelIds = hotelList.slice(0, 20).map((h: any) => h.hotelId).join(',');
       
+      // Ensure checkOutDate is at least 1 day after checkInDate
+      let checkOutDate = request.returnDate;
+      if (!checkOutDate || checkOutDate === request.departureDate) {
+        const nextDay = new Date(request.departureDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        checkOutDate = nextDay.toISOString().split('T')[0];
+      }
+      
       const offersParams: any = {
         hotelIds,
         checkInDate: request.departureDate,
-        checkOutDate: request.returnDate || request.departureDate,
+        checkOutDate: checkOutDate,
         adults: request.passengers.adults,
         currency: 'USD',
         bestRateOnly: true
       };
 
-      console.log(`💰 Getting offers for ${hotelIds.split(',').length} hotels...`);
+      console.log(`💰 Getting offers for ${hotelIds.split(',').length} hotels... (${request.departureDate} - ${checkOutDate})`);
 
-      const offersResponse = await axios.get(
-        'https://test.api.amadeus.com/v3/shopping/hotel-offers',
-        {
-          params: offersParams,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }        }
-      );
-
-      const offers = offersResponse.data.data || [];
+      let offers: any[] = [];
+      
+      try {
+        // Try with all hotels first
+        const offersResponse = await axios.get(
+          'https://test.api.amadeus.com/v3/shopping/hotel-offers',
+          {
+            params: offersParams,
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        offers = offersResponse.data.data || [];
+      } catch (offerError: any) {
+        // If error 10604, try with fewer hotels (API sometimes fails with too many)
+        if (offerError.response?.data?.errors?.[0]?.code === 10604) {
+          console.log('⚠️ Retrying with fewer hotels...');
+          const reducedHotelIds = hotelList.slice(0, 5).map((h: any) => h.hotelId).join(',');
+          
+          try {
+            const retryResponse = await axios.get(
+              'https://test.api.amadeus.com/v3/shopping/hotel-offers',
+              {
+                params: { ...offersParams, hotelIds: reducedHotelIds },
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              }
+            );
+            offers = retryResponse.data.data || [];
+          } catch (retryError: any) {
+            console.warn('⚠️ Hotel offers not available for this search');
+            offers = [];
+          }
+        } else {
+          throw offerError;
+        }
+      }
+      
       console.log(`✅ Found ${offers.length} hotel offers with pricing`);
 
       // Transform to our format

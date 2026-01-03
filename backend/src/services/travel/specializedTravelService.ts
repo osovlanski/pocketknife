@@ -160,7 +160,8 @@ class SpecializedTravelService {
       priceLevel?: 'budget' | 'mid' | 'premium';
       preferredCountries?: string[];
     },
-    io?: any
+    io?: any,
+    shouldStop?: () => boolean
   ): Promise<SkiDeal[]> {
     console.log('⛷️ Searching for ski trip deals...');
 
@@ -168,6 +169,11 @@ class SpecializedTravelService {
       io.emit('travel-log', {
         message: '⛷️ Searching ski resorts across Europe...',
         type: 'info'
+      });
+      io.emit('log', {
+        message: '⛷️ Searching ski resorts across Europe...',
+        type: 'info',
+        agent: 'travel'
       });
     }
 
@@ -215,11 +221,25 @@ class SpecializedTravelService {
     const skiDeals: SkiDeal[] = [];
 
     for (const resort of topResorts) {
+      // Check for stop signal
+      if (shouldStop && shouldStop()) {
+        if (io) {
+          io.emit('travel-log', { message: '⏹️ Ski search stopped by user', type: 'warning' });
+          io.emit('log', { message: '⏹️ Ski search stopped by user', type: 'warning', agent: 'travel' });
+        }
+        break;
+      }
+
       try {
         if (io) {
           io.emit('travel-log', {
             message: `🔍 Searching deals for ${resort.name}, ${resort.country}...`,
             type: 'info'
+          });
+          io.emit('log', {
+            message: `🔍 Searching deals for ${resort.name}, ${resort.country}...`,
+            type: 'info',
+            agent: 'travel'
           });
         }
 
@@ -270,6 +290,11 @@ class SpecializedTravelService {
             io.emit('travel-log', {
               message: `✅ ${resort.name}: Found ${flights.length} flights from $${cheapestFlight.price.total}`,
               type: 'success'
+            });
+            io.emit('log', {
+              message: `✅ ${resort.name}: ${flights.length} flights from $${cheapestFlight.price.total}`,
+              type: 'success',
+              agent: 'travel'
             });
           }
         }

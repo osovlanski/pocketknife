@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Briefcase, Plane, BookOpen, Code, CheckCircle, XCircle, X, Wrench } from 'lucide-react';
+import { Mail, Briefcase, Plane, BookOpen, Code, CheckCircle, XCircle, X, Wrench, Mountain, Square } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import GmailAgent from './components/GmailAgent';
 import JobSearchPanel from './components/JobSearchPanel';
@@ -8,11 +8,12 @@ import TravelSearchPanel from './components/TravelSearchPanel';
 import FlightResults from './components/FlightResults';
 import HotelResults from './components/HotelResults';
 import TripPlanner from './components/TripPlanner';
+import SkiDealsPanel from './components/SkiDealsPanel';
 import LearningAgent from './components/LearningAgent';
 import ProblemSolvingAgent from './components/ProblemSolvingAgent';
 import ActivityLog from './components/ActivityLog';
 import useSearchController from './hooks/useSearchController';
-import { searchTravel, type TravelSearchResponse } from './services/travelApi';
+import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './services/travelApi';
 import type { TravelSearchQuery } from './types/travel';
 
 interface LogEntry {
@@ -33,6 +34,7 @@ const App = () => {
   const [travelResults, setTravelResults] = useState<TravelSearchResponse | null>(null);
   const [travelLoading, setTravelLoading] = useState(false);
   const [travelError, setTravelError] = useState<string | null>(null);
+  const [travelMode, setTravelMode] = useState<'flights' | 'ski'>('flights');
   
   // Auth notification state
   const [authNotification, setAuthNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -189,6 +191,15 @@ const App = () => {
       alert('Error searching travel: ' + (error.message || 'Unknown error'));
     } finally {
       setTravelLoading(false);
+    }
+  };
+
+  const handleStopTravelSearch = async () => {
+    try {
+      await stopTravelSearch();
+      setTravelLoading(false);
+    } catch (error) {
+      console.error('Error stopping travel search:', error);
     }
   };
 
@@ -352,31 +363,74 @@ const App = () => {
               <p className="text-slate-300">Find the best flight and hotel deals with AI-powered trip planning</p>
             </div>
 
-            <TravelSearchPanel 
-              onSearch={handleTravelSearch} 
-              loading={travelLoading} 
-            />
+            {/* Travel Mode Switcher */}
+            <div className="flex justify-center gap-2 mb-4">
+              <button
+                onClick={() => setTravelMode('flights')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                  travelMode === 'flights'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <Plane className="w-5 h-5" />
+                Flights & Hotels
+              </button>
+              <button
+                onClick={() => setTravelMode('ski')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                  travelMode === 'ski'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <Mountain className="w-5 h-5" />
+                ⛷️ Ski Deals
+              </button>
+            </div>
 
-            {travelError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                <p className="text-red-400">❌ {travelError}</p>
-              </div>
-            )}
-
-            {travelResults && (
+            {travelMode === 'flights' ? (
               <>
-                {travelResults.flights.length > 0 && (
-                  <FlightResults flights={travelResults.flights} />
+                <div className="relative">
+                  <TravelSearchPanel 
+                    onSearch={handleTravelSearch} 
+                    loading={travelLoading} 
+                  />
+                  {travelLoading && (
+                    <button
+                      onClick={handleStopTravelSearch}
+                      className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                      Stop
+                    </button>
+                  )}
+                </div>
+
+                {travelError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                    <p className="text-red-400">❌ {travelError}</p>
+                  </div>
                 )}
 
-                {travelResults.hotels.length > 0 && (
-                  <HotelResults hotels={travelResults.hotels} />
-                )}
+                {travelResults && (
+                  <>
+                    {travelResults.flights.length > 0 && (
+                      <FlightResults flights={travelResults.flights} />
+                    )}
 
-                {travelResults.tripPlan && (
-                  <TripPlanner plan={travelResults.tripPlan} />
+                    {travelResults.hotels.length > 0 && (
+                      <HotelResults hotels={travelResults.hotels} />
+                    )}
+
+                    {travelResults.tripPlan && (
+                      <TripPlanner plan={travelResults.tripPlan} />
+                    )}
+                  </>
                 )}
               </>
+            ) : (
+              <SkiDealsPanel />
             )}
           </div>
         )}

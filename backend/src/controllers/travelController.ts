@@ -2,7 +2,20 @@ import { Request, Response } from 'express';
 import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
+import processControlService from '../services/core/processControlService';
 import type { TripSearchRequest } from '../types/travel';
+
+/**
+ * Helper to emit logs to both travel-specific and general activity log
+ */
+const emitLog = (io: any, message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+  if (io) {
+    // Emit to travel-specific log
+    io.emit('travel-log', { message, type });
+    // Emit to global activity log
+    io.emit('log', { message, type, agent: 'travel' });
+  }
+};
 
 export const searchTravel = async (req: Request, res: Response) => {
   try {
@@ -22,52 +35,69 @@ export const searchTravel = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Number of passengers is required' });
     }
 
+    // Start process tracking for stop functionality
+    processControlService.startProcess('travel');
+
     console.log('🌍 Starting travel search...');
-    
-    if (io) {
-      io.emit('travel-log', {
-        message: '🌍 Starting travel search...',
-        type: 'info'
-      });
+    emitLog(io, '🌍 Starting travel search...', 'info');
+    emitLog(io, `✈️ Searching ${searchRequest.origin} → ${searchRequest.destinations[0]}`, 'info');
+
+    // Check for stop signal
+    if (processControlService.shouldStop('travel')) {
+      processControlService.completeProcess('travel', true);
+      return res.json({ flights: [], hotels: [], stopped: true });
     }
 
     // Search for flights and hotels
     const results = await travelSearchService.searchTravel(searchRequest, io);
 
+    // Check for stop signal after search
+    if (processControlService.shouldStop('travel')) {
+      processControlService.completeProcess('travel', true);
+      emitLog(io, '⏹️ Travel search stopped by user', 'warning');
+      return res.json({ ...results, stopped: true });
+    }
+
+    emitLog(io, `✅ Found ${results.flights.length} flights and ${results.hotels.length} hotels`, 'success');
+
     // Generate trip plan if requested
     let tripPlan = undefined;
-    if (req.body.generatePlan) {
-      if (io) {
-        io.emit('travel-log', {
-          message: '🤖 Generating AI-powered trip plan...',
-          type: 'info'
-        });
-      }
+    if (req.body.generatePlan && !processControlService.shouldStop('travel')) {
+      emitLog(io, '🤖 Generating AI-powered trip plan...', 'info');
 
       const bestFlight = results.flights[0];
       const bestHotel = results.hotels[0];
 
-      tripPlan = await tripPlanningService.generateTripPlan(
-        searchRequest,
-        bestFlight?.price.total,
-        bestHotel?.price.total
-      );
-
-      if (io) {
-        io.emit('travel-log', {
-          message: '✅ Trip plan generated successfully!',
-          type: 'success'
-        });
+      try {
+        tripPlan = await tripPlanningService.generateTripPlan(
+          searchRequest,
+          bestFlight?.price.total,
+          bestHotel?.price.total
+        );
+        emitLog(io, '✅ Trip plan generated successfully!', 'success');
+      } catch (planError: any) {
+        emitLog(io, `⚠️ Trip plan generation failed: ${planError.message}`, 'warning');
       }
     }
 
     console.log(`✅ Travel search complete: ${results.flights.length} flights, ${results.hotels.length} hotels`);
 
+    // Complete the process
+    const wasStopped = processControlService.shouldStop('travel');
+    processControlService.completeProcess('travel', wasStopped);
+
     res.json({
       ...results,
-      tripPlan
+      tripPlan,
+      stopped: wasStopped
     });
   } catch (error: any) {
+    // Make sure to complete the process on error
+    processControlService.completeProcess('travel', false);
+    
+    const io = req.app.get('io');
+    emitLog(io, `❌ Error: ${error.message}`, 'error');
+    
     console.error('❌ Error in travel search:', error);
     res.status(500).json({
       error: error.message || 'Failed to search travel options'
@@ -125,7 +155,11 @@ export const searchSkiDeals = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Origin and departure date are required' });
     }
 
+    // Start process tracking
+    processControlService.startProcess('ski');
+
     console.log('⛷️ Starting ski deals search...');
+    emitLog(io, '⛷️ Starting ski deals search...', 'info');
 
     const searchRequest: TripSearchRequest = {
       origin,
@@ -139,15 +173,27 @@ export const searchSkiDeals = async (req: Request, res: Response) => {
     const skiDeals = await specializedTravelService.searchSkiDeals(
       searchRequest,
       preferences,
-      io
+      io,
+      () => processControlService.shouldStop('ski')
     );
+
+    const wasStopped = processControlService.shouldStop('ski');
+    processControlService.completeProcess('ski', wasStopped);
+
+    emitLog(io, `✅ Found ${skiDeals.length} ski deals`, 'success');
 
     res.json({
       success: true,
       count: skiDeals.length,
-      deals: skiDeals
+      deals: skiDeals,
+      stopped: wasStopped
     });
   } catch (error: any) {
+    processControlService.completeProcess('ski', false);
+    
+    const io = req.app.get('io');
+    emitLog(io, `❌ Ski search error: ${error.message}`, 'error');
+    
     console.error('❌ Error searching ski deals:', error);
     res.status(500).json({
       error: error.message || 'Failed to search ski deals'

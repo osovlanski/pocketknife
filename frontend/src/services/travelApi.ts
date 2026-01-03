@@ -87,3 +87,78 @@ export const generateTripPlan = async (
     throw new Error('Failed to generate trip plan');
   }
 };
+
+// Ski Deals Types
+export interface SkiResort {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  airportCode: string;
+  altitude: { base: number; peak: number };
+  slopes: { total: number; beginner: number; intermediate: number; advanced: number };
+  lifts: number;
+  priceLevel?: 'budget' | 'mid' | 'premium';
+}
+
+export interface SkiDeal {
+  resort: SkiResort;
+  flights: FlightResult[];
+  hotels: HotelResult[];
+  totalEstimate: number;
+  dealScore: number;
+}
+
+export interface SkiSearchQuery {
+  origin: string;
+  departureDate: string;
+  returnDate?: string;
+  passengers?: { adults: number; children?: number };
+  preferences?: {
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    priceLevel?: 'budget' | 'mid' | 'premium';
+    preferredCountries?: string[];
+  };
+}
+
+export const searchSkiDeals = async (query: SkiSearchQuery): Promise<{ deals: SkiDeal[]; stopped?: boolean }> => {
+  try {
+    const response = await axios.post(`${API_URL}/travel/ski`, query);
+    return response.data;
+  } catch (error: any) {
+    console.error('Ski deals search error:', error);
+    throw new Error(error.response?.data?.error || 'Failed to search ski deals');
+  }
+};
+
+export const getSkiResorts = async (country?: string, priceLevel?: string): Promise<SkiResort[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (country) params.append('country', country);
+    if (priceLevel) params.append('priceLevel', priceLevel);
+    
+    const response = await axios.get(`${API_URL}/travel/ski/resorts?${params}`);
+    return response.data.resorts;
+  } catch (error: any) {
+    console.error('Ski resorts error:', error);
+    throw new Error('Failed to get ski resorts');
+  }
+};
+
+// Stop travel search
+export const stopTravelSearch = async (): Promise<void> => {
+  try {
+    await axios.post(`${API_URL}/stop`, { processId: 'travel' });
+  } catch (error: any) {
+    console.error('Stop travel error:', error);
+  }
+};
+
+// Stop ski search
+export const stopSkiSearch = async (): Promise<void> => {
+  try {
+    await axios.post(`${API_URL}/stop`, { processId: 'ski' });
+  } catch (error: any) {
+    console.error('Stop ski error:', error);
+  }
+};
