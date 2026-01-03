@@ -20,6 +20,7 @@ interface LogEntry {
   timestamp: Date;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
+  agent?: string;
 }
 
 const App = () => {
@@ -91,12 +92,13 @@ const App = () => {
     });
 
     // Listen for activity logs
-    newSocket.on('log', (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => {
+    newSocket.on('log', (data: { message: string; type: 'info' | 'success' | 'warning' | 'error'; agent?: string }) => {
       const newLog: LogEntry = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date(),
         message: data.message,
-        type: data.type || 'info'
+        type: data.type || 'info',
+        agent: data.agent
       };
       
       setActivityLogs(prevLogs => [...prevLogs, newLog]);
