@@ -9,7 +9,7 @@
  * Supports runtime configuration updates without restart.
  */
 
-import { databaseService, prisma } from './databaseService';
+import { databaseService, getPrisma } from './databaseService';
 import { cacheService } from './cacheService';
 
 // Default configuration values
@@ -70,6 +70,14 @@ export const configService = {
    * Refresh configuration from database
    */
   refresh: async (): Promise<void> => {
+    // Skip if database is not configured
+    const prisma = getPrisma();
+    if (!prisma) {
+      console.log('ℹ️ Database not configured, using default/env config only');
+      lastRefresh = Date.now();
+      return;
+    }
+    
     try {
       const configs = await prisma.appConfig.findMany();
       configCache.clear();
