@@ -18,6 +18,9 @@ import emailNotificationService from './services/email/emailNotificationService'
 import emailSchedulerService from './services/email/emailSchedulerService';
 import googleAuthService from './services/email/googleAuthService';
 import processControlService from './services/core/processControlService';
+import { databaseService } from './services/core/databaseService';
+import { cacheService } from './services/core/cacheService';
+import { configService } from './services/core/configService';
 
 const app = express();
 const server = createServer(app);
@@ -39,8 +42,23 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api', routes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const dbHealth = process.env.DATABASE_URL ? await databaseService.healthCheck() : null;
+  const cacheStats = cacheService.getStats();
+  
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    services: {
+      database: dbHealth === null ? 'not configured' : (dbHealth ? 'connected' : 'disconnected'),
+      cache: {
+        memory: `${cacheStats.memory.keys} keys`,
+        redis: cacheStats.redis.available ? 'connected' : 'not configured',
+        hitRate: `${(cacheStats.memory.hitRate * 100).toFixed(1)}%`
+      }
+    },
+    version: process.env.npm_package_version || '2.0.0'
+  });
 });
 
 // Socket.io setup
@@ -56,6 +74,27 @@ io.on('connection', (socket) => {
 async function initializeServices() {
   try {
     console.log('🚀 Initializing services...');
+    
+    // Validate configuration
+    const configValidation = configService.validate();
+    if (!configValidation.valid) {
+      console.warn('⚠️ Configuration warnings:', configValidation.errors);
+    }
+    
+    // Initialize Database (if configured)
+    if (process.env.DATABASE_URL) {
+      console.log('🗄️ Initializing Database service...');
+      await databaseService.connect();
+      
+      // Initialize config from database
+      await configService.init();
+    } else {
+      console.log('ℹ️ Database not configured, running in memory-only mode');
+    }
+    
+    // Initialize Cache service
+    console.log('💨 Initializing Cache service...');
+    await cacheService.init();
     
     // Initialize Process Control service first (for stop signals)
     console.log('🎛️ Initializing Process Control service...');
@@ -114,3 +153,24 @@ async function startServer() {
 }
 
 startServer();
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  await cacheService.close();
+  await databaseService.disconnect();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  await cacheService.close();
+  await databaseService.disconnect();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});

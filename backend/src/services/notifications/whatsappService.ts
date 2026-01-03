@@ -1,11 +1,17 @@
-import twilio from 'twilio';
+// Note: twilio is optional - install with: npm install twilio
+let twilio: any;
+try {
+  twilio = require('twilio');
+} catch {
+  // twilio not installed
+}
 
 class WhatsAppService {
   private client: any = null;
   private configured: boolean = false;
 
   constructor() {
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    if (twilio && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
       this.client = twilio(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_AUTH_TOKEN

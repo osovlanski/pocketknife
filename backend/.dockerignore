@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Development files
+*.log
+.env
+.env.*
+!.env.example
+
+# Credentials (should be passed as env vars in production)
+credentials/*.json
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Tests
+coverage
+*.test.ts
+__tests__
+
+# Misc
+README.md
+*.md
+

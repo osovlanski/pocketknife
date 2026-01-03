@@ -26,7 +26,14 @@ interface LinkedInConfig {
 }
 
 // Popular tech newsletters with RSS feeds or APIs
-const NEWSLETTER_SOURCES = {
+interface NewsletterSource {
+  name: string;
+  rssUrl?: string;
+  website: string;
+  tags: string[];
+}
+
+const NEWSLETTER_SOURCES: Record<string, NewsletterSource> = {
   'systemdesign': {
     name: 'System Design Newsletter',
     rssUrl: 'https://newsletter.systemdesign.one/feed',

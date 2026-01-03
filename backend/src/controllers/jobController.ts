@@ -424,7 +424,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
     });
 
     // Get CV data for matching if available
-    let matchedJobs = jobs;
+    let matchedJobs: any[] = jobs;
     if (fs.existsSync(CV_DATA_FILE)) {
       const fileContent = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
       const cvData = fileContent.cvData || fileContent;

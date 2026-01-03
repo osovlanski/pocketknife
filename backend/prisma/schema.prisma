@@ -1,0 +1,278 @@
+// Pocketknife Database Schema
+// PostgreSQL with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// USER & PREFERENCES
+// =============================================================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  preferences    UserPreferences?
+  solvedProblems SolvedProblem[]
+  tripPlans      TripPlan[]
+  jobSearches    JobSearch[]
+  savedJobs      SavedJob[]
+  emailStats     EmailStats?
+  activityLogs   ActivityLog[]
+
+  @@index([email])
+}
+
+model UserPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Job preferences
+  preferredLocations  String[]
+  preferredJobTypes   String[]  // ["Remote", "Hybrid", "Office Only"]
+  preferredCompanies  String[]
+  minSalary           Int?
+  maxSalary           Int?
+  experienceLevel     String?   // "Junior", "Mid", "Senior"
+
+  // Travel preferences
+  preferredAirlines   String[]
+  homeAirport         String?
+  preferredHotelClass Int?      // 1-5 stars
+
+  // Problem solving preferences
+  preferredLanguage   String    @default("javascript")
+  completedLists      String[]  // ["blind75", "neetcode150", "grind75"]
+  preferredDifficulty String?   // "Easy", "Medium", "Hard"
+
+  // Email preferences
+  autoArchiveSpam     Boolean   @default(false)
+  emailDigestTime     String?   // "09:00" - when to send daily digest
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// PROBLEM SOLVING
+// =============================================================================
+
+model SolvedProblem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  problemId   String   // External ID (e.g., "two-sum" for LeetCode)
+  title       String
+  source      String   // "LeetCode", "Codeforces", "HackerRank", "Curated"
+  difficulty  String   // "Easy", "Medium", "Hard"
+  language    String   // Programming language used
+  code        String   @db.Text
+  score       Int?     // AI evaluation score 0-100
+  timeSpent   Int?     // Time spent in seconds
+  hints       Int      @default(0) // Number of hints used
+  attempts    Int      @default(1)
+  
+  // Tags for filtering
+  topics      String[] // ["Array", "Two Pointers", "HashMap"]
+  companyTags String[] // ["Google", "Amazon"]
+  listTags    String[] // ["blind75", "neetcode150"]
+
+  solvedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, problemId, source])
+  @@index([userId, solvedAt])
+  @@index([source, difficulty])
+}
+
+// =============================================================================
+// TRAVEL PLANNING
+// =============================================================================
+
+model TripPlan {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Trip details
+  name        String?
+  origin      String
+  destination String
+  departDate  DateTime
+  returnDate  DateTime?
+  travelers   Int       @default(1)
+  tripType    String    @default("roundtrip") // "roundtrip", "oneway", "multicity"
+
+  // Budget
+  budgetMin   Float?
+  budgetMax   Float?
+  currency    String    @default("USD")
+
+  // Search results (stored as JSON for flexibility)
+  flights     Json?     // Array of flight offers
+  hotels      Json?     // Array of hotel offers
+  activities  Json?     // Array of suggested activities
+
+  // Status tracking
+  status      String    @default("planning") // "planning", "booked", "completed", "cancelled"
+  bookedAt    DateTime?
+  
+  // Notes
+  notes       String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([departDate])
+}
+
+// =============================================================================
+// JOB SEARCH
+// =============================================================================
+
+model JobSearch {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Search parameters
+  query        String
+  location     String?
+  jobType      String?   // "Remote", "Hybrid", "Office Only"
+  filters      Json?     // Additional filters as JSON
+
+  // Results
+  resultsCount Int       @default(0)
+  topMatches   Json?     // Top matching jobs with scores
+
+  // CV used for this search
+  cvHash       String?   // Hash of CV content to detect changes
+
+  searchedAt DateTime @default(now())
+
+  @@index([userId, searchedAt])
+  @@index([query])
+}
+
+model SavedJob {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Job details
+  jobId       String   // External job ID
+  title       String
+  company     String
+  location    String?
+  jobType     String?  // "Remote", "Hybrid", "Office Only"
+  salary      String?
+  description String?  @db.Text
+  url         String?
+  source      String   // "LinkedIn", "Geektime", "AllJobs", etc.
+
+  // Match info
+  matchScore  Int?     // AI matching score 0-100
+  matchReason String?  @db.Text
+
+  // Company enrichment
+  companyInfo Json?    // Crunchbase-like data
+
+  // Status
+  status      String   @default("saved") // "saved", "applied", "interviewing", "rejected", "accepted"
+  appliedAt   DateTime?
+  notes       String?  @db.Text
+
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, jobId, source])
+  @@index([userId, status])
+}
+
+// =============================================================================
+// EMAIL MANAGEMENT
+// =============================================================================
+
+model EmailStats {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Lifetime stats
+  totalProcessed     Int      @default(0)
+  invoicesProcessed  Int      @default(0)
+  jobOffersFound     Int      @default(0)
+  spamDeleted        Int      @default(0)
+  newslettersArchived Int     @default(0)
+
+  // Session tracking
+  lastProcessedAt    DateTime?
+  lastEmailId        String?   // For incremental processing
+
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// ACTIVITY LOGGING
+// =============================================================================
+
+model ActivityLog {
+  id     String @id @default(uuid())
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Activity details
+  agent     String   // "email", "job", "travel", "problem", "learning"
+  action    String   // "search", "process", "save", "delete", etc.
+  details   String?  @db.Text
+  metadata  Json?    // Additional structured data
+
+  // Status
+  status    String   @default("success") // "success", "error", "warning"
+  error     String?  @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([agent, createdAt])
+  @@index([userId, createdAt])
+}
+
+// =============================================================================
+// APP CONFIGURATION
+// =============================================================================
+
+model AppConfig {
+  id        String   @id
+  value     Json
+  category  String?  // "api", "feature", "limit", etc.
+  
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// CACHE METADATA (for cache invalidation tracking)
+// =============================================================================
+
+model CacheEntry {
+  key       String   @id
+  expiresAt DateTime
+  tags      String[] // For tag-based invalidation
+  
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([tags])
+}
