@@ -34,7 +34,7 @@ A comprehensive AI-powered platform featuring multiple intelligent agents for em
 - **AI Article Summaries**: Get concise summaries with TL;DR, key takeaways, and diagrams
 - **Topic Filtering**: Filter by your interests
 
-### 💻 Problem Solving Agent (NEW!)
+### 💻 Problem Solving Agent
 - **Multi-Source Problems**: Search from LeetCode, Codeforces, and curated lists
 - **Curated Lists**: Blind 75, NeetCode 150, Grind 75 built-in
 - **Company Profiles**: 30+ company interview profiles with tips and focus areas
@@ -43,22 +43,59 @@ A comprehensive AI-powered platform featuring multiple intelligent agents for em
 - **Code Review**: Apply suggestions with diff view (accept/reject changes)
 - **Method Signature Generation**: Auto-generate problem-specific templates
 
+### ✅ ToDo Agent (NEW!)
+- **Task Management**: Create, update, complete, and delete tasks with priorities
+- **Google Calendar Sync**: Sync tasks to your Google Calendar with one click
+- **Routine Learning**: AI learns your patterns and suggests recurring tasks
+- **Daily Agenda**: View your tasks organized by date with completion tracking
+- **Task Categories**: Organize tasks by work, personal, health, learning, etc.
+- **Recurring Tasks**: Set up daily, weekly, or monthly recurring tasks
+
+### 🛒 Shopping Agent (NEW!)
+- **Deal Finder**: Search for products across multiple sources (eBay, AliExpress, etc.)
+- **AI Deal Scoring**: AI evaluates deals and suggests best options
+- **Hobby-Based Suggestions**: Get product recommendations based on your interests
+- **Price Alerts**: Set alerts for price drops on products you're watching
+- **Saved Products**: Save and track products you're interested in
+
+### 🔐 Admin Platform (NEW!)
+- **User Management**: View and manage all platform users
+- **Role-Based Access**: USER, ADMIN, and SUPER_ADMIN roles
+- **System Settings**: Configure platform-wide settings
+- **Audit Logs**: Track all administrative actions
+- **Platform Statistics**: Dashboard with user and activity metrics
+
+### ⚙️ Settings & Authentication (NEW!)
+- **Google OAuth**: Sign in with Google for seamless integration
+- **Profile Management**: Update your name and view account details
+- **Integration Settings**: Manage Google Calendar and other integrations
+- **Preferences**: Configure working hours, default task duration, and more
+- **Deep Linking**: Direct URLs to all agents and pages for easy navigation
+
 ## 📁 Project Structure
 
 ```
 pocketknife/
 ├── backend/
+│   ├── prisma/
+│   │   └── schema.prisma          # Database schema (PostgreSQL)
 │   ├── src/
+│   │   ├── agents/                # Agent implementations
+│   │   │   ├── ToDoAgent.ts       # ToDo agent logic
+│   │   │   ├── ShoppingAgent.ts   # Shopping agent logic
+│   │   │   └── ...
 │   │   ├── controllers/           # API request handlers
+│   │   ├── middleware/            # Auth & admin middleware
 │   │   ├── routes/                # API route definitions
 │   │   ├── services/              # Business logic (organized by agent)
+│   │   │   ├── calendar/          # Google Calendar integration
 │   │   │   ├── email/             # Email Agent services
 │   │   │   ├── jobs/              # Job Agent services
 │   │   │   ├── travel/            # Travel Agent services
 │   │   │   ├── learning/          # Learning Agent services
 │   │   │   ├── problemSolving/    # Problem Solving Agent services
 │   │   │   ├── notifications/     # Notification services
-│   │   │   └── core/              # Shared core services
+│   │   │   └── core/              # Shared core services (database, cache, etc.)
 │   │   ├── data/                  # Curated problems, company mappings
 │   │   ├── utils/                 # Utility functions
 │   │   ├── types/                 # TypeScript type definitions
@@ -68,8 +105,16 @@ pocketknife/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/            # React components
-│   │   ├── hooks/                 # Custom React hooks
+│   │   │   ├── common/            # Reusable UI components
+│   │   │   ├── ToDoAgent.tsx      # ToDo agent UI
+│   │   │   ├── ShoppingAgent.tsx  # Shopping agent UI
+│   │   │   ├── AdminPanel.tsx     # Admin dashboard
+│   │   │   ├── SettingsPage.tsx   # User settings
+│   │   │   ├── HomePage.tsx       # Home page
+│   │   │   └── ...
+│   │   ├── hooks/                 # Custom React hooks (useAuth, useTodo, etc.)
 │   │   ├── services/              # API client functions
+│   │   ├── styles/                # CSS modules for styling
 │   │   ├── utils/                 # Utility functions
 │   │   └── types/                 # TypeScript types
 │   └── index.html
@@ -138,11 +183,17 @@ Navigate to http://localhost:5173
 | Service | Required | Purpose |
 |---------|----------|---------|
 | ANTHROPIC_API_KEY | Yes | Claude AI for classification, matching, code evaluation |
-| GOOGLE_CLIENT_ID | Yes | Gmail and Drive access |
-| GOOGLE_CLIENT_SECRET | Yes | Gmail and Drive access |
+| GOOGLE_CLIENT_ID | Yes | Gmail, Drive, and Calendar access |
+| GOOGLE_CLIENT_SECRET | Yes | Gmail, Drive, and Calendar access |
+| DATABASE_URL | Yes | PostgreSQL connection string |
 | AMADEUS_API_KEY | Optional | Travel flight/hotel search |
 | RAPIDAPI_KEY | Optional | JSearch job aggregator (LinkedIn, Glassdoor, Indeed) |
 | ADZUNA_APP_ID | Optional | Adzuna job board |
+
+### Google Cloud APIs to Enable
+- Gmail API
+- Google Drive API
+- Google Calendar API (required for ToDo agent calendar sync)
 
 ## 🎯 Usage
 
@@ -184,6 +235,32 @@ Navigate to http://localhost:5173
 7. Write your solution in the Monaco editor
 8. Click "Submit" for AI evaluation
 9. Click "Apply & Review" to see suggested improvements
+
+### ToDo Agent
+1. Navigate to the "ToDo" tab (or go to /todo)
+2. Click "Add Task" to create a new task
+3. Set priority, category, due date, and time
+4. Click "Sync Calendar" to sync all tasks to Google Calendar
+5. Click tasks to mark them complete/incomplete
+6. View your daily agenda with estimated duration
+
+### Shopping Agent
+1. Navigate to the "Shopping" tab (or go to /shopping)
+2. Search for products by name or description
+3. Or enter your hobbies to get AI-powered suggestions
+4. Save products you're interested in
+5. Set price alerts for notifications
+
+### Admin Panel (for administrators)
+1. Sign in with an admin account (itayosov@gmail.com)
+2. Access via the "Admin" button in the header
+3. Manage users, view audit logs, configure settings
+
+### Settings
+1. Click your profile icon in the header
+2. Access Settings to manage your profile
+3. Configure Google integrations
+4. Update preferences for each agent
 
 ## 📚 Documentation
 

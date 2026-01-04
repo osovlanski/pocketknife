@@ -110,6 +110,11 @@ async function initializeServices() {
     console.log('🔐 Initializing Google Auth service...');
     googleAuthService.initialize();
     
+    // Initialize Calendar service (depends on Google Auth)
+    console.log('📅 Initializing Google Calendar service...');
+    const calendarService = await import('./services/calendar/calendarService');
+    calendarService.default.initialize();
+    
     // Initialize services that don't require OAuth yet
     console.log('📧 Initializing Gmail service...');
     await gmailService.initialize();

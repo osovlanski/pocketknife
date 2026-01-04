@@ -1,6 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Briefcase, Plane, BookOpen, Code, CheckCircle, XCircle, X, Wrench, Mountain, Square } from 'lucide-react';
+/**
+ * App Component
+ * 
+ * Main application component with React Router for deep linking.
+ * Uses custom hooks for state management and modular CSS for styling.
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  Mail, Briefcase, Plane, BookOpen, Code, 
+  CheckSquare, ShoppingCart, Mountain, Square
+} from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+
+// Hooks
+import useAuth from './hooks/useAuth';
+import useNotification from './hooks/useNotification';
+import useSearchController from './hooks/useSearchController';
+
+// Common Components
+import { Header, NavTabs, SignInModal } from './components/common';
+import { ToastContainer } from './components/common/Toast';
+
+// Page Components
+import HomePage from './components/HomePage';
+import AdminPanel from './components/AdminPanel';
+import SettingsPage from './components/SettingsPage';
+
+// Agent Components
 import GmailAgent from './components/GmailAgent';
 import JobSearchPanel from './components/JobSearchPanel';
 import JobListings from './components/JobListings';
@@ -11,10 +38,23 @@ import TripPlanner from './components/TripPlanner';
 import SkiDealsPanel from './components/SkiDealsPanel';
 import LearningAgent from './components/LearningAgent';
 import ProblemSolvingAgent from './components/ProblemSolvingAgent';
+import ToDoAgent from './components/ToDoAgent';
+import ShoppingAgent from './components/ShoppingAgent';
+
+// Activity Log
 import ActivityLog from './components/ActivityLog';
-import useSearchController from './hooks/useSearchController';
+
+// Services & Types
 import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './services/travelApi';
 import type { TravelSearchQuery } from './types/travel';
+import type { TabConfig } from './components/common/NavTabs';
+
+// Styles
+import styles from './styles/layout.module.css';
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface LogEntry {
   id: string;
@@ -24,10 +64,89 @@ interface LogEntry {
   agent?: string;
 }
 
-const App = () => {
-  const [activeTab, setActiveTab] = useState<'email' | 'jobs' | 'travel' | 'learning' | 'problems'>('email');
-  const [jobs, setJobs] = useState<any[]>([]);
+// =============================================================================
+// TAB CONFIGURATION
+// =============================================================================
+
+const agentTabs: TabConfig[] = [
+  { id: 'email', label: 'Email', icon: Mail, color: 'blue', path: '/agents/email' },
+  { id: 'jobs', label: 'Jobs', icon: Briefcase, color: 'purple', path: '/agents/jobs' },
+  { id: 'travel', label: 'Travel', icon: Plane, color: 'green', path: '/agents/travel' },
+  { id: 'learning', label: 'Learning', icon: BookOpen, color: 'amber', path: '/agents/learning' },
+  { id: 'problems', label: 'Problems', icon: Code, color: 'cyan', path: '/agents/problems' },
+  { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
+  { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' }
+];
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+const getActiveTabFromPath = (pathname: string): string | null => {
+  const match = pathname.match(/^\/agents\/(\w+)/);
+  return match ? match[1] : null;
+};
+
+const isAgentRoute = (pathname: string): boolean => {
+  return pathname.startsWith('/agents/');
+};
+
+// =============================================================================
+// AGENT PAGE COMPONENTS (with route-specific layouts)
+// =============================================================================
+
+interface AgentLayoutProps {
+  title: string;
+  subtitle: string;
+  gradient: string;
+  children: React.ReactNode;
+}
+
+const AgentLayout: React.FC<AgentLayoutProps> = ({ title, subtitle, gradient, children }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+      <h1 style={{
+        fontSize: '2.25rem',
+        fontWeight: 700,
+        marginBottom: '0.5rem',
+        background: gradient,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent'
+      }}>
+        {title}
+      </h1>
+      <p style={{ color: 'rgb(203, 213, 225)' }}>{subtitle}</p>
+    </div>
+    {children}
+  </div>
+);
+
+// =============================================================================
+// APP COMPONENT
+// =============================================================================
+
+const App: React.FC = () => {
+  // ---------------------------------------------------------------------------
+  // Router hooks
+  // ---------------------------------------------------------------------------
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // ---------------------------------------------------------------------------
+  // Custom hooks
+  // ---------------------------------------------------------------------------
+  const auth = useAuth();
+  const notifications = useNotification();
+  const jobSearchController = useSearchController('jobs');
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  
+  // Jobs state
+  const [jobs, setJobs] = useState<any[]>([]);
   const [liveMatches, setLiveMatches] = useState<number>(0);
   
   // Travel state
@@ -36,39 +155,55 @@ const App = () => {
   const [travelError, setTravelError] = useState<string | null>(null);
   const [travelMode, setTravelMode] = useState<'flights' | 'ski'>('flights');
   
-  // Auth notification state
-  const [authNotification, setAuthNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  
   // Activity log state
   const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
-  
-  // Global search controller for job search
-  const jobSearchController = useSearchController('jobs');
 
+  // ---------------------------------------------------------------------------
+  // Computed values
+  // ---------------------------------------------------------------------------
+  const activeTab = getActiveTabFromPath(location.pathname);
+  const isOnAgentPage = isAgentRoute(location.pathname);
+  const isOnHomePage = location.pathname === '/';
+
+  const tabsWithBadges = agentTabs.map(tab => {
+    if (tab.id === 'jobs') {
+      return {
+        ...tab,
+        badge: jobs.length > 0 ? jobs.length : undefined,
+        pulseBadge: liveMatches > 0 && activeTab !== 'jobs' ? liveMatches : undefined
+      };
+    }
+    if (tab.id === 'travel' && travelResults) {
+      return {
+        ...tab,
+        badge: travelResults.flights.length + travelResults.hotels.length
+      };
+    }
+    return tab;
+  });
+
+  // ---------------------------------------------------------------------------
+  // Effects
+  // ---------------------------------------------------------------------------
+  
   // Handle Google OAuth callback from URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const authStatus = urlParams.get('auth');
     const authMessage = urlParams.get('message');
     
     if (authStatus === 'success') {
-      setAuthNotification({
-        type: 'success',
-        message: 'Google account connected successfully! You can now use Gmail and Drive features.'
-      });
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => setAuthNotification(null), 5000);
+      notifications.showSuccess(
+        'Google account connected successfully! You can now use Gmail, Calendar, and Drive features.'
+      );
+      navigate(location.pathname, { replace: true });
     } else if (authStatus === 'error') {
-      setAuthNotification({
-        type: 'error',
-        message: authMessage || 'Failed to connect Google account. Please try again.'
-      });
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      notifications.showError(
+        authMessage || 'Failed to connect Google account. Please try again.'
+      );
+      navigate(location.pathname, { replace: true });
     }
-  }, []);
+  }, [location.search]);
 
   // Initialize Socket.io connection
   useEffect(() => {
@@ -77,19 +212,13 @@ const App = () => {
 
     // Listen for real-time job matches
     newSocket.on('job-match', (data: any) => {
-      console.log('🎯 Real-time job match:', data.job);
-      
-      // Add job to the list immediately
       setJobs(prevJobs => {
-        // Check if job already exists
         const exists = prevJobs.some(j => j.id === data.job.id);
         if (exists) return prevJobs;
         
-        // Add new job and sort by match score
         const updatedJobs = [...prevJobs, data.job];
         return updatedJobs.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
       });
-      
       setLiveMatches(prev => prev + 1);
     });
 
@@ -102,7 +231,6 @@ const App = () => {
         type: data.type || 'info',
         agent: data.agent
       };
-      
       setActivityLogs(prevLogs => [...prevLogs, newLog]);
     });
 
@@ -111,19 +239,36 @@ const App = () => {
     };
   }, []);
 
-  const handleClearLogs = () => {
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
+  const handleSignIn = useCallback(async (email: string) => {
+    const result = await auth.signIn(email);
+    if (result.success) {
+      notifications.showSuccess(`Welcome back, ${email}!`);
+    }
+    return result;
+  }, [auth, notifications]);
+
+  const handleSignOut = useCallback(() => {
+    auth.signOut();
+    navigate('/');
+    notifications.showInfo('You have been signed out.');
+  }, [auth, notifications, navigate]);
+
+  const handleClearLogs = useCallback(() => {
     setActivityLogs([]);
-  };
+  }, []);
 
-  const handleCVUploaded = (data: any) => {
+  const handleCVUploaded = useCallback((data: any) => {
     console.log('CV uploaded:', data);
-  };
+  }, []);
 
-  const handleJobSearch = async (location?: string, remoteOnly?: boolean, filters?: any) => {
+  const handleJobSearch = useCallback(async (location?: string, remoteOnly?: boolean, filters?: any) => {
     const controller = jobSearchController.start();
     
     try {
-      // Clear previous jobs and reset live matches counter
       setJobs([]);
       setLiveMatches(0);
       
@@ -134,19 +279,9 @@ const App = () => {
         signal: controller.signal
       });
       const data = await response.json();
-      
-      // Set all jobs at the end (this will include jobs below 75% threshold)
-      // Jobs above 75% were already added via socket
       setJobs(data.jobs || []);
-      
-      // Show summary if available
-      if (data.summary) {
-        console.log('Job Search Summary:\n', data.summary);
-      }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log('Job search was stopped by user');
-        // Add log entry for stopped search
         setActivityLogs(prev => [...prev, {
           id: `${Date.now()}`,
           timestamp: new Date(),
@@ -154,294 +289,258 @@ const App = () => {
           type: 'warning'
         }]);
       } else {
-        console.error('Error searching jobs:', error);
-        alert('Error searching for jobs');
+        notifications.showError('Error searching for jobs');
       }
     } finally {
       jobSearchController.reset();
     }
-  };
+  }, [jobSearchController, notifications]);
 
-  const handleStopJobSearch = () => {
+  const handleStopJobSearch = useCallback(() => {
     jobSearchController.stop();
-  };
+  }, [jobSearchController]);
 
-  const handleTravelSearch = async (query: TravelSearchQuery) => {
+  const handleTravelSearch = useCallback(async (query: TravelSearchQuery) => {
     try {
       setTravelLoading(true);
       setTravelError(null);
       setTravelResults(null);
       
-      console.log('🔍 Searching travel options...', query);
       const results = await searchTravel(query);
-      
-      console.log('✅ Travel results:', results);
       setTravelResults(results);
-      
-      // Show notification
-      if (socket) {
-        socket.emit('log', {
-          type: 'info',
-          message: `Found ${results.flights.length} flights and ${results.hotels.length} hotels`
-        });
-      }
     } catch (error: any) {
-      console.error('❌ Travel search error:', error);
       setTravelError(error.message || 'Failed to search travel options');
-      alert('Error searching travel: ' + (error.message || 'Unknown error'));
+      notifications.showError('Error searching travel: ' + (error.message || 'Unknown error'));
     } finally {
       setTravelLoading(false);
     }
-  };
+  }, [notifications]);
 
-  const handleStopTravelSearch = async () => {
+  const handleStopTravelSearch = useCallback(async () => {
     try {
       await stopTravelSearch();
       setTravelLoading(false);
     } catch (error) {
       console.error('Error stopping travel search:', error);
     }
-  };
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Navigation handlers
+  // ---------------------------------------------------------------------------
+
+  const handleTabChange = useCallback((tabId: string) => {
+    const tab = agentTabs.find(t => t.id === tabId);
+    if (tab?.path) {
+      navigate(tab.path);
+    }
+  }, [navigate]);
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      {/* Auth Notification Toast */}
-      {authNotification && (
-        <div className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-xl shadow-2xl border backdrop-blur-lg ${
-          authNotification.type === 'success' 
-            ? 'bg-green-500/20 border-green-500/50' 
-            : 'bg-red-500/20 border-red-500/50'
-        }`}>
-          <div className="flex items-start gap-3">
-            {authNotification.type === 'success' ? (
-              <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
-            ) : (
-              <XCircle className="w-6 h-6 text-red-400 flex-shrink-0" />
-            )}
-            <div className="flex-1">
-              <p className={`font-semibold ${
-                authNotification.type === 'success' ? 'text-green-300' : 'text-red-300'
-              }`}>
-                {authNotification.type === 'success' ? 'Success!' : 'Error'}
-              </p>
-              <p className="text-sm text-slate-200 mt-1">{authNotification.message}</p>
-            </div>
-            <button 
-              onClick={() => setAuthNotification(null)}
-              className="text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
+    <div className={styles.appContainer}>
+      {/* Toast Notifications */}
+      <ToastContainer 
+        notifications={notifications.notifications} 
+        onDismiss={notifications.dismissNotification} 
+      />
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        onSignIn={handleSignIn}
+      />
 
       {/* Header */}
-      <div className="bg-black/50 border-b border-white/10 py-4">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-3">
-            <Wrench className="w-8 h-8 text-amber-400" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Pocketknife
-            </h1>
-            <span className="text-slate-400 text-sm ml-2">Multi-Agent AI Platform</span>
-          </div>
-        </div>
-      </div>
+      <Header
+        user={auth.currentUser}
+        isLoading={auth.isLoading}
+        isAdmin={auth.isAdmin}
+        activeView={isOnHomePage ? 'home' : (activeTab || location.pathname.slice(1))}
+        onHomeClick={() => navigate('/')}
+        onSettingsClick={() => navigate('/settings')}
+        onAdminClick={() => navigate('/admin')}
+        onSignInClick={() => setShowSignInModal(true)}
+        onSignOut={handleSignOut}
+      />
 
-      {/* Tab Navigation */}
-      <div className="bg-black/30 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('email')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'email'
-                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-blue-400 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+      {/* Agent Navigation Tabs - only show on agent pages */}
+      {isOnAgentPage && (
+        <NavTabs
+          tabs={tabsWithBadges}
+          activeTab={activeTab || 'email'}
+          onTabChange={handleTabChange}
+        />
+      )}
+
+      {/* Main Content */}
+      <main className={styles.mainContent}>
+        <Routes>
+          {/* Home Page */}
+          <Route path="/" element={
+            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} />
+          } />
+
+          {/* Settings */}
+          <Route path="/settings" element={
+            <SettingsPage user={auth.currentUser} onUserUpdate={auth.refreshUser} />
+          } />
+
+          {/* Admin */}
+          <Route path="/admin" element={<AdminPanel />} />
+
+          {/* Email Agent */}
+          <Route path="/agents/email" element={<GmailAgent />} />
+          
+          {/* Jobs Agent */}
+          <Route path="/agents/jobs" element={
+            <AgentLayout
+              title="🤖 AI Job Search Agent"
+              subtitle="Upload your CV and let AI find the perfect job matches"
+              gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
             >
-              <Mail className="w-5 h-5" />
-              Email Agent
-            </button>
-            <button
-              onClick={() => setActiveTab('jobs')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'jobs'
-                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-purple-400 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              <JobSearchPanel
+                onCVUploaded={handleCVUploaded}
+                onSearch={handleJobSearch}
+                onStop={handleStopJobSearch}
+                isSearching={jobSearchController.state.isSearching}
+                isStopping={jobSearchController.state.isStopping}
+              />
+              {jobs.length > 0 && <JobListings jobs={jobs} />}
+            </AgentLayout>
+          } />
+
+          {/* Travel Agent */}
+          <Route path="/agents/travel" element={
+            <AgentLayout
+              title="✈️ AI Travel Deals Agent"
+              subtitle="Find the best flight and hotel deals with AI-powered trip planning"
+              gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
             >
-              <Briefcase className="w-5 h-5" />
-              Job Search
-              {jobs.length > 0 && (
-                <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {jobs.length}
-                </span>
-              )}
-              {liveMatches > 0 && activeTab !== 'jobs' && (
-                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full animate-pulse">
-                  +{liveMatches}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('travel')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'travel'
-                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-green-400 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Plane className="w-5 h-5" />
-              Travel Deals
-              {travelResults && (
-                <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {travelResults.flights.length + travelResults.hotels.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('learning')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'learning'
-                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-amber-400 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              Learning
-            </button>
-            <button
-              onClick={() => setActiveTab('problems')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'problems'
-                  ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-b-2 border-cyan-400 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Code className="w-5 h-5" />
-              Problem Solving
-            </button>
-          </div>
-        </div>
-      </div>
+              {/* Travel Mode Switcher */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <button
+                  onClick={() => setTravelMode('flights')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: travelMode === 'flights'
+                      ? 'linear-gradient(to right, rgb(59, 130, 246), rgb(139, 92, 246))'
+                      : 'rgba(255, 255, 255, 0.1)',
+                    color: travelMode === 'flights' ? 'white' : 'rgb(203, 213, 225)'
+                  }}
+                >
+                  <Plane style={{ width: '1.25rem', height: '1.25rem' }} />
+                  Flights & Hotels
+                </button>
+                <button
+                  onClick={() => setTravelMode('ski')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: travelMode === 'ski'
+                      ? 'linear-gradient(to right, rgb(6, 182, 212), rgb(59, 130, 246))'
+                      : 'rgba(255, 255, 255, 0.1)',
+                    color: travelMode === 'ski' ? 'white' : 'rgb(203, 213, 225)'
+                  }}
+                >
+                  <Mountain style={{ width: '1.25rem', height: '1.25rem' }} />
+                  ⛷️ Ski Deals
+                </button>
+              </div>
 
-      {/* Tab Content */}
-      <div className="max-w-7xl mx-auto p-6">
-        {activeTab === 'email' && <GmailAgent />}
-        
-        {activeTab === 'jobs' && (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                🤖 AI Job Search Agent
-              </h1>
-              <p className="text-slate-300">Upload your CV and let AI find the perfect job matches</p>
-            </div>
-
-            <JobSearchPanel
-              onCVUploaded={handleCVUploaded}
-              onSearch={handleJobSearch}
-              onStop={handleStopJobSearch}
-              isSearching={jobSearchController.state.isSearching}
-              isStopping={jobSearchController.state.isStopping}
-            />
-
-            {jobs.length > 0 && (
-              <JobListings jobs={jobs} />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'travel' && (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-                ✈️ AI Travel Deals Agent
-              </h1>
-              <p className="text-slate-300">Find the best flight and hotel deals with AI-powered trip planning</p>
-            </div>
-
-            {/* Travel Mode Switcher */}
-            <div className="flex justify-center gap-2 mb-4">
-              <button
-                onClick={() => setTravelMode('flights')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                  travelMode === 'flights'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                }`}
-              >
-                <Plane className="w-5 h-5" />
-                Flights & Hotels
-              </button>
-              <button
-                onClick={() => setTravelMode('ski')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                  travelMode === 'ski'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                }`}
-              >
-                <Mountain className="w-5 h-5" />
-                ⛷️ Ski Deals
-              </button>
-            </div>
-
-            {travelMode === 'flights' ? (
-              <>
-                <div className="relative">
-                  <TravelSearchPanel 
-                    onSearch={handleTravelSearch} 
-                    loading={travelLoading} 
-                  />
-                  {travelLoading && (
-                    <button
-                      onClick={handleStopTravelSearch}
-                      className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
-                    >
-                      <Square className="w-4 h-4 fill-current" />
-                      Stop
-                    </button>
-                  )}
-                </div>
-
-                {travelError && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                    <p className="text-red-400">❌ {travelError}</p>
+              {travelMode === 'flights' ? (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <TravelSearchPanel onSearch={handleTravelSearch} loading={travelLoading} />
+                    {travelLoading && (
+                      <button
+                        onClick={handleStopTravelSearch}
+                        style={{
+                          position: 'absolute',
+                          top: '1rem',
+                          right: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: 'rgba(239, 68, 68, 0.2)',
+                          border: '1px solid rgba(239, 68, 68, 0.5)',
+                          borderRadius: '0.5rem',
+                          color: 'rgb(248, 113, 113)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Square style={{ width: '1rem', height: '1rem', fill: 'currentColor' }} />
+                        Stop
+                      </button>
+                    )}
                   </div>
-                )}
 
-                {travelResults && (
-                  <>
-                    {travelResults.flights.length > 0 && (
-                      <FlightResults flights={travelResults.flights} />
-                    )}
+                  {travelError && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '0.75rem',
+                      padding: '1rem'
+                    }}>
+                      <p style={{ color: 'rgb(248, 113, 113)' }}>❌ {travelError}</p>
+                    </div>
+                  )}
 
-                    {travelResults.hotels.length > 0 && (
-                      <HotelResults hotels={travelResults.hotels} />
-                    )}
+                  {travelResults && (
+                    <>
+                      {travelResults.flights.length > 0 && <FlightResults flights={travelResults.flights} />}
+                      {travelResults.hotels.length > 0 && <HotelResults hotels={travelResults.hotels} />}
+                      {travelResults.tripPlan && <TripPlanner plan={travelResults.tripPlan} />}
+                    </>
+                  )}
+                </>
+              ) : (
+                <SkiDealsPanel />
+              )}
+            </AgentLayout>
+          } />
 
-                    {travelResults.tripPlan && (
-                      <TripPlanner plan={travelResults.tripPlan} />
-                    )}
-                  </>
-                )}
-              </>
-            ) : (
-              <SkiDealsPanel />
-            )}
-          </div>
-        )}
+          {/* Learning Agent */}
+          <Route path="/agents/learning" element={<LearningAgent />} />
+          
+          {/* Problem Solving Agent */}
+          <Route path="/agents/problems" element={<ProblemSolvingAgent />} />
 
-        {activeTab === 'learning' && <LearningAgent />}
-        
-        {activeTab === 'problems' && <ProblemSolvingAgent />}
-      </div>
+          {/* ToDo Agent */}
+          <Route path="/agents/todo" element={<ToDoAgent />} />
+
+          {/* Shopping Agent */}
+          <Route path="/agents/shopping" element={<ShoppingAgent />} />
+
+          {/* Catch-all redirect to home */}
+          <Route path="*" element={
+            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} />
+          } />
+        </Routes>
+      </main>
       
-      {/* Activity Log - global across all tabs */}
-      <ActivityLog logs={activityLogs} onClear={handleClearLogs} />
+      {/* Activity Log - only show on agent pages */}
+      {isOnAgentPage && (
+        <ActivityLog logs={activityLogs} onClear={handleClearLogs} />
+      )}
     </div>
   );
 };

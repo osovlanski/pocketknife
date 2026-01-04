@@ -1,0 +1,282 @@
+/**
+ * Gmail Agent Styles
+ * 
+ * Modular CSS for the Gmail agent component.
+ */
+
+/* ============================================
+   CONTAINER & HEADER
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, rgb(239, 68, 68), rgb(249, 115, 22));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgb(203, 213, 225);
+}
+
+/* ============================================
+   AUTH SECTION
+   ============================================ */
+.authCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.authTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.authSubtitle {
+  color: rgb(148, 163, 184);
+  margin-bottom: 1.5rem;
+}
+
+.googleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: rgb(55, 65, 81);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.googleButton:hover {
+  background: rgb(243, 244, 246);
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   STATS GRID
+   ============================================ */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.25rem;
+}
+
+.statIcon {
+  margin-bottom: 0.5rem;
+}
+
+/* Color variations */
+.statInvoice { border-color: rgba(59, 130, 246, 0.3); }
+.statInvoice .statValue { color: rgb(96, 165, 250); }
+
+.statJob { border-color: rgba(16, 185, 129, 0.3); }
+.statJob .statValue { color: rgb(52, 211, 153); }
+
+.statOfficial { border-color: rgba(139, 92, 246, 0.3); }
+.statOfficial .statValue { color: rgb(167, 139, 250); }
+
+.statSpam { border-color: rgba(239, 68, 68, 0.3); }
+.statSpam .statValue { color: rgb(248, 113, 113); }
+
+.statProcessed { border-color: rgba(148, 163, 184, 0.3); }
+
+/* ============================================
+   ACTION BUTTONS
+   ============================================ */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButtonPrimary {
+  background: linear-gradient(to right, rgb(239, 68, 68), rgb(249, 115, 22));
+  color: white;
+}
+
+.actionButtonPrimary:hover {
+  opacity: 0.9;
+}
+
+.actionButtonPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButtonStop {
+  background: rgb(239, 68, 68);
+  color: white;
+}
+
+.actionButtonStop:hover {
+  background: rgb(220, 38, 38);
+}
+
+.actionButtonSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.actionButtonSecondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   USER INFO
+   ============================================ */
+.userInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.5rem;
+  color: rgb(52, 211, 153);
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   CONFIG PANEL
+   ============================================ */
+.configPanel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.configTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.configGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.configLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.configSelect,
+.configInput {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.configSelect:focus,
+.configInput:focus {
+  outline: none;
+  border-color: rgb(239, 68, 68);
+}
+
+/* ============================================
+   INVOICE SECTION
+   ============================================ */
+.invoiceSection {
+  margin-top: 1.5rem;
+}
+
+/* ============================================
+   ICON SIZES
+   ============================================ */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.iconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconLarge {
+  width: 2rem;
+  height: 2rem;
+}
+

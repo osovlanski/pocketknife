@@ -5,28 +5,28 @@
 Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. The application follows a client-server architecture with real-time communication via WebSockets.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         POCKETKNIFE                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │ Email Agent  │    │  Jobs Agent  │    │ Travel Agent │          │
-│  │              │    │              │    │              │          │
-│  │ • Classify   │    │ • Search     │    │ • Flights    │          │
-│  │ • Tag        │    │ • Match CV   │    │ • Hotels     │          │
-│  │ • Save       │    │ • Score      │    │ • Ski/Beach  │          │
-│  │ • Automate   │    │              │    │              │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────┐                               │
-│  │Learning Agent│    │Problem Solve │                               │
-│  │              │    │    Agent     │                               │
-│  │ • Aggregate  │    │ • LeetCode   │                               │
-│  │ • Summarize  │    │ • Codeforces │                               │
-│  │ • Organize   │    │ • Curated    │                               │
-│  └──────────────┘    └──────────────┘                               │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              POCKETKNIFE                                        │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ Email Agent  │  │  Jobs Agent  │  │ Travel Agent │  │ ToDo Agent   │       │
+│  │              │  │              │  │              │  │              │       │
+│  │ • Classify   │  │ • Search     │  │ • Flights    │  │ • Tasks      │       │
+│  │ • Tag        │  │ • Match CV   │  │ • Hotels     │  │ • Calendar   │       │
+│  │ • Save       │  │ • Score      │  │ • Ski/Beach  │  │ • Routines   │       │
+│  │ • Automate   │  │              │  │              │  │ • Agenda     │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘       │
+│                                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │Learning Agent│  │Problem Solve │  │Shopping Agent│  │ Admin Panel  │       │
+│  │              │  │    Agent     │  │              │  │              │       │
+│  │ • Aggregate  │  │ • LeetCode   │  │ • Deals      │  │ • Users      │       │
+│  │ • Summarize  │  │ • Codeforces │  │ • Search     │  │ • Settings   │       │
+│  │ • Organize   │  │ • Curated    │  │ • Alerts     │  │ • Audit Logs │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘       │
+│                                                                                 │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Technology Stack
@@ -37,6 +37,8 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | **Node.js 18+** | Runtime environment |
 | **Express.js** | REST API framework |
 | **TypeScript** | Type-safe development |
+| **Prisma ORM** | Database ORM with type-safe queries |
+| **PostgreSQL** | Relational database |
 | **Socket.io** | Real-time WebSocket communication |
 | **node-cron** | Scheduled task automation |
 
@@ -46,10 +48,13 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | **React 18** | UI component library |
 | **TypeScript** | Type-safe development |
 | **Vite** | Build tool & dev server |
+| **React Router** | Client-side routing & deep linking |
 | **Tailwind CSS** | Utility-first styling |
+| **CSS Modules** | Component-scoped styling |
 | **Monaco Editor** | Code editor (Problem Solving) |
 | **Socket.io Client** | Real-time updates |
 | **Lucide React** | Icon library |
+| **Axios** | HTTP client |
 
 ### External APIs
 | API | Agent | Purpose |
@@ -57,6 +62,7 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | **Anthropic Claude** | All | AI classification, matching, summarization, code evaluation |
 | **Gmail API** | Email | Read/write emails, labels |
 | **Google Drive API** | Email | Store invoices |
+| **Google Calendar API** | ToDo | Sync tasks as calendar events |
 | **Amadeus** | Travel | Flight & hotel search |
 | **JSearch (RapidAPI)** | Jobs | LinkedIn, Glassdoor, Indeed aggregation |
 | **RemoteOK** | Jobs | Remote job listings |
@@ -70,69 +76,62 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 ```
 pocketknife/
 ├── backend/
+│   ├── prisma/
+│   │   └── schema.prisma             # Database schema (PostgreSQL)
+│   │
 │   ├── src/
+│   │   ├── agents/                   # Agent implementations
+│   │   │   ├── AbstractAgent.ts          # Base agent class
+│   │   │   ├── ToDoAgent.ts              # ToDo agent logic
+│   │   │   ├── ShoppingAgent.ts          # Shopping agent logic
+│   │   │   └── index.ts                  # Agent registry
+│   │   │
 │   │   ├── controllers/              # Request handlers
 │   │   │   ├── agentController.ts        # Email agent endpoints
 │   │   │   ├── authController.ts         # OAuth endpoints
+│   │   │   ├── adminController.ts        # Admin endpoints
+│   │   │   ├── todoController.ts         # ToDo agent endpoints
+│   │   │   ├── shoppingController.ts     # Shopping agent endpoints
 │   │   │   ├── jobController.ts          # Job search endpoints
 │   │   │   ├── travelController.ts       # Travel search endpoints
 │   │   │   ├── learningController.ts     # Learning agent endpoints
 │   │   │   └── problemSolvingController.ts # Problem solving endpoints
 │   │   │
+│   │   ├── middleware/               # Express middleware
+│   │   │   └── adminMiddleware.ts        # Admin auth & authorization
+│   │   │
 │   │   ├── services/                 # Business logic (organized by agent)
+│   │   │   ├── calendar/                 # Google Calendar services
+│   │   │   │   └── calendarService.ts        # Calendar API integration
+│   │   │   │
 │   │   │   ├── email/                    # Email Agent services
 │   │   │   │   ├── gmailService.ts           # Gmail API integration
 │   │   │   │   ├── driveService.ts           # Google Drive integration
 │   │   │   │   ├── googleAuthService.ts      # OAuth handling
-│   │   │   │   ├── emailNotificationService.ts
-│   │   │   │   ├── emailSchedulerService.ts
-│   │   │   │   └── index.ts
+│   │   │   │   └── ...
 │   │   │   │
 │   │   │   ├── jobs/                     # Job Agent services
-│   │   │   │   ├── jobSourceService.ts       # Multi-source aggregation
-│   │   │   │   ├── jobMatchingService.ts     # AI job-CV matching
-│   │   │   │   ├── aiJobSearchService.ts     # AI-powered search
-│   │   │   │   ├── cvAnalysisService.ts      # CV parsing
-│   │   │   │   ├── companyEnrichmentService.ts
-│   │   │   │   ├── israeliJobsService.ts
-│   │   │   │   ├── israelTechScraperService.ts
-│   │   │   │   ├── additionalJobAPIs.ts
-│   │   │   │   └── index.ts
-│   │   │   │
 │   │   │   ├── travel/                   # Travel Agent services
-│   │   │   │   ├── travelSearchService.ts    # Amadeus API
-│   │   │   │   ├── tripPlanningService.ts
-│   │   │   │   ├── specializedTravelService.ts
-│   │   │   │   ├── destinationRecommendationsService.ts
-│   │   │   │   └── index.ts
-│   │   │   │
 │   │   │   ├── learning/                 # Learning Agent services
-│   │   │   │   ├── learningService.ts        # Content aggregation
-│   │   │   │   └── index.ts
-│   │   │   │
 │   │   │   ├── problemSolving/           # Problem Solving Agent services
-│   │   │   │   ├── problemSolvingService.ts  # Coding problems, evaluation
-│   │   │   │   └── index.ts
-│   │   │   │
 │   │   │   ├── notifications/            # Cross-cutting notifications
-│   │   │   │   ├── discordNotificationService.ts
-│   │   │   │   ├── telegramNotificationService.ts
-│   │   │   │   ├── whatsappService.ts
-│   │   │   │   └── index.ts
 │   │   │   │
 │   │   │   ├── core/                     # Shared core services
 │   │   │   │   ├── claudeService.ts          # AI client wrapper
+│   │   │   │   ├── databaseService.ts        # Prisma database service
+│   │   │   │   ├── cacheService.ts           # Caching service
+│   │   │   │   ├── configService.ts          # Configuration service
 │   │   │   │   ├── processControlService.ts  # Stop/pause control
 │   │   │   │   └── index.ts
 │   │   │   │
 │   │   │   └── index.ts                  # Central export
 │   │   │
-│   │   ├── data/                     # Static data & mappings
-│   │   │   ├── curatedProblems.ts        # Blind 75, NeetCode 150
-│   │   │   └── companyMappings.ts        # Company interview profiles
-│   │   │
 │   │   ├── routes/                   # API route definitions
 │   │   │   ├── index.ts                  # Route aggregator
+│   │   │   ├── admin.ts                  # /api/admin/*
+│   │   │   ├── todo.ts                   # /api/todo/*
+│   │   │   ├── shopping.ts               # /api/shopping/*
+│   │   │   ├── settings.ts               # /api/settings/*
 │   │   │   ├── agent.ts                  # /api/agent/*
 │   │   │   ├── auth.ts                   # /api/auth/*
 │   │   │   ├── jobs.ts                   # /api/jobs/*
@@ -140,18 +139,10 @@ pocketknife/
 │   │   │   ├── learning.ts               # /api/learning/*
 │   │   │   └── problemSolving.ts         # /api/problems/*
 │   │   │
+│   │   ├── data/                     # Static data & mappings
 │   │   ├── types/                    # TypeScript definitions
-│   │   │   ├── index.ts
-│   │   │   └── travel.ts
-│   │   │
 │   │   ├── utils/                    # Utility functions
-│   │   │   ├── emailProcessor.ts
-│   │   │   ├── anthropicClient.ts        # Shared AI client
-│   │   │   └── logger.ts
-│   │   │
 │   │   ├── config/                   # Configuration
-│   │   │   └── credentials.ts
-│   │   │
 │   │   └── index.ts                  # Entry point
 │   │
 │   ├── credentials/                  # OAuth tokens (gitignored)
@@ -160,31 +151,48 @@ pocketknife/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/               # React components
+│   │   │   ├── common/                   # Reusable UI components
+│   │   │   │   ├── Header.tsx
+│   │   │   │   ├── NavTabs.tsx
+│   │   │   │   ├── Modal.tsx
+│   │   │   │   ├── Button.tsx
+│   │   │   │   └── Toast.tsx
+│   │   │   │
+│   │   │   ├── HomePage.tsx              # Home page
 │   │   │   ├── GmailAgent.tsx            # Email processing UI
-│   │   │   ├── JobSearchPanel.tsx        # Job search form
-│   │   │   ├── JobListings.tsx           # Job results display
-│   │   │   ├── TravelSearchPanel.tsx     # Travel search form
-│   │   │   ├── FlightResults.tsx         # Flight display
-│   │   │   ├── HotelResults.tsx          # Hotel display
+│   │   │   ├── ToDoAgent.tsx             # ToDo agent UI
+│   │   │   ├── ShoppingAgent.tsx         # Shopping agent UI
 │   │   │   ├── LearningAgent.tsx         # Learning content UI
 │   │   │   ├── ProblemSolvingAgent.tsx   # Coding problems UI
-│   │   │   ├── ActivityLog.tsx           # Global activity log
-│   │   │   ├── SearchButton.tsx          # Reusable search/stop button
+│   │   │   ├── AdminPanel.tsx            # Admin dashboard
+│   │   │   ├── SettingsPage.tsx          # User settings
+│   │   │   └── ...
+│   │   │
+│   │   ├── hooks/                    # Custom React hooks
+│   │   │   ├── useAuth.ts                # Authentication state
+│   │   │   ├── useTodo.ts                # ToDo agent logic
+│   │   │   ├── useShopping.ts            # Shopping agent logic
+│   │   │   ├── useAdmin.ts               # Admin panel logic
+│   │   │   ├── useSettings.ts            # Settings logic
 │   │   │   └── ...
 │   │   │
 │   │   ├── services/                 # API client functions
+│   │   │   ├── authApi.ts                # Auth API calls
+│   │   │   ├── adminApi.ts               # Admin API calls
+│   │   │   ├── todoApi.ts                # ToDo API calls
+│   │   │   ├── shoppingApi.ts            # Shopping API calls
 │   │   │   ├── api.ts                    # Agent API calls
 │   │   │   └── travelApi.ts              # Travel API calls
 │   │   │
-│   │   ├── hooks/                    # Custom React hooks
-│   │   │   ├── useAgent.ts
-│   │   │   └── useSearchController.ts    # Global search/stop control
+│   │   ├── styles/                   # CSS modules
+│   │   │   ├── todo.module.css
+│   │   │   ├── shopping.module.css
+│   │   │   ├── admin.module.css
+│   │   │   └── ...
 │   │   │
 │   │   ├── utils/                    # Utilities
-│   │   │   └── fileParser.ts             # PDF/Word parsing
-│   │   │
 │   │   ├── types/                    # TypeScript definitions
-│   │   └── App.tsx                   # Main application
+│   │   └── App.tsx                   # Main application with routing
 │   │
 │   └── index.html                    # Entry HTML
 │
@@ -337,8 +345,57 @@ pocketknife/
 ### Auth (`/api/auth/*`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/google/url` | Get Google OAuth URL |
+| GET | `/status` | Get Google auth status |
+| GET | `/google` | Initiate Google OAuth flow |
 | GET | `/google/callback` | OAuth callback handler |
+| POST | `/google/disconnect` | Disconnect Google account |
+| POST | `/google/reauth` | Force re-authentication (for new scopes) |
+
+### ToDo Agent (`/api/todo/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/tasks` | Create a new task |
+| GET | `/tasks` | Get all tasks |
+| PUT | `/tasks/:id` | Update a task |
+| DELETE | `/tasks/:id` | Delete a task |
+| POST | `/tasks/:id/complete` | Mark task as complete |
+| POST | `/tasks/:id/uncomplete` | Mark task as incomplete |
+| GET | `/agenda` | Get daily agenda |
+| POST | `/calendar/sync` | Sync tasks to Google Calendar |
+| GET | `/routines` | Get suggested routines |
+| POST | `/routines/:id/approve` | Approve a suggested routine |
+| POST | `/patterns/learn` | Learn patterns from task history |
+
+### Shopping Agent (`/api/shopping/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/search` | Search for products |
+| GET | `/saved` | Get saved products |
+| POST | `/save` | Save a product |
+| DELETE | `/saved/:id` | Remove saved product |
+| POST | `/alerts` | Create price alert |
+| GET | `/interests` | Get user interests |
+| PUT | `/interests` | Update user interests |
+
+### Admin (`/api/admin/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/initialize` | Initialize admin (first-time setup) |
+| GET | `/me` | Get current user info |
+| GET | `/users` | List all users |
+| PUT | `/users/:id` | Update user (role, status) |
+| GET | `/settings` | Get system settings |
+| PUT | `/settings` | Update system settings |
+| GET | `/audit-logs` | Get audit logs |
+| GET | `/stats` | Get platform statistics |
+
+### Settings (`/api/settings/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/preferences` | Get user preferences |
+| PUT | `/preferences` | Update preferences |
+| GET | `/profile` | Get user profile |
+| PUT | `/profile` | Update profile |
 
 ## Real-Time Communication
 
@@ -373,10 +430,16 @@ The architecture supports:
 
 ## Future Enhancements
 
+- [x] PostgreSQL database with Prisma ORM
+- [x] Google Calendar integration
+- [x] Admin platform with RBAC
+- [x] ToDo agent with task management
+- [x] Shopping agent with deal finder
 - [ ] Redis caching for job/travel results
-- [ ] PostgreSQL for persistent job history
 - [ ] Docker containerization
 - [ ] Kubernetes deployment config
 - [ ] WhatsApp notification integration
 - [ ] Mobile app (React Native)
 - [ ] More problem sources (GeeksforGeeks, InterviewBit)
+- [ ] AI-powered routine suggestions (advanced ML)
+- [ ] Multi-user collaboration features

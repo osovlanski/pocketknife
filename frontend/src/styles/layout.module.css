@@ -1,0 +1,348 @@
+/* =============================================================================
+   LAYOUT STYLES - App Layout CSS Module
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   App Container
+   ----------------------------------------------------------------------------- */
+
+.appContainer {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, rgb(15, 23, 42), rgb(88, 28, 135), rgb(15, 23, 42));
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   Header
+   ----------------------------------------------------------------------------- */
+
+.header {
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerContent {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logoIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(to bottom right, rgb(251, 191, 36), rgb(249, 115, 22));
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(to right, rgb(251, 191, 36), rgb(249, 115, 22));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logoSubtext {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.headerButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgb(148, 163, 184);
+}
+
+.headerButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.headerButtonActive {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.headerButtonAdmin {
+  color: rgb(196, 181, 253);
+}
+
+.headerButtonAdmin.headerButtonActive {
+  background: rgba(139, 92, 246, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+/* -----------------------------------------------------------------------------
+   User Menu
+   ----------------------------------------------------------------------------- */
+
+.userMenuContainer {
+  position: relative;
+}
+
+.userMenuButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.userMenuButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.userAvatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: linear-gradient(to bottom right, rgb(139, 92, 246), rgb(236, 72, 153));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+}
+
+.userInfo {
+  display: none;
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .userInfo {
+    display: block;
+  }
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+.userMenuDropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  width: 14rem;
+  background: rgb(30, 41, 59);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 0;
+  z-index: 50;
+}
+
+.userMenuHeader {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.userMenuHeaderName {
+  font-weight: 500;
+  color: white;
+}
+
+.userMenuHeaderEmail {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.userMenuRole {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+}
+
+.userMenuRoleSuperAdmin {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(252, 211, 77);
+}
+
+.userMenuRoleAdmin {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+}
+
+.userMenuRoleUser {
+  background: rgba(100, 116, 139, 0.2);
+  color: rgb(203, 213, 225);
+}
+
+.userMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: rgb(203, 213, 225);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.userMenuItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.userMenuItemIcon {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(148, 163, 184);
+}
+
+.userMenuItemDanger {
+  color: rgb(248, 113, 113);
+}
+
+.userMenuItemDanger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.userMenuDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.5rem 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Navigation Tabs
+   ----------------------------------------------------------------------------- */
+
+.navTabs {
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: auto;
+}
+
+.navTabsContent {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.navTab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgb(148, 163, 184);
+  transition: all 0.2s ease;
+}
+
+.navTab:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navTabActive {
+  background: linear-gradient(to bottom right, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.5));
+  color: white;
+  border-bottom: 2px solid;
+}
+
+.navTabIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.navTabBadge {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  color: white;
+}
+
+.navTabBadgePulse {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* -----------------------------------------------------------------------------
+   Main Content
+   ----------------------------------------------------------------------------- */
+
+.mainContent {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Sign In Button
+   ----------------------------------------------------------------------------- */
+
+.signInButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(236, 72, 153));
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.signInButton:hover {
+  opacity: 0.9;
+}
+

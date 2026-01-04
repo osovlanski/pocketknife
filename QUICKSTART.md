@@ -24,7 +24,7 @@ npm run dev
 
 ---
 
-## 📝 Before First Run (30 seconds)
+## 📝 Before First Run
 
 ### ⚠️ IMPORTANT: Upgrade Node.js First (Required: Node 18+)
 
@@ -55,17 +55,36 @@ nvm use 20
 node --version  # Should show v20.x
 ```
 
-**After upgrading, run:**
+### 2. Configure Database (PostgreSQL)
 ```powershell
+# Create a PostgreSQL database (using psql or your preferred tool)
+# Then update backend/.env with your connection string:
+DATABASE_URL="postgresql://user:password@localhost:5432/pocketknife"
+
+# Run database migrations
 cd backend
-npm install  # Reinstall with modern packages
-npm run dev  # Should work perfectly now!
+npx prisma migrate dev
 ```
 
-### 2. Edit `backend\.env` - Update these 2 lines:
+### 3. Edit `backend\.env` - Update these lines:
 ```env
 GMAIL_USER_EMAIL=your-email@gmail.com
 ALERT_EMAIL=your-email@gmail.com
+DATABASE_URL=postgresql://user:password@localhost:5432/pocketknife
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### 4. Enable Google APIs (in Google Cloud Console)
+- Gmail API
+- Google Drive API  
+- **Google Calendar API** (required for ToDo agent calendar sync)
+
+**After configuring, run:**
+```powershell
+cd backend
+npm install
+npx prisma migrate dev  # Set up database
+npm run dev
 ```
 
 Everything else is already configured!

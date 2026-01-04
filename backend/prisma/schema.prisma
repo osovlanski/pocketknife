@@ -13,11 +13,41 @@ datasource db {
 // USER & PREFERENCES
 // =============================================================================
 
+// User roles enum
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// User status enum  
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   name      String?
   avatarUrl String?
+  
+  // Role-based access control
+  role      UserRole   @default(USER)
+  status    UserStatus @default(ACTIVE)
+  
+  // Authentication
+  passwordHash  String?   // For future password auth
+  lastLoginAt   DateTime?
+  loginCount    Int       @default(0)
+  
+  // Admin metadata
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  verifiedBy    String?   // Admin who verified this user
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -29,8 +59,25 @@ model User {
   savedJobs      SavedJob[]
   emailStats     EmailStats?
   activityLogs   ActivityLog[]
+  
+  // ToDo Agent relations
+  tasks          Task[]
+  routinePatterns RoutinePattern[]
+  calendarSync   CalendarSync?
+  
+  // Shopping Agent relations
+  productSearches ProductSearch[]
+  products       Product[]
+  userInterests  UserInterest[]
+  priceAlerts    PriceAlert[]
+  
+  // Admin relations
+  adminActions   AdminAuditLog[] @relation("AdminActions")
+  systemSettings SystemSetting[]
 
   @@index([email])
+  @@index([role])
+  @@index([status])
 }
 
 model UserPreferences {
@@ -59,6 +106,18 @@ model UserPreferences {
   // Email preferences
   autoArchiveSpam     Boolean   @default(false)
   emailDigestTime     String?   // "09:00" - when to send daily digest
+  
+  // ToDo preferences
+  defaultTaskDuration  Int?      // Default duration in minutes
+  workingHoursStart    String?   // "09:00"
+  workingHoursEnd      String?   // "17:00"
+  weekendEnabled       Boolean   @default(false)
+  
+  // Shopping preferences
+  preferredCurrency    String    @default("USD")
+  dealScoreThreshold   Int       @default(70)  // Minimum deal score to notify
+  favoriteCategories   String[]
+  favoriteBrands       String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -275,4 +334,312 @@ model CacheEntry {
 
   @@index([expiresAt])
   @@index([tags])
+}
+
+// =============================================================================
+// TODO AGENT
+// =============================================================================
+
+model Task {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Task details
+  title       String
+  description String?   @db.Text
+  priority    String    @default("medium") // "low", "medium", "high", "urgent"
+  status      String    @default("pending") // "pending", "in_progress", "completed", "cancelled"
+  dueDate     DateTime?
+  dueTime     String?   // "09:00", "14:30" etc.
+  duration    Int?      // Estimated duration in minutes
+  
+  // Recurrence
+  isRecurring   Boolean   @default(false)
+  recurrenceRule String?  // "daily", "weekly", "monthly", "weekdays", "custom:MON,WED,FRI"
+  
+  // Categories & tags
+  category    String?   // "work", "personal", "health", "learning", "errands"
+  tags        String[]
+  
+  // Google Calendar sync
+  googleEventId   String?
+  lastSyncedAt    DateTime?
+  syncEnabled     Boolean   @default(false)
+  
+  // Completion tracking
+  completedAt   DateTime?
+  completedCount Int       @default(0) // For recurring tasks
+  
+  // Pattern learning
+  sourceType    String    @default("manual") // "manual", "routine", "suggested"
+  confidence    Float?    // AI confidence for suggested tasks
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([userId, category])
+}
+
+model RoutinePattern {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Pattern details
+  patternName   String
+  description   String?
+  
+  // When this routine happens
+  dayOfWeek     String[]  // ["monday", "tuesday", "wednesday", "thursday", "friday"]
+  timeSlot      String?   // "morning", "afternoon", "evening"
+  preferredTime String?   // "09:00"
+  
+  // What the routine involves
+  taskTemplate  Json      // Template for creating tasks
+  
+  // Learning metrics
+  frequency     Int       @default(0)  // How many times detected
+  lastOccurred  DateTime?
+  avgDuration   Int?      // Average duration in minutes
+  confidence    Float     @default(0.5) // AI confidence 0-1
+  
+  // User feedback
+  isApproved    Boolean   @default(false)
+  isDismissed   Boolean   @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isApproved])
+}
+
+model CalendarSync {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Google Calendar OAuth
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  calendarId    String    @default("primary")
+  
+  // Sync settings
+  syncEnabled       Boolean   @default(true)
+  syncDirection     String    @default("both") // "to_google", "from_google", "both"
+  lastSyncAt        DateTime?
+  lastSyncError     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// SHOPPING AGENT
+// =============================================================================
+
+model ProductSearch {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Search query
+  query         String
+  queryType     String   @default("explicit") // "explicit", "hobby_based"
+  originalPrompt String? @db.Text
+  
+  // Results
+  resultsCount  Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  products      Product[]
+  
+  @@index([userId, createdAt])
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  searchId  String?
+  search    ProductSearch? @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Product details
+  title         String
+  description   String?   @db.Text
+  price         Float
+  originalPrice Float?    // Original price before discount
+  currency      String    @default("USD")
+  discount      Float?    // Discount percentage
+  
+  // Source info
+  source        String    // "ebay", "aliexpress", "amazon", "telegram"
+  sourceUrl     String
+  sourceId      String?   // External product ID
+  imageUrl      String?
+  
+  // Deal quality
+  dealScore     Float?    // AI-calculated deal score 0-100
+  dealReason    String?   @db.Text
+  
+  // Categories
+  category      String?
+  tags          String[]
+  
+  // User interaction
+  isSaved       Boolean   @default(false)
+  isPurchased   Boolean   @default(false)
+  notifyOnDrop  Boolean   @default(false)
+  targetPrice   Float?    // Price alert threshold
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isSaved])
+  @@index([source, category])
+  @@index([dealScore])
+}
+
+model UserInterest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Interest details
+  interestType  String   // "hobby", "category", "brand", "keyword"
+  value         String   // e.g., "gaming", "electronics", "Nike"
+  weight        Float    @default(1.0) // How much user cares about this
+  
+  // Learning
+  searchCount   Int      @default(0)
+  purchaseCount Int      @default(0)
+  lastUsedAt    DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, interestType, value])
+  @@index([userId])
+}
+
+model PriceAlert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  
+  // Alert settings
+  targetPrice   Float
+  currentPrice  Float
+  alertType     String    @default("drop") // "drop", "threshold"
+  
+  // Notification
+  isTriggered   Boolean   @default(false)
+  triggeredAt   DateTime?
+  notifiedVia   String[]  // ["email", "telegram", "push"]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isTriggered])
+}
+
+// =============================================================================
+// ADMIN & SYSTEM MANAGEMENT
+// =============================================================================
+
+model AdminAuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     User     @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+  
+  // Action details
+  action        String   // "create_user", "update_user", "delete_user", "change_role", "update_settings"
+  targetType    String   // "user", "settings", "agent", "system"
+  targetId      String?  // ID of the affected resource
+  targetEmail   String?  // For user-related actions
+  
+  // Change tracking
+  previousValue Json?    // State before change
+  newValue      Json?    // State after change
+  
+  // Context
+  ipAddress     String?
+  userAgent     String?
+  reason        String?  @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model SystemSetting {
+  id          String   @id
+  category    String   // "general", "agents", "notifications", "security", "integrations"
+  name        String
+  value       Json
+  description String?
+  
+  // Access control
+  isPublic    Boolean  @default(false)  // Can non-admins see this?
+  isEditable  Boolean  @default(true)   // Can it be changed via UI?
+  
+  // Audit
+  updatedBy   String?
+  updatedByUser User?  @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, name])
+  @@index([category])
+}
+
+model ApiKey {
+  id          String   @id @default(uuid())
+  name        String
+  keyHash     String   @unique  // Hashed API key
+  keyPrefix   String   // First 8 chars for identification
+  
+  // Permissions
+  permissions String[] // ["read", "write", "admin"]
+  rateLimit   Int      @default(1000) // Requests per hour
+  
+  // Usage tracking
+  lastUsedAt  DateTime?
+  usageCount  Int      @default(0)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([keyPrefix])
+  @@index([isActive])
+}
+
+model FeatureFlag {
+  id          String   @id
+  name        String   @unique
+  description String?
+  
+  // Flag state
+  isEnabled   Boolean  @default(false)
+  
+  // Targeting
+  enabledForRoles   String[] // ["ADMIN", "USER"]
+  enabledForUsers   String[] // Specific user IDs
+  rolloutPercentage Int      @default(0) // 0-100 for gradual rollout
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

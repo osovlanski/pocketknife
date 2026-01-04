@@ -6,6 +6,7 @@ class GoogleAuthService {
   private oauth2Client: any = null;
   private tokenPath: string;
   private hasValidTokens: boolean = false;
+  private storedScopes: string = ''; // Store scopes from token file
 
   constructor() {
     this.tokenPath = path.join(process.cwd(), 'credentials', 'gmail-token.json');
@@ -27,14 +28,18 @@ class GoogleAuthService {
         const tokens = JSON.parse(fs.readFileSync(this.tokenPath, 'utf-8'));
         this.oauth2Client.setCredentials(tokens);
         this.hasValidTokens = true;
+        this.storedScopes = tokens.scope || ''; // Store the scopes from token file
         console.log('✅ Google OAuth tokens loaded');
+        console.log('📋 Token scopes:', this.storedScopes);
       } catch (error) {
         console.warn('⚠️ Failed to load Google tokens:', error);
         this.hasValidTokens = false;
+        this.storedScopes = '';
       }
     } else {
       console.warn('⚠️ No Google OAuth tokens found');
       this.hasValidTokens = false;
+      this.storedScopes = '';
     }
   }
 
@@ -64,7 +69,9 @@ class GoogleAuthService {
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.modify',
       'https://www.googleapis.com/auth/gmail.labels',
-      'https://www.googleapis.com/auth/drive.file'
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/calendar.events'
     ];
 
     return this.oauth2Client.generateAuthUrl({
@@ -92,8 +99,10 @@ class GoogleAuthService {
       // Set credentials on client
       this.oauth2Client.setCredentials(tokens);
       this.hasValidTokens = true;
+      this.storedScopes = tokens.scope || ''; // Store scopes
       
       console.log('✅ Google OAuth tokens saved successfully');
+      console.log('📋 Token scopes:', this.storedScopes);
       
       return { success: true };
     } catch (error: any) {
@@ -116,6 +125,7 @@ class GoogleAuthService {
       }
       
       this.hasValidTokens = false;
+      this.storedScopes = '';
       this.oauth2Client.setCredentials({});
       
       console.log('✅ Google account disconnected');
@@ -124,6 +134,52 @@ class GoogleAuthService {
       console.error('❌ Error disconnecting Google:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Force re-authentication by deleting tokens (without revoking)
+   * This is useful when scopes have been updated
+   */
+  forceReauth(): { success: boolean; authUrl: string } {
+    try {
+      // Delete existing tokens without revoking (so we don't lose refresh capability)
+      if (fs.existsSync(this.tokenPath)) {
+        fs.unlinkSync(this.tokenPath);
+        console.log('🔄 Deleted existing tokens for re-authentication');
+      }
+      
+      this.hasValidTokens = false;
+      this.storedScopes = '';
+      this.oauth2Client.setCredentials({});
+      
+      return { 
+        success: true, 
+        authUrl: this.getAuthUrl() 
+      };
+    } catch (error: any) {
+      console.error('❌ Error forcing re-auth:', error);
+      return { 
+        success: false, 
+        authUrl: this.getAuthUrl() 
+      };
+    }
+  }
+
+  /**
+   * Check if current tokens have the required scopes
+   */
+  hasCalendarScopes(): boolean {
+    if (!this.hasValidTokens) {
+      return false;
+    }
+    
+    // Check stored scopes (from token file) or credentials scope
+    const scope = this.storedScopes || this.oauth2Client?.credentials?.scope || '';
+    const hasCalendar = scope.includes('calendar');
+    
+    console.log('🔍 Checking calendar scopes:', { hasCalendar, scope: scope.substring(0, 100) + '...' });
+    
+    return hasCalendar;
   }
 
   /**

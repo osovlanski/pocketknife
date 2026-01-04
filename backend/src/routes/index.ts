@@ -20,6 +20,10 @@ import problemSolvingRoutes from './problemSolving';
 import authRoutes from './auth';
 import agentsRoutes from './agents';
 import autocompleteRoutes from './autocomplete';
+import todoRoutes from './todo';
+import shoppingRoutes from './shopping';
+import adminRoutes from './admin';
+import settingsRoutes from './settings';
 
 const router = Router();
 
@@ -62,5 +66,17 @@ router.use('/agents', agentsRoutes);
 
 // Autocomplete routes (with caching)
 router.use('/autocomplete', autocompleteRoutes);
+
+// ToDo agent routes
+router.use('/todo', todoRoutes);
+
+// Shopping agent routes
+router.use('/shopping', shoppingRoutes);
+
+// Admin routes
+router.use('/admin', adminRoutes);
+
+// Settings routes (user preferences)
+router.use('/settings', settingsRoutes);
 
 export default router;

@@ -150,12 +150,13 @@ export const databaseService = {
 
   /**
    * Get or create default user (for single-user mode)
+   * Uses ADMIN_EMAIL env var or defaults to itayosov@gmail.com
    */
   getDefaultUser: async () => {
     const client = getPrisma();
     if (!client) return null;
     
-    const defaultEmail = process.env.DEFAULT_USER_EMAIL || 'default@pocketknife.local';
+    const defaultEmail = process.env.ADMIN_EMAIL || process.env.DEFAULT_USER_EMAIL || 'itayosov@gmail.com';
     
     let user = await client.user.findUnique({
       where: { email: defaultEmail },
@@ -166,7 +167,11 @@ export const databaseService = {
       user = await client.user.create({
         data: {
           email: defaultEmail,
-          name: 'Default User',
+          name: 'Admin',
+          role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+          isVerified: true,
+          verifiedAt: new Date(),
           preferences: {
             create: {
               preferredLanguage: 'javascript',
@@ -174,16 +179,46 @@ export const databaseService = {
               preferredLocations: [],
               preferredCompanies: [],
               preferredAirlines: [],
-              completedLists: []
+              completedLists: [],
+              favoriteCategories: [],
+              favoriteBrands: []
             }
           }
         },
         include: { preferences: true }
       });
-      console.log('✅ Created default user:', defaultEmail);
+      console.log('✅ Created admin user:', defaultEmail);
     }
 
     return user;
+  },
+
+  /**
+   * Get user by email
+   */
+  getUserByEmail: async (email: string) => {
+    const client = getPrisma();
+    if (!client) return null;
+    
+    return client.user.findUnique({
+      where: { email: email.toLowerCase() },
+      include: { preferences: true }
+    });
+  },
+
+  /**
+   * Check if user is admin
+   */
+  isAdmin: async (userId: string): Promise<boolean> => {
+    const client = getPrisma();
+    if (!client) return false;
+    
+    const user = await client.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    
+    return user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   },
 
   /**

@@ -118,3 +118,25 @@ export const disconnectGoogle = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Force re-authentication (useful when scopes have changed)
+ * This deletes existing tokens and returns a new auth URL
+ */
+export const forceReauth = async (req: Request, res: Response) => {
+  try {
+    const result = googleAuthService.forceReauth();
+    
+    res.json({
+      success: result.success,
+      message: 'Please re-authenticate to grant new permissions',
+      authUrl: result.authUrl,
+      needsReauth: true
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+

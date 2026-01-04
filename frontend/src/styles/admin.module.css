@@ -1,0 +1,535 @@
+/* =============================================================================
+   ADMIN PANEL STYLES
+   ============================================================================= */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Header
+   ----------------------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(to bottom right, rgb(139, 92, 246), rgb(236, 72, 153));
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerTitleText {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.headerRole {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+}
+
+.headerRoleSuperAdmin {
+  background: linear-gradient(to right, rgb(245, 158, 11), rgb(249, 115, 22));
+  color: white;
+}
+
+.headerRoleAdmin {
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(236, 72, 153));
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   Tabs
+   ----------------------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  color: rgb(148, 163, 184);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tabActive {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.tabIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Stats Grid
+   ----------------------------------------------------------------------------- */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.statIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(148, 163, 184);
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.statSubtext {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+}
+
+/* -----------------------------------------------------------------------------
+   Table
+   ----------------------------------------------------------------------------- */
+
+.tableContainer {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.tableHeader {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tableTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgb(148, 163, 184);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* -----------------------------------------------------------------------------
+   User Row
+   ----------------------------------------------------------------------------- */
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userAvatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.userAvatarSuperAdmin {
+  background: linear-gradient(to bottom right, rgb(245, 158, 11), rgb(249, 115, 22));
+}
+
+.userAvatarAdmin {
+  background: linear-gradient(to bottom right, rgb(139, 92, 246), rgb(236, 72, 153));
+}
+
+.userAvatarUser {
+  background: rgb(100, 116, 139);
+}
+
+.userName {
+  font-weight: 500;
+}
+
+.userEmail {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Badges
+   ----------------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.badgeSuperAdmin {
+  background: linear-gradient(to right, rgb(245, 158, 11), rgb(249, 115, 22));
+  color: white;
+}
+
+.badgeAdmin {
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(236, 72, 153));
+  color: white;
+}
+
+.badgeUser {
+  background: rgb(100, 116, 139);
+  color: white;
+}
+
+.statusActive {
+  color: rgb(110, 231, 183);
+}
+
+.statusInactive {
+  color: rgb(148, 163, 184);
+}
+
+.statusSuspended {
+  color: rgb(248, 113, 113);
+}
+
+.statusPending {
+  color: rgb(252, 211, 77);
+}
+
+/* -----------------------------------------------------------------------------
+   Actions
+   ----------------------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgb(148, 163, 184);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.actionButtonDanger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(248, 113, 113);
+}
+
+/* -----------------------------------------------------------------------------
+   Pagination
+   ----------------------------------------------------------------------------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.paginationButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  padding: 0 1rem;
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Settings
+   ----------------------------------------------------------------------------- */
+
+.settingsCategory {
+  margin-bottom: 2rem;
+}
+
+.settingsCategoryTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: capitalize;
+}
+
+.settingsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.settingInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.settingName {
+  font-weight: 500;
+}
+
+.settingDescription {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Audit Log
+   ----------------------------------------------------------------------------- */
+
+.logEntry {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logEntry:last-child {
+  border-bottom: none;
+}
+
+.logTime {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+  white-space: nowrap;
+}
+
+.logContent {
+  flex: 1;
+}
+
+.logAction {
+  font-weight: 500;
+}
+
+.logDetails {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Empty State
+   ----------------------------------------------------------------------------- */
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.emptyStateIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  color: rgb(148, 163, 184);
+}
+
+.emptyStateTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.emptyStateDescription {
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Loading State
+   ----------------------------------------------------------------------------- */
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+}
+
+.loadingText {
+  margin-left: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Error State
+   ----------------------------------------------------------------------------- */
+
+.errorContainer {
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.errorIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  color: rgb(248, 113, 113);
+}
+
+.errorTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(248, 113, 113);
+  margin-bottom: 0.5rem;
+}
+
+.errorMessage {
+  color: rgb(148, 163, 184);
+  margin-bottom: 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Sign In Required
+   ----------------------------------------------------------------------------- */
+
+.signInRequired {
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.signInIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  color: rgb(139, 92, 246);
+}
+
+.signInTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.signInDescription {
+  color: rgb(148, 163, 184);
+  margin-bottom: 1.5rem;
+}
+
+.signInHint {
+  font-size: 0.875rem;
+  color: rgb(100, 116, 139);
+}
+

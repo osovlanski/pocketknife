@@ -3,7 +3,8 @@ import {
   getGoogleAuthStatus, 
   initiateGoogleAuth, 
   handleGoogleCallback,
-  disconnectGoogle 
+  disconnectGoogle,
+  forceReauth
 } from '../controllers/authController';
 
 const router = Router();
@@ -20,7 +21,11 @@ router.get('/google/callback', handleGoogleCallback);
 // Disconnect Google account
 router.post('/google/disconnect', disconnectGoogle);
 
+// Force re-authentication (useful when scopes change)
+router.post('/google/reauth', forceReauth);
+
 export default router;
+
 
 
 
