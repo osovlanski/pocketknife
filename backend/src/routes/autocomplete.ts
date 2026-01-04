@@ -213,6 +213,3 @@ async function recordSearchInDb(query: string, agent: string): Promise<void> {
 }
 
 export default router;
-
-
-

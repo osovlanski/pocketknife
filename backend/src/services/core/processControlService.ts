@@ -166,5 +166,4 @@ class ProcessControlService {
 const processControlService = new ProcessControlService();
 
 export default processControlService;
-export { AgentType, ProcessState };
-
+export type { AgentType, ProcessState };

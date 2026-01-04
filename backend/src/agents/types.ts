@@ -68,6 +68,3 @@ export interface IPersistentAgent extends IAgent {
   saveUserActivity(userId: string, action: string, data: unknown): Promise<void>;
   getUserHistory(userId: string, limit?: number): Promise<unknown[]>;
 }
-
-
-

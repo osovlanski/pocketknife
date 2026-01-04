@@ -158,6 +158,3 @@ class AgentRegistry {
 export const agentRegistry = new AgentRegistry();
 
 export default agentRegistry;
-
-
-

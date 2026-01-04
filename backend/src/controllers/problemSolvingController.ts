@@ -382,7 +382,7 @@ export async function saveSolvedProblem(req: Request, res: Response) {
     // Log activity
     await databaseService.logActivity({
       userId: user.id,
-      agent: 'problem',
+      agent: 'problems',
       action: 'save_solution',
       details: `Saved solution for "${title}" in ${language}`,
       metadata: { problemId, source, score, difficulty },
