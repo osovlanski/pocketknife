@@ -8,14 +8,24 @@ export const getGoogleAuthStatus = async (req: Request, res: Response) => {
   try {
     const isAuthenticated = googleAuthService.isAuthenticated();
     let userInfo = null;
+    let authUrl = null;
     
     if (isAuthenticated) {
       userInfo = await googleAuthService.getUserInfo();
+    } else {
+      // Provide auth URL for unauthenticated users
+      try {
+        authUrl = googleAuthService.getAuthUrl();
+      } catch {
+        // OAuth not configured
+      }
     }
     
     res.json({
       authenticated: isAuthenticated,
       user: userInfo,
+      email: userInfo?.email,
+      authUrl,
       message: isAuthenticated 
         ? 'Google account connected' 
         : 'Google account not connected'
