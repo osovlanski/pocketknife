@@ -53,3 +53,5 @@ router.put('/settings/:id', authenticate, requireSuperAdmin, adminController.upd
 
 export default router;
 
+
+

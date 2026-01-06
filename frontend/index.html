@@ -3,11 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gmail AI Agent</title>
+    <title>Pocketknife</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/dist/output.css">
+    
+    <!-- Vanta.js Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    
+    <style>
+        /* Ensure the vanta background covers the full page */
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        /* Ensure content is above the background */
+        #root {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+    </style>
 </head>
 <body>
+    <!-- Vanta.js animated background -->
+    <div id="vanta-bg"></div>
+    
+    <!-- React app root -->
     <div id="root"></div>
+    
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Initialize Vanta.js after DOM is ready -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof VANTA !== 'undefined') {
+                VANTA.NET({
+                    el: "#vanta-bg",
+                    mouseControls: true,
+                    touchControls: true,
+                    gyroControls: false,
+                    minHeight: 200.00,
+                    minWidth: 200.00,
+                    scale: 1.00,
+                    scaleMobile: 1.00,
+                    color: 0xff3f81,
+                    backgroundColor: 0x23153c,
+                    points: 10,
+                    maxDistance: 20,
+                    spacing: 15,
+                    showDots: true
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -60,6 +60,7 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | API | Agent | Purpose |
 |-----|-------|---------|
 | **Anthropic Claude** | All | AI classification, matching, summarization, code evaluation |
+| **Google Custom Search** | All | Web search across specialized sites (100 free queries/day shared) |
 | **Gmail API** | Email | Read/write emails, labels |
 | **Google Drive API** | Email | Store invoices |
 | **Google Calendar API** | ToDo | Sync tasks as calendar events |
@@ -70,6 +71,39 @@ Pocketknife is a multi-agent AI platform built with a modern TypeScript stack. T
 | **Codeforces API** | Problem Solving | Competitive programming problems |
 | **Dev.to** | Learning | Technical articles |
 | **Hacker News** | Learning | Tech discussions |
+
+### Google Custom Search Integration
+
+All agents share a single Google Custom Search API quota (100 free queries/day). The quota manager tracks usage across agents and provides automatic fallback:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Google Custom Search (Shared)                   │
+├─────────────────────────────────────────────────────────────────┤
+│  Daily Quota: 100 free queries (shared across all agents)       │
+│  Fallback: Agent-specific scrapers when quota exhausted         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
+│  │  Shopping  │ │   Travel   │ │  Learning  │ │  Problems  │   │
+│  │   Agent    │ │   Agent    │ │   Agent    │ │   Agent    │   │
+│  ├────────────┤ ├────────────┤ ├────────────┤ ├────────────┤   │
+│  │ Israeli    │ │ Attractions│ │ Tutorials  │ │ Solutions  │   │
+│  │ Shops      │ │ Restaurants│ │ Docs       │ │ Q&A        │   │
+│  │ (Zap, KSP) │ │ Activities │ │ Articles   │ │ Code       │   │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
+│                                                                  │
+│  Fallback:      Fallback:      Fallback:      Fallback:         │
+│  Zap.co.il      None           API Search     None              │
+│  Scraper                                                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Agent-Specific Search Sites:**
+- **Shopping**: zap.co.il, ksp.co.il, ivory.co.il, shufersal.co.il
+- **Travel**: tripadvisor.com, booking.com, viator.com, yelp.com
+- **Learning**: dev.to, medium.com, stackoverflow.com, github.com, MDN
+- **Problems**: leetcode.com, stackoverflow.com, geeksforgeeks.org, github.com
 
 ## Directory Structure
 
@@ -122,6 +156,7 @@ pocketknife/
 │   │   │   │   ├── cacheService.ts           # Caching service
 │   │   │   │   ├── configService.ts          # Configuration service
 │   │   │   │   ├── processControlService.ts  # Stop/pause control
+│   │   │   │   ├── googleSearchService.ts    # Google CSE + quota management
 │   │   │   │   └── index.ts
 │   │   │   │
 │   │   │   └── index.ts                  # Central export
@@ -317,6 +352,7 @@ pocketknife/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/search` | Search flights & hotels |
+| POST | `/search-local` | Search local attractions/restaurants (Google CSE) |
 | POST | `/ski` | Search ski resort deals |
 | POST | `/beach` | Search beach vacation deals |
 | GET | `/ski/resorts` | List available ski resorts |
@@ -325,7 +361,8 @@ pocketknife/
 ### Learning Agent (`/api/learning/*`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/search` | Search educational content |
+| POST | `/search` | Search educational content (APIs) |
+| POST | `/web-search` | Search tutorials/docs (Google CSE) |
 | POST | `/summarize` | AI summarize article |
 | POST | `/topic-summary` | Generate topic summary |
 
@@ -333,6 +370,7 @@ pocketknife/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/search` | Search coding problems |
+| POST | `/search-solutions` | Search solutions/explanations (Google CSE) |
 | GET | `/description/:slug` | Get problem description |
 | POST | `/hints` | Generate hints for problem |
 | POST | `/evaluate` | Evaluate code solution |
@@ -369,13 +407,15 @@ pocketknife/
 ### Shopping Agent (`/api/shopping/*`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/search` | Search for products |
+| POST | `/search` | Search for products (supports Israeli shops via Google CSE) |
 | GET | `/saved` | Get saved products |
 | POST | `/save` | Save a product |
 | DELETE | `/saved/:id` | Remove saved product |
 | POST | `/alerts` | Create price alert |
 | GET | `/interests` | Get user interests |
 | PUT | `/interests` | Update user interests |
+
+**Note:** Shopping Agent supports Israeli shops (Zap, KSP, Ivory, Shufersal) via Google Custom Search with automatic fallback to Zap.co.il scraper when quota is exhausted.
 
 ### Admin (`/api/admin/*`)
 | Method | Endpoint | Description |

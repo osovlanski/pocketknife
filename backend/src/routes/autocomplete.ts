@@ -112,6 +112,7 @@ async function getUserSearchHistory(agent: string, query: string, limit: number)
   if (databaseService.isConfigured()) {
     try {
       const prisma = getPrisma();
+      if (!prisma) return [];
       const activities = await prisma.activityLog.findMany({
         where: {
           agent: agent === 'all' ? undefined : agent,
@@ -193,6 +194,8 @@ async function updatePopularSearches(query: string, agent: string): Promise<void
 async function recordSearchInDb(query: string, agent: string): Promise<void> {
   try {
     const prisma = getPrisma();
+    if (!prisma) return;
+    
     const defaultUser = await databaseService.getDefaultUser();
     
     if (defaultUser) {

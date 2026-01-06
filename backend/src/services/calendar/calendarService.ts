@@ -347,6 +347,81 @@ class CalendarService {
     
     return parts.join('\n');
   }
+
+  /**
+   * Get calendar events for a date range
+   */
+  async getEvents(startDate: Date, endDate: Date): Promise<CalendarEventResponse[]> {
+    if (!this.isAvailable()) {
+      console.warn('⚠️ Calendar service not available');
+      return [];
+    }
+
+    if (!this.hasCalendarPermissions()) {
+      console.warn('⚠️ Calendar permissions not granted');
+      return [];
+    }
+
+    try {
+      const calendar = this.getCalendar();
+      if (!calendar) {
+        return [];
+      }
+
+      const calendarId = await this.getPrimaryCalendarId();
+      
+      const response = await calendar.events.list({
+        calendarId,
+        timeMin: startDate.toISOString(),
+        timeMax: endDate.toISOString(),
+        singleEvents: true,
+        orderBy: 'startTime',
+        maxResults: 50
+      });
+
+      const events = response.data.items || [];
+      
+      return events.map(event => ({
+        id: event.id || '',
+        title: event.summary || 'Untitled Event',
+        description: event.description || undefined,
+        start: event.start?.dateTime || event.start?.date || '',
+        end: event.end?.dateTime || event.end?.date || '',
+        isAllDay: !event.start?.dateTime,
+        colorId: event.colorId,
+        htmlLink: event.htmlLink || undefined,
+        isPocketknifeTask: (event.description || '').includes('Pocketknife ToDo Agent')
+      }));
+    } catch (error: any) {
+      console.error('❌ Failed to get calendar events:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get events for a specific day
+   */
+  async getDayEvents(date: Date): Promise<CalendarEventResponse[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return this.getEvents(startOfDay, endOfDay);
+  }
+}
+
+interface CalendarEventResponse {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+  colorId?: string;
+  htmlLink?: string;
+  isPocketknifeTask: boolean;
 }
 
 export const calendarService = new CalendarService();

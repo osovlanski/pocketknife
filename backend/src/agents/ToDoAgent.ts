@@ -75,8 +75,20 @@ interface DailyAgenda {
   tasks: any[];
   routineTasks: any[];
   suggestedTasks: any[];
+  calendarEvents: CalendarEventForAgenda[];
   totalDuration: number;
   completedCount: number;
+}
+
+interface CalendarEventForAgenda {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+  isPocketknifeTask: boolean;
+  htmlLink?: string;
 }
 
 export class ToDoAgent extends AbstractAgent {
@@ -122,7 +134,7 @@ export class ToDoAgent extends AbstractAgent {
   }
 
   /**
-   * Create a new task
+   * Create a new task with duplicate prevention
    */
   private async createTask(params: ToDoParams): Promise<AgentResult<ToDoResult>> {
     const { userId, taskData } = params;
@@ -136,6 +148,41 @@ export class ToDoAgent extends AbstractAgent {
     this.emitLog(`📝 Creating task: ${taskData.title}`, 'info');
 
     try {
+      // Check for duplicate tasks (same title, same date, not completed)
+      const dueDate = taskData.dueDate ? new Date(taskData.dueDate) : null;
+      
+      if (dueDate) {
+        const startOfDay = new Date(dueDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(dueDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const existingTask = await prisma.task.findFirst({
+          where: {
+            userId,
+            title: {
+              equals: taskData.title,
+              mode: 'insensitive'
+            },
+            dueDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            },
+            status: {
+              not: 'completed'
+            }
+          }
+        });
+
+        if (existingTask) {
+          this.emitLog(`⚠️ Duplicate task found: "${taskData.title}" already exists for this date`, 'warning');
+          return { 
+            success: false, 
+            error: `A task with title "${taskData.title}" already exists for this date. Please use a different title or update the existing task.` 
+          };
+        }
+      }
+
       const task = await prisma.task.create({
         data: {
           userId,
@@ -143,7 +190,7 @@ export class ToDoAgent extends AbstractAgent {
           description: taskData.description,
           priority: taskData.priority || 'medium',
           status: 'pending',
-          dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+          dueDate: dueDate,
           dueTime: taskData.dueTime,
           duration: taskData.duration,
           isRecurring: taskData.isRecurring || false,
@@ -339,7 +386,7 @@ export class ToDoAgent extends AbstractAgent {
   }
 
   /**
-   * Get daily agenda with tasks, routines, and suggestions
+   * Get daily agenda with tasks, routines, calendar events, and suggestions
    */
   private async getDailyAgenda(params: ToDoParams): Promise<AgentResult<ToDoResult>> {
     const { userId, date } = params;
@@ -397,6 +444,25 @@ export class ToDoAgent extends AbstractAgent {
         take: 5
       });
 
+      // Get Google Calendar events for the day
+      let calendarEvents: CalendarEventForAgenda[] = [];
+      try {
+        const events = await calendarService.getDayEvents(targetDate);
+        calendarEvents = events.map(e => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          start: e.start,
+          end: e.end,
+          isAllDay: e.isAllDay,
+          isPocketknifeTask: e.isPocketknifeTask,
+          htmlLink: e.htmlLink
+        }));
+      } catch (calError) {
+        // Calendar errors shouldn't fail the entire agenda
+        console.warn('Could not fetch calendar events:', calError);
+      }
+
       const allTasks = [...tasks, ...routineTasks];
       const totalDuration = allTasks.reduce((sum, t) => sum + (t.duration || 0), 0);
       const completedCount = allTasks.filter(t => t.status === 'completed').length;
@@ -406,6 +472,7 @@ export class ToDoAgent extends AbstractAgent {
         tasks,
         routineTasks,
         suggestedTasks,
+        calendarEvents,
         totalDuration,
         completedCount
       };

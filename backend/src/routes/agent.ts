@@ -5,7 +5,11 @@ import {
     getUnprocessedEmails, 
     processAllEmails, 
     testNotification,
-    getInvoices 
+    getInvoices,
+    getLearnedPatterns,
+    approvePattern,
+    deletePattern,
+    createCustomPattern
 } from '../controllers/agentController';
 
 const router = Router();
@@ -27,5 +31,11 @@ router.post('/test-notification', testNotification);
 
 // Route to get all invoices from Drive
 router.get('/invoices', getInvoices);
+
+// Email pattern learning routes
+router.get('/patterns', getLearnedPatterns);
+router.post('/patterns', createCustomPattern);
+router.post('/patterns/:id/approve', approvePattern);
+router.delete('/patterns/:id', deletePattern);
 
 export default router;

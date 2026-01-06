@@ -10,16 +10,18 @@
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
+import { googleSearchService } from '../services/core/googleSearchService';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 interface ProblemsParams extends AgentParams {
-  action: 'save-solution' | 'get-solved' | 'update-preferences';
+  action: 'save-solution' | 'get-solved' | 'search-solutions' | 'update-preferences';
   difficulty?: string;
   source?: string;
   problemData?: any;
   code?: string;
   language?: string;
+  query?: string;
   preferences?: {
     preferredLanguage?: string;
     preferredDifficulty?: string;
@@ -30,7 +32,18 @@ interface ProblemsParams extends AgentParams {
 interface ProblemsResult {
   savedProblem?: any;
   solvedProblems?: any[];
+  solutionResults?: SolutionSearchResult[];
   preferences?: any;
+}
+
+interface SolutionSearchResult {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  platform: string;
+  language?: string;
+  concepts?: string[];
 }
 
 export class ProblemsAgent extends AbstractAgent {
@@ -50,6 +63,8 @@ export class ProblemsAgent extends AbstractAgent {
         return this.saveSolution(params);
       case 'get-solved':
         return this.getSolvedProblems(params);
+      case 'search-solutions':
+        return this.searchSolutions(params);
       case 'update-preferences':
         return this.updatePreferences(params);
       default:
@@ -161,6 +176,105 @@ export class ProblemsAgent extends AbstractAgent {
     } catch (error: any) {
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Search for problem solutions using Google Custom Search
+   * Searches LeetCode, StackOverflow, GeeksforGeeks, and GitHub
+   */
+  private async searchSolutions(params: ProblemsParams): Promise<AgentResult<ProblemsResult>> {
+    const { query, language } = params;
+
+    if (!query) {
+      return { success: false, error: 'Search query is required' };
+    }
+
+    this.emitLog(`🔍 Searching for solutions: "${query}"...`, 'info');
+    this.emitProgress(10);
+
+    // Check if Google Search is available
+    if (!googleSearchService.isAvailable()) {
+      this.emitLog('⚠️ Google Search not configured', 'warning');
+      return { 
+        success: false, 
+        error: 'Google Search not configured. Add GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID to .env' 
+      };
+    }
+
+    if (!googleSearchService.hasQuota()) {
+      const status = googleSearchService.getQuotaStatus();
+      this.emitLog(`⚠️ Google Search quota exhausted (${status.used}/${status.limit})`, 'warning');
+      return { 
+        success: false, 
+        error: 'Daily search quota exhausted. Try again tomorrow.' 
+      };
+    }
+
+    try {
+      // Build search query with optional language
+      const searchQuery = language 
+        ? `${query} ${language} solution explanation`
+        : `${query} solution algorithm explanation`;
+
+      this.emitProgress(30);
+
+      const results = await googleSearchService.searchAndParse(searchQuery, 'problems', {
+        maxResults: 10
+      });
+
+      this.emitProgress(80);
+
+      // Transform results into SolutionSearchResult format
+      const solutionResults: SolutionSearchResult[] = results.map(r => ({
+        title: r.title,
+        description: r.description,
+        url: r.url,
+        source: r.source,
+        platform: this.inferPlatform(r.source, r.url),
+        language: r.metadata?.language || language,
+        concepts: r.metadata?.concepts
+      }));
+
+      this.emitLog(`✅ Found ${solutionResults.length} solution resources`, 'success');
+      this.emitProgress(100);
+
+      // Log search quota status
+      const quotaStatus = googleSearchService.getQuotaStatus();
+      this.emitLog(`📊 Search quota: ${quotaStatus.remaining}/${quotaStatus.limit} remaining`, 'info');
+
+      // Log activity
+      await this.saveUserActivity(params.userId, 'search-solutions', {
+        query,
+        language,
+        resultsCount: solutionResults.length
+      });
+
+      return {
+        success: true,
+        data: { solutionResults }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Solution search failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Infer the platform from URL/source
+   */
+  private inferPlatform(source: string, url: string): string {
+    const combined = `${source} ${url}`.toLowerCase();
+    
+    if (combined.includes('leetcode')) return 'LeetCode';
+    if (combined.includes('stackoverflow')) return 'Stack Overflow';
+    if (combined.includes('geeksforgeeks')) return 'GeeksforGeeks';
+    if (combined.includes('github')) return 'GitHub';
+    if (combined.includes('hackerrank')) return 'HackerRank';
+    if (combined.includes('codewars')) return 'Codewars';
+    if (combined.includes('codeforces')) return 'Codeforces';
+    if (combined.includes('medium')) return 'Medium';
+    
+    return source;
   }
 
   /**

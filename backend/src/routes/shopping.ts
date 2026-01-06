@@ -34,3 +34,5 @@ router.get('/suggestions', shoppingController.getSuggestions);
 
 export default router;
 
+
+

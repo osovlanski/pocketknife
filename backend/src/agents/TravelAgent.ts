@@ -11,16 +11,22 @@ import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
 import { getPrisma } from '../services/core/databaseService';
+import { googleSearchService } from '../services/core/googleSearchService';
 import { TripSearchRequest } from '../types/travel';
 
 interface TravelParams extends AgentParams {
-  action: 'search' | 'search-ski' | 'generate-plan' | 'save-trip' | 'get-trips' | 'update-preferences';
+  action: 'search' | 'search-ski' | 'search-local' | 'generate-plan' | 'save-trip' | 'get-trips' | 'update-preferences';
   searchRequest?: TripSearchRequest;
   generatePlan?: boolean;
   skiPreferences?: {
     skillLevel?: 'beginner' | 'intermediate' | 'advanced';
     priceLevel?: 'budget' | 'mid' | 'premium';
     preferredCountries?: string[];
+  };
+  localSearchParams?: {
+    destination: string;
+    type: 'attractions' | 'restaurants' | 'activities' | 'hotels' | 'all';
+    query?: string;
   };
   tripData?: any;
   preferences?: {
@@ -35,9 +41,21 @@ interface TravelResult {
   hotels?: any[];
   tripPlan?: any;
   skiDeals?: any[];
+  localResults?: LocalSearchResult[];
   savedTrip?: any;
   trips?: any[];
   preferences?: any;
+}
+
+interface LocalSearchResult {
+  title: string;
+  description: string;
+  type: string;
+  url: string;
+  source: string;
+  rating?: string;
+  location?: string;
+  imageUrl?: string;
 }
 
 export class TravelAgent extends AbstractAgent {
@@ -57,6 +75,8 @@ export class TravelAgent extends AbstractAgent {
         return this.searchTravel(params);
       case 'search-ski':
         return this.searchSkiDeals(params);
+      case 'search-local':
+        return this.searchLocal(params);
       case 'generate-plan':
         return this.generateTripPlan(params);
       case 'save-trip':
@@ -314,6 +334,120 @@ export class TravelAgent extends AbstractAgent {
     } catch (error: any) {
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Search for local attractions, restaurants, and activities using Google Search
+   */
+  private async searchLocal(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { localSearchParams } = params;
+
+    if (!localSearchParams?.destination) {
+      return { success: false, error: 'Destination is required for local search' };
+    }
+
+    const { destination, type, query } = localSearchParams;
+
+    this.emitLog(`🔍 Searching for ${type} in ${destination}...`, 'info');
+    this.emitProgress(10);
+
+    // Check if Google Search is available
+    if (!googleSearchService.isAvailable()) {
+      this.emitLog('⚠️ Google Search not configured', 'warning');
+      return { 
+        success: false, 
+        error: 'Google Search not configured. Add GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID to .env' 
+      };
+    }
+
+    if (!googleSearchService.hasQuota()) {
+      const status = googleSearchService.getQuotaStatus();
+      this.emitLog(`⚠️ Google Search quota exhausted (${status.used}/${status.limit})`, 'warning');
+      return { 
+        success: false, 
+        error: 'Daily search quota exhausted. Try again tomorrow.' 
+      };
+    }
+
+    try {
+      // Build search query based on type
+      const searchQueries: Record<string, string> = {
+        attractions: `best attractions things to do in ${destination}`,
+        restaurants: `best restaurants where to eat in ${destination}`,
+        activities: `activities tours experiences in ${destination}`,
+        hotels: `best hotels where to stay in ${destination}`,
+        all: `travel guide ${destination} attractions restaurants activities`
+      };
+
+      const searchQuery = query 
+        ? `${query} ${destination}` 
+        : searchQueries[type] || searchQueries.all;
+
+      this.emitProgress(30);
+
+      const results = await googleSearchService.searchAndParse(searchQuery, 'travel', {
+        maxResults: 10
+      });
+
+      this.emitProgress(80);
+
+      // Transform results into LocalSearchResult format
+      const localResults: LocalSearchResult[] = results.map(r => ({
+        title: r.title,
+        description: r.description,
+        type: this.inferLocalResultType(r.title, r.description, type),
+        url: r.url,
+        source: r.source,
+        rating: r.metadata?.rating,
+        location: r.metadata?.location || destination,
+        imageUrl: r.imageUrl
+      }));
+
+      this.emitLog(`✅ Found ${localResults.length} results for ${type} in ${destination}`, 'success');
+      this.emitProgress(100);
+
+      // Log search quota status
+      const quotaStatus = googleSearchService.getQuotaStatus();
+      this.emitLog(`📊 Search quota: ${quotaStatus.remaining}/${quotaStatus.limit} remaining`, 'info');
+
+      // Log activity
+      await this.saveUserActivity(params.userId, 'search-local', {
+        destination,
+        type,
+        query,
+        resultsCount: localResults.length
+      });
+
+      return {
+        success: true,
+        data: { localResults }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Local search failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Infer the type of local result based on content
+   */
+  private inferLocalResultType(title: string, description: string, requestedType: string): string {
+    const content = `${title} ${description}`.toLowerCase();
+    
+    if (content.includes('restaurant') || content.includes('dining') || content.includes('food') || content.includes('eat')) {
+      return 'restaurant';
+    }
+    if (content.includes('hotel') || content.includes('stay') || content.includes('accommodation')) {
+      return 'hotel';
+    }
+    if (content.includes('tour') || content.includes('activity') || content.includes('experience')) {
+      return 'activity';
+    }
+    if (content.includes('museum') || content.includes('park') || content.includes('landmark') || content.includes('attraction')) {
+      return 'attraction';
+    }
+    
+    return requestedType === 'all' ? 'general' : requestedType;
   }
 
   /**

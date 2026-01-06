@@ -23,10 +23,12 @@ import {
   Sparkles,
   Check,
   X,
-  Loader2
+  Loader2,
+  ExternalLink,
+  CalendarDays
 } from 'lucide-react';
 import useTodo from '../hooks/useTodo';
-import type { Task, RoutinePattern, TaskData } from '../services/todoApi';
+import type { Task, RoutinePattern, TaskData, CalendarEvent } from '../services/todoApi';
 import styles from '../styles/todo.module.css';
 
 // =============================================================================
@@ -234,6 +236,88 @@ const RoutinesPanel: React.FC<RoutinesPanelProps> = ({ routines, onApprove, onDi
   </div>
 );
 
+interface CalendarPanelProps {
+  events: CalendarEvent[];
+  date: string;
+}
+
+const CalendarPanel: React.FC<CalendarPanelProps> = ({ events, date }) => {
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const formatDuration = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins}min`;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  return (
+    <div className={styles.calendarPanel}>
+      <h3 className={styles.calendarPanelTitle}>
+        <CalendarDays className={`${styles.icon} ${styles.calendarPanelTitleIcon}`} />
+        Google Calendar
+      </h3>
+      
+      {events.length === 0 ? (
+        <p className={styles.calendarEmpty}>No events scheduled</p>
+      ) : (
+        <div className={styles.calendarEventsList}>
+          {events.map((event) => (
+            <div 
+              key={event.id} 
+              className={`${styles.calendarEventCard} ${event.isPocketknifeTask ? styles.calendarEventPocketknife : ''}`}
+            >
+              <div className={styles.calendarEventTime}>
+                {event.isAllDay ? (
+                  <span className={styles.calendarEventAllDay}>All day</span>
+                ) : (
+                  <>
+                    <span>{formatTime(event.start)}</span>
+                    <span className={styles.calendarEventDuration}>
+                      {formatDuration(event.start, event.end)}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className={styles.calendarEventDetails}>
+                <h4 className={styles.calendarEventTitle}>
+                  {event.title}
+                  {event.isPocketknifeTask && (
+                    <span className={styles.calendarEventPocketknifeBadge}>Task</span>
+                  )}
+                </h4>
+                {event.description && (
+                  <p className={styles.calendarEventDescription}>
+                    {event.description.substring(0, 60)}{event.description.length > 60 ? '...' : ''}
+                  </p>
+                )}
+              </div>
+              {event.htmlLink && (
+                <a 
+                  href={event.htmlLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.calendarEventLink}
+                  title="Open in Google Calendar"
+                >
+                  <ExternalLink className={styles.iconSmall} />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface AddTaskModalProps {
   isOpen: boolean;
   newTask: TaskData;
@@ -374,6 +458,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
 const ToDoAgent: React.FC = () => {
   const todo = useTodo();
+  const calendarEvents = todo.agenda?.calendarEvents || [];
 
   return (
     <div className={styles.container}>
@@ -465,55 +550,61 @@ const ToDoAgent: React.FC = () => {
         </div>
       )}
 
-      {/* Task List */}
-      {todo.loading ? (
-        <div className={styles.loadingContainer}>
-          <Loader2 className={`${styles.icon} ${styles.spinner}`} style={{ width: '2rem', height: '2rem' }} />
-        </div>
-      ) : (
-        <div className={styles.taskList}>
-          {/* Manual Tasks */}
-          {todo.agenda?.tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onComplete={todo.handleCompleteTask}
-              onDelete={todo.handleDeleteTask}
-            />
-          ))}
+      {/* Main content with task list and calendar panel */}
+      <div className={styles.mainContent}>
+        {/* Task List */}
+        {todo.loading ? (
+          <div className={styles.loadingContainer}>
+            <Loader2 className={`${styles.icon} ${styles.spinner}`} style={{ width: '2rem', height: '2rem' }} />
+          </div>
+        ) : (
+          <div className={styles.taskList}>
+            {/* Manual Tasks */}
+            {todo.agenda?.tasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onComplete={todo.handleCompleteTask}
+                onDelete={todo.handleDeleteTask}
+              />
+            ))}
 
-          {/* Routine Tasks */}
-          {todo.agenda?.routineTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onComplete={todo.handleCompleteTask}
-              onDelete={todo.handleDeleteTask}
-              isRoutine
-            />
-          ))}
+            {/* Routine Tasks */}
+            {todo.agenda?.routineTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onComplete={todo.handleCompleteTask}
+                onDelete={todo.handleDeleteTask}
+                isRoutine
+              />
+            ))}
 
-          {/* Suggested Tasks */}
-          {todo.agenda?.suggestedTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onComplete={todo.handleCompleteTask}
-              onDelete={todo.handleDeleteTask}
-              isSuggested
-            />
-          ))}
+            {/* Suggested Tasks */}
+            {todo.agenda?.suggestedTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onComplete={todo.handleCompleteTask}
+                onDelete={todo.handleDeleteTask}
+                isSuggested
+              />
+            ))}
 
-          {/* Empty State */}
-          {todo.allTasks.length === 0 && !todo.agenda?.suggestedTasks.length && (
-            <div className={styles.emptyState}>
-              <CheckCircle2 className={styles.emptyIcon} />
-              <p className={styles.emptyTitle}>No tasks for {todo.formattedDate}</p>
-              <p className={styles.emptyHint}>Click "Add Task" to create one!</p>
-            </div>
-          )}
-        </div>
-      )}
+            {/* Empty State */}
+            {todo.allTasks.length === 0 && !todo.agenda?.suggestedTasks.length && (
+              <div className={styles.emptyState}>
+                <CheckCircle2 className={styles.emptyIcon} />
+                <p className={styles.emptyTitle}>No tasks for {todo.formattedDate}</p>
+                <p className={styles.emptyHint}>Click "Add Task" to create one!</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Calendar Panel (Right Side) */}
+        <CalendarPanel events={calendarEvents} date={todo.formattedDate} />
+      </div>
     </div>
   );
 };

@@ -78,6 +78,30 @@ ANTHROPIC_API_KEY=your-anthropic-key
 - Gmail API
 - Google Drive API  
 - **Google Calendar API** (required for ToDo agent calendar sync)
+- **Custom Search API** (optional, for enhanced search in all agents)
+
+### 5. (Optional) Google Custom Search Setup
+
+For enhanced web search in Shopping, Travel, Learning, and Problems agents:
+
+1. **Create Custom Search Engine:**
+   - Go to [cse.google.com](https://cse.google.com)
+   - Create a new search engine
+   - Under "Sites to search", add: `*.zap.co.il`, `*.ksp.co.il`, `*.tripadvisor.com`, etc.
+   - Get the **Search Engine ID** (cx parameter)
+
+2. **Get API Key:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Enable "Custom Search API"
+   - Create an API key
+
+3. **Add to `.env`:**
+   ```env
+   GOOGLE_CSE_API_KEY=your-api-key
+   GOOGLE_CSE_ID=your-search-engine-id
+   ```
+
+**Free Tier:** 100 queries/day shared across all agents. Falls back to scrapers when exhausted.
 
 **After configuring, run:**
 ```powershell

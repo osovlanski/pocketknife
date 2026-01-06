@@ -34,11 +34,23 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+  isPocketknifeTask: boolean;
+  htmlLink?: string;
+}
+
 export interface DailyAgenda {
   date: string;
   tasks: Task[];
   routineTasks: Task[];
   suggestedTasks: Task[];
+  calendarEvents: CalendarEvent[];
   totalDuration: number;
   completedCount: number;
 }

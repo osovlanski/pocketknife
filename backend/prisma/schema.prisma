@@ -643,3 +643,38 @@ model FeatureFlag {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// =============================================================================
+// EMAIL SENDER PATTERN LEARNING
+// =============================================================================
+
+model EmailSenderPattern {
+  id            String   @id @default(uuid())
+  
+  // Pattern identification
+  senderEmail   String?  // Exact sender email (e.g., "noreply@openai.com")
+  senderDomain  String?  // Domain pattern (e.g., "openai.com")
+  senderName    String?  // Display name pattern (e.g., "OpenAI")
+  subjectPattern String? // Subject line pattern (e.g., "Daily Digest")
+  
+  // Learned classification
+  category      String   // "INVOICE", "JOB_OFFER", "NEWSLETTER", "OFFICIAL", "SPAM", etc.
+  customTag     String?  // Custom tag like "OpenAI Updates", "GitHub Notifications"
+  
+  // Learning metrics
+  occurrenceCount Int    @default(1)  // How many times we've seen this pattern
+  confidence      Float  @default(0.5) // Confidence in this classification
+  lastSeenAt      DateTime @default(now())
+  
+  // Source tracking
+  isUserApproved  Boolean @default(false) // User explicitly approved this rule
+  isAutoLearned   Boolean @default(true)  // System learned this pattern
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([senderDomain, subjectPattern])
+  @@index([senderEmail])
+  @@index([senderDomain])
+  @@index([category])
+}

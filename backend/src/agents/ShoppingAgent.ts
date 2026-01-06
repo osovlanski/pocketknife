@@ -14,6 +14,7 @@ import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
 import claudeService from '../services/core/claudeService';
+import { israeliShopsService } from '../services/shopping/israeliShopsService';
 
 interface ShoppingParams extends AgentParams {
   action: 
@@ -63,19 +64,20 @@ interface ShoppingResult {
 interface Product {
   id?: string;
   title: string;
-  description?: string;
+  description?: string | null;
   price: number;
-  originalPrice?: number;
+  originalPrice?: number | null;
   currency: string;
-  discount?: number;
+  discount?: number | null;
   source: string;
   sourceUrl: string;
-  sourceId?: string;
-  imageUrl?: string;
-  dealScore?: number;
-  dealReason?: string;
-  category?: string;
+  sourceId?: string | null;
+  imageUrl?: string | null;
+  dealScore?: number | null;
+  dealReason?: string | null;
+  category?: string | null;
   tags?: string[];
+  isSaved?: boolean;
 }
 
 interface ProductSuggestion {
@@ -161,8 +163,14 @@ export class ShoppingAgent extends AbstractAgent {
           break;
         }
 
-        const products = await this.searchSource(source, query, filters);
-        allProducts.push(...products);
+        // Handle Israeli shops source separately
+        if (source === 'israeli') {
+          const israeliProducts = await this.searchIsraeliShops(query, filters);
+          allProducts.push(...israeliProducts);
+        } else {
+          const products = await this.searchSource(source, query, filters);
+          allProducts.push(...products);
+        }
       }
 
       this.emitProgress(70);
@@ -686,46 +694,180 @@ Respond ONLY with valid JSON:
     // For now, we'll simulate the search with realistic mock data
     
     const mockProducts: Product[] = [];
-    const sources: Record<string, string> = {
-      ebay: 'https://www.ebay.com/sch/i.html?_nkw=',
-      aliexpress: 'https://www.aliexpress.com/wholesale?SearchText=',
-      amazon: 'https://www.amazon.com/s?k='
+    
+    // Source-specific URL templates that lead to actual search results
+    const sourceUrls: Record<string, { search: string; format: (q: string) => string }> = {
+      ebay: {
+        search: 'https://www.ebay.com/sch/i.html?_nkw=',
+        format: (q) => `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=15`
+      },
+      aliexpress: {
+        search: 'https://www.aliexpress.com/wholesale?SearchText=',
+        format: (q) => `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(q)}&SortType=total_tranpro_desc`
+      },
+      amazon: {
+        search: 'https://www.amazon.com/s?k=',
+        format: (q) => `https://www.amazon.com/s?k=${encodeURIComponent(q)}&s=review-rank`
+      }
     };
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
+    // Generate realistic product name variations
+    const productVariations = this.generateProductVariations(query, source);
+
     // Generate mock products
-    const numProducts = Math.floor(Math.random() * 5) + 3;
+    const numProducts = Math.min(productVariations.length, Math.floor(Math.random() * 5) + 3);
     for (let i = 0; i < numProducts; i++) {
-      const basePrice = Math.random() * 200 + 10;
-      const hasDiscount = Math.random() > 0.5;
-      const discount = hasDiscount ? Math.floor(Math.random() * 40) + 10 : undefined;
+      const basePrice = this.generateRealisticPrice(query);
+      const hasDiscount = Math.random() > 0.4;
+      const discount = hasDiscount ? Math.floor(Math.random() * 35) + 5 : undefined;
       const originalPrice = hasDiscount ? basePrice / (1 - (discount! / 100)) : undefined;
 
+      const variation = productVariations[i];
+      const category = this.inferCategory(query);
+      
       const product: Product = {
-        title: `${query} - Product ${i + 1}`,
-        description: `High quality ${query} with great features`,
+        title: variation.title,
+        description: variation.description,
         price: Math.round(basePrice * 100) / 100,
         originalPrice: originalPrice ? Math.round(originalPrice * 100) / 100 : undefined,
         currency: 'USD',
         discount,
         source,
-        sourceUrl: `${sources[source] || sources.ebay}${encodeURIComponent(query)}`,
+        sourceUrl: sourceUrls[source]?.format(variation.title) || sourceUrls.ebay.format(variation.title),
         sourceId: `${source}-${Date.now()}-${i}`,
-        imageUrl: `https://via.placeholder.com/200?text=${encodeURIComponent(query)}`,
-        category: this.inferCategory(query),
-        tags: [source, query.split(' ')[0]]
+        imageUrl: undefined, // No placeholder - frontend will show icon
+        category,
+        tags: [source, category, ...query.toLowerCase().split(' ').slice(0, 3)]
       };
 
       // Apply filters
       if (filters?.minPrice && product.price < filters.minPrice) continue;
       if (filters?.maxPrice && product.price > filters.maxPrice) continue;
+      if (filters?.category && product.category?.toLowerCase() !== filters.category.toLowerCase()) continue;
 
       mockProducts.push(product);
     }
 
     return mockProducts;
+  }
+
+  /**
+   * Generate realistic product name variations based on search query
+   */
+  private generateProductVariations(query: string, source: string): Array<{ title: string; description: string }> {
+    const lowerQuery = query.toLowerCase();
+    
+    // Product templates by category
+    const templates: Record<string, Array<{ suffix: string; desc: string }>> = {
+      'playstation': [
+        { suffix: 'Console Bundle with Controller', desc: 'Complete gaming bundle with wireless controller and HDMI cable' },
+        { suffix: 'Digital Edition', desc: 'All-digital version with no disc drive, slim design' },
+        { suffix: 'Disc Edition Console', desc: 'Standard edition with 4K Blu-ray disc drive' },
+        { suffix: 'DualSense Controller', desc: 'Official wireless controller with haptic feedback' },
+        { suffix: 'Slim Model 1TB', desc: 'Compact design with 1TB SSD storage' },
+        { suffix: 'Charging Station', desc: 'Dual charging dock for controllers' },
+        { suffix: 'Media Remote', desc: 'Dedicated remote for streaming and entertainment' },
+      ],
+      'xbox': [
+        { suffix: 'Series X Console', desc: 'Powerful 4K gaming console with 1TB SSD' },
+        { suffix: 'Series S Digital Edition', desc: 'All-digital compact gaming console' },
+        { suffix: 'Wireless Controller', desc: 'Official wireless controller with textured grip' },
+        { suffix: 'Game Pass Ultimate 12 Months', desc: 'Access to 100+ games with EA Play included' },
+        { suffix: 'Elite Controller Series 2', desc: 'Pro-level customizable controller' },
+      ],
+      'laptop': [
+        { suffix: 'Pro 15" 16GB RAM 512GB SSD', desc: 'High-performance laptop for professionals' },
+        { suffix: 'Gaming Edition RTX 4060', desc: 'Gaming laptop with dedicated graphics' },
+        { suffix: 'Ultrabook 14" Lightweight', desc: 'Thin and light for productivity on the go' },
+        { suffix: 'Business Edition i7', desc: 'Enterprise-grade security and performance' },
+      ],
+      'headphones': [
+        { suffix: 'Wireless Bluetooth Over-Ear', desc: 'Premium wireless headphones with 40h battery' },
+        { suffix: 'Active Noise Cancelling', desc: 'Block out noise with advanced ANC technology' },
+        { suffix: 'Gaming Headset with Mic', desc: '7.1 surround sound for immersive gaming' },
+        { suffix: 'Sports In-Ear Waterproof', desc: 'Sweat and water resistant for workouts' },
+      ],
+      'default': [
+        { suffix: 'Premium Quality', desc: 'High-quality product with excellent reviews' },
+        { suffix: 'Best Seller Edition', desc: 'Top-rated by thousands of customers' },
+        { suffix: 'Pro Version', desc: 'Professional-grade with enhanced features' },
+        { suffix: 'Starter Bundle', desc: 'Everything you need to get started' },
+        { suffix: 'Deluxe Set', desc: 'Complete set with accessories included' },
+      ]
+    };
+
+    // Find matching template
+    let selectedTemplates = templates.default;
+    for (const [key, value] of Object.entries(templates)) {
+      if (lowerQuery.includes(key)) {
+        selectedTemplates = value;
+        break;
+      }
+    }
+
+    // Generate variations
+    const variations: Array<{ title: string; description: string }> = [];
+    const queryWords = query.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    const baseTitle = queryWords.join(' ');
+
+    // Shuffle and pick variations
+    const shuffled = [...selectedTemplates].sort(() => Math.random() - 0.5);
+    
+    for (const template of shuffled) {
+      variations.push({
+        title: `${baseTitle} ${template.suffix}`,
+        description: template.desc
+      });
+    }
+
+    // Add source-specific branding
+    const brandPrefixes: Record<string, string[]> = {
+      ebay: ['', 'New ', 'Factory Sealed '],
+      aliexpress: ['', 'Original ', 'Authentic '],
+      amazon: ["Amazon's Choice ", '', 'Bestseller ']
+    };
+
+    const prefixes = brandPrefixes[source] || [''];
+    return variations.map((v, i) => ({
+      title: `${prefixes[i % prefixes.length]}${v.title}`,
+      description: v.description
+    }));
+  }
+
+  /**
+   * Generate realistic prices based on product category
+   */
+  private generateRealisticPrice(query: string): number {
+    const lowerQuery = query.toLowerCase();
+    
+    const priceRanges: Record<string, { min: number; max: number }> = {
+      'playstation 5': { min: 399, max: 549 },
+      'playstation': { min: 29, max: 549 },
+      'xbox': { min: 29, max: 549 },
+      'nintendo switch': { min: 199, max: 349 },
+      'laptop': { min: 399, max: 1999 },
+      'macbook': { min: 899, max: 2499 },
+      'iphone': { min: 699, max: 1199 },
+      'headphones': { min: 29, max: 399 },
+      'keyboard': { min: 29, max: 199 },
+      'mouse': { min: 19, max: 149 },
+      'monitor': { min: 149, max: 999 },
+      'camera': { min: 199, max: 2999 },
+      'default': { min: 19, max: 299 }
+    };
+
+    let range = priceRanges.default;
+    for (const [key, value] of Object.entries(priceRanges)) {
+      if (lowerQuery.includes(key)) {
+        range = value;
+        break;
+      }
+    }
+
+    return Math.random() * (range.max - range.min) + range.min;
   }
 
   /**
@@ -769,6 +911,52 @@ Respond ONLY with valid JSON:
       console.error('Failed to score deals:', error);
       // Return products without scores
       return products;
+    }
+  }
+
+  /**
+   * Search Israeli shops using the Israeli Shops Service
+   */
+  private async searchIsraeliShops(query: string, filters?: ProductFilters): Promise<Product[]> {
+    try {
+      this.emitLog('🇮🇱 Searching Israeli shops...', 'info');
+      
+      const result = await israeliShopsService.search(query, 10);
+      
+      if (result.source === 'google_cse') {
+        this.emitLog(`📊 Used Google CSE (${result.quotaStatus.remaining} queries remaining today)`, 'info');
+      } else if (result.source === 'zap_scraper') {
+        this.emitLog('📊 Used Zap.co.il scraper (Google CSE quota exhausted)', 'info');
+      }
+
+      // Convert products to match our interface and apply filters
+      const products: Product[] = result.products.map((p, index) => ({
+        title: p.title,
+        description: p.description,
+        price: p.currency === 'ILS' ? israeliShopsService.convertIlsToUsd(p.price) : p.price,
+        originalPrice: p.originalPrice && p.currency === 'ILS' 
+          ? israeliShopsService.convertIlsToUsd(p.originalPrice) 
+          : p.originalPrice,
+        currency: 'USD', // Convert all to USD for consistency
+        discount: p.discount,
+        source: `israeli-${p.source.toLowerCase().replace(/\s+/g, '-')}`,
+        sourceUrl: p.sourceUrl,
+        sourceId: p.sourceId || `israeli-${Date.now()}-${index}`,
+        imageUrl: p.imageUrl,
+        category: p.category || this.inferCategory(query),
+        tags: [...(p.tags || []), 'israeli']
+      }));
+
+      // Apply filters
+      return products.filter(product => {
+        if (filters?.minPrice && product.price < filters.minPrice) return false;
+        if (filters?.maxPrice && product.price > filters.maxPrice) return false;
+        if (filters?.category && product.category?.toLowerCase() !== filters.category.toLowerCase()) return false;
+        return true;
+      });
+    } catch (error: any) {
+      this.emitLog(`❌ Israeli shops search failed: ${error.message}`, 'error');
+      return [];
     }
   }
 

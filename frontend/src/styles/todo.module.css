@@ -620,6 +620,151 @@
 }
 
 /* ============================================
+   MAIN CONTENT LAYOUT
+   ============================================ */
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   CALENDAR PANEL
+   ============================================ */
+.calendarPanel {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 1rem;
+  padding: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.calendarPanelTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.calendarPanelTitleIcon {
+  color: rgb(147, 197, 253);
+}
+
+.calendarEmpty {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.calendarEventsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.calendarEventCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border-left: 3px solid rgb(59, 130, 246);
+  transition: background 0.2s ease;
+}
+
+.calendarEventCard:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.calendarEventPocketknife {
+  border-left-color: rgb(52, 211, 153);
+}
+
+.calendarEventTime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 60px;
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+.calendarEventAllDay {
+  background: rgba(59, 130, 246, 0.2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(147, 197, 253);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.calendarEventDuration {
+  font-size: 0.625rem;
+  color: rgb(100, 116, 139);
+  margin-top: 0.125rem;
+}
+
+.calendarEventDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendarEventTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.calendarEventPocketknifeBadge {
+  font-size: 0.625rem;
+  background: rgba(52, 211, 153, 0.2);
+  color: rgb(52, 211, 153);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.calendarEventDescription {
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendarEventLink {
+  padding: 0.25rem;
+  color: rgb(148, 163, 184);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.calendarEventLink:hover {
+  color: rgb(59, 130, 246);
+}
+
+/* ============================================
    UTILITIES
    ============================================ */
 .container {
@@ -642,4 +787,6 @@
   width: 0.75rem;
   height: 0.75rem;
 }
+
+
 

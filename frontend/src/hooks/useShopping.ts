@@ -21,6 +21,7 @@ export interface UseShoppingReturn {
   hobbies: string[];
   hobbyInput: string;
   selectedSources: string[];
+  includeIsraeliShops: boolean;
   showFilters: boolean;
   showSaved: boolean;
   showAlerts: boolean;
@@ -31,6 +32,7 @@ export interface UseShoppingReturn {
   minPrice: number | undefined;
   maxPrice: number | undefined;
   minDealScore: number;
+  selectedCategory: string;
   
   // Setters
   setSearchMode: (mode: 'explicit' | 'hobby') => void;
@@ -44,6 +46,8 @@ export interface UseShoppingReturn {
   setMinPrice: (price: number | undefined) => void;
   setMaxPrice: (price: number | undefined) => void;
   setMinDealScore: (score: number) => void;
+  setSelectedCategory: (category: string) => void;
+  setIncludeIsraeliShops: (include: boolean) => void;
   
   // Actions
   handleSearch: () => Promise<void>;
@@ -57,6 +61,7 @@ export interface UseShoppingReturn {
   
   // Utilities
   getDealScoreColor: (score?: number) => string;
+  isIsraeliProduct: (source: string) => boolean;
 }
 
 export const useShopping = (): UseShoppingReturn => {
@@ -73,6 +78,7 @@ export const useShopping = (): UseShoppingReturn => {
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [hobbyInput, setHobbyInput] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['ebay', 'aliexpress', 'amazon']);
+  const [includeIsraeliShops, setIncludeIsraeliShops] = useState<boolean>(false);
   
   // UI state
   const [showFilters, setShowFilters] = useState(false);
@@ -85,6 +91,7 @@ export const useShopping = (): UseShoppingReturn => {
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const [minDealScore, setMinDealScore] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   // Load initial data
   useEffect(() => {
@@ -131,10 +138,16 @@ export const useShopping = (): UseShoppingReturn => {
 
       let result;
       if (searchMode === 'explicit') {
-        result = await shoppingApi.searchProducts(searchQuery, selectedSources, {
+        // Include Israeli source if toggle is enabled
+        const sources = includeIsraeliShops 
+          ? [...selectedSources, 'israeli']
+          : selectedSources;
+        
+        result = await shoppingApi.searchProducts(searchQuery, sources, {
           minPrice,
           maxPrice,
-          minDealScore
+          minDealScore,
+          category: selectedCategory || undefined
         });
       } else {
         result = await shoppingApi.searchByHobby(hobbies, searchQuery);
@@ -146,7 +159,7 @@ export const useShopping = (): UseShoppingReturn => {
     } finally {
       setLoading(false);
     }
-  }, [searchMode, searchQuery, hobbies, selectedSources, minPrice, maxPrice, minDealScore]);
+  }, [searchMode, searchQuery, hobbies, selectedSources, includeIsraeliShops, minPrice, maxPrice, minDealScore, selectedCategory]);
 
   const handleStopSearch = useCallback(async () => {
     try {
@@ -218,6 +231,10 @@ export const useShopping = (): UseShoppingReturn => {
     return 'red';
   }, []);
 
+  const isIsraeliProduct = useCallback((source: string): boolean => {
+    return source.startsWith('israeli-') || source === 'israeli';
+  }, []);
+
   return {
     // State
     products,
@@ -230,6 +247,7 @@ export const useShopping = (): UseShoppingReturn => {
     hobbies,
     hobbyInput,
     selectedSources,
+    includeIsraeliShops,
     showFilters,
     showSaved,
     showAlerts,
@@ -238,6 +256,7 @@ export const useShopping = (): UseShoppingReturn => {
     minPrice,
     maxPrice,
     minDealScore,
+    selectedCategory,
     
     // Setters
     setSearchMode,
@@ -251,6 +270,8 @@ export const useShopping = (): UseShoppingReturn => {
     setMinPrice,
     setMaxPrice,
     setMinDealScore,
+    setSelectedCategory,
+    setIncludeIsraeliShops,
     
     // Actions
     handleSearch,
@@ -263,7 +284,8 @@ export const useShopping = (): UseShoppingReturn => {
     toggleSource,
     
     // Utilities
-    getDealScoreColor
+    getDealScoreColor,
+    isIsraeliProduct
   };
 };
 

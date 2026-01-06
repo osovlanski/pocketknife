@@ -39,7 +39,20 @@ const SOURCE_STYLES: Record<string, { class: string; icon: string }> = {
   ebay: { class: styles.sourceEbay, icon: '🛒' },
   aliexpress: { class: styles.sourceAliexpress, icon: '📦' },
   amazon: { class: styles.sourceAmazon, icon: '📱' },
-  telegram: { class: styles.sourceTelegram, icon: '✈️' }
+  telegram: { class: styles.sourceTelegram, icon: '✈️' },
+  israeli: { class: styles.sourceIsraeli, icon: '🇮🇱' }
+};
+
+// Israeli store icons
+const ISRAELI_STORE_ICONS: Record<string, string> = {
+  'israeli-zap': '⚡',
+  'israeli-ksp': '💻',
+  'israeli-ivory': '🏪',
+  'israeli-shufersal': '🛒',
+  'israeli-rami-levy': '🛒',
+  'israeli-bug': '🐛',
+  'israeli-ace': '🔧',
+  'israeli-azrieli': '🏬'
 };
 
 const DEAL_SCORE_STYLES: Record<string, string> = {
@@ -70,7 +83,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
     return DEAL_SCORE_STYLES.red;
   };
 
-  const sourceStyle = SOURCE_STYLES[product.source] || { class: '', icon: '🔗' };
+  // Check if this is an Israeli product
+  const isIsraeli = product.source.startsWith('israeli-') || product.source === 'israeli';
+  
+  // Get source style - for Israeli products, use the israeli style
+  const sourceStyle = isIsraeli 
+    ? { class: styles.sourceIsraeli, icon: ISRAELI_STORE_ICONS[product.source] || '🇮🇱' }
+    : (SOURCE_STYLES[product.source] || { class: '', icon: '🔗' });
+  
+  // Get display name for Israeli sources
+  const getSourceDisplayName = (source: string): string => {
+    if (source.startsWith('israeli-')) {
+      return source.replace('israeli-', '').split('-').map(
+        w => w.charAt(0).toUpperCase() + w.slice(1)
+      ).join(' ');
+    }
+    return source;
+  };
 
   return (
     <div className={styles.productCard}>
@@ -99,7 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
 
         {/* Source Badge */}
         <div className={`${styles.sourceBadge} ${sourceStyle.class}`}>
-          {sourceStyle.icon} {product.source}
+          {sourceStyle.icon} {getSourceDisplayName(product.source)}
         </div>
       </div>
 
@@ -299,6 +328,19 @@ const ShoppingAgent: React.FC = () => {
                   {SOURCE_STYLES[source]?.icon} {source}
                 </button>
               ))}
+              
+              {/* Israeli Shops Toggle */}
+              <button
+                onClick={() => shop.setIncludeIsraeliShops(!shop.includeIsraeliShops)}
+                className={`${styles.sourceButton} ${
+                  shop.includeIsraeliShops
+                    ? `${styles.sourceButtonActive} ${styles.sourceIsraeli}`
+                    : styles.sourceButtonInactive
+                }`}
+                title="Search Israeli shops (Zap, KSP, Ivory, Shufersal, etc.)"
+              >
+                🇮🇱 Israeli Shops
+              </button>
             </div>
           </>
         ) : (
@@ -373,6 +415,26 @@ const ShoppingAgent: React.FC = () => {
 
         {shop.showFilters && (
           <div className={styles.filters}>
+            <div className={styles.filterGroup}>
+              <label>Category</label>
+              <select
+                value={shop.selectedCategory}
+                onChange={(e) => shop.setSelectedCategory(e.target.value)}
+                className={styles.filterSelect}
+              >
+                <option value="">All Categories</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Home">Home & Garden</option>
+                <option value="Sports">Sports & Outdoors</option>
+                <option value="Books">Books & Media</option>
+                <option value="Toys">Toys & Games</option>
+                <option value="Beauty">Beauty & Health</option>
+                <option value="Automotive">Automotive</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
             <div className={styles.filterGroup}>
               <label>Min Price</label>
               <input
@@ -491,8 +553,8 @@ const ShoppingAgent: React.FC = () => {
             Personalized Suggestions
           </h3>
           <div className={styles.productGrid}>
-            {shop.suggestions.map((suggestion, index) => (
-              <div key={index} className={styles.productCard}>
+            {shop.suggestions.map((suggestion) => (
+              <div key={`suggestion-${suggestion.product.title}-${suggestion.matchScore}`} className={styles.productCard}>
                 <div className={styles.productContent}>
                   <h3 className={styles.productTitle}>{suggestion.product.title}</h3>
                   <p className={styles.productReason}>{suggestion.reason}</p>

@@ -10,6 +10,9 @@ export { default as driveService } from './driveService';
 export { default as googleAuthService } from './googleAuthService';
 export { default as emailNotificationService } from './emailNotificationService';
 export { default as emailSchedulerService } from './emailSchedulerService';
+export { default as emailPatternService } from './emailPatternService';
+
+
 
 
 

@@ -24,18 +24,21 @@ A comprehensive AI-powered platform featuring multiple intelligent agents for em
 ### ✈️ Travel Agent
 - **Flight Search**: Find best flight deals using Amadeus API
 - **Hotel Search**: Compare hotel prices and ratings
+- **Local Search**: Find attractions, restaurants, activities via Google Search
 - **Deal Scoring**: AI-powered deal quality scoring
 - **Flexible Dates**: Search across date ranges to find cheapest options
 - **Specialized Trips**: Support for ski trips, beach vacations, etc.
 
 ### 📚 Learning Agent
 - **Content Aggregation**: Scans Dev.to, Hacker News, and other sources for educational content
+- **Web Search**: Search tutorials, documentation, and articles via Google Search
 - **AI Topic Summaries**: Get comprehensive topic breakdowns for senior developers
 - **AI Article Summaries**: Get concise summaries with TL;DR, key takeaways, and diagrams
 - **Topic Filtering**: Filter by your interests
 
 ### 💻 Problem Solving Agent
 - **Multi-Source Problems**: Search from LeetCode, Codeforces, and curated lists
+- **Solution Search**: Find solutions and explanations via Google Search
 - **Curated Lists**: Blind 75, NeetCode 150, Grind 75 built-in
 - **Company Profiles**: 30+ company interview profiles with tips and focus areas
 - **Monaco Code Editor**: Full-featured code editor with syntax highlighting
@@ -53,6 +56,7 @@ A comprehensive AI-powered platform featuring multiple intelligent agents for em
 
 ### 🛒 Shopping Agent (NEW!)
 - **Deal Finder**: Search for products across multiple sources (eBay, AliExpress, etc.)
+- **Israeli Shops Support**: Search Zap, KSP, Ivory, Shufersal via Google Custom Search
 - **AI Deal Scoring**: AI evaluates deals and suggests best options
 - **Hobby-Based Suggestions**: Get product recommendations based on your interests
 - **Price Alerts**: Set alerts for price drops on products you're watching
@@ -94,8 +98,9 @@ pocketknife/
 │   │   │   ├── travel/            # Travel Agent services
 │   │   │   ├── learning/          # Learning Agent services
 │   │   │   ├── problemSolving/    # Problem Solving Agent services
+│   │   │   ├── shopping/          # Shopping Agent services (Israeli shops, scrapers)
 │   │   │   ├── notifications/     # Notification services
-│   │   │   └── core/              # Shared core services (database, cache, etc.)
+│   │   │   └── core/              # Shared core services (database, cache, Google Search)
 │   │   ├── data/                  # Curated problems, company mappings
 │   │   ├── utils/                 # Utility functions
 │   │   ├── types/                 # TypeScript type definitions
@@ -186,6 +191,8 @@ Navigate to http://localhost:5173
 | GOOGLE_CLIENT_ID | Yes | Gmail, Drive, and Calendar access |
 | GOOGLE_CLIENT_SECRET | Yes | Gmail, Drive, and Calendar access |
 | DATABASE_URL | Yes | PostgreSQL connection string |
+| GOOGLE_CSE_API_KEY | Optional | Google Custom Search (100 free queries/day) |
+| GOOGLE_CSE_ID | Optional | Custom Search Engine ID |
 | AMADEUS_API_KEY | Optional | Travel flight/hotel search |
 | RAPIDAPI_KEY | Optional | JSearch job aggregator (LinkedIn, Glassdoor, Indeed) |
 | ADZUNA_APP_ID | Optional | Adzuna job board |
@@ -194,6 +201,7 @@ Navigate to http://localhost:5173
 - Gmail API
 - Google Drive API
 - Google Calendar API (required for ToDo agent calendar sync)
+- Custom Search API (optional, for enhanced search in all agents)
 
 ## 🎯 Usage
 
@@ -268,6 +276,7 @@ Navigate to http://localhost:5173
 - **ARCHITECTURE.md** - Detailed architecture overview
 - **GOOGLE_SETUP.md** - Google OAuth setup guide
 - **SECRETS.md** - Secrets management best practices
+- **DATABASE_MIGRATIONS.md** - Database migrations and schema documentation
 
 ## 🤝 Contributing
 

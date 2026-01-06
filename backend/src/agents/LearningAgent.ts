@@ -11,9 +11,10 @@ import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import learningService from '../services/learning/learningService';
 import { getPrisma } from '../services/core/databaseService';
+import { googleSearchService } from '../services/core/googleSearchService';
 
 interface LearningParams extends AgentParams {
-  action: 'search' | 'summarize' | 'topic-summary' | 'save-article' | 'get-history';
+  action: 'search' | 'web-search' | 'summarize' | 'topic-summary' | 'save-article' | 'get-history';
   query?: string;
   sources?: string[];
   timeRange?: 'day' | 'week' | 'month' | 'all';
@@ -32,9 +33,24 @@ interface LearningParams extends AgentParams {
 
 interface LearningResult {
   resources?: any[];
+  webResults?: WebSearchResult[];
   summary?: string;
   savedArticle?: any;
   history?: any[];
+}
+
+interface WebSearchResult {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  type: string;
+  imageUrl?: string;
+  metadata?: {
+    technology?: string;
+    difficulty?: string;
+    concepts?: string[];
+  };
 }
 
 export class LearningAgent extends AbstractAgent {
@@ -52,6 +68,8 @@ export class LearningAgent extends AbstractAgent {
     switch (action) {
       case 'search':
         return this.searchResources(params);
+      case 'web-search':
+        return this.webSearchResources(params);
       case 'summarize':
         return this.summarizeArticle(params);
       case 'topic-summary':
@@ -115,6 +133,100 @@ export class LearningAgent extends AbstractAgent {
       success: true,
       data: { resources }
     };
+  }
+
+  /**
+   * Search for learning resources using Google Custom Search
+   * Searches dev.to, medium, MDN, and other technical sites
+   */
+  private async webSearchResources(params: LearningParams): Promise<AgentResult<LearningResult>> {
+    const { query } = params;
+
+    if (!query) {
+      return { success: false, error: 'Search query is required' };
+    }
+
+    this.emitLog(`🌐 Web searching for "${query}"...`, 'info');
+    this.emitProgress(10);
+
+    // Check if Google Search is available
+    if (!googleSearchService.isAvailable()) {
+      this.emitLog('⚠️ Google Search not configured, falling back to API search', 'warning');
+      return this.searchResources(params);
+    }
+
+    if (!googleSearchService.hasQuota()) {
+      const status = googleSearchService.getQuotaStatus();
+      this.emitLog(`⚠️ Google Search quota exhausted (${status.used}/${status.limit}), falling back to API search`, 'warning');
+      return this.searchResources(params);
+    }
+
+    try {
+      this.emitProgress(30);
+
+      const results = await googleSearchService.searchAndParse(query, 'learning', {
+        maxResults: 10
+      });
+
+      this.emitProgress(80);
+
+      // Transform results into WebSearchResult format
+      const webResults: WebSearchResult[] = results.map(r => ({
+        title: r.title,
+        description: r.description,
+        url: r.url,
+        source: r.source,
+        type: this.inferResourceType(r.title, r.description, r.source),
+        imageUrl: r.imageUrl,
+        metadata: r.metadata as WebSearchResult['metadata']
+      }));
+
+      this.emitLog(`✅ Found ${webResults.length} web resources`, 'success');
+      this.emitProgress(100);
+
+      // Log search quota status
+      const quotaStatus = googleSearchService.getQuotaStatus();
+      this.emitLog(`📊 Search quota: ${quotaStatus.remaining}/${quotaStatus.limit} remaining`, 'info');
+
+      // Log activity
+      await this.saveUserActivity(params.userId, 'web-search', {
+        query,
+        resultsCount: webResults.length
+      });
+
+      return {
+        success: true,
+        data: { webResults }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Web search failed: ${error.message}, falling back to API search`, 'warning');
+      return this.searchResources(params);
+    }
+  }
+
+  /**
+   * Infer resource type from content
+   */
+  private inferResourceType(title: string, description: string, source: string): string {
+    const content = `${title} ${description} ${source}`.toLowerCase();
+    
+    if (source.includes('docs') || content.includes('documentation') || content.includes('reference')) {
+      return 'documentation';
+    }
+    if (content.includes('tutorial') || content.includes('how to') || content.includes('guide')) {
+      return 'tutorial';
+    }
+    if (content.includes('video') || source.includes('youtube')) {
+      return 'video';
+    }
+    if (source.includes('stackoverflow') || content.includes('question') || content.includes('answer')) {
+      return 'q&a';
+    }
+    if (source.includes('github')) {
+      return 'repository';
+    }
+    
+    return 'article';
   }
 
   /**
