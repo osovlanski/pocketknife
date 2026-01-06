@@ -11,8 +11,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "frontend": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
-    "quality-check": "npx tsx scripts/check-quality.ts",
-    "review": "npx tsx scripts/check-quality.ts"
+    "quality-check": "node scripts/check-quality.js",
+    "review": "node scripts/check-quality.js"
   },
   "dependencies": {
     "express": "^4.17.1",
