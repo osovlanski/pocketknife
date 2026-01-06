@@ -7,11 +7,20 @@ import googleAuthService from '../services/email/googleAuthService';
 export const getGoogleAuthStatus = async (req: Request, res: Response) => {
   try {
     const isAuthenticated = googleAuthService.isAuthenticated();
-    let userInfo = null;
+    let userInfo: { email?: string; name?: string } | null = null;
     let authUrl = null;
     
     if (isAuthenticated) {
+      // Try to get user info (will refresh token if needed)
       userInfo = await googleAuthService.getUserInfo();
+      
+      // If userInfo is null (API call failed), try to get email from tokens
+      if (!userInfo) {
+        const email = await googleAuthService.getEmailFromTokens();
+        if (email) {
+          userInfo = { email };
+        }
+      }
     } else {
       // Provide auth URL for unauthenticated users
       try {
@@ -27,10 +36,11 @@ export const getGoogleAuthStatus = async (req: Request, res: Response) => {
       email: userInfo?.email,
       authUrl,
       message: isAuthenticated 
-        ? 'Google account connected' 
+        ? (userInfo?.email ? `Connected as ${userInfo.email}` : 'Google account connected')
         : 'Google account not connected'
     });
   } catch (error: any) {
+    console.error('Error getting Google auth status:', error);
     res.status(500).json({
       authenticated: false,
       error: error.message
@@ -80,15 +90,21 @@ export const handleGoogleCallback = async (req: Request, res: Response) => {
   
   try {
     const result = await googleAuthService.handleCallback(code);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     
     if (result.success) {
-      // Redirect to frontend with success
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=success`);
+      // Redirect to frontend with success and email
+      const params = new URLSearchParams({ auth: 'success' });
+      if (result.email) {
+        params.append('email', result.email);
+      }
+      res.redirect(`${frontendUrl}?${params.toString()}`);
     } else {
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=${encodeURIComponent(result.error || 'Unknown error')}`);
+      res.redirect(`${frontendUrl}?auth=error&message=${encodeURIComponent(result.error || 'Unknown error')}`);
     }
   } catch (error: any) {
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=${encodeURIComponent(error.message)}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}?auth=error&message=${encodeURIComponent(error.message)}`);
   }
 };
 

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { processAllEmails, testNotification } from '../services/api';
 import useSearchController from './useSearchController';
@@ -45,6 +46,7 @@ export interface UseGmailReturn {
 
 export const useGmail = (): UseGmailReturn => {
   const searchController = useSearchController('email');
+  const location = useLocation();
   const [stats, setStats] = useState<GmailStats>({ 
     invoices: 0, 
     jobOffers: 0, 
@@ -63,23 +65,45 @@ export const useGmail = (): UseGmailReturn => {
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  // Check Google auth status on load
+  // Check Google auth status
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/status');
+      const data = await response.json();
+      setIsAuthenticated(data.authenticated);
+      setAuthUrl(data.authUrl);
+      setUserEmail(data.email || null);
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  // Check auth status on mount
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/status');
-        const data = await response.json();
-        setIsAuthenticated(data.authenticated);
-        setAuthUrl(data.authUrl);
-        setUserEmail(data.email || null);
-      } catch (error) {
-        console.error('Failed to check auth status:', error);
-        setIsAuthenticated(false);
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  // Re-check auth when returning from OAuth (URL has auth param)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('auth') === 'success') {
+      checkAuthStatus();
+    }
+  }, [location.search, checkAuthStatus]);
+
+  // Re-check auth when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only re-check if currently not authenticated
+      if (!isAuthenticated) {
+        checkAuthStatus();
       }
     };
-    
-    checkAuthStatus();
-  }, []);
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isAuthenticated, checkAuthStatus]);
 
   // Connect to Socket.io for real-time stats updates
   useEffect(() => {

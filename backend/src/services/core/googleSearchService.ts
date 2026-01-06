@@ -66,7 +66,10 @@ interface QuotaState {
   usageByAgent: Record<string, number>;
 }
 
-const DAILY_LIMIT = 100;
+import { configService } from './configService';
+
+// Get daily limit from config (defaults to 100)
+const getDailyLimit = () => configService.get('google.cse.dailyLimit', 100);
 
 class QuotaManager {
   private state: QuotaState;
@@ -97,13 +100,13 @@ class QuotaManager {
 
   canUse(): boolean {
     this.checkAndReset();
-    return this.state.count < DAILY_LIMIT;
+    return this.state.count < getDailyLimit();
   }
 
   increment(agent: AgentType): void {
     this.state.count++;
     this.state.usageByAgent[agent] = (this.state.usageByAgent[agent] || 0) + 1;
-    console.log(`📊 [QuotaManager] Google CSE usage: ${this.state.count}/${DAILY_LIMIT} (${agent}: ${this.state.usageByAgent[agent]})`);
+    console.log(`📊 [QuotaManager] Google CSE usage: ${this.state.count}/${getDailyLimit()} (${agent}: ${this.state.usageByAgent[agent]})`);
   }
 
   getStatus(): { 
@@ -114,10 +117,11 @@ class QuotaManager {
     resetDate: string;
   } {
     this.checkAndReset();
+    const limit = getDailyLimit();
     return {
       used: this.state.count,
-      limit: DAILY_LIMIT,
-      remaining: DAILY_LIMIT - this.state.count,
+      limit,
+      remaining: limit - this.state.count,
       usageByAgent: { ...this.state.usageByAgent },
       resetDate: this.state.resetDate
     };
@@ -125,7 +129,7 @@ class QuotaManager {
 
   getRemainingQuota(): number {
     this.checkAndReset();
-    return DAILY_LIMIT - this.state.count;
+    return getDailyLimit() - this.state.count;
   }
 
   isQuotaLow(): boolean {

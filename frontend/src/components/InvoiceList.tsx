@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FileText, Download, ExternalLink, RefreshCw, Cloud } from 'lucide-react';
 import { getInvoices } from '../services/api';
 
@@ -19,8 +20,10 @@ const InvoiceList: React.FC = () => {
   const [driveFolder, setDriveFolder] = useState<string>('');
   const [authRequired, setAuthRequired] = useState(false);
   const [authMessage, setAuthMessage] = useState<string>('');
+  
+  const location = useLocation();
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError(null);
     setAuthRequired(false);
@@ -41,11 +44,33 @@ const InvoiceList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Fetch invoices on mount
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  }, [fetchInvoices]);
+
+  // Re-fetch when returning from OAuth (URL has auth param)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('auth') === 'success') {
+      fetchInvoices();
+    }
+  }, [location.search, fetchInvoices]);
+
+  // Re-fetch when window regains focus (in case OAuth completed)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only re-fetch if auth is currently required
+      if (authRequired) {
+        fetchInvoices();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [authRequired, fetchInvoices]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

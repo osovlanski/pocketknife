@@ -7,7 +7,8 @@
  * - Separated into logical sections
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Settings,
   User,
@@ -203,18 +204,57 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user }) => {
 interface IntegrationsSectionProps {
   googleStatus: AuthStatus | null;
   isLoading: boolean;
+  loadError: string | null;
   onConnect: () => void;
   onDisconnect: () => void;
+  onRetry: () => void;
 }
 
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
   googleStatus,
   isLoading,
+  loadError,
   onConnect,
-  onDisconnect
+  onDisconnect,
+  onRetry
 }) => (
   <div className={styles.sectionContent}>
     <h2 className={styles.sectionTitle}>Integrations</h2>
+    
+    {/* Error Banner */}
+    {loadError && (
+      <div style={{
+        padding: '1rem',
+        marginBottom: '1rem',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        borderRadius: '0.5rem',
+        color: 'rgb(239, 68, 68)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+          <span>{loadError}</span>
+        </div>
+        <button
+          onClick={onRetry}
+          style={{
+            padding: '0.25rem 0.75rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.5)',
+            borderRadius: '0.25rem',
+            color: 'rgb(239, 68, 68)',
+            cursor: 'pointer',
+            fontSize: '0.875rem'
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    )}
     
     {/* Google Integration */}
     <div className={styles.integrationCard}>
@@ -226,20 +266,24 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
           <div>
             <h3 className={styles.integrationTitle}>Google Account</h3>
             <p className={styles.integrationDescription}>
-              {googleStatus?.authenticated
-                ? `Connected as ${googleStatus.email}`
-                : 'Connect for Gmail, Calendar, and Drive access'}
+              {isLoading 
+                ? 'Checking connection status...'
+                : googleStatus?.authenticated
+                  ? `Connected as ${googleStatus.email}`
+                  : 'Connect for Gmail, Calendar, and Drive access'}
             </p>
           </div>
         </div>
         
-        {googleStatus?.authenticated ? (
+        {isLoading ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : googleStatus?.authenticated ? (
           <button
             onClick={onDisconnect}
             disabled={isLoading}
             className={`${commonStyles.btn} ${commonStyles.btnDanger}`}
           >
-            {isLoading ? <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} /> : <Unlink style={{ width: '1rem', height: '1rem' }} />}
+            <Unlink style={{ width: '1rem', height: '1rem' }} />
             Disconnect
           </button>
         ) : (
@@ -570,9 +614,35 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ preferences
 const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
   const [activeSection, setActiveSection] = useState<string>('profile');
   const [googleStatus, setGoogleStatus] = useState<AuthStatus | null>(null);
-  const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+  const [isLoadingGoogle, setIsLoadingGoogle] = useState(true);
+  const [googleLoadError, setGoogleLoadError] = useState<string | null>(null);
   
+  const location = useLocation();
   const settings = useSettings(onUserUpdate);
+
+  const loadGoogleStatus = useCallback(async () => {
+    try {
+      setIsLoadingGoogle(true);
+      setGoogleLoadError(null);
+      const status = await authApi.getGoogleAuthStatus();
+      setGoogleStatus(status);
+      
+      // Check for authentication issues
+      if (status.authenticated === false && status.error) {
+        setGoogleLoadError(status.error);
+      }
+    } catch (error: any) {
+      console.error('Failed to load Google status:', error);
+      setGoogleLoadError(
+        error.response?.data?.error || 
+        error.message || 
+        'Failed to check Google connection status. Make sure the backend server is running.'
+      );
+      setGoogleStatus(null);
+    } finally {
+      setIsLoadingGoogle(false);
+    }
+  }, []);
 
   // Load Google status and user preferences on mount
   useEffect(() => {
@@ -580,16 +650,29 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
     if (user?.preferences) {
       settings.loadPreferences(user.preferences);
     }
-  }, [user]);
+  }, [user, loadGoogleStatus]);
 
-  const loadGoogleStatus = async () => {
-    try {
-      const status = await authApi.getGoogleAuthStatus();
-      setGoogleStatus(status);
-    } catch (error) {
-      console.error('Failed to load Google status:', error);
+  // Reload Google status when returning from OAuth (URL has auth param)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('auth') === 'success') {
+      // OAuth just completed, reload status
+      loadGoogleStatus();
     }
-  };
+  }, [location.search, loadGoogleStatus]);
+
+  // Reload Google status when window regains focus (in case OAuth completed)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only reload if we're on the integrations section
+      if (activeSection === 'integrations') {
+        loadGoogleStatus();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [activeSection, loadGoogleStatus]);
 
   const handleGoogleConnect = () => {
     window.location.href = authApi.getGoogleAuthUrl();
@@ -621,8 +704,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
           <IntegrationsSection
             googleStatus={googleStatus}
             isLoading={isLoadingGoogle}
+            loadError={googleLoadError}
             onConnect={handleGoogleConnect}
             onDisconnect={handleGoogleDisconnect}
+            onRetry={loadGoogleStatus}
           />
         );
       case 'jobs':

@@ -7,7 +7,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as shoppingApi from '../services/shoppingApi';
+import * as configApi from '../services/configApi';
 import type { Product, ProductSuggestion, PriceAlert } from '../services/shoppingApi';
+import type { ShoppingThresholds } from '../services/configApi';
 
 export interface UseShoppingReturn {
   // State
@@ -71,6 +73,27 @@ export const useShopping = (): UseShoppingReturn => {
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Configuration thresholds (loaded from backend)
+  const [thresholds, setThresholds] = useState<ShoppingThresholds>({
+    excellent: 80,
+    good: 60,
+    fair: 40,
+    notifyThreshold: 70
+  });
+
+  // Load config on mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await configApi.getShoppingThresholds();
+        setThresholds(config);
+      } catch (error) {
+        console.warn('Failed to load shopping config, using defaults');
+      }
+    };
+    loadConfig();
+  }, []);
   
   // Search state
   const [searchMode, setSearchMode] = useState<'explicit' | 'hobby'>('explicit');
@@ -222,14 +245,14 @@ export const useShopping = (): UseShoppingReturn => {
     );
   }, []);
 
-  // Utilities
+  // Utilities - uses configurable thresholds
   const getDealScoreColor = useCallback((score?: number): string => {
     if (!score) return 'slate';
-    if (score >= 80) return 'emerald';
-    if (score >= 60) return 'yellow';
-    if (score >= 40) return 'orange';
+    if (score >= thresholds.excellent) return 'emerald';
+    if (score >= thresholds.good) return 'yellow';
+    if (score >= thresholds.fair) return 'orange';
     return 'red';
-  }, []);
+  }, [thresholds]);
 
   const isIsraeliProduct = useCallback((source: string): boolean => {
     return source.startsWith('israeli-') || source === 'israeli';

@@ -16,6 +16,7 @@ export interface AuthStatus {
   email?: string;
   authUrl?: string;
   message: string;
+  error?: string;
 }
 
 export interface CurrentUser {

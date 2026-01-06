@@ -56,6 +56,7 @@ router.use('/problems', problemSolvingRoutes);
 
 // Configuration routes
 router.get('/config', configController.getConfig);
+router.get('/config/all', configController.getAllConfig);
 router.post('/config', configController.updateConfig);
 
 // Auth routes (Google OAuth)

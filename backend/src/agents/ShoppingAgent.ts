@@ -728,6 +728,9 @@ Respond ONLY with valid JSON:
       const variation = productVariations[i];
       const category = this.inferCategory(query);
       
+      // Generate a product-specific search URL
+      const productSearchQuery = variation.title.split(' ').slice(0, 5).join(' ');
+      
       const product: Product = {
         title: variation.title,
         description: variation.description,
@@ -736,9 +739,10 @@ Respond ONLY with valid JSON:
         currency: 'USD',
         discount,
         source,
-        sourceUrl: sourceUrls[source]?.format(variation.title) || sourceUrls.ebay.format(variation.title),
+        sourceUrl: sourceUrls[source]?.format(productSearchQuery) || sourceUrls.ebay.format(productSearchQuery),
         sourceId: `${source}-${Date.now()}-${i}`,
-        imageUrl: undefined, // No placeholder - frontend will show icon
+        // Use placeholder image service with product-related seed
+        imageUrl: `https://picsum.photos/seed/${encodeURIComponent(variation.title.substring(0, 20))}/400/300`,
         category,
         tags: [source, category, ...query.toLowerCase().split(' ').slice(0, 3)]
       };

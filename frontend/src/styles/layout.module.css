@@ -18,6 +18,8 @@
    ----------------------------------------------------------------------------- */
 
 .header {
+  position: relative;
+  z-index: 100;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -171,7 +173,7 @@
   border-radius: 0.75rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   padding: 0.5rem 0;
-  z-index: 50;
+  z-index: 1000;
 }
 
 .userMenuHeader {
@@ -190,11 +192,16 @@
 }
 
 .userMenuRole {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   margin-top: 0.25rem;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
   border-radius: 9999px;
+  white-space: nowrap;
 }
 
 .userMenuRoleSuperAdmin {

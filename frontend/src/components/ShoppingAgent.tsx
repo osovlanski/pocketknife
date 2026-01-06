@@ -6,7 +6,7 @@
  * - Uses CSS modules for styling
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -72,15 +72,16 @@ interface ProductCardProps {
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
   onPriceAlert: (id: string, price: number) => void;
+  getDealScoreColor: (score?: number) => string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, onPriceAlert }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, onPriceAlert, getDealScoreColor }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  // Convert color name to CSS style using configurable thresholds
   const getDealScoreStyle = (score?: number): string => {
-    if (!score) return DEAL_SCORE_STYLES.slate;
-    if (score >= 80) return DEAL_SCORE_STYLES.emerald;
-    if (score >= 60) return DEAL_SCORE_STYLES.yellow;
-    if (score >= 40) return DEAL_SCORE_STYLES.orange;
-    return DEAL_SCORE_STYLES.red;
+    const color = getDealScoreColor(score);
+    return DEAL_SCORE_STYLES[color] || DEAL_SCORE_STYLES.slate;
   };
 
   // Check if this is an Israeli product
@@ -101,12 +102,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
     return source;
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <div className={styles.productCard}>
       {/* Image */}
       <div className={styles.productImage}>
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.title} />
+        {product.imageUrl && !imageError ? (
+          <img 
+            src={product.imageUrl} 
+            alt={product.title} 
+            onError={handleImageError}
+            loading="lazy"
+          />
         ) : (
           <Package className={styles.productImagePlaceholder} />
         )}
@@ -506,6 +516,7 @@ const ShoppingAgent: React.FC = () => {
                   product={product}
                   onSave={shop.handleSaveProduct}
                   onUnsave={shop.handleUnsaveProduct}
+                  getDealScoreColor={shop.getDealScoreColor}
                   onPriceAlert={(id, price) => {
                     shop.setPriceAlertModal({ productId: id, price });
                     shop.setTargetPriceInput(Math.floor(price * 0.8).toString());
@@ -590,6 +601,7 @@ const ShoppingAgent: React.FC = () => {
                 product={product}
                 onSave={shop.handleSaveProduct}
                 onUnsave={shop.handleUnsaveProduct}
+                getDealScoreColor={shop.getDealScoreColor}
                 onPriceAlert={(id, price) => {
                   shop.setPriceAlertModal({ productId: id, price });
                   shop.setTargetPriceInput(Math.floor(price * 0.8).toString());

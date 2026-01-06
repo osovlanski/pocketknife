@@ -188,20 +188,37 @@ const App: React.FC = () => {
   
   // Handle Google OAuth callback from URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const authStatus = urlParams.get('auth');
-    const authMessage = urlParams.get('message');
-    
-    if (authStatus === 'success') {
-      notifications.showSuccess(
-        'Google account connected successfully! You can now use Gmail, Calendar, and Drive features.'
-      );
-      navigate(location.pathname, { replace: true });
-    } else if (authStatus === 'error') {
-      notifications.showError(
-        authMessage || 'Failed to connect Google account. Please try again.'
-      );
-      navigate(location.pathname, { replace: true });
+    const handleAuthCallback = async () => {
+      const urlParams = new URLSearchParams(location.search);
+      const authStatus = urlParams.get('auth');
+      const authMessage = urlParams.get('message');
+      const authEmail = urlParams.get('email');
+      
+      if (authStatus === 'success') {
+        // Verify the connection actually works by refreshing Google status
+        try {
+          await auth.refreshGoogleStatus();
+          const emailInfo = authEmail ? ` (${authEmail})` : '';
+          notifications.showSuccess(
+            `Google account connected successfully${emailInfo}! You can now use Gmail, Calendar, and Drive features.`
+          );
+        } catch {
+          // Backend said success but verification failed - show warning
+          notifications.showWarning(
+            'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
+          );
+        }
+        navigate(location.pathname, { replace: true });
+      } else if (authStatus === 'error') {
+        notifications.showError(
+          authMessage || 'Failed to connect Google account. Please try again.'
+        );
+        navigate(location.pathname, { replace: true });
+      }
+    };
+
+    if (location.search.includes('auth=')) {
+      handleAuthCallback();
     }
   }, [location.search]);
 

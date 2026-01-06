@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalLink, MapPin, Building2, DollarSign, Calendar, ChevronDown, ChevronUp, TrendingUp, Users, Globe, Briefcase } from 'lucide-react';
+import * as configApi from '../services/configApi';
+import type { JobThresholds } from '../services/configApi';
 
 interface CompanyInfo {
   name: string;
@@ -42,6 +44,26 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
   const [companyInfo, setCompanyInfo] = useState<Record<string, CompanyInfo>>({});
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [loadingCompanies, setLoadingCompanies] = useState<Set<string>>(new Set());
+  
+  // Configurable thresholds
+  const [thresholds, setThresholds] = useState<JobThresholds>({
+    excellent: 80,
+    good: 60,
+    streamThreshold: 75
+  });
+
+  // Load config on mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await configApi.getJobThresholds();
+        setThresholds(config);
+      } catch (error) {
+        console.warn('Failed to load job config, using defaults');
+      }
+    };
+    loadConfig();
+  }, []);
 
   // Fetch company info when jobs change
   useEffect(() => {
@@ -153,13 +175,13 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
         </div>
         <div className="flex gap-2 text-sm">
           <span className="flex items-center gap-1">
-            🟢 Excellent (80%+): {jobs.filter(j => (j.matchScore || 0) >= 80).length}
+            🟢 Excellent ({thresholds.excellent}%+): {jobs.filter(j => (j.matchScore || 0) >= thresholds.excellent).length}
           </span>
           <span className="flex items-center gap-1">
-            🟡 Good (60-80%): {jobs.filter(j => (j.matchScore || 0) >= 60 && (j.matchScore || 0) < 80).length}
+            🟡 Good ({thresholds.good}-{thresholds.excellent}%): {jobs.filter(j => (j.matchScore || 0) >= thresholds.good && (j.matchScore || 0) < thresholds.excellent).length}
           </span>
           <span className="flex items-center gap-1">
-            🔴 Fair (&lt;60%): {jobs.filter(j => (j.matchScore || 0) < 60).length}
+            🔴 Fair (&lt;{thresholds.good}%): {jobs.filter(j => (j.matchScore || 0) < thresholds.good).length}
           </span>
         </div>
       </div>

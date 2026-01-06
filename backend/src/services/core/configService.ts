@@ -12,40 +12,107 @@
 import { databaseService, getPrisma } from './databaseService';
 import { cacheService } from './cacheService';
 
-// Default configuration values
+// Default configuration values - organized by category
 const DEFAULT_CONFIG = {
-  // API Limits
+  // ==========================================================================
+  // API LIMITS
+  // ==========================================================================
   'api.rateLimit.requests': 100,
   'api.rateLimit.windowMs': 60000,
+  'api.pagination.defaultLimit': 20,
+  'api.pagination.maxLimit': 100,
   
-  // Job Search
+  // ==========================================================================
+  // SHOPPING AGENT
+  // ==========================================================================
+  'shopping.dealScore.excellent': 80,      // Green - Excellent deal
+  'shopping.dealScore.good': 60,           // Yellow - Good deal
+  'shopping.dealScore.fair': 40,           // Orange - Fair deal
+  'shopping.dealScore.notifyThreshold': 70, // Default threshold for notifications
+  'shopping.search.maxResults': 30,
+  'shopping.search.maxIsraeliResults': 10,
+  'shopping.ai.maxTokens': 1500,
+  
+  // ==========================================================================
+  // JOB AGENT
+  // ==========================================================================
+  'job.match.excellent': 80,               // Excellent match threshold
+  'job.match.good': 60,                    // Good match threshold
+  'job.match.streamThreshold': 75,         // Minimum score to stream to frontend
   'job.search.maxResults': 50,
   'job.search.cacheMinutes': 30,
   'job.enrichment.enabled': true,
+  'job.enrichment.batchSize': 10,
   
-  // Problem Solving
+  // ==========================================================================
+  // EMAIL AGENT
+  // ==========================================================================
+  'email.batch.size': 50,
+  'email.classification.confidenceThreshold': 0.75,
+  'email.scheduler.enabled': false,
+  'email.scheduler.interval': '0 */4 * * *', // Every 4 hours
+  'email.ai.maxTokens': 1500,
+  
+  // ==========================================================================
+  // PROBLEM SOLVING AGENT
+  // ==========================================================================
   'problem.search.maxResults': 100,
+  'problem.search.leetcodeLimit': 50,
   'problem.evaluation.model': 'claude-sonnet-4-20250514',
   'problem.hints.maxCount': 3,
+  'problem.ai.maxTokens': 2000,
   
-  // Travel
+  // ==========================================================================
+  // LEARNING AGENT
+  // ==========================================================================
+  'learning.search.maxResults': 15,
+  'learning.sources.default': ['devto', 'hackernews', 'reddit', 'newsletters'],
+  'learning.ai.maxTokens': 2000,
+  
+  // ==========================================================================
+  // TRAVEL AGENT
+  // ==========================================================================
   'travel.search.maxFlights': 20,
   'travel.search.maxHotels': 20,
   'travel.search.cacheMinutes': 60,
+  'travel.trip.defaultDays': 7,
+  'travel.ai.maxTokens': 2000,
   
-  // Email
-  'email.batch.size': 50,
-  'email.scheduler.enabled': false,
-  'email.scheduler.interval': '0 */4 * * *', // Every 4 hours
+  // ==========================================================================
+  // TODO AGENT
+  // ==========================================================================
+  'todo.task.defaultDuration': 30,         // Default task duration in minutes
+  'todo.calendar.syncEnabled': true,
+  'todo.ai.maxTokens': 2000,
   
-  // Cache
+  // ==========================================================================
+  // GOOGLE SEARCH API
+  // ==========================================================================
+  'google.cse.dailyLimit': 100,
+  'google.cse.maxResultsPerQuery': 10,
+  
+  // ==========================================================================
+  // CLAUDE AI
+  // ==========================================================================
+  'ai.claude.defaultModel': 'claude-sonnet-4-20250514',
+  'ai.claude.defaultMaxTokens': 1500,
+  'ai.claude.maxTokensLimit': 4000,
+  
+  // ==========================================================================
+  // CACHE
+  // ==========================================================================
   'cache.memory.ttlSeconds': 300,
   'cache.redis.ttlSeconds': 3600,
+  'cache.autocomplete.maxHistory': 100,
   
-  // Features
+  // ==========================================================================
+  // FEATURES
+  // ==========================================================================
   'feature.aiGeneration': true,
   'feature.companyEnrichment': true,
-  'feature.activityLogging': true
+  'feature.activityLogging': true,
+  'feature.israeliShops': true,
+  'feature.calendarSync': true
 } as const;
 
 type ConfigKey = keyof typeof DEFAULT_CONFIG;
@@ -171,6 +238,58 @@ export const configService = {
     requests: configService.get('api.rateLimit.requests', 100),
     windowMs: configService.get('api.rateLimit.windowMs', 60000)
   }),
+
+  /**
+   * Get shopping deal score thresholds
+   */
+  getShoppingThresholds: () => ({
+    excellent: configService.get('shopping.dealScore.excellent', 80),
+    good: configService.get('shopping.dealScore.good', 60),
+    fair: configService.get('shopping.dealScore.fair', 40),
+    notifyThreshold: configService.get('shopping.dealScore.notifyThreshold', 70)
+  }),
+
+  /**
+   * Get job match thresholds
+   */
+  getJobThresholds: () => ({
+    excellent: configService.get('job.match.excellent', 80),
+    good: configService.get('job.match.good', 60),
+    streamThreshold: configService.get('job.match.streamThreshold', 75)
+  }),
+
+  /**
+   * Get email classification settings
+   */
+  getEmailSettings: () => ({
+    batchSize: configService.get('email.batch.size', 50),
+    confidenceThreshold: configService.get('email.classification.confidenceThreshold', 0.75)
+  }),
+
+  /**
+   * Get Google CSE limits
+   */
+  getGoogleCseLimits: () => ({
+    dailyLimit: configService.get('google.cse.dailyLimit', 100),
+    maxResultsPerQuery: configService.get('google.cse.maxResultsPerQuery', 10)
+  }),
+
+  /**
+   * Get AI/Claude settings
+   */
+  getAiSettings: () => ({
+    defaultModel: configService.get('ai.claude.defaultModel', 'claude-sonnet-4-20250514'),
+    defaultMaxTokens: configService.get('ai.claude.defaultMaxTokens', 1500),
+    maxTokensLimit: configService.get('ai.claude.maxTokensLimit', 4000)
+  }),
+
+  /**
+   * Get agent-specific max tokens
+   */
+  getAgentMaxTokens: (agent: 'shopping' | 'job' | 'email' | 'problem' | 'learning' | 'travel' | 'todo'): number => {
+    const key = `${agent}.ai.maxTokens` as ConfigKey;
+    return configService.get(key, 1500);
+  },
 
   /**
    * Parse string value to appropriate type
