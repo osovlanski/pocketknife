@@ -22,6 +22,7 @@ import { databaseService } from './services/core/databaseService';
 import { cacheService } from './services/core/cacheService';
 import { configService } from './services/core/configService';
 import { initializeAgents, agentRegistry } from './agents';
+import { googleSearchService } from './services/core/googleSearchService';
 
 const app = express();
 const server = createServer(app);
@@ -100,6 +101,10 @@ async function initializeServices() {
     // Initialize Process Control service first (for stop signals)
     console.log('🎛️ Initializing Process Control service...');
     processControlService.initialize(io);
+    
+    // Check Google Search configuration (lazy init happens here)
+    console.log('🔍 Checking Google Search service...');
+    googleSearchService.isAvailable(); // Triggers lazy init and logs status
     
     // Initialize Agent Registry
     console.log('🤖 Initializing Agent Registry...');

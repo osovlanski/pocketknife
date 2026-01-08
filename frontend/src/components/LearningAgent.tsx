@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 interface LearningResource {
   id: string;
@@ -113,7 +114,7 @@ const LearningAgent = () => {
   };
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
 
     socketRef.current.on('learning-resource', (resource: LearningResource) => {
       setResources(prev => {
@@ -134,7 +135,7 @@ const LearningAgent = () => {
 
   const fetchLinkedInInfo = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/learning/linkedin-info');
+      const response = await fetch(`${API_BASE_URL}/learning/linkedin-info`);
       if (response.ok) {
         const data = await response.json();
         setLinkedInInfo(data);
@@ -187,7 +188,7 @@ const LearningAgent = () => {
 
   const handleSaveArticle = async (resource: LearningResource) => {
     try {
-      const response = await fetch('http://localhost:5000/api/agents/learning/execute', {
+      const response = await fetch(`${API_BASE_URL}/agents/learning/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -235,7 +236,7 @@ const LearningAgent = () => {
       // Save to search history
       saveToSearchHistory(searchQuery);
 
-      const response = await fetch('http://localhost:5000/api/learning/search', {
+      const response = await fetch(`${API_BASE_URL}/learning/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,7 +267,7 @@ const LearningAgent = () => {
     try {
       setIsGeneratingSummary(true);
 
-      const response = await fetch('http://localhost:5000/api/learning/topic-summary', {
+      const response = await fetch(`${API_BASE_URL}/learning/topic-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: searchQuery })
@@ -297,7 +298,7 @@ const LearningAgent = () => {
     ));
 
     try {
-      const response = await fetch('http://localhost:5000/api/learning/summarize', {
+      const response = await fetch(`${API_BASE_URL}/learning/summarize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: resource.url, title: resource.title })

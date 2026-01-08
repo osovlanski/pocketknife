@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Settings, Shield, LogOut } from 'lucide-react';
+import { ChevronDown, Settings, Shield, LogOut, Crown, UserCircle } from 'lucide-react';
 import type { CurrentUser } from '../../services/authApi';
 import styles from '../../styles/layout.module.css';
 
@@ -49,6 +49,22 @@ const UserMenu: React.FC<UserMenuProps> = ({
     }
   };
 
+  const getRoleIcon = () => {
+    switch (user.role) {
+      case 'SUPER_ADMIN': return <Crown style={{ width: '0.875rem', height: '0.875rem' }} />;
+      case 'ADMIN': return <Shield style={{ width: '0.875rem', height: '0.875rem' }} />;
+      default: return <UserCircle style={{ width: '0.875rem', height: '0.875rem' }} />;
+    }
+  };
+
+  const getRoleLabel = () => {
+    switch (user.role) {
+      case 'SUPER_ADMIN': return 'Super Admin';
+      case 'ADMIN': return 'Admin';
+      default: return 'User';
+    }
+  };
+
   return (
     <div className={styles.userMenuContainer} ref={menuRef}>
       <button
@@ -72,9 +88,10 @@ const UserMenu: React.FC<UserMenuProps> = ({
           <div className={styles.userMenuHeader}>
             <div className={styles.userMenuHeaderName}>{user.name || 'User'}</div>
             <div className={styles.userMenuHeaderEmail}>{user.email}</div>
-            <span className={`${styles.userMenuRole} ${getRoleClassName()}`}>
-              {user.role.replace('_', ' ')}
-            </span>
+            <div className={`${styles.userMenuRole} ${getRoleClassName()}`}>
+              {getRoleIcon()}
+              <span>{getRoleLabel()}</span>
+            </div>
           </div>
 
           <button

@@ -25,6 +25,19 @@ export const getConfig = async (req: Request, res: Response) => {
           jobs: configService.getJobThresholds(),
           email: configService.getEmailSettings(),
           api: configService.getApiLimits()
+        },
+        thresholds: {
+          shopping: configService.getShoppingThresholds(),
+          jobs: configService.getJobThresholds()
+        },
+        agents: {
+          email: true,
+          jobs: true,
+          travel: true,
+          learning: true,
+          problems: true,
+          todo: true,
+          shopping: true
         }
       });
     }
@@ -52,6 +65,37 @@ export const getConfig = async (req: Request, res: Response) => {
       grouped[setting.category][key] = setting.value;
     }
 
+    // Get agent enabled status from system settings
+    const agentSettings = await prisma.systemSetting.findMany({
+      where: { 
+        category: 'agents',
+        id: { startsWith: 'agents.' }
+      }
+    });
+
+    // Build agent status map
+    const agents: Record<string, boolean> = {
+      email: true,
+      jobs: true,
+      travel: true,
+      learning: true,
+      problems: true,
+      todo: true,
+      shopping: true
+    };
+
+    for (const setting of agentSettings) {
+      // Extract agent name from id (e.g., 'agents.email_enabled' -> 'email')
+      const match = setting.id.match(/^agents\.(\w+)_enabled$/);
+      if (match) {
+        // Handle different value formats (JSON can store as boolean, string, or number)
+        const val = setting.value;
+        const isEnabled = val === true || val === 'true' || val === 1;
+        agents[match[1]] = isEnabled;
+        console.log(`[Config] Agent ${match[1]}: ${isEnabled} (raw value: ${JSON.stringify(val)})`);
+      }
+    }
+
     res.json({
       success: true,
       settings: grouped,
@@ -59,7 +103,9 @@ export const getConfig = async (req: Request, res: Response) => {
       thresholds: {
         shopping: configService.getShoppingThresholds(),
         jobs: configService.getJobThresholds()
-      }
+      },
+      // Include agent enabled status
+      agents
     });
   } catch (error: any) {
     console.error('Error fetching config:', error);

@@ -6,7 +6,7 @@
  * - Uses CSS modules for styling
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -15,6 +15,7 @@ import {
   Clock,
   Brain,
   Trash2,
+  Pencil,
   ChevronLeft,
   ChevronRight,
   Repeat,
@@ -57,6 +58,7 @@ const CATEGORY_CLASSES: Record<string, string> = {
 interface TaskCardProps {
   task: Task;
   onComplete: (id: string, status: string) => void;
+  onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   isRoutine?: boolean;
   isSuggested?: boolean;
@@ -65,6 +67,7 @@ interface TaskCardProps {
 const TaskCard: React.FC<TaskCardProps> = ({ 
   task, 
   onComplete, 
+  onEdit,
   onDelete, 
   isRoutine, 
   isSuggested 
@@ -170,10 +173,23 @@ const TaskCard: React.FC<TaskCardProps> = ({
           )}
         </div>
 
-        {/* Delete Button */}
-        <button onClick={() => onDelete(task.id)} className={styles.deleteButton}>
-          <Trash2 className={styles.icon} />
-        </button>
+        {/* Action Buttons */}
+        <div className={styles.taskActions}>
+          <button 
+            onClick={() => onEdit(task)} 
+            className={styles.editButton}
+            title="Edit task"
+          >
+            <Pencil className={styles.icon} />
+          </button>
+          <button 
+            onClick={() => onDelete(task.id)} 
+            className={styles.deleteButton}
+            title="Delete task"
+          >
+            <Trash2 className={styles.icon} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -452,6 +468,161 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   );
 };
 
+interface EditTaskModalProps {
+  isOpen: boolean;
+  task: Task | null;
+  onUpdate: (taskData: TaskData) => void;
+  onClose: () => void;
+}
+
+const EditTaskModal: React.FC<EditTaskModalProps> = ({ 
+  isOpen, 
+  task, 
+  onUpdate, 
+  onClose 
+}) => {
+  const [editData, setEditData] = useState<TaskData>({
+    title: '',
+    priority: 'medium',
+    category: 'personal'
+  });
+
+  // Update form when task changes
+  useEffect(() => {
+    if (task) {
+      setEditData({
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority,
+        category: task.category || 'personal',
+        dueTime: task.dueTime || '',
+        duration: task.duration,
+        isRecurring: task.isRecurring,
+        recurrenceRule: task.recurrenceRule
+      });
+    }
+  }, [task]);
+
+  if (!isOpen || !task) return null;
+
+  const handleSubmit = () => {
+    if (!editData.title.trim()) return;
+    onUpdate(editData);
+  };
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
+        <h3 className={styles.modalTitle}>Edit Task</h3>
+        
+        <div className={styles.modalForm}>
+          <input
+            type="text"
+            placeholder="Task title..."
+            value={editData.title}
+            onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+            className={styles.formInput}
+            autoFocus
+          />
+          
+          <textarea
+            placeholder="Description (optional)"
+            value={editData.description || ''}
+            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            className={`${styles.formInput} ${styles.formTextarea}`}
+          />
+          
+          <div className={styles.formGrid}>
+            <div>
+              <label className={styles.formLabel}>Priority</label>
+              <select
+                value={editData.priority}
+                onChange={(e) => setEditData({ ...editData, priority: e.target.value as any })}
+                className={styles.formSelect}
+              >
+                <option value="low">🟢 Low</option>
+                <option value="medium">🔵 Medium</option>
+                <option value="high">🟠 High</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label className={styles.formLabel}>Category</label>
+              <select
+                value={editData.category}
+                onChange={(e) => setEditData({ ...editData, category: e.target.value })}
+                className={styles.formSelect}
+              >
+                <option value="work">💼 Work</option>
+                <option value="personal">🏠 Personal</option>
+                <option value="health">💪 Health</option>
+                <option value="learning">📚 Learning</option>
+                <option value="errands">🛒 Errands</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className={styles.formGrid}>
+            <div>
+              <label className={styles.formLabel}>Due Time</label>
+              <input
+                type="time"
+                value={editData.dueTime || ''}
+                onChange={(e) => setEditData({ ...editData, dueTime: e.target.value })}
+                className={styles.formInput}
+              />
+            </div>
+            <div>
+              <label className={styles.formLabel}>Duration (min)</label>
+              <input
+                type="number"
+                placeholder="30"
+                value={editData.duration || ''}
+                onChange={(e) => setEditData({ ...editData, duration: parseInt(e.target.value) || undefined })}
+                className={styles.formInput}
+              />
+            </div>
+          </div>
+          
+          <div className={styles.formRow}>
+            <label className={styles.formCheckbox}>
+              <input
+                type="checkbox"
+                checked={editData.isRecurring}
+                onChange={(e) => setEditData({ ...editData, isRecurring: e.target.checked })}
+              />
+              <Repeat className={styles.iconSmall} />
+              Recurring
+            </label>
+            {editData.isRecurring && (
+              <select
+                value={editData.recurrenceRule || 'daily'}
+                onChange={(e) => setEditData({ ...editData, recurrenceRule: e.target.value })}
+                className={styles.formSelect}
+                style={{ width: 'auto' }}
+              >
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            )}
+          </div>
+        </div>
+        
+        <div className={styles.modalActions}>
+          <button onClick={onClose} className={`${styles.modalButton} ${styles.modalButtonSecondary}`}>
+            Cancel
+          </button>
+          <button onClick={handleSubmit} className={`${styles.modalButton} ${styles.modalButtonPrimary}`}>
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -511,6 +682,17 @@ const ToDoAgent: React.FC = () => {
         onClose={() => todo.setShowAddTask(false)}
       />
 
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        isOpen={todo.showEditTask}
+        task={todo.editingTask}
+        onUpdate={todo.handleUpdateTask}
+        onClose={() => {
+          todo.setShowEditTask(false);
+          todo.setEditingTask(null);
+        }}
+      />
+
       {/* Suggested Routines Panel */}
       {todo.showRoutines && todo.routines.length > 0 && (
         <RoutinesPanel
@@ -565,6 +747,7 @@ const ToDoAgent: React.FC = () => {
                 key={task.id}
                 task={task}
                 onComplete={todo.handleCompleteTask}
+                onEdit={todo.handleEditTask}
                 onDelete={todo.handleDeleteTask}
               />
             ))}
@@ -575,6 +758,7 @@ const ToDoAgent: React.FC = () => {
                 key={task.id}
                 task={task}
                 onComplete={todo.handleCompleteTask}
+                onEdit={todo.handleEditTask}
                 onDelete={todo.handleDeleteTask}
                 isRoutine
               />
@@ -586,6 +770,7 @@ const ToDoAgent: React.FC = () => {
                 key={task.id}
                 task={task}
                 onComplete={todo.handleCompleteTask}
+                onEdit={todo.handleEditTask}
                 onDelete={todo.handleDeleteTask}
                 isSuggested
               />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ExternalLink, MapPin, Building2, DollarSign, Calendar, ChevronDown, ChevronUp, TrendingUp, Users, Globe, Briefcase } from 'lucide-react';
 import * as configApi from '../services/configApi';
 import type { JobThresholds } from '../services/configApi';
+import { API_BASE_URL } from '../config';
 
 interface CompanyInfo {
   name: string;
@@ -80,7 +81,7 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
     setLoadingCompanies(prev => new Set([...prev, ...companies]));
     
     try {
-      const response = await fetch('http://localhost:5000/api/jobs/companies/enrich', {
+      const response = await fetch(`${API_BASE_URL}/jobs/companies/enrich`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companies })

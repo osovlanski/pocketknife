@@ -151,12 +151,77 @@ async function runReview(): Promise<void> {
       log(`\n... and ${diff.split('\n').length - 100} more lines`, colors.yellow);
     }
 
-    // Step 8: Automated checks
-    logSection('Step 6: Automated Quality Checks');
+    // Step 8: Run Tests
+    logSection('Step 6: Running Tests');
+    
+    let testsPass = true;
+    try {
+      log('🧪 Running test suites...', colors.blue);
+      
+      // Run backend tests
+      try {
+        log('   Running backend tests...', colors.blue);
+        execSync('npm run test', { 
+          cwd: path.join(process.cwd(), 'backend'), 
+          stdio: 'pipe',
+          timeout: 120000 
+        });
+        log('   ✅ Backend tests passed', colors.green);
+      } catch (backendError: any) {
+        log('   ❌ Backend tests failed', colors.red);
+        if (backendError.stdout) {
+          const failedTests = backendError.stdout.toString().match(/FAIL.*$/gm);
+          if (failedTests) {
+            failedTests.slice(0, 5).forEach((line: string) => log(`      ${line}`, colors.red));
+          }
+        }
+        testsPass = false;
+      }
+      
+      // Run frontend tests
+      try {
+        log('   Running frontend tests...', colors.blue);
+        execSync('npm run test', { 
+          cwd: path.join(process.cwd(), 'frontend'), 
+          stdio: 'pipe',
+          timeout: 120000 
+        });
+        log('   ✅ Frontend tests passed', colors.green);
+      } catch (frontendError: any) {
+        log('   ❌ Frontend tests failed', colors.red);
+        if (frontendError.stdout) {
+          const failedTests = frontendError.stdout.toString().match(/FAIL.*$/gm);
+          if (failedTests) {
+            failedTests.slice(0, 5).forEach((line: string) => log(`      ${line}`, colors.red));
+          }
+        }
+        testsPass = false;
+      }
+      
+      if (testsPass) {
+        log('✅ All tests passed!', colors.green);
+      } else {
+        log('❌ Some tests failed. Fix them before pushing.', colors.red);
+      }
+    } catch (testError: any) {
+      log(`⚠️ Could not run tests: ${testError.message}`, colors.yellow);
+      log('   Make sure test dependencies are installed: npm install in backend/ and frontend/', colors.yellow);
+      // Don't fail the entire check if tests can't run (e.g., missing dependencies)
+      testsPass = true; // Allow to proceed with warning
+    }
+    
+    // Step 9: Automated Quality Checks
+    logSection('Step 7: Automated Quality Checks');
     
     let autoScore = 100;
     const issues: string[] = [];
     const warnings: string[] = [];
+    
+    // Deduct score if tests failed
+    if (!testsPass) {
+      issues.push('🔴 Tests failed - Fix failing tests before pushing');
+      autoScore -= 30;
+    }
 
     // Check for hardcoded values (common patterns)
     const hardcodedPatterns = [
@@ -224,8 +289,8 @@ async function runReview(): Promise<void> {
     autoScore = Math.max(0, Math.min(100, autoScore));
     log(`\n📊 Automated Pre-Score: ${autoScore}/100`, autoScore >= 80 ? colors.green : colors.yellow);
 
-    // Step 9: Manual review prompt
-    logSection('Step 7: Manual Review Required');
+    // Step 10: Manual review prompt
+    logSection('Step 8: Manual Review Required');
     
     log('', colors.reset);
     log('╔══════════════════════════════════════════════════════════════════╗', colors.cyan);
@@ -239,8 +304,8 @@ async function runReview(): Promise<void> {
     log('  OR run: git diff main...HEAD | clip (to copy full diff)', colors.blue);
     log('', colors.reset);
 
-    // Step 10: Interactive confirmation
-    logSection('Step 8: Push Confirmation');
+    // Step 11: Interactive confirmation
+    logSection('Step 9: Push Confirmation');
     
     const rl = readline.createInterface({
       input: process.stdin,

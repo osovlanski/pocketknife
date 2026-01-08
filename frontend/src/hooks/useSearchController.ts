@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '../config';
 
 type AgentType = 'email' | 'jobs' | 'travel' | 'learning' | 'problems';
 
@@ -21,7 +22,7 @@ let sharedSocket: Socket | null = null;
 
 const getSocket = (): Socket => {
   if (!sharedSocket) {
-    sharedSocket = io('http://localhost:5000');
+    sharedSocket = io(SOCKET_URL);
     
     // Listen for process status updates from backend
     sharedSocket.on('process-status', (data: { agent: AgentType; status: string }) => {

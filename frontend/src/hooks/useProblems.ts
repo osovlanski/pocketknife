@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 export interface Problem {
   id: string;
@@ -67,7 +68,7 @@ export interface UseProblemsReturn {
   difficulties: string[];
 }
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = API_BASE_URL;
 
 export const useProblems = (): UseProblemsReturn => {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -91,7 +92,7 @@ export const useProblems = (): UseProblemsReturn => {
 
   // Socket connection for streaming
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     
     socketRef.current.on('problem-stream', (data: { content: string; done: boolean }) => {
       if (data.done) {

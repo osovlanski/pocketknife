@@ -671,6 +671,8 @@ export const initializeAdmin = async (req: Request, res: Response) => {
       { id: 'agents.email_enabled', category: 'agents', name: 'Email Agent Enabled', value: true, isPublic: false },
       { id: 'agents.jobs_enabled', category: 'agents', name: 'Jobs Agent Enabled', value: true, isPublic: false },
       { id: 'agents.travel_enabled', category: 'agents', name: 'Travel Agent Enabled', value: true, isPublic: false },
+      { id: 'agents.learning_enabled', category: 'agents', name: 'Learning Agent Enabled', value: true, isPublic: false },
+      { id: 'agents.problems_enabled', category: 'agents', name: 'Problems Agent Enabled', value: true, isPublic: false },
       { id: 'agents.todo_enabled', category: 'agents', name: 'ToDo Agent Enabled', value: true, isPublic: false },
       { id: 'agents.shopping_enabled', category: 'agents', name: 'Shopping Agent Enabled', value: true, isPublic: false },
       { id: 'notifications.telegram_enabled', category: 'notifications', name: 'Telegram Notifications', value: true, isPublic: false },

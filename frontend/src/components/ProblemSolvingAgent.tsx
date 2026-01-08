@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2 } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
+import { API_BASE_URL } from '../config';
 
 interface CodingProblem {
   id: string;
@@ -94,7 +95,7 @@ const ProblemSolvingAgent = () => {
     try {
       // Note: Real execution would require a sandboxed environment
       // For now, we simulate with AI evaluation of test cases
-      const response = await fetch('http://localhost:5000/api/problems/test', {
+      const response = await fetch(`${API_BASE_URL}/problems/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -370,7 +371,7 @@ func main() {
     
     setIsGeneratingSignature(true);
     try {
-      const response = await fetch('http://localhost:5000/api/problems/signature', {
+      const response = await fetch(`${API_BASE_URL}/problems/signature`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -398,7 +399,7 @@ func main() {
     
     setIsGeneratingSuggestion(true);
     try {
-      const response = await fetch('http://localhost:5000/api/problems/improve', {
+      const response = await fetch(`${API_BASE_URL}/problems/improve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -584,7 +585,7 @@ func main() {
       setShowHints(false);
       setEvaluation(null);
 
-      const response = await fetch('http://localhost:5000/api/problems/search', {
+      const response = await fetch(`${API_BASE_URL}/problems/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -630,7 +631,7 @@ func main() {
     if (problem.needsFullDescription && problem.titleSlug) {
       setIsLoadingDescription(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/problems/description/${problem.titleSlug}`);
+        const response = await fetch(`${API_BASE_URL}/problems/description/${problem.titleSlug}`);
         const data = await response.json();
         if (data.description) {
           // Update the problem with full description
@@ -667,7 +668,7 @@ func main() {
       setEvaluation(null);
       setSaveStatus(null);
 
-      const response = await fetch('http://localhost:5000/api/problems/evaluate', {
+      const response = await fetch(`${API_BASE_URL}/problems/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -684,7 +685,7 @@ func main() {
         
         // Save to database after successful evaluation
         try {
-          const saveResponse = await fetch('http://localhost:5000/api/problems/save', {
+          const saveResponse = await fetch(`${API_BASE_URL}/problems/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -744,7 +745,7 @@ func main() {
     try {
       setIsGeneratingHints(true);
 
-      const response = await fetch('http://localhost:5000/api/problems/hints', {
+      const response = await fetch(`${API_BASE_URL}/problems/hints`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

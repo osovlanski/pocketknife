@@ -6,8 +6,7 @@
  */
 
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL, config } from '../config';
 
 // =============================================================================
 // TYPES
@@ -26,6 +25,16 @@ export interface JobThresholds {
   streamThreshold: number; // Default: 75
 }
 
+export interface AgentStatus {
+  email: boolean;
+  jobs: boolean;
+  travel: boolean;
+  learning: boolean;
+  problems: boolean;
+  todo: boolean;
+  shopping: boolean;
+}
+
 export interface ConfigResponse {
   success: boolean;
   settings: Record<string, Record<string, unknown>>;
@@ -33,6 +42,7 @@ export interface ConfigResponse {
     shopping: ShoppingThresholds;
     jobs: JobThresholds;
   };
+  agents?: AgentStatus;
 }
 
 // =============================================================================
@@ -41,7 +51,7 @@ export interface ConfigResponse {
 
 let configCache: ConfigResponse | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = config.cache.ttlMs; // From config
 
 // =============================================================================
 // API FUNCTIONS
@@ -85,6 +95,22 @@ export const getJobThresholds = async (): Promise<JobThresholds> => {
 };
 
 /**
+ * Get agent enabled status
+ */
+export const getAgentStatus = async (): Promise<AgentStatus> => {
+  const config = await getConfig();
+  return config.agents || getDefaultConfig().agents!;
+};
+
+/**
+ * Check if a specific agent is enabled
+ */
+export const isAgentEnabled = async (agentId: string): Promise<boolean> => {
+  const agents = await getAgentStatus();
+  return agents[agentId as keyof AgentStatus] ?? true;
+};
+
+/**
  * Invalidate cache (call after config update)
  */
 export const invalidateCache = (): void => {
@@ -110,6 +136,15 @@ export const getDefaultConfig = (): ConfigResponse => ({
       good: 60,
       streamThreshold: 75
     }
+  },
+  agents: {
+    email: true,
+    jobs: true,
+    travel: true,
+    learning: true,
+    problems: true,
+    todo: true,
+    shopping: true
   }
 });
 
@@ -117,6 +152,8 @@ export default {
   getConfig,
   getShoppingThresholds,
   getJobThresholds,
+  getAgentStatus,
+  isAgentEnabled,
   invalidateCache,
   getDefaultConfig
 };

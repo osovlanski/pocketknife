@@ -30,10 +30,20 @@ export const useAuth = (): UseAuthReturn => {
   const [isLoading, setIsLoading] = useState(true);
   const [googleStatus, setGoogleStatus] = useState<AuthStatus | null>(null);
 
-  // Load user on mount
+  // Load user and Google status on mount
   useEffect(() => {
     loadUser();
+    loadGoogleStatus();
   }, []);
+
+  const loadGoogleStatus = async () => {
+    try {
+      const status = await authApi.getGoogleAuthStatus();
+      setGoogleStatus(status);
+    } catch (error) {
+      console.error('Failed to load Google status:', error);
+    }
+  };
 
   const loadUser = async () => {
     try {

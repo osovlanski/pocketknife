@@ -17,6 +17,8 @@ export interface UseTodoReturn {
   selectedDate: Date;
   loading: boolean;
   showAddTask: boolean;
+  showEditTask: boolean;
+  editingTask: Task | null;
   showRoutines: boolean;
   learningPatterns: boolean;
   syncing: boolean;
@@ -30,10 +32,14 @@ export interface UseTodoReturn {
   
   // Actions
   setShowAddTask: (show: boolean) => void;
+  setShowEditTask: (show: boolean) => void;
+  setEditingTask: (task: Task | null) => void;
   setShowRoutines: (show: boolean) => void;
   setNewTask: (task: TaskData) => void;
   navigateDate: (days: number) => void;
   handleCreateTask: () => Promise<void>;
+  handleEditTask: (task: Task) => void;
+  handleUpdateTask: (taskData: TaskData) => Promise<void>;
   handleCompleteTask: (taskId: string, currentStatus: string) => Promise<void>;
   handleDeleteTask: (taskId: string) => Promise<void>;
   handleLearnPatterns: () => Promise<void>;
@@ -58,6 +64,8 @@ export const useTodo = (): UseTodoReturn => {
   // UI state
   const [loading, setLoading] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showEditTask, setShowEditTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showRoutines, setShowRoutines] = useState(false);
   const [learningPatterns, setLearningPatterns] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -155,6 +163,29 @@ export const useTodo = (): UseTodoReturn => {
     }
   }, []);
 
+  const handleEditTask = useCallback((task: Task) => {
+    setEditingTask(task);
+    setShowEditTask(true);
+  }, []);
+
+  const handleUpdateTask = useCallback(async (taskData: TaskData) => {
+    if (!editingTask) return;
+
+    try {
+      setLoading(true);
+      await todoApi.updateTask(editingTask.id, taskData);
+      
+      setEditingTask(null);
+      setShowEditTask(false);
+      await Promise.all([loadAgendaData(), loadTasksData()]);
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      alert('Failed to update task. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [editingTask]);
+
   const handleLearnPatterns = useCallback(async () => {
     try {
       setLearningPatterns(true);
@@ -229,6 +260,8 @@ export const useTodo = (): UseTodoReturn => {
     selectedDate,
     loading,
     showAddTask,
+    showEditTask,
+    editingTask,
     showRoutines,
     learningPatterns,
     syncing,
@@ -242,10 +275,14 @@ export const useTodo = (): UseTodoReturn => {
     
     // Actions
     setShowAddTask,
+    setShowEditTask,
+    setEditingTask,
     setShowRoutines,
     setNewTask,
     navigateDate,
     handleCreateTask,
+    handleEditTask,
+    handleUpdateTask,
     handleCompleteTask,
     handleDeleteTask,
     handleLearnPatterns,

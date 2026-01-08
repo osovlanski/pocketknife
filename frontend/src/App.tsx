@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
+// Config
+import { API_BASE_URL, SOCKET_URL } from './config';
+
 // Hooks
 import useAuth from './hooks/useAuth';
 import useNotification from './hooks/useNotification';
@@ -46,6 +49,7 @@ import ActivityLog from './components/ActivityLog';
 
 // Services & Types
 import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './services/travelApi';
+import { getAgentStatus, invalidateCache, type AgentStatus } from './services/configApi';
 import type { TravelSearchQuery } from './types/travel';
 import type { TabConfig } from './components/common/NavTabs';
 
@@ -145,6 +149,12 @@ const App: React.FC = () => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
   
+  // Agent enabled status (from admin settings)
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>({
+    email: true, jobs: true, travel: true, learning: true,
+    problems: true, todo: true, shopping: true
+  });
+  
   // Jobs state
   const [jobs, setJobs] = useState<any[]>([]);
   const [liveMatches, setLiveMatches] = useState<number>(0);
@@ -165,7 +175,12 @@ const App: React.FC = () => {
   const isOnAgentPage = isAgentRoute(location.pathname);
   const isOnHomePage = location.pathname === '/';
 
-  const tabsWithBadges = agentTabs.map(tab => {
+  // Filter agent tabs based on enabled status
+  const enabledAgentTabs = agentTabs.filter(tab => 
+    agentStatus[tab.id as keyof AgentStatus] !== false
+  );
+
+  const tabsWithBadges = enabledAgentTabs.map(tab => {
     if (tab.id === 'jobs') {
       return {
         ...tab,
@@ -186,6 +201,36 @@ const App: React.FC = () => {
   // Effects
   // ---------------------------------------------------------------------------
   
+  // Fetch agent enabled status on mount and when navigating back from admin
+  useEffect(() => {
+    const loadAgentStatus = async () => {
+      try {
+        const status = await getAgentStatus();
+        setAgentStatus(status);
+      } catch (error) {
+        console.error('Failed to load agent status:', error);
+        // Keep defaults (all enabled) on error
+      }
+    };
+    loadAgentStatus();
+    
+    // Re-fetch when window regains focus (e.g., after admin changes in another tab)
+    const handleFocus = () => {
+      loadAgentStatus();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  // Re-fetch agent status when navigating away from admin panel
+  useEffect(() => {
+    if (location.pathname !== '/admin') {
+      // Just navigated away from admin - invalidate cache and refresh agent status
+      invalidateCache();
+      getAgentStatus().then(setAgentStatus).catch(console.error);
+    }
+  }, [location.pathname]);
+
   // Handle Google OAuth callback from URL params
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -224,7 +269,7 @@ const App: React.FC = () => {
 
   // Initialize Socket.io connection
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
     // Listen for real-time job matches
@@ -289,7 +334,7 @@ const App: React.FC = () => {
       setJobs([]);
       setLiveMatches(0);
       
-      const response = await fetch('http://localhost:5000/api/jobs/search', {
+      const response = await fetch(`${API_BASE_URL}/jobs/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ location, remoteOnly, ...filters }),
@@ -378,6 +423,7 @@ const App: React.FC = () => {
         isLoading={auth.isLoading}
         isAdmin={auth.isAdmin}
         activeView={isOnHomePage ? 'home' : (activeTab || location.pathname.slice(1))}
+        googleStatus={auth.googleStatus}
         onHomeClick={() => navigate('/')}
         onSettingsClick={() => navigate('/settings')}
         onAdminClick={() => navigate('/admin')}
@@ -399,7 +445,7 @@ const App: React.FC = () => {
         <Routes>
           {/* Home Page */}
           <Route path="/" element={
-            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} />
+            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
           } />
 
           {/* Settings */}
@@ -549,7 +595,7 @@ const App: React.FC = () => {
 
           {/* Catch-all redirect to home */}
           <Route path="*" element={
-            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} />
+            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
           } />
         </Routes>
       </main>

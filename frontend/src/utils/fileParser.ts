@@ -47,10 +47,10 @@ async function extractTextFromPDF(file: File): Promise<string> {
     // Dynamically import pdfjs-dist
     const pdfjs = await import('pdfjs-dist');
     
-    // Configure worker - use CDN for pdfjs-dist v4.x
+    // Configure worker - use unpkg CDN which mirrors npm packages exactly
     if (!pdfWorkerInitialized) {
-      // Use CDN worker that matches our installed version (4.4.168)
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+      // Use unpkg worker that matches our installed version (4.10.38)
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
       pdfWorkerInitialized = true;
     }
 

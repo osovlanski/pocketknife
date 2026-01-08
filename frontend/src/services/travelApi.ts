@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { TravelSearchQuery, FlightResult, HotelResult, TripPlan } from '../types/travel';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = API_BASE_URL;
 
 export interface TravelSearchResponse {
   flights: FlightResult[];

@@ -203,6 +203,18 @@ Navigate to http://localhost:5173
 - Google Calendar API (required for ToDo agent calendar sync)
 - Custom Search API (optional, for enhanced search in all agents)
 
+### Frontend Environment Variables
+
+For production deployments, set these in `frontend/.env`:
+
+```bash
+# API endpoint (default: http://localhost:5000/api)
+VITE_API_URL=https://your-api-domain.com/api
+
+# WebSocket URL (default: http://localhost:5000)
+VITE_SOCKET_URL=wss://your-api-domain.com
+```
+
 ## 🎯 Usage
 
 ### Email Processing

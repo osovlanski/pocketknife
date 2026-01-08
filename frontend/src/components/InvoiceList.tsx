@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FileText, Download, ExternalLink, RefreshCw, Cloud } from 'lucide-react';
 import { getInvoices } from '../services/api';
+import { API_BASE_URL } from '../config';
 
 interface Invoice {
   id: string;
@@ -130,7 +131,7 @@ const InvoiceList: React.FC = () => {
               <button
                 onClick={() => {
                   // Open Google OAuth in a new window/tab
-                  window.location.href = 'http://localhost:5000/api/auth/google';
+                  window.location.href = `${API_BASE_URL}/auth/google`;
                 }}
                 className="flex items-center gap-3 bg-white hover:bg-gray-100 text-gray-800 font-semibold px-6 py-3 rounded-lg transition-colors shadow-lg"
               >

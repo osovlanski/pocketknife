@@ -10,6 +10,7 @@ import { useLocation } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { processAllEmails, testNotification } from '../services/api';
 import useSearchController from './useSearchController';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 export interface GmailStats {
   invoices: number;
@@ -68,7 +69,7 @@ export const useGmail = (): UseGmailReturn => {
   // Check Google auth status
   const checkAuthStatus = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/status');
+      const response = await fetch(`${API_BASE_URL}/auth/status`);
       const data = await response.json();
       setIsAuthenticated(data.authenticated);
       setAuthUrl(data.authUrl);
@@ -107,7 +108,7 @@ export const useGmail = (): UseGmailReturn => {
 
   // Connect to Socket.io for real-time stats updates
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     
     socketRef.current.on('log', (data: { message: string; type: string; details?: any }) => {
       if (data.details) {
@@ -169,7 +170,7 @@ export const useGmail = (): UseGmailReturn => {
     if (authUrl) {
       window.location.href = authUrl;
     } else {
-      window.location.href = 'http://localhost:5000/api/auth/google';
+      window.location.href = `${API_BASE_URL}/auth/google`;
     }
   }, [authUrl]);
 

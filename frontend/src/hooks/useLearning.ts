@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 export interface LearningResource {
   id: string;
@@ -90,7 +91,7 @@ export interface UseLearningReturn {
   }>;
 }
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = API_BASE_URL;
 
 export const useLearning = (): UseLearningReturn => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,7 +153,7 @@ export const useLearning = (): UseLearningReturn => {
 
   // Socket connection
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     return () => {
       socketRef.current?.disconnect();
     };

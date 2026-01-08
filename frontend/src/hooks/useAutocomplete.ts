@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../config';
 
 interface AutocompleteSuggestion {
   text: string;
@@ -22,7 +23,7 @@ interface UseAutocompleteResult {
   selectSuggestion: (suggestion: AutocompleteSuggestion) => string;
 }
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = API_BASE_URL;
 
 export const useAutocomplete = (options: UseAutocompleteOptions): UseAutocompleteResult => {
   const { 

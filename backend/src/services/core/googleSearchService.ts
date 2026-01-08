@@ -207,16 +207,25 @@ const AGENT_SEARCH_CONFIGS: Record<AgentType, {
 // =============================================================================
 
 class GoogleSearchService {
-  private readonly apiKey: string;
-  private readonly defaultCseId: string;
-  private readonly isConfigured: boolean;
+  private apiKey: string | null = null;
+  private defaultCseId: string | null = null;
+  private isConfigured: boolean | null = null;
+  private initialized = false;
 
-  constructor() {
+  /**
+   * Lazy initialization - reads env vars when first needed (after dotenv.config() has run)
+   */
+  private ensureInitialized(): void {
+    if (this.initialized) return;
+    
     this.apiKey = process.env.GOOGLE_CSE_API_KEY || '';
     this.defaultCseId = process.env.GOOGLE_CSE_ID || '';
     this.isConfigured = Boolean(this.apiKey && this.defaultCseId);
+    this.initialized = true;
 
-    if (!this.isConfigured) {
+    if (this.isConfigured) {
+      console.log('✅ [GoogleSearch] Configured with', quotaManager.getStatus().remaining, 'daily quota');
+    } else {
       console.log('⚠️ [GoogleSearch] Not configured. Set GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID in .env');
     }
   }
@@ -225,7 +234,8 @@ class GoogleSearchService {
    * Check if the service is configured
    */
   isAvailable(): boolean {
-    return this.isConfigured;
+    this.ensureInitialized();
+    return this.isConfigured!;
   }
 
   /**
@@ -259,6 +269,8 @@ class GoogleSearchService {
       language?: string;
     } = {}
   ): Promise<SearchResult[]> {
+    this.ensureInitialized();
+    
     if (!this.isConfigured) {
       console.log('⚠️ [GoogleSearch] Service not configured');
       return [];

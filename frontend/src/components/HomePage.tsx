@@ -12,6 +12,7 @@ import {
   Zap, Shield, Settings
 } from 'lucide-react';
 import type { CurrentUser } from '../services/authApi';
+import type { AgentStatus } from '../services/configApi';
 
 interface AgentCard {
   id: string;
@@ -92,9 +93,14 @@ const agents: AgentCard[] = [
 interface HomePageProps {
   user: CurrentUser | null;
   isAdmin: boolean;
+  agentStatus?: AgentStatus;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, isAdmin }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
+  // Filter agents based on enabled status
+  const enabledAgents = agents.filter(agent => 
+    !agentStatus || agentStatus[agent.id as keyof AgentStatus] !== false
+  );
   return (
     <div style={{ 
       minHeight: '100%',
@@ -252,7 +258,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin }) => {
           gap: '1.5rem'
         }}>
           {[
-            { icon: Zap, label: 'AI Agents', value: '7', color: 'rgb(251, 191, 36)' },
+            { icon: Zap, label: 'AI Agents', value: String(enabledAgents.length), color: 'rgb(251, 191, 36)' },
             { icon: Mail, label: 'Emails Processed', value: '10K+', color: 'rgb(96, 165, 250)' },
             { icon: Briefcase, label: 'Jobs Found', value: '5K+', color: 'rgb(167, 139, 250)' },
             { icon: Shield, label: 'Uptime', value: '99.9%', color: 'rgb(52, 211, 153)' }
@@ -305,7 +311,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin }) => {
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: '1.5rem'
         }}>
-          {agents.map((agent) => (
+          {enabledAgents.map((agent) => (
             <Link
               key={agent.id}
               to={agent.path}
