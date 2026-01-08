@@ -12,13 +12,14 @@ WORKDIR /app
 
 # Install dependencies first (cache layer)
 # Copy from backend/ since build context is repo root
+# Use --ignore-scripts to skip postinstall until prisma schema is available
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Copy source and build (from backend/ folder)
 COPY backend/ .
 
-# Generate Prisma client
+# Now generate Prisma client (schema is available)
 RUN npx prisma generate
 
 # Build TypeScript
