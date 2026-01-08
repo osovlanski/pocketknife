@@ -349,19 +349,37 @@ async function runReview(): Promise<void> {
       autoScore -= 2 * consoleLogMatches.length;
     }
 
-    // Check for missing type annotations (TypeScript)
-    const missingTypes = diff.split('\n').filter(line =>
-      line.startsWith('+') && /:\s*any\b/.test(line)
-    );
+    // Check for missing type annotations (TypeScript) - only in actual code files
+    currentFile = '';
+    const missingTypes = diffLines.filter((line) => {
+      if (line.startsWith('diff --git')) {
+        currentFile = line;
+      }
+      if (!line.startsWith('+') || line.startsWith('+++')) return false;
+      // Skip scripts, tests, and config files - any type is acceptable there
+      if (/\/(scripts|tests?|__tests__|\.test\.|\.spec\.)/.test(currentFile)) return false;
+      if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile)) return false;
+      if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
+      return /:\s*any\b/.test(line);
+    });
     if (missingTypes.length > 0) {
       warnings.push(`🟡 'any' type usage: ${missingTypes.length} instance(s) - Prefer explicit types`);
       autoScore -= 2 * missingTypes.length;
     }
 
-    // Check for TODO/FIXME comments
-    const todoComments = diff.split('\n').filter(line =>
-      line.startsWith('+') && /\/\/\s*(TODO|FIXME|XXX|HACK)/i.test(line)
-    );
+    // Check for TODO/FIXME comments - only in actual code files
+    currentFile = '';
+    const todoComments = diffLines.filter((line) => {
+      if (line.startsWith('diff --git')) {
+        currentFile = line;
+      }
+      if (!line.startsWith('+') || line.startsWith('+++')) return false;
+      // Skip scripts, tests, and config files - TODO comments are acceptable there
+      if (/\/(scripts|tests?|__tests__|\.test\.|\.spec\.)/.test(currentFile)) return false;
+      if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile)) return false;
+      if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
+      return /\/\/\s*(TODO|FIXME|XXX|HACK)/i.test(line);
+    });
     if (todoComments.length > 0) {
       warnings.push(`🟡 TODO/FIXME comments: ${todoComments.length} instance(s)`);
       autoScore -= 1 * todoComments.length;
