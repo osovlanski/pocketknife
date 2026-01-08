@@ -171,7 +171,10 @@ class GoogleAuthService {
       'https://www.googleapis.com/auth/calendar.events'
     ];
 
-    return this.oauth2Client.generateAuthUrl({
+    if (!this.oauth2Client) {
+      this.initialize();
+    }
+    return this.oauth2Client!.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent' // Force to get refresh token
@@ -186,6 +189,10 @@ class GoogleAuthService {
       // Ensure OAuth client is initialized
       if (!this.oauth2Client) {
         this.initialize();
+      }
+      
+      if (!this.oauth2Client) {
+        return { success: false, error: 'Failed to initialize OAuth client' };
       }
       
       console.log('🔄 Exchanging authorization code for tokens...');
@@ -270,7 +277,7 @@ class GoogleAuthService {
    */
   async disconnect(): Promise<{ success: boolean; error?: string }> {
     try {
-      if (this.oauth2Client.credentials?.access_token) {
+      if (this.oauth2Client?.credentials?.access_token) {
         await this.oauth2Client.revokeToken(this.oauth2Client.credentials.access_token);
       }
       
@@ -280,7 +287,7 @@ class GoogleAuthService {
       
       this.hasValidTokens = false;
       this.storedScopes = '';
-      this.oauth2Client.setCredentials({});
+      this.oauth2Client?.setCredentials({});
       
       console.log('✅ Google account disconnected');
       return { success: true };
@@ -304,7 +311,7 @@ class GoogleAuthService {
       
       this.hasValidTokens = false;
       this.storedScopes = '';
-      this.oauth2Client.setCredentials({});
+      this.oauth2Client?.setCredentials({});
       
       return { 
         success: true, 

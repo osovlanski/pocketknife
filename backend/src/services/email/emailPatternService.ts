@@ -147,32 +147,36 @@ class EmailPatternService {
     if (!senderDomain) return;
 
     try {
-      // Use upsert to either create or update the pattern
-      await prisma.emailSenderPattern.upsert({
+      // Find existing pattern or create new one
+      const existing = await prisma.emailSenderPattern.findFirst({
         where: {
-          senderDomain_subjectPattern: {
-            senderDomain: senderDomain,
-            subjectPattern: null
-          }
-        },
-        update: {
-          occurrenceCount: { increment: 1 },
-          lastSeenAt: new Date(),
-          // Only update confidence if it improves
-          confidence: {
-            set: Math.max(classification.confidence, 0.5)
-          }
-        },
-        create: {
-          senderEmail: senderEmail,
           senderDomain: senderDomain,
-          senderName: senderName,
-          category: classification.category,
-          confidence: classification.confidence,
-          isAutoLearned: true,
-          isUserApproved: false
+          subjectPattern: null
         }
       });
+
+      if (existing) {
+        await prisma.emailSenderPattern.update({
+          where: { id: existing.id },
+          data: {
+            occurrenceCount: { increment: 1 },
+            lastSeenAt: new Date(),
+            confidence: Math.max(classification.confidence, existing.confidence)
+          }
+        });
+      } else {
+        await prisma.emailSenderPattern.create({
+          data: {
+            senderEmail: senderEmail,
+            senderDomain: senderDomain,
+            senderName: senderName,
+            category: classification.category,
+            confidence: classification.confidence,
+            isAutoLearned: true,
+            isUserApproved: false
+          }
+        });
+      }
     } catch (error) {
       // Ignore duplicate key errors for concurrent inserts
       if ((error as any).code !== 'P2002') {
@@ -255,31 +259,39 @@ Respond ONLY with valid JSON:
         const senderName = this.extractSenderName(sampleEmail.from);
 
         try {
-          await prisma.emailSenderPattern.upsert({
+          // Find existing pattern or create new one
+          const existingPattern = await prisma.emailSenderPattern.findFirst({
             where: {
-              senderDomain_subjectPattern: {
-                senderDomain: pattern.domain,
-                subjectPattern: null
-              }
-            },
-            update: {
-              category: pattern.category,
-              customTag: pattern.customTag,
-              confidence: pattern.confidence,
-              occurrenceCount: { increment: domainData.emails.length }
-            },
-            create: {
-              senderEmail: senderEmail,
               senderDomain: pattern.domain,
-              senderName: senderName,
-              category: pattern.category,
-              customTag: pattern.customTag,
-              confidence: pattern.confidence,
-              occurrenceCount: domainData.emails.length,
-              isAutoLearned: true,
-              isUserApproved: false
+              subjectPattern: null
             }
           });
+
+          if (existingPattern) {
+            await prisma.emailSenderPattern.update({
+              where: { id: existingPattern.id },
+              data: {
+                category: pattern.category,
+                customTag: pattern.customTag,
+                confidence: pattern.confidence,
+                occurrenceCount: { increment: domainData.emails.length }
+              }
+            });
+          } else {
+            await prisma.emailSenderPattern.create({
+              data: {
+                senderEmail: senderEmail,
+                senderDomain: pattern.domain,
+                senderName: senderName,
+                category: pattern.category,
+                customTag: pattern.customTag,
+                confidence: pattern.confidence,
+                occurrenceCount: domainData.emails.length,
+                isAutoLearned: true,
+                isUserApproved: false
+              }
+            });
+          }
 
           learnedPatterns.push({
             senderEmail,

@@ -48,6 +48,18 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '2'         // Green
 };
 
+interface CalendarEventResponse {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+  colorId?: string;
+  htmlLink?: string;
+  isPocketknifeTask: boolean;
+}
+
 class CalendarService {
   private initialized = false;
 
@@ -388,10 +400,10 @@ class CalendarService {
         start: event.start?.dateTime || event.start?.date || '',
         end: event.end?.dateTime || event.end?.date || '',
         isAllDay: !event.start?.dateTime,
-        colorId: event.colorId,
+        colorId: event.colorId ?? undefined,
         htmlLink: event.htmlLink || undefined,
         isPocketknifeTask: (event.description || '').includes('Pocketknife ToDo Agent')
-      }));
+      })) as CalendarEventResponse[];
     } catch (error: any) {
       console.error('❌ Failed to get calendar events:', error.message);
       return [];

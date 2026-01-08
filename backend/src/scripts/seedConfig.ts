@@ -5,7 +5,7 @@
  * Run with: npx tsx src/scripts/seedConfig.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +13,7 @@ interface SettingDefinition {
   id: string;
   category: string;
   name: string;
-  value: unknown;
+  value: Prisma.InputJsonValue;
   description: string;
   isPublic: boolean;
   isEditable: boolean;
