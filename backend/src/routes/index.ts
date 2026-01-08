@@ -18,6 +18,12 @@ import travelRoutes from './travel';
 import learningRoutes from './learning';
 import problemSolvingRoutes from './problemSolving';
 import authRoutes from './auth';
+import agentsRoutes from './agents';
+import autocompleteRoutes from './autocomplete';
+import todoRoutes from './todo';
+import shoppingRoutes from './shopping';
+import adminRoutes from './admin';
+import settingsRoutes from './settings';
 
 const router = Router();
 
@@ -50,9 +56,28 @@ router.use('/problems', problemSolvingRoutes);
 
 // Configuration routes
 router.get('/config', configController.getConfig);
+router.get('/config/all', configController.getAllConfig);
 router.post('/config', configController.updateConfig);
 
 // Auth routes (Google OAuth)
 router.use('/auth', authRoutes);
+
+// Unified Agent API routes
+router.use('/agents', agentsRoutes);
+
+// Autocomplete routes (with caching)
+router.use('/autocomplete', autocompleteRoutes);
+
+// ToDo agent routes
+router.use('/todo', todoRoutes);
+
+// Shopping agent routes
+router.use('/shopping', shoppingRoutes);
+
+// Admin routes
+router.use('/admin', adminRoutes);
+
+// Settings routes (user preferences)
+router.use('/settings', settingsRoutes);
 
 export default router;

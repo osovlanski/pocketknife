@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FileText, Download, ExternalLink, RefreshCw, Cloud } from 'lucide-react';
 import { getInvoices } from '../services/api';
+import { API_BASE_URL } from '../config';
 
 interface Invoice {
   id: string;
@@ -19,8 +21,10 @@ const InvoiceList: React.FC = () => {
   const [driveFolder, setDriveFolder] = useState<string>('');
   const [authRequired, setAuthRequired] = useState(false);
   const [authMessage, setAuthMessage] = useState<string>('');
+  
+  const location = useLocation();
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError(null);
     setAuthRequired(false);
@@ -41,11 +45,33 @@ const InvoiceList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Fetch invoices on mount
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  }, [fetchInvoices]);
+
+  // Re-fetch when returning from OAuth (URL has auth param)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('auth') === 'success') {
+      fetchInvoices();
+    }
+  }, [location.search, fetchInvoices]);
+
+  // Re-fetch when window regains focus (in case OAuth completed)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only re-fetch if auth is currently required
+      if (authRequired) {
+        fetchInvoices();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [authRequired, fetchInvoices]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -105,7 +131,7 @@ const InvoiceList: React.FC = () => {
               <button
                 onClick={() => {
                   // Open Google OAuth in a new window/tab
-                  window.location.href = 'http://localhost:5000/api/auth/google';
+                  window.location.href = `${API_BASE_URL}/auth/google`;
                 }}
                 className="flex items-center gap-3 bg-white hover:bg-gray-100 text-gray-800 font-semibold px-6 py-3 rounded-lg transition-colors shadow-lg"
               >

@@ -1,0 +1,2735 @@
+[2026-01-06T15:35:21.673Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-06T15:35:21.692Z] 📋 Minimum passing score: 80/100
+[2026-01-06T15:35:21.693Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-06T15:35:21.697Z] 
+[2026-01-06T15:35:21.700Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:35:21.703Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-06T15:35:21.707Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:35:21.709Z] 
+[2026-01-06T15:35:21.771Z] 📅 Review started at: 1/6/2026, 5:35:21 PM
+[2026-01-06T15:35:21.776Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-06T15:35:21.783Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-06T15:35:21.786Z] ────────────────────────────────────────
+[2026-01-06T15:35:22.809Z] ✅ Git repository detected
+[2026-01-06T15:35:22.810Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-06T15:35:22.813Z] ────────────────────────────────────────
+[2026-01-06T15:35:24.060Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-06T15:35:24.063Z] 🎯 Comparing against: main
+[2026-01-06T15:35:25.074Z] ✅ Base branch 'main' exists
+[2026-01-06T15:35:25.089Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-06T15:35:25.097Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.270Z] 
+▶ Step 4: Change Summary
+[2026-01-06T15:35:28.271Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.274Z]  .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 4653 +++++++++++++-------
+ backend/package.json                               |   52 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 ++
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  991 +++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 +++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  142 +
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 +++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 ++
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/index.ts                        |   34 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  238 +
+ backend/src/services/core/databaseService.ts       |  285 ++
+ backend/src/services/core/googleSearchService.ts   |  428 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  203 +
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 +++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 ++
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 2541 +++++++----
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  653 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 +++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 ++-
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   59 +-
+ frontend/src/components/JobListings.tsx            |  413 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 +++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  731 +++
+ frontend/src/components/ShoppingAgent.tsx          |  624 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 +++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 ++
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  171 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  293 ++
+ frontend/src/hooks/useTodo.ts                      |  261 ++
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  228 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 +++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 ++
+ frontend/src/styles/layout.module.css              |  356 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 +++
+ frontend/src/styles/settings.module.css            |  510 +++
+ frontend/src/styles/shopping.module.css            |  861 ++++
+ frontend/src/styles/todo.module.css                |  792 ++++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |    8 +-
+ 166 files changed, 39264 insertions(+), 4239 deletions(-)
+
+[2026-01-06T15:35:28.278Z] 📊 Files changed: 166
+[2026-01-06T15:35:28.281Z] ➕ Lines added: 39264
+[2026-01-06T15:35:28.284Z] ➖ Lines removed: 4239
+[2026-01-06T15:35:28.287Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-06T15:35:28.289Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.304Z] 
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+[2026-01-06T15:35:28.307Z] new file mode 100644
+[2026-01-06T15:35:28.311Z] index 0000000..775b8c5
+[2026-01-06T15:35:28.315Z] --- /dev/null
+[2026-01-06T15:35:28.317Z] +++ b/.github/workflows/deploy.yml
+[2026-01-06T15:35:28.320Z] @@ -0,0 +1,172 @@
+[2026-01-06T15:35:28.323Z] +# Pocketknife CI/CD Pipeline
+[2026-01-06T15:35:28.327Z] +# Triggered on push to main branch
+[2026-01-06T15:35:28.331Z] +# Runs tests, linting, and deploys to cloud services
+[2026-01-06T15:35:28.336Z] +
+[2026-01-06T15:35:28.338Z] +name: Deploy
+[2026-01-06T15:35:28.340Z] +
+[2026-01-06T15:35:28.344Z] +on:
+[2026-01-06T15:35:28.347Z] +  push:
+[2026-01-06T15:35:28.351Z] +    branches: [main]
+[2026-01-06T15:35:28.353Z] +  pull_request:
+[2026-01-06T15:35:28.355Z] +    branches: [main]
+[2026-01-06T15:35:28.359Z] +
+[2026-01-06T15:35:28.363Z] +env:
+[2026-01-06T15:35:28.367Z] +  NODE_VERSION: '20'
+[2026-01-06T15:35:28.369Z] +
+[2026-01-06T15:35:28.372Z] +jobs:
+[2026-01-06T15:35:28.374Z] +  # ============================================
+[2026-01-06T15:35:28.378Z] +  # Lint and Type Check
+[2026-01-06T15:35:28.382Z] +  # ============================================
+[2026-01-06T15:35:28.385Z] +  lint:
+[2026-01-06T15:35:28.387Z] +    name: Lint & Type Check
+[2026-01-06T15:35:28.390Z] +    runs-on: ubuntu-latest
+[2026-01-06T15:35:28.393Z] +    
+[2026-01-06T15:35:28.397Z] +    steps:
+[2026-01-06T15:35:28.400Z] +      - name: Checkout code
+[2026-01-06T15:35:28.402Z] +        uses: actions/checkout@v4
+[2026-01-06T15:35:28.405Z] +
+[2026-01-06T15:35:28.408Z] +      - name: Setup Node.js
+[2026-01-06T15:35:28.411Z] +        uses: actions/setup-node@v4
+[2026-01-06T15:35:28.415Z] +        with:
+[2026-01-06T15:35:28.418Z] +          node-version: ${{ env.NODE_VERSION }}
+[2026-01-06T15:35:28.420Z] +          cache: 'npm'
+[2026-01-06T15:35:28.423Z] +          cache-dependency-path: |
+[2026-01-06T15:35:28.428Z] +            backend/package-lock.json
+[2026-01-06T15:35:28.432Z] +            frontend/package-lock.json
+[2026-01-06T15:35:28.435Z] +
+[2026-01-06T15:35:28.437Z] +      - name: Install backend dependencies
+[2026-01-06T15:35:28.439Z] +        working-directory: backend
+[2026-01-06T15:35:28.441Z] +        run: npm ci
+[2026-01-06T15:35:28.443Z] +
+[2026-01-06T15:35:28.447Z] +      - name: Install frontend dependencies
+[2026-01-06T15:35:28.450Z] +        working-directory: frontend
+[2026-01-06T15:35:28.453Z] +        run: npm ci
+[2026-01-06T15:35:28.458Z] +
+[2026-01-06T15:35:28.463Z] +      - name: Generate Prisma client
+[2026-01-06T15:35:28.467Z] +        working-directory: backend
+[2026-01-06T15:35:28.470Z] +        run: npx prisma generate
+[2026-01-06T15:35:28.474Z] +
+[2026-01-06T15:35:28.480Z] +      - name: Lint backend
+[2026-01-06T15:35:28.484Z] +        working-directory: backend
+[2026-01-06T15:35:28.487Z] +        run: npm run lint --if-present
+[2026-01-06T15:35:28.489Z] +
+[2026-01-06T15:35:28.492Z] +      - name: Lint frontend
+[2026-01-06T15:35:28.496Z] +        working-directory: frontend
+[2026-01-06T15:35:28.499Z] +        run: npm run lint --if-present
+[2026-01-06T15:35:28.501Z] +
+[2026-01-06T15:35:28.504Z] +      - name: Type check backend
+[2026-01-06T15:35:28.506Z] +        working-directory: backend
+[2026-01-06T15:35:28.509Z] +        run: npx tsc --noEmit
+[2026-01-06T15:35:28.513Z] +
+[2026-01-06T15:35:28.516Z] +      - name: Type check frontend
+[2026-01-06T15:35:28.519Z] +        working-directory: frontend
+[2026-01-06T15:35:28.521Z] +        run: npx tsc --noEmit
+[2026-01-06T15:35:28.524Z] +
+[2026-01-06T15:35:28.528Z] +  # ============================================
+[2026-01-06T15:35:28.533Z] +  # Build Test
+[2026-01-06T15:35:28.536Z] +  # ============================================
+[2026-01-06T15:35:28.539Z] +  build:
+[2026-01-06T15:35:28.543Z] +    name: Build Test
+[2026-01-06T15:35:28.547Z] +    runs-on: ubuntu-latest
+[2026-01-06T15:35:28.552Z] +    needs: lint
+[2026-01-06T15:35:28.554Z] +    
+[2026-01-06T15:35:28.557Z] +    steps:
+[2026-01-06T15:35:28.559Z] +      - name: Checkout code
+[2026-01-06T15:35:28.563Z] +        uses: actions/checkout@v4
+[2026-01-06T15:35:28.566Z] +
+[2026-01-06T15:35:28.569Z] +      - name: Setup Node.js
+[2026-01-06T15:35:28.572Z] +        uses: actions/setup-node@v4
+[2026-01-06T15:35:28.577Z] +        with:
+[2026-01-06T15:35:28.581Z] +          node-version: ${{ env.NODE_VERSION }}
+[2026-01-06T15:35:28.584Z] +          cache: 'npm'
+[2026-01-06T15:35:28.587Z] +          cache-dependency-path: |
+[2026-01-06T15:35:28.590Z] +            backend/package-lock.json
+[2026-01-06T15:35:28.593Z] +            frontend/package-lock.json
+[2026-01-06T15:35:28.597Z] +
+[2026-01-06T15:35:28.600Z] +      - name: Install and build backend
+[2026-01-06T15:35:28.602Z] +        working-directory: backend
+[2026-01-06T15:35:28.605Z] +        run: |
+[2026-01-06T15:35:28.610Z] +          npm ci
+[2026-01-06T15:35:28.614Z] +          npx prisma generate
+[2026-01-06T15:35:28.618Z] +          npm run build
+[2026-01-06T15:35:28.621Z] +
+[2026-01-06T15:35:28.624Z] +      - name: Install and build frontend
+[2026-01-06T15:35:28.629Z] +        working-directory: frontend
+[2026-01-06T15:35:28.669Z] 
+... and 50338 more lines
+[2026-01-06T15:35:28.675Z] 
+▶ Step 6: Automated Quality Checks
+[2026-01-06T15:35:28.679Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.869Z] 
+🔴 Critical Issues Found:
+[2026-01-06T15:35:28.872Z]    🔴 Hardcoded timeout value: Found 3 instance(s)
+[2026-01-06T15:35:28.876Z]    🔴 Hardcoded port number: Found 36 instance(s)
+[2026-01-06T15:35:28.880Z]    🔴 Hardcoded localhost URL: Found 37 instance(s)
+[2026-01-06T15:35:28.884Z]    🔴 Hardcoded external URL: Found 246 instance(s)
+[2026-01-06T15:35:28.891Z]    🔴 Hardcoded limit/threshold: Found 28 instance(s)
+[2026-01-06T15:35:28.897Z] 
+🟡 Warnings:
+[2026-01-06T15:35:28.901Z]    🟡 console.log usage: 366 instance(s) - Consider using proper logger
+[2026-01-06T15:35:28.904Z]    🟡 'any' type usage: 259 instance(s) - Prefer explicit types
+[2026-01-06T15:35:28.907Z]    🟡 TODO/FIXME comments: 7 instance(s)
+[2026-01-06T15:35:28.911Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-06T15:35:28.916Z] 
+▶ Step 7: Manual Review Required
+[2026-01-06T15:35:28.920Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.924Z] 
+[2026-01-06T15:35:28.929Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-06T15:35:28.934Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-06T15:35:28.937Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-06T15:35:28.939Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-06T15:35:28.942Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-06T15:35:28.946Z] 
+[2026-01-06T15:35:28.950Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-06T15:35:28.952Z] 
+[2026-01-06T15:35:28.955Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-06T15:35:28.959Z] 
+[2026-01-06T15:35:28.964Z] 
+▶ Step 8: Push Confirmation
+[2026-01-06T15:35:28.968Z] ────────────────────────────────────────
+[2026-01-06T15:35:28.974Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-06T15:35:28.977Z] 📝 Pre-push automated score: -2907
+[2026-01-06T15:35:28.981Z] 
+[2026-01-06T15:35:28.984Z] 🚫 PUSH BLOCKED - Automated checks failed
+[2026-01-06T15:35:28.986Z]    Score: -2907/100 (Minimum: 80)
+[2026-01-06T15:35:28.988Z]    Run "npm run quality-check" interactively for details
+[2026-01-06T17:37:52+02:00] Pre-push hook triggered
+[2026-01-06T17:38:13+02:00] Push BLOCKED - Exit code: 1
+[2026-01-06T15:40:18.361Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-06T15:40:18.374Z] 📋 Minimum passing score: 80/100
+[2026-01-06T15:40:18.377Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-06T15:40:18.381Z] 
+[2026-01-06T15:40:18.384Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:40:18.386Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-06T15:40:18.389Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:40:18.392Z] 
+[2026-01-06T15:40:18.426Z] 📅 Review started at: 1/6/2026, 5:40:18 PM
+[2026-01-06T15:40:18.430Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-06T15:40:18.432Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-06T15:40:18.434Z] ────────────────────────────────────────
+[2026-01-06T15:40:19.132Z] ✅ Git repository detected
+[2026-01-06T15:40:19.134Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-06T15:40:19.138Z] ────────────────────────────────────────
+[2026-01-06T15:40:19.778Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-06T15:40:19.782Z] 🎯 Comparing against: main
+[2026-01-06T15:40:20.446Z] ✅ Base branch 'main' exists
+[2026-01-06T15:40:20.449Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-06T15:40:20.453Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.633Z] 
+▶ Step 4: Change Summary
+[2026-01-06T15:40:23.637Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.642Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 4653 +++++++++++++-------
+ backend/package.json                               |   52 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 ++
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  991 +++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 +++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  142 +
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 +++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 ++
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/index.ts                        |   34 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  238 +
+ backend/src/services/core/databaseService.ts       |  285 ++
+ backend/src/services/core/googleSearchService.ts   |  428 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  203 +
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 +++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 ++
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 2541 +++++++----
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  653 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 +++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 ++-
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   59 +-
+ frontend/src/components/JobListings.tsx            |  413 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 +++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  731 +++
+ frontend/src/components/ShoppingAgent.tsx          |  624 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 +++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 ++
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  171 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  293 ++
+ frontend/src/hooks/useTodo.ts                      |  261 ++
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  228 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 +++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 ++
+ frontend/src/styles/layout.module.css              |  356 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 +++
+ frontend/src/styles/settings.module.css            |  510 +++
+ frontend/src/styles/shopping.module.css            |  861 ++++
+ frontend/src/styles/todo.module.css                |  792 ++++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |   10 +-
+ scripts/check-quality.ts                           |  339 ++
+ 168 files changed, 39711 insertions(+), 4239 deletions(-)
+
+[2026-01-06T15:40:23.647Z] 📊 Files changed: 168
+[2026-01-06T15:40:23.649Z] ➕ Lines added: 39711
+[2026-01-06T15:40:23.650Z] ➖ Lines removed: 4239
+[2026-01-06T15:40:23.654Z] 
+▶ Step 5: Diff Preview (first 50 lines)
+[2026-01-06T15:40:23.657Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.679Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:40:23.680Z] new file mode 100644
+[2026-01-06T15:40:23.682Z] index 0000000..35b5d90
+[2026-01-06T15:40:23.683Z] --- /dev/null
+[2026-01-06T15:40:23.686Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:40:23.689Z] @@ -0,0 +1,106 @@
+[2026-01-06T15:40:23.692Z] +---
+[2026-01-06T15:40:23.695Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-06T15:40:23.697Z] +globs: **/*
+[2026-01-06T15:40:23.699Z] +alwaysApply: false
+[2026-01-06T15:40:23.701Z] +---
+[2026-01-06T15:40:23.704Z] +
+[2026-01-06T15:40:23.706Z] +# Principal Architect Code Review Rule
+[2026-01-06T15:40:23.708Z] +
+[2026-01-06T15:40:23.709Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-06T15:40:23.711Z] +
+[2026-01-06T15:40:23.712Z] +## Your Persona
+[2026-01-06T15:40:23.712Z] +
+[2026-01-06T15:40:23.713Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-06T15:40:23.715Z] +- You find issues that junior reviewers miss.
+[2026-01-06T15:40:23.716Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-06T15:40:23.719Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-06T15:40:23.722Z] +
+[2026-01-06T15:40:23.725Z] +## Review Criteria & Weights
+[2026-01-06T15:40:23.728Z] +
+[2026-01-06T15:40:23.729Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-06T15:40:23.732Z] +| :--- | :---: | :--- |
+[2026-01-06T15:40:23.734Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-06T15:40:23.737Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-06T15:40:23.741Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-06T15:40:23.744Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-06T15:40:23.745Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-06T15:40:23.747Z] +
+[2026-01-06T15:40:23.748Z] +## Scoring System (0-100)
+[2026-01-06T15:40:23.749Z] +
+[2026-01-06T15:40:23.751Z] +| Score Range | Verdict | Action |
+[2026-01-06T15:40:23.754Z] +| :---: | :--- | :--- |
+[2026-01-06T15:40:23.757Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-06T15:40:23.759Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-06T15:40:23.760Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-06T15:40:23.761Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-06T15:40:23.762Z] +
+[2026-01-06T15:40:23.763Z] +## MANDATORY Output Format
+[2026-01-06T15:40:23.764Z] +
+[2026-01-06T15:40:23.765Z] +You MUST output the review in this EXACT format:
+[2026-01-06T15:40:23.768Z] +
+[2026-01-06T15:40:23.771Z] +---
+[2026-01-06T15:40:23.773Z] +
+[2026-01-06T15:40:23.777Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-06T15:40:23.779Z] +
+[2026-01-06T15:40:23.820Z] 
+... and 50847 more lines
+[2026-01-06T15:40:23.826Z] 
+▶ Step 6: Automated Quality Checks
+[2026-01-06T15:40:23.827Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.923Z] 
+🔴 Critical Issues Found:
+[2026-01-06T15:40:23.925Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:40:23.926Z] 
+🟡 Warnings:
+[2026-01-06T15:40:23.928Z]    🟡 console.log usage: 370 instance(s) - Consider using proper logger
+[2026-01-06T15:40:23.943Z]    🟡 'any' type usage: 260 instance(s) - Prefer explicit types
+[2026-01-06T15:40:23.948Z]    🟡 TODO/FIXME comments: 7 instance(s)
+[2026-01-06T15:40:23.952Z] 
+📊 Automated Pre-Score: 45/100
+[2026-01-06T15:40:23.956Z] 
+▶ Step 7: Manual Review Required
+[2026-01-06T15:40:23.959Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.960Z] 
+[2026-01-06T15:40:23.961Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-06T15:40:23.962Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-06T15:40:23.964Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-06T15:40:23.966Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-06T15:40:23.970Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-06T15:40:23.973Z] 
+[2026-01-06T15:40:23.976Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-06T15:40:23.978Z] 
+[2026-01-06T15:40:23.980Z] 
+▶ Step 8: Push Decision
+[2026-01-06T15:40:23.984Z] ────────────────────────────────────────
+[2026-01-06T15:40:23.989Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-06T15:40:23.991Z] 📊 Automated Pre-Score: 45/100
+[2026-01-06T15:40:23.992Z] 
+[2026-01-06T15:40:23.995Z] ⚠️ ISSUES DETECTED - Please review in Cursor before merging!
+[2026-01-06T15:40:23.999Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:40:24.004Z] 
+[2026-01-06T15:40:24.007Z] ✅ Push proceeding (non-interactive mode)
+[2026-01-06T15:40:24.011Z] 📝 IMPORTANT: Complete manual review in Cursor before merging to main!
+[2026-01-06T15:40:24.013Z] PUSHED - Branch: feature/cloud-database-upgrade, Auto-Score: 45/100, Files: 168, Issues: 1, Warnings: 3
+[2026-01-06T17:41:25+02:00] Pre-push hook triggered
+[2026-01-06T15:41:34.846Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-06T15:41:34.859Z] 📋 Minimum passing score: 80/100
+[2026-01-06T15:41:34.860Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-06T15:41:34.862Z] 
+[2026-01-06T15:41:34.864Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:41:34.868Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-06T15:41:34.871Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:41:34.874Z] 
+[2026-01-06T15:41:34.922Z] 📅 Review started at: 1/6/2026, 5:41:34 PM
+[2026-01-06T15:41:34.924Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-06T15:41:34.925Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-06T15:41:34.927Z] ────────────────────────────────────────
+[2026-01-06T15:41:35.385Z] ✅ Git repository detected
+[2026-01-06T15:41:35.388Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-06T15:41:35.389Z] ────────────────────────────────────────
+[2026-01-06T15:41:35.701Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-06T15:41:35.702Z] 🎯 Comparing against: main
+[2026-01-06T15:41:35.972Z] ✅ Base branch 'main' exists
+[2026-01-06T15:41:35.973Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-06T15:41:35.973Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.348Z] 
+▶ Step 4: Change Summary
+[2026-01-06T15:41:37.350Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.351Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 4653 +++++++++++++-------
+ backend/package.json                               |   52 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 ++
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  991 +++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 +++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  142 +
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 +++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 ++
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/index.ts                        |   34 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  238 +
+ backend/src/services/core/databaseService.ts       |  285 ++
+ backend/src/services/core/googleSearchService.ts   |  428 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  203 +
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 +++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 ++
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 2541 +++++++----
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  653 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 +++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 ++-
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   59 +-
+ frontend/src/components/JobListings.tsx            |  413 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 +++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  731 +++
+ frontend/src/components/ShoppingAgent.tsx          |  624 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 +++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 ++
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  171 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  293 ++
+ frontend/src/hooks/useTodo.ts                      |  261 ++
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  228 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 +++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 ++
+ frontend/src/styles/layout.module.css              |  356 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 +++
+ frontend/src/styles/settings.module.css            |  510 +++
+ frontend/src/styles/shopping.module.css            |  861 ++++
+ frontend/src/styles/todo.module.css                |  792 ++++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |   10 +-
+ scripts/check-quality.js                           |  325 ++
+ scripts/check-quality.ts                           |  339 ++
+ 169 files changed, 40036 insertions(+), 4239 deletions(-)
+
+[2026-01-06T15:41:37.353Z] 📊 Files changed: 169
+[2026-01-06T15:41:37.353Z] ➕ Lines added: 40036
+[2026-01-06T15:41:37.354Z] ➖ Lines removed: 4239
+[2026-01-06T15:41:37.355Z] 
+▶ Step 5: Diff Preview (first 50 lines)
+[2026-01-06T15:41:37.355Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.364Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:41:37.366Z] new file mode 100644
+[2026-01-06T15:41:37.368Z] index 0000000..35b5d90
+[2026-01-06T15:41:37.369Z] --- /dev/null
+[2026-01-06T15:41:37.370Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:41:37.371Z] @@ -0,0 +1,106 @@
+[2026-01-06T15:41:37.372Z] +---
+[2026-01-06T15:41:37.373Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-06T15:41:37.374Z] +globs: **/*
+[2026-01-06T15:41:37.375Z] +alwaysApply: false
+[2026-01-06T15:41:37.376Z] +---
+[2026-01-06T15:41:37.377Z] +
+[2026-01-06T15:41:37.377Z] +# Principal Architect Code Review Rule
+[2026-01-06T15:41:37.378Z] +
+[2026-01-06T15:41:37.379Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-06T15:41:37.380Z] +
+[2026-01-06T15:41:37.381Z] +## Your Persona
+[2026-01-06T15:41:37.383Z] +
+[2026-01-06T15:41:37.384Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-06T15:41:37.385Z] +- You find issues that junior reviewers miss.
+[2026-01-06T15:41:37.386Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-06T15:41:37.387Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-06T15:41:37.388Z] +
+[2026-01-06T15:41:37.388Z] +## Review Criteria & Weights
+[2026-01-06T15:41:37.389Z] +
+[2026-01-06T15:41:37.390Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-06T15:41:37.390Z] +| :--- | :---: | :--- |
+[2026-01-06T15:41:37.391Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-06T15:41:37.392Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-06T15:41:37.392Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-06T15:41:37.393Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-06T15:41:37.394Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-06T15:41:37.395Z] +
+[2026-01-06T15:41:37.396Z] +## Scoring System (0-100)
+[2026-01-06T15:41:37.397Z] +
+[2026-01-06T15:41:37.397Z] +| Score Range | Verdict | Action |
+[2026-01-06T15:41:37.398Z] +| :---: | :--- | :--- |
+[2026-01-06T15:41:37.400Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-06T15:41:37.401Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-06T15:41:37.403Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-06T15:41:37.403Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-06T15:41:37.404Z] +
+[2026-01-06T15:41:37.405Z] +## MANDATORY Output Format
+[2026-01-06T15:41:37.405Z] +
+[2026-01-06T15:41:37.406Z] +You MUST output the review in this EXACT format:
+[2026-01-06T15:41:37.407Z] +
+[2026-01-06T15:41:37.407Z] +---
+[2026-01-06T15:41:37.408Z] +
+[2026-01-06T15:41:37.409Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-06T15:41:37.410Z] +
+[2026-01-06T15:41:37.423Z] 
+... and 51178 more lines
+[2026-01-06T15:41:37.424Z] 
+▶ Step 6: Automated Quality Checks
+[2026-01-06T15:41:37.425Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.456Z] 
+🔴 Critical Issues Found:
+[2026-01-06T15:41:37.457Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:41:37.458Z] 
+🟡 Warnings:
+[2026-01-06T15:41:37.459Z]    🟡 console.log usage: 373 instance(s) - Consider using proper logger
+[2026-01-06T15:41:37.459Z]    🟡 'any' type usage: 260 instance(s) - Prefer explicit types
+[2026-01-06T15:41:37.460Z]    🟡 TODO/FIXME comments: 7 instance(s)
+[2026-01-06T15:41:37.461Z] 
+📊 Automated Pre-Score: 45/100
+[2026-01-06T15:41:37.462Z] 
+▶ Step 7: Manual Review Required
+[2026-01-06T15:41:37.462Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.463Z] 
+[2026-01-06T15:41:37.464Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-06T15:41:37.465Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-06T15:41:37.466Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-06T15:41:37.467Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-06T15:41:37.468Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-06T15:41:37.469Z] 
+[2026-01-06T15:41:37.469Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-06T15:41:37.470Z] 
+[2026-01-06T15:41:37.470Z] 
+▶ Step 8: Push Decision
+[2026-01-06T15:41:37.471Z] ────────────────────────────────────────
+[2026-01-06T15:41:37.472Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-06T15:41:37.473Z] 📊 Automated Pre-Score: 45/100
+[2026-01-06T15:41:37.474Z] 
+[2026-01-06T15:41:37.474Z] ⚠️ ISSUES DETECTED - Please review in Cursor before merging!
+[2026-01-06T15:41:37.475Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:41:37.476Z] 
+[2026-01-06T15:41:37.476Z] ✅ Push proceeding (non-interactive mode)
+[2026-01-06T15:41:37.477Z] 📝 IMPORTANT: Complete manual review in Cursor before merging to main!
+[2026-01-06T15:41:37.478Z] PUSHED - Branch: feature/cloud-database-upgrade, Auto-Score: 45/100, Files: 169, Issues: 1, Warnings: 3
+[2026-01-06T17:41:37+02:00] Push APPROVED
+[2026-01-06T17:44:56+02:00] Pre-push hook triggered
+[2026-01-06T15:45:15.925Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-06T15:45:15.941Z] 📋 Minimum passing score: 80/100
+[2026-01-06T15:45:15.942Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-06T15:45:15.943Z] 
+[2026-01-06T15:45:15.945Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:45:15.946Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-06T15:45:15.949Z] ════════════════════════════════════════════════════════════
+[2026-01-06T15:45:15.950Z] 
+[2026-01-06T15:45:15.992Z] 📅 Review started at: 1/6/2026, 5:45:15 PM
+[2026-01-06T15:45:15.993Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-06T15:45:15.994Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-06T15:45:15.995Z] ────────────────────────────────────────
+[2026-01-06T15:45:16.475Z] ✅ Git repository detected
+[2026-01-06T15:45:16.476Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-06T15:45:16.477Z] ────────────────────────────────────────
+[2026-01-06T15:45:16.890Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-06T15:45:16.891Z] 🎯 Comparing against: main
+[2026-01-06T15:45:17.471Z] ✅ Base branch 'main' exists
+[2026-01-06T15:45:17.472Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-06T15:45:17.473Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.380Z] 
+▶ Step 4: Change Summary
+[2026-01-06T15:45:19.382Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.384Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 5685 +++++++++-----------
+ backend/package.json                               |   53 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 +
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  995 ++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 ++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  158 +
+ backend/src/controllers/configController.ts        |  186 +-
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 ++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 +
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/config.ts                       |  158 +
+ backend/src/routes/index.ts                        |   35 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/scripts/getGmailTokens.ts              |  129 +-
+ backend/src/scripts/seedConfig.ts                  |  388 ++
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  357 ++
+ backend/src/services/core/databaseService.ts       |  285 +
+ backend/src/services/core/googleSearchService.ts   |  432 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  399 ++
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 ++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 +
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 3465 ++++--------
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  670 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 ++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 +--
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   92 +-
+ frontend/src/components/JobListings.tsx            |  441 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 ++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  816 +++
+ frontend/src/components/ShoppingAgent.tsx          |  636 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 ++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 +
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  195 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  316 ++
+ frontend/src/hooks/useTodo.ts                      |  261 +
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  229 +
+ frontend/src/services/configApi.ts                 |  125 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 ++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 +
+ frontend/src/styles/layout.module.css              |  363 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 ++
+ frontend/src/styles/settings.module.css            |  510 ++
+ frontend/src/styles/shopping.module.css            |  861 +++
+ frontend/src/styles/todo.module.css                |  792 +++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |   10 +-
+ review-log.txt                                     |  935 ++++
+ scripts/check-quality.js                           |  325 ++
+ scripts/check-quality.ts                           |  339 ++
+ 175 files changed, 41579 insertions(+), 7144 deletions(-)
+
+[2026-01-06T15:45:19.385Z] 📊 Files changed: 175
+[2026-01-06T15:45:19.387Z] ➕ Lines added: 41579
+[2026-01-06T15:45:19.388Z] ➖ Lines removed: 7144
+[2026-01-06T15:45:19.389Z] 
+▶ Step 5: Diff Preview (first 50 lines)
+[2026-01-06T15:45:19.390Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.401Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:45:19.403Z] new file mode 100644
+[2026-01-06T15:45:19.404Z] index 0000000..35b5d90
+[2026-01-06T15:45:19.405Z] --- /dev/null
+[2026-01-06T15:45:19.406Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-06T15:45:19.406Z] @@ -0,0 +1,106 @@
+[2026-01-06T15:45:19.407Z] +---
+[2026-01-06T15:45:19.408Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-06T15:45:19.410Z] +globs: **/*
+[2026-01-06T15:45:19.412Z] +alwaysApply: false
+[2026-01-06T15:45:19.414Z] +---
+[2026-01-06T15:45:19.416Z] +
+[2026-01-06T15:45:19.417Z] +# Principal Architect Code Review Rule
+[2026-01-06T15:45:19.418Z] +
+[2026-01-06T15:45:19.420Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-06T15:45:19.421Z] +
+[2026-01-06T15:45:19.422Z] +## Your Persona
+[2026-01-06T15:45:19.423Z] +
+[2026-01-06T15:45:19.424Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-06T15:45:19.424Z] +- You find issues that junior reviewers miss.
+[2026-01-06T15:45:19.425Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-06T15:45:19.426Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-06T15:45:19.427Z] +
+[2026-01-06T15:45:19.428Z] +## Review Criteria & Weights
+[2026-01-06T15:45:19.429Z] +
+[2026-01-06T15:45:19.430Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-06T15:45:19.431Z] +| :--- | :---: | :--- |
+[2026-01-06T15:45:19.432Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-06T15:45:19.434Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-06T15:45:19.435Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-06T15:45:19.436Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-06T15:45:19.437Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-06T15:45:19.438Z] +
+[2026-01-06T15:45:19.438Z] +## Scoring System (0-100)
+[2026-01-06T15:45:19.439Z] +
+[2026-01-06T15:45:19.440Z] +| Score Range | Verdict | Action |
+[2026-01-06T15:45:19.440Z] +| :---: | :--- | :--- |
+[2026-01-06T15:45:19.441Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-06T15:45:19.442Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-06T15:45:19.443Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-06T15:45:19.445Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-06T15:45:19.446Z] +
+[2026-01-06T15:45:19.447Z] +## MANDATORY Output Format
+[2026-01-06T15:45:19.449Z] +
+[2026-01-06T15:45:19.450Z] +You MUST output the review in this EXACT format:
+[2026-01-06T15:45:19.451Z] +
+[2026-01-06T15:45:19.452Z] +---
+[2026-01-06T15:45:19.453Z] +
+[2026-01-06T15:45:19.454Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-06T15:45:19.454Z] +
+[2026-01-06T15:45:19.471Z] 
+... and 53827 more lines
+[2026-01-06T15:45:19.473Z] 
+▶ Step 6: Automated Quality Checks
+[2026-01-06T15:45:19.473Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.515Z] 
+🔴 Critical Issues Found:
+[2026-01-06T15:45:19.517Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:45:19.519Z] 
+🟡 Warnings:
+[2026-01-06T15:45:19.521Z]    🟡 console.log usage: 441 instance(s) - Consider using proper logger
+[2026-01-06T15:45:19.522Z]    🟡 'any' type usage: 270 instance(s) - Prefer explicit types
+[2026-01-06T15:45:19.523Z]    🟡 TODO/FIXME comments: 9 instance(s)
+[2026-01-06T15:45:19.523Z] 
+📊 Automated Pre-Score: 45/100
+[2026-01-06T15:45:19.524Z] 
+▶ Step 7: Manual Review Required
+[2026-01-06T15:45:19.525Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.528Z] 
+[2026-01-06T15:45:19.529Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-06T15:45:19.530Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-06T15:45:19.532Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-06T15:45:19.534Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-06T15:45:19.535Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-06T15:45:19.537Z] 
+[2026-01-06T15:45:19.538Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-06T15:45:19.539Z] 
+[2026-01-06T15:45:19.540Z] 
+▶ Step 8: Push Decision
+[2026-01-06T15:45:19.541Z] ────────────────────────────────────────
+[2026-01-06T15:45:19.543Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-06T15:45:19.545Z] 📊 Automated Pre-Score: 45/100
+[2026-01-06T15:45:19.546Z] 
+[2026-01-06T15:45:19.547Z] ⚠️ ISSUES DETECTED - Please review in Cursor before merging!
+[2026-01-06T15:45:19.548Z]    🔴 Hardcoded localhost URLs: 37 instance(s) - Use config
+[2026-01-06T15:45:19.549Z] 
+[2026-01-06T15:45:19.550Z] ✅ Push proceeding (non-interactive mode)
+[2026-01-06T15:45:19.551Z] 📝 IMPORTANT: Complete manual review in Cursor before merging to main!
+[2026-01-06T15:45:19.552Z] PUSHED - Branch: feature/cloud-database-upgrade, Auto-Score: 45/100, Files: 175, Issues: 1, Warnings: 3
+[2026-01-06T17:45:19+02:00] Push APPROVED
+[2026-01-07T21:41:12.165Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-07T21:41:12.187Z] 📋 Minimum passing score: 80/100
+[2026-01-07T21:41:12.189Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-07T21:41:12.192Z] 
+[2026-01-07T21:41:12.194Z] ════════════════════════════════════════════════════════════
+[2026-01-07T21:41:12.196Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-07T21:41:12.200Z] ════════════════════════════════════════════════════════════
+[2026-01-07T21:41:12.204Z] 
+[2026-01-07T21:41:12.267Z] 📅 Review started at: 1/7/2026, 11:41:12 PM
+[2026-01-07T21:41:12.270Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-07T21:41:12.272Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-07T21:41:12.273Z] ────────────────────────────────────────
+[2026-01-07T21:41:13.099Z] ✅ Git repository detected
+[2026-01-07T21:41:13.101Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-07T21:41:13.103Z] ────────────────────────────────────────
+[2026-01-07T21:41:13.808Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-07T21:41:13.809Z] 🎯 Comparing against: main
+[2026-01-07T21:41:14.328Z] ✅ Base branch 'main' exists
+[2026-01-07T21:41:14.330Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-07T21:41:14.331Z] ────────────────────────────────────────
+[2026-01-07T21:41:16.618Z] 
+▶ Step 4: Change Summary
+[2026-01-07T21:41:16.619Z] ────────────────────────────────────────
+[2026-01-07T21:41:16.620Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 5685 +++++++++-----------
+ backend/package.json                               |   53 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 +
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  995 ++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 ++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  158 +
+ backend/src/controllers/configController.ts        |  186 +-
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 ++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 +
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/config.ts                       |  158 +
+ backend/src/routes/index.ts                        |   35 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/scripts/getGmailTokens.ts              |  129 +-
+ backend/src/scripts/seedConfig.ts                  |  388 ++
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  357 ++
+ backend/src/services/core/databaseService.ts       |  285 +
+ backend/src/services/core/googleSearchService.ts   |  432 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  399 ++
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 ++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 +
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 3465 ++++--------
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  670 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 ++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 +--
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   92 +-
+ frontend/src/components/JobListings.tsx            |  441 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 ++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  816 +++
+ frontend/src/components/ShoppingAgent.tsx          |  636 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 ++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 +
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  195 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  316 ++
+ frontend/src/hooks/useTodo.ts                      |  261 +
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  229 +
+ frontend/src/services/configApi.ts                 |  125 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 ++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 +
+ frontend/src/styles/layout.module.css              |  363 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 ++
+ frontend/src/styles/settings.module.css            |  510 ++
+ frontend/src/styles/shopping.module.css            |  861 +++
+ frontend/src/styles/todo.module.css                |  792 +++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |   10 +-
+ review-log.txt                                     |  935 ++++
+ scripts/check-quality.js                           |  325 ++
+ scripts/check-quality.ts                           |  339 ++
+ 175 files changed, 41579 insertions(+), 7144 deletions(-)
+
+[2026-01-07T21:41:16.623Z] 📊 Files changed: 175
+[2026-01-07T21:41:16.624Z] ➕ Lines added: 41579
+[2026-01-07T21:41:16.626Z] ➖ Lines removed: 7144
+[2026-01-07T21:41:16.628Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-07T21:41:16.629Z] ────────────────────────────────────────
+[2026-01-07T21:41:16.641Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-07T21:41:16.643Z] new file mode 100644
+[2026-01-07T21:41:16.645Z] index 0000000..35b5d90
+[2026-01-07T21:41:16.646Z] --- /dev/null
+[2026-01-07T21:41:16.647Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-07T21:41:16.648Z] @@ -0,0 +1,106 @@
+[2026-01-07T21:41:16.649Z] +---
+[2026-01-07T21:41:16.649Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-07T21:41:16.650Z] +globs: **/*
+[2026-01-07T21:41:16.651Z] +alwaysApply: false
+[2026-01-07T21:41:16.652Z] +---
+[2026-01-07T21:41:16.653Z] +
+[2026-01-07T21:41:16.654Z] +# Principal Architect Code Review Rule
+[2026-01-07T21:41:16.654Z] +
+[2026-01-07T21:41:16.655Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-07T21:41:16.656Z] +
+[2026-01-07T21:41:16.657Z] +## Your Persona
+[2026-01-07T21:41:16.658Z] +
+[2026-01-07T21:41:16.659Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-07T21:41:16.661Z] +- You find issues that junior reviewers miss.
+[2026-01-07T21:41:16.662Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-07T21:41:16.663Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-07T21:41:16.663Z] +
+[2026-01-07T21:41:16.664Z] +## Review Criteria & Weights
+[2026-01-07T21:41:16.665Z] +
+[2026-01-07T21:41:16.666Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-07T21:41:16.667Z] +| :--- | :---: | :--- |
+[2026-01-07T21:41:16.668Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-07T21:41:16.668Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-07T21:41:16.669Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-07T21:41:16.671Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-07T21:41:16.672Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-07T21:41:16.673Z] +
+[2026-01-07T21:41:16.674Z] +## Scoring System (0-100)
+[2026-01-07T21:41:16.675Z] +
+[2026-01-07T21:41:16.676Z] +| Score Range | Verdict | Action |
+[2026-01-07T21:41:16.678Z] +| :---: | :--- | :--- |
+[2026-01-07T21:41:16.679Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-07T21:41:16.679Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-07T21:41:16.680Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-07T21:41:16.681Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-07T21:41:16.682Z] +
+[2026-01-07T21:41:16.683Z] +## MANDATORY Output Format
+[2026-01-07T21:41:16.684Z] +
+[2026-01-07T21:41:16.684Z] +You MUST output the review in this EXACT format:
+[2026-01-07T21:41:16.685Z] +
+[2026-01-07T21:41:16.686Z] +---
+[2026-01-07T21:41:16.687Z] +
+[2026-01-07T21:41:16.688Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-07T21:41:16.689Z] +
+[2026-01-07T21:41:16.690Z] +**Branch:** `[current branch]` → `main`  
+[2026-01-07T21:41:16.691Z] +**Files Changed:** [count]  
+[2026-01-07T21:41:16.692Z] +**Review Date:** [date]
+[2026-01-07T21:41:16.693Z] +
+[2026-01-07T21:41:16.695Z] +### 📊 Score Breakdown
+[2026-01-07T21:41:16.696Z] +
+[2026-01-07T21:41:16.697Z] +| Category | Score | Max | Findings |
+[2026-01-07T21:41:16.697Z] +| :--- | :---: | :---: | :--- |
+[2026-01-07T21:41:16.698Z] +| Architectural Alignment | X | 40 | [Brief findings] |
+[2026-01-07T21:41:16.699Z] +| Config Management | X | 20 | [Brief findings] |
+[2026-01-07T21:41:16.700Z] +| Security & Auth | X | 15 | [Brief findings] |
+[2026-01-07T21:41:16.701Z] +| Error Handling | X | 15 | [Brief findings] |
+[2026-01-07T21:41:16.702Z] +| Maintainability | X | 10 | [Brief findings] |
+[2026-01-07T21:41:16.703Z] +| **TOTAL** | **X** | **100** | - |
+[2026-01-07T21:41:16.704Z] +
+[2026-01-07T21:41:16.704Z] +### 🎯 Verdict: [ELITE/PASS/CONDITIONAL/FAIL]
+[2026-01-07T21:41:16.706Z] +
+[2026-01-07T21:41:16.707Z] +### 🔴 Critical Issues (Must Fix)
+[2026-01-07T21:41:16.708Z] +[List each critical issue with file:line reference]
+[2026-01-07T21:41:16.710Z] +
+[2026-01-07T21:41:16.711Z] +### 🟡 Warnings (Should Fix)
+[2026-01-07T21:41:16.712Z] +[List each warning]
+[2026-01-07T21:41:16.713Z] +
+[2026-01-07T21:41:16.714Z] +### 🟢 Good Practices Observed
+[2026-01-07T21:41:16.715Z] +[List positive patterns you found]
+[2026-01-07T21:41:16.716Z] +
+[2026-01-07T21:41:16.716Z] +### 💀 Tough Feedback
+[2026-01-07T21:41:16.717Z] +[Write 2-3 biting, professional sentences. Be harsh but constructive. If they hardcoded values, call it out explicitly.]
+[2026-01-07T21:41:16.718Z] +
+[2026-01-07T21:41:16.719Z] +### 📋 Push Decision
+[2026-01-07T21:41:16.720Z] +```
+[2026-01-07T21:41:16.721Z] +[If score >= 80] ✅ APPROVED: Push allowed.
+[2026-01-07T21:41:16.722Z] +[If score 70-79] ⚠️ CONDITIONAL: Fix critical issues, then push.
+[2026-01-07T21:41:16.723Z] +[If score < 70]  🚫 BLOCKED: Push denied. Score: X/100. Minimum required: 80.
+[2026-01-07T21:41:16.724Z] +```
+[2026-01-07T21:41:16.725Z] +
+[2026-01-07T21:41:16.727Z] +---
+[2026-01-07T21:41:16.728Z] +
+[2026-01-07T21:41:16.729Z] +## Review Process
+[2026-01-07T21:41:16.730Z] +
+[2026-01-07T21:41:16.731Z] +When the user asks you to review their changes:
+[2026-01-07T21:41:16.732Z] +
+[2026-01-07T21:41:16.732Z] +1. Run `git diff main...HEAD` to get the changes
+[2026-01-07T21:41:16.733Z] +2. Analyze EVERY changed file against ALL criteria
+[2026-01-07T21:41:16.734Z] +3. Be especially vigilant for:
+[2026-01-07T21:41:16.735Z] +   - Hardcoded numbers (thresholds, limits, timeouts)
+[2026-01-07T21:41:16.736Z] +   - Hardcoded strings (URLs, API keys, messages that should be configurable)
+[2026-01-07T21:41:16.737Z] +   - Missing error handling
+[2026-01-07T21:41:16.738Z] +   - Console.log instead of proper logging
+[2026-01-07T21:41:16.739Z] +   - Any bypass of the config system
+[2026-01-07T21:41:16.754Z] 
+... and 53777 more lines
+[2026-01-07T21:41:16.755Z] 
+▶ Step 6: Running Tests
+[2026-01-07T21:41:16.756Z] ────────────────────────────────────────
+[2026-01-07T21:41:16.758Z] 🧪 Running test suites...
+[2026-01-07T21:41:16.759Z]    Running backend tests...
+[2026-01-07T21:41:20.607Z]    ❌ Backend tests failed
+[2026-01-07T21:41:20.608Z]    Running frontend tests...
+[2026-01-07T21:41:24.399Z]    ❌ Frontend tests failed
+[2026-01-07T21:41:24.404Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-07T21:41:24.405Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-07T21:41:24.406Z] ────────────────────────────────────────
+[2026-01-07T21:41:24.528Z] 
+🔴 Critical Issues Found:
+[2026-01-07T21:41:24.530Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-07T21:41:24.531Z]    🔴 Hardcoded timeout value: Found 3 instance(s)
+[2026-01-07T21:41:24.532Z]    🔴 Hardcoded port number: Found 45 instance(s)
+[2026-01-07T21:41:24.533Z]    🔴 Hardcoded localhost URL: Found 37 instance(s)
+[2026-01-07T21:41:24.535Z]    🔴 Hardcoded external URL: Found 202 instance(s)
+[2026-01-07T21:41:24.538Z]    🔴 Hardcoded limit/threshold: Found 31 instance(s)
+[2026-01-07T21:41:24.539Z] 
+🟡 Warnings:
+[2026-01-07T21:41:24.540Z]    🟡 console.log usage: 441 instance(s) - Consider using proper logger
+[2026-01-07T21:41:24.541Z]    🟡 'any' type usage: 270 instance(s) - Prefer explicit types
+[2026-01-07T21:41:24.542Z]    🟡 TODO/FIXME comments: 9 instance(s)
+[2026-01-07T21:41:24.542Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-07T21:41:24.543Z] 
+▶ Step 8: Manual Review Required
+[2026-01-07T21:41:24.544Z] ────────────────────────────────────────
+[2026-01-07T21:41:24.545Z] 
+[2026-01-07T21:41:24.546Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-07T21:41:24.547Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-07T21:41:24.549Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-07T21:41:24.550Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-07T21:41:24.551Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-07T21:41:24.553Z] 
+[2026-01-07T21:41:24.555Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-07T21:41:24.556Z] 
+[2026-01-07T21:41:24.557Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-07T21:41:24.558Z] 
+[2026-01-07T21:41:24.559Z] 
+▶ Step 9: Push Confirmation
+[2026-01-07T21:41:24.560Z] ────────────────────────────────────────
+[2026-01-07T21:41:24.564Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-07T21:41:24.565Z] 📝 Pre-push automated score: 0
+[2026-01-07T21:41:24.566Z] 
+[2026-01-07T21:41:24.568Z] ⚠️ AUTOMATED CHECKS FOUND ISSUES
+[2026-01-07T21:41:24.569Z]    Pre-Score: 0/100 (Target: 80)
+[2026-01-07T21:41:24.570Z]    Issues were detected but push will proceed.
+[2026-01-07T21:41:24.572Z]    IMPORTANT: Complete manual review in Cursor before merging!
+[2026-01-07T21:41:24.573Z] 
+[2026-01-07T21:41:24.575Z] WARNING - Automated score: 0/100, pushed anyway (non-interactive)
+[2026-01-07T21:44:48.898Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-07T21:44:48.907Z] 📋 Minimum passing score: 80/100
+[2026-01-07T21:44:48.908Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-07T21:44:48.909Z] 
+[2026-01-07T21:44:48.910Z] ════════════════════════════════════════════════════════════
+[2026-01-07T21:44:48.910Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-07T21:44:48.911Z] ════════════════════════════════════════════════════════════
+[2026-01-07T21:44:48.913Z] 
+[2026-01-07T21:44:48.945Z] 📅 Review started at: 1/7/2026, 11:44:48 PM
+[2026-01-07T21:44:48.947Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-07T21:44:48.949Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-07T21:44:48.951Z] ────────────────────────────────────────
+[2026-01-07T21:44:49.418Z] ✅ Git repository detected
+[2026-01-07T21:44:49.419Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-07T21:44:49.420Z] ────────────────────────────────────────
+[2026-01-07T21:44:49.906Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-07T21:44:49.907Z] 🎯 Comparing against: main
+[2026-01-07T21:44:50.369Z] ✅ Base branch 'main' exists
+[2026-01-07T21:44:50.370Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-07T21:44:50.370Z] ────────────────────────────────────────
+[2026-01-07T21:44:53.369Z] 
+▶ Step 4: Change Summary
+[2026-01-07T21:44:53.371Z] ────────────────────────────────────────
+[2026-01-07T21:44:53.373Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 ++
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  198 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 5685 +++++++++-----------
+ backend/package.json                               |   53 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 +++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 +
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 ++
+ backend/src/agents/ShoppingAgent.ts                |  995 ++++
+ backend/src/agents/ToDoAgent.ts                    |  925 ++++
+ backend/src/agents/TravelAgent.ts                  |  510 ++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  708 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  158 +
+ backend/src/controllers/configController.ts        |  186 +-
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 +++
+ backend/src/controllers/shoppingController.ts      |  331 ++
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 ++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  102 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 +
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/config.ts                       |  158 +
+ backend/src/routes/index.ts                        |   35 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/scripts/getGmailTokens.ts              |  129 +-
+ backend/src/scripts/seedConfig.ts                  |  388 ++
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 ++
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  357 ++
+ backend/src/services/core/databaseService.ts       |  285 +
+ backend/src/services/core/googleSearchService.ts   |  432 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  399 ++
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 ++
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 ++
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 ++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 +
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 3465 ++++--------
+ frontend/package.json                              |    5 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  670 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 ++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 ++++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 --
+ frontend/src/components/GmailAgent.tsx             |  602 +--
+ frontend/src/components/HomePage.tsx               |  474 ++
+ frontend/src/components/InvoiceList.tsx            |   92 +-
+ frontend/src/components/JobListings.tsx            |  441 +-
+ frontend/src/components/JobSearchPanel.tsx         |   74 +-
+ frontend/src/components/LearningAgent.tsx          |  366 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1506 ++++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  816 +++
+ frontend/src/components/ShoppingAgent.tsx          |  636 +++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 ++
+ frontend/src/components/ToDoAgent.tsx              |  612 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  163 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  116 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 +
+ frontend/src/hooks/useAuth.ts                      |  103 +
+ frontend/src/hooks/useAutocomplete.ts              |  134 +
+ frontend/src/hooks/useGmail.ts                     |  195 +
+ frontend/src/hooks/useLearning.ts                  |  350 ++
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  328 ++
+ frontend/src/hooks/useSearchController.ts          |  158 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  316 ++
+ frontend/src/hooks/useTodo.ts                      |  261 +
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  213 +
+ frontend/src/services/authApi.ts                   |  229 +
+ frontend/src/services/configApi.ts                 |  125 +
+ frontend/src/services/shoppingApi.ts               |  148 +
+ frontend/src/services/todoApi.ts                   |  154 +
+ frontend/src/services/travelApi.ts                 |   75 +
+ frontend/src/styles/admin.module.css               |  537 ++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 +
+ frontend/src/styles/layout.module.css              |  363 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 ++
+ frontend/src/styles/settings.module.css            |  510 ++
+ frontend/src/styles/shopping.module.css            |  861 +++
+ frontend/src/styles/todo.module.css                |  792 +++
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ package.json                                       |   10 +-
+ review-log.txt                                     |  935 ++++
+ scripts/check-quality.js                           |  325 ++
+ scripts/check-quality.ts                           |  339 ++
+ 175 files changed, 41579 insertions(+), 7144 deletions(-)
+
+[2026-01-07T21:44:53.376Z] 📊 Files changed: 175
+[2026-01-07T21:44:53.379Z] ➕ Lines added: 41579
+[2026-01-07T21:44:53.382Z] ➖ Lines removed: 7144
+[2026-01-07T21:44:53.384Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-07T21:44:53.385Z] ────────────────────────────────────────
+[2026-01-07T21:44:53.401Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-07T21:44:53.403Z] new file mode 100644
+[2026-01-07T21:44:53.405Z] index 0000000..35b5d90
+[2026-01-07T21:44:53.406Z] --- /dev/null
+[2026-01-07T21:44:53.411Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-07T21:44:53.415Z] @@ -0,0 +1,106 @@
+[2026-01-07T21:44:53.417Z] +---
+[2026-01-07T21:44:53.418Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-07T21:44:53.419Z] +globs: **/*
+[2026-01-07T21:44:53.421Z] +alwaysApply: false
+[2026-01-07T21:44:53.423Z] +---
+[2026-01-07T21:44:53.424Z] +
+[2026-01-07T21:44:53.426Z] +# Principal Architect Code Review Rule
+[2026-01-07T21:44:53.429Z] +
+[2026-01-07T21:44:53.430Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-07T21:44:53.432Z] +
+[2026-01-07T21:44:53.433Z] +## Your Persona
+[2026-01-07T21:44:53.435Z] +
+[2026-01-07T21:44:53.436Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-07T21:44:53.437Z] +- You find issues that junior reviewers miss.
+[2026-01-07T21:44:53.438Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-07T21:44:53.439Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-07T21:44:53.440Z] +
+[2026-01-07T21:44:53.441Z] +## Review Criteria & Weights
+[2026-01-07T21:44:53.442Z] +
+[2026-01-07T21:44:53.444Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-07T21:44:53.446Z] +| :--- | :---: | :--- |
+[2026-01-07T21:44:53.448Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-07T21:44:53.449Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-07T21:44:53.450Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-07T21:44:53.452Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-07T21:44:53.453Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-07T21:44:53.454Z] +
+[2026-01-07T21:44:53.455Z] +## Scoring System (0-100)
+[2026-01-07T21:44:53.456Z] +
+[2026-01-07T21:44:53.458Z] +| Score Range | Verdict | Action |
+[2026-01-07T21:44:53.459Z] +| :---: | :--- | :--- |
+[2026-01-07T21:44:53.461Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-07T21:44:53.463Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-07T21:44:53.464Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-07T21:44:53.466Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-07T21:44:53.467Z] +
+[2026-01-07T21:44:53.468Z] +## MANDATORY Output Format
+[2026-01-07T21:44:53.469Z] +
+[2026-01-07T21:44:53.470Z] +You MUST output the review in this EXACT format:
+[2026-01-07T21:44:53.472Z] +
+[2026-01-07T21:44:53.473Z] +---
+[2026-01-07T21:44:53.474Z] +
+[2026-01-07T21:44:53.476Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-07T21:44:53.479Z] +
+[2026-01-07T21:44:53.481Z] +**Branch:** `[current branch]` → `main`  
+[2026-01-07T21:44:53.483Z] +**Files Changed:** [count]  
+[2026-01-07T21:44:53.484Z] +**Review Date:** [date]
+[2026-01-07T21:44:53.485Z] +
+[2026-01-07T21:44:53.486Z] +### 📊 Score Breakdown
+[2026-01-07T21:44:53.488Z] +
+[2026-01-07T21:44:53.489Z] +| Category | Score | Max | Findings |
+[2026-01-07T21:44:53.491Z] +| :--- | :---: | :---: | :--- |
+[2026-01-07T21:44:53.493Z] +| Architectural Alignment | X | 40 | [Brief findings] |
+[2026-01-07T21:44:53.494Z] +| Config Management | X | 20 | [Brief findings] |
+[2026-01-07T21:44:53.496Z] +| Security & Auth | X | 15 | [Brief findings] |
+[2026-01-07T21:44:53.498Z] +| Error Handling | X | 15 | [Brief findings] |
+[2026-01-07T21:44:53.500Z] +| Maintainability | X | 10 | [Brief findings] |
+[2026-01-07T21:44:53.501Z] +| **TOTAL** | **X** | **100** | - |
+[2026-01-07T21:44:53.502Z] +
+[2026-01-07T21:44:53.503Z] +### 🎯 Verdict: [ELITE/PASS/CONDITIONAL/FAIL]
+[2026-01-07T21:44:53.504Z] +
+[2026-01-07T21:44:53.505Z] +### 🔴 Critical Issues (Must Fix)
+[2026-01-07T21:44:53.506Z] +[List each critical issue with file:line reference]
+[2026-01-07T21:44:53.507Z] +
+[2026-01-07T21:44:53.509Z] +### 🟡 Warnings (Should Fix)
+[2026-01-07T21:44:53.510Z] +[List each warning]
+[2026-01-07T21:44:53.512Z] +
+[2026-01-07T21:44:53.514Z] +### 🟢 Good Practices Observed
+[2026-01-07T21:44:53.515Z] +[List positive patterns you found]
+[2026-01-07T21:44:53.516Z] +
+[2026-01-07T21:44:53.517Z] +### 💀 Tough Feedback
+[2026-01-07T21:44:53.518Z] +[Write 2-3 biting, professional sentences. Be harsh but constructive. If they hardcoded values, call it out explicitly.]
+[2026-01-07T21:44:53.519Z] +
+[2026-01-07T21:44:53.520Z] +### 📋 Push Decision
+[2026-01-07T21:44:53.521Z] +```
+[2026-01-07T21:44:53.522Z] +[If score >= 80] ✅ APPROVED: Push allowed.
+[2026-01-07T21:44:53.523Z] +[If score 70-79] ⚠️ CONDITIONAL: Fix critical issues, then push.
+[2026-01-07T21:44:53.525Z] +[If score < 70]  🚫 BLOCKED: Push denied. Score: X/100. Minimum required: 80.
+[2026-01-07T21:44:53.526Z] +```
+[2026-01-07T21:44:53.529Z] +
+[2026-01-07T21:44:53.532Z] +---
+[2026-01-07T21:44:53.534Z] +
+[2026-01-07T21:44:53.536Z] +## Review Process
+[2026-01-07T21:44:53.538Z] +
+[2026-01-07T21:44:53.539Z] +When the user asks you to review their changes:
+[2026-01-07T21:44:53.540Z] +
+[2026-01-07T21:44:53.542Z] +1. Run `git diff main...HEAD` to get the changes
+[2026-01-07T21:44:53.543Z] +2. Analyze EVERY changed file against ALL criteria
+[2026-01-07T21:44:53.546Z] +3. Be especially vigilant for:
+[2026-01-07T21:44:53.548Z] +   - Hardcoded numbers (thresholds, limits, timeouts)
+[2026-01-07T21:44:53.549Z] +   - Hardcoded strings (URLs, API keys, messages that should be configurable)
+[2026-01-07T21:44:53.550Z] +   - Missing error handling
+[2026-01-07T21:44:53.552Z] +   - Console.log instead of proper logging
+[2026-01-07T21:44:53.554Z] +   - Any bypass of the config system
+[2026-01-07T21:44:53.585Z] 
+... and 53777 more lines
+[2026-01-07T21:44:53.587Z] 
+▶ Step 6: Running Tests
+[2026-01-07T21:44:53.588Z] ────────────────────────────────────────
+[2026-01-07T21:44:53.589Z] 🧪 Running test suites...
+[2026-01-07T21:44:53.590Z]    Running backend tests...
+[2026-01-07T21:44:57.486Z]    ❌ Backend tests failed
+[2026-01-07T21:44:57.487Z]    Running frontend tests...
+[2026-01-07T21:45:01.189Z]    ❌ Frontend tests failed
+[2026-01-07T21:45:01.192Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-07T21:45:01.193Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-07T21:45:01.193Z] ────────────────────────────────────────
+[2026-01-07T21:45:01.315Z] 
+🔴 Critical Issues Found:
+[2026-01-07T21:45:01.317Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-07T21:45:01.318Z]    🔴 Hardcoded timeout value: Found 3 instance(s)
+[2026-01-07T21:45:01.320Z]    🔴 Hardcoded port number: Found 45 instance(s)
+[2026-01-07T21:45:01.322Z]    🔴 Hardcoded localhost URL: Found 37 instance(s)
+[2026-01-07T21:45:01.323Z]    🔴 Hardcoded external URL: Found 202 instance(s)
+[2026-01-07T21:45:01.324Z]    🔴 Hardcoded limit/threshold: Found 31 instance(s)
+[2026-01-07T21:45:01.325Z] 
+🟡 Warnings:
+[2026-01-07T21:45:01.326Z]    🟡 console.log usage: 441 instance(s) - Consider using proper logger
+[2026-01-07T21:45:01.327Z]    🟡 'any' type usage: 270 instance(s) - Prefer explicit types
+[2026-01-07T21:45:01.328Z]    🟡 TODO/FIXME comments: 9 instance(s)
+[2026-01-07T21:45:01.329Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-07T21:45:01.330Z] 
+▶ Step 8: Manual Review Required
+[2026-01-07T21:45:01.331Z] ────────────────────────────────────────
+[2026-01-07T21:45:01.332Z] 
+[2026-01-07T21:45:01.333Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-07T21:45:01.334Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-07T21:45:01.335Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-07T21:45:01.336Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-07T21:45:01.338Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-07T21:45:01.339Z] 
+[2026-01-07T21:45:01.340Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-07T21:45:01.341Z] 
+[2026-01-07T21:45:01.342Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-07T21:45:01.343Z] 
+[2026-01-07T21:45:01.344Z] 
+▶ Step 9: Push Confirmation
+[2026-01-07T21:45:01.345Z] ────────────────────────────────────────
+[2026-01-07T21:45:01.348Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-07T21:45:01.349Z] 📝 Pre-push automated score: 0
+[2026-01-07T21:45:01.350Z] 
+[2026-01-07T21:45:01.351Z] ⚠️ AUTOMATED CHECKS FOUND ISSUES
+[2026-01-07T21:45:01.352Z]    Pre-Score: 0/100 (Target: 80)
+[2026-01-07T21:45:01.353Z]    Issues were detected but push will proceed.
+[2026-01-07T21:45:01.354Z]    IMPORTANT: Complete manual review in Cursor before merging!
+[2026-01-07T21:45:01.355Z] 
+[2026-01-07T21:45:01.356Z] WARNING - Automated score: 0/100, pushed anyway (non-interactive)
+[2026-01-08T03:42:27+02:00] Pre-push hook triggered
+[2026-01-08T01:42:38.852Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-08T01:42:38.863Z] 📋 Minimum passing score: 80/100
+[2026-01-08T01:42:38.865Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-08T01:42:38.866Z] 
+[2026-01-08T01:42:38.867Z] ════════════════════════════════════════════════════════════
+[2026-01-08T01:42:38.868Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-08T01:42:38.869Z] ════════════════════════════════════════════════════════════
+[2026-01-08T01:42:38.870Z] 
+[2026-01-08T01:42:38.905Z] 📅 Review started at: 1/8/2026, 3:42:38 AM
+[2026-01-08T01:42:38.909Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-08T01:42:38.911Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-08T01:42:38.912Z] ────────────────────────────────────────
+[2026-01-08T01:42:39.296Z] ✅ Git repository detected
+[2026-01-08T01:42:39.297Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-08T01:42:39.298Z] ────────────────────────────────────────
+[2026-01-08T01:42:39.603Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-08T01:42:39.605Z] 🎯 Comparing against: main
+[2026-01-08T01:42:39.886Z] ✅ Base branch 'main' exists
+[2026-01-08T01:42:39.887Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-08T01:42:39.889Z] ────────────────────────────────────────
+[2026-01-08T01:42:41.916Z] 
+▶ Step 4: Change Summary
+[2026-01-08T01:42:41.917Z] ────────────────────────────────────────
+[2026-01-08T01:42:41.918Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 +
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  210 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 6682 +++++++++++---------
+ backend/package.json                               |   58 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 ++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 +
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 ++
+ backend/src/agents/ProblemsAgent.ts                |  335 +
+ backend/src/agents/ShoppingAgent.ts                |  995 +++
+ backend/src/agents/ToDoAgent.ts                    |  925 +++
+ backend/src/agents/TravelAgent.ts                  |  510 ++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  710 +++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  158 +
+ backend/src/controllers/configController.ts        |  232 +-
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 ++
+ backend/src/controllers/shoppingController.ts      |  331 +
+ backend/src/controllers/todoController.ts          |  375 ++
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 ++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  107 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 +
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/config.ts                       |  158 +
+ backend/src/routes/index.ts                        |   35 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/scripts/getGmailTokens.ts              |  129 +-
+ backend/src/scripts/seedConfig.ts                  |  388 ++
+ backend/src/services/calendar/calendarService.ts   |  429 ++
+ backend/src/services/core/cacheService.ts          |  321 +
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  357 ++
+ backend/src/services/core/databaseService.ts       |  285 +
+ backend/src/services/core/googleSearchService.ts   |  444 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  428 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  399 ++
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 +
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 +
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 ++++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 +
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ backend/tests/api/auth.test.ts                     |  189 +
+ backend/tests/services/configService.test.ts       |   76 +
+ backend/tests/services/googleAuthService.test.ts   |  135 +
+ backend/tests/utils/emailProcessor.test.ts         |  157 +
+ backend/vitest.config.ts                           |   30 +
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 4842 +++++++-------
+ frontend/package.json                              |   18 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  720 ++-
+ frontend/src/components/AISummaryModal.tsx         |  518 ++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 +++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 -
+ frontend/src/components/GmailAgent.tsx             |  602 +-
+ frontend/src/components/HomePage.tsx               |  480 ++
+ frontend/src/components/InvoiceList.tsx            |   93 +-
+ frontend/src/components/JobListings.tsx            |  442 +-
+ frontend/src/components/JobSearchPanel.tsx         |   77 +-
+ frontend/src/components/LearningAgent.tsx          |  377 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1507 +++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  816 +++
+ frontend/src/components/ShoppingAgent.tsx          |  636 ++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 ++
+ frontend/src/components/ToDoAgent.tsx              |  797 +++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  183 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  133 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/config.ts                             |   46 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 +
+ frontend/src/hooks/useAuth.test.ts                 |  256 +
+ frontend/src/hooks/useAuth.ts                      |  113 +
+ frontend/src/hooks/useAutocomplete.ts              |  135 +
+ frontend/src/hooks/useGmail.ts                     |  196 +
+ frontend/src/hooks/useLearning.ts                  |  351 +
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  329 +
+ frontend/src/hooks/useSearchController.ts          |  159 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  316 +
+ frontend/src/hooks/useTodo.ts                      |  298 +
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  212 +
+ frontend/src/services/api.ts                       |    3 +-
+ frontend/src/services/authApi.ts                   |  228 +
+ frontend/src/services/configApi.ts                 |  162 +
+ frontend/src/services/shoppingApi.ts               |  147 +
+ frontend/src/services/todoApi.ts                   |  153 +
+ frontend/src/services/travelApi.ts                 |   78 +-
+ frontend/src/styles/admin.module.css               |  537 ++
+ frontend/src/styles/common.module.css              |  365 ++
+ frontend/src/styles/gmail.module.css               |  284 +
+ frontend/src/styles/layout.module.css              |  374 ++
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 ++
+ frontend/src/styles/settings.module.css            |  510 ++
+ frontend/src/styles/shopping.module.css            |  861 +++
+ frontend/src/styles/todo.module.css                |  816 +++
+ frontend/src/test/setup.ts                         |   55 +
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.test.ts              |  158 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ frontend/vitest.config.ts                          |   34 +
+ package.json                                       |   15 +-
+ review-log.txt                                     | 1969 ++++++
+ scripts/check-quality.js                           |  386 ++
+ scripts/check-quality.ts                           |  404 ++
+ scripts/run-tests.js                               |  243 +
+ scripts/run-tests.ts                               |  268 +
+ 188 files changed, 47284 insertions(+), 7141 deletions(-)
+
+[2026-01-08T01:42:41.919Z] 📊 Files changed: 188
+[2026-01-08T01:42:41.920Z] ➕ Lines added: 47284
+[2026-01-08T01:42:41.922Z] ➖ Lines removed: 7141
+[2026-01-08T01:42:41.923Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-08T01:42:41.924Z] ────────────────────────────────────────
+[2026-01-08T01:42:41.933Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-08T01:42:41.934Z] new file mode 100644
+[2026-01-08T01:42:41.935Z] index 0000000..35b5d90
+[2026-01-08T01:42:41.936Z] --- /dev/null
+[2026-01-08T01:42:41.938Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-08T01:42:41.941Z] @@ -0,0 +1,106 @@
+[2026-01-08T01:42:41.943Z] +---
+[2026-01-08T01:42:41.944Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-08T01:42:41.945Z] +globs: **/*
+[2026-01-08T01:42:41.945Z] +alwaysApply: false
+[2026-01-08T01:42:41.946Z] +---
+[2026-01-08T01:42:41.947Z] +
+[2026-01-08T01:42:41.948Z] +# Principal Architect Code Review Rule
+[2026-01-08T01:42:41.948Z] +
+[2026-01-08T01:42:41.949Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-08T01:42:41.950Z] +
+[2026-01-08T01:42:41.950Z] +## Your Persona
+[2026-01-08T01:42:41.951Z] +
+[2026-01-08T01:42:41.952Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-08T01:42:41.953Z] +- You find issues that junior reviewers miss.
+[2026-01-08T01:42:41.954Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-08T01:42:41.955Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-08T01:42:41.956Z] +
+[2026-01-08T01:42:41.957Z] +## Review Criteria & Weights
+[2026-01-08T01:42:41.958Z] +
+[2026-01-08T01:42:41.959Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-08T01:42:41.960Z] +| :--- | :---: | :--- |
+[2026-01-08T01:42:41.961Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-08T01:42:41.961Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-08T01:42:41.962Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-08T01:42:41.963Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-08T01:42:41.963Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-08T01:42:41.964Z] +
+[2026-01-08T01:42:41.965Z] +## Scoring System (0-100)
+[2026-01-08T01:42:41.965Z] +
+[2026-01-08T01:42:41.966Z] +| Score Range | Verdict | Action |
+[2026-01-08T01:42:41.967Z] +| :---: | :--- | :--- |
+[2026-01-08T01:42:41.967Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-08T01:42:41.968Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-08T01:42:41.969Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-08T01:42:41.970Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-08T01:42:41.971Z] +
+[2026-01-08T01:42:41.972Z] +## MANDATORY Output Format
+[2026-01-08T01:42:41.973Z] +
+[2026-01-08T01:42:41.975Z] +You MUST output the review in this EXACT format:
+[2026-01-08T01:42:41.976Z] +
+[2026-01-08T01:42:41.977Z] +---
+[2026-01-08T01:42:41.977Z] +
+[2026-01-08T01:42:41.978Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-08T01:42:41.979Z] +
+[2026-01-08T01:42:41.979Z] +**Branch:** `[current branch]` → `main`  
+[2026-01-08T01:42:41.980Z] +**Files Changed:** [count]  
+[2026-01-08T01:42:41.981Z] +**Review Date:** [date]
+[2026-01-08T01:42:41.982Z] +
+[2026-01-08T01:42:41.982Z] +### 📊 Score Breakdown
+[2026-01-08T01:42:41.983Z] +
+[2026-01-08T01:42:41.984Z] +| Category | Score | Max | Findings |
+[2026-01-08T01:42:41.984Z] +| :--- | :---: | :---: | :--- |
+[2026-01-08T01:42:41.985Z] +| Architectural Alignment | X | 40 | [Brief findings] |
+[2026-01-08T01:42:41.986Z] +| Config Management | X | 20 | [Brief findings] |
+[2026-01-08T01:42:41.987Z] +| Security & Auth | X | 15 | [Brief findings] |
+[2026-01-08T01:42:41.987Z] +| Error Handling | X | 15 | [Brief findings] |
+[2026-01-08T01:42:41.988Z] +| Maintainability | X | 10 | [Brief findings] |
+[2026-01-08T01:42:41.989Z] +| **TOTAL** | **X** | **100** | - |
+[2026-01-08T01:42:41.990Z] +
+[2026-01-08T01:42:41.992Z] +### 🎯 Verdict: [ELITE/PASS/CONDITIONAL/FAIL]
+[2026-01-08T01:42:41.993Z] +
+[2026-01-08T01:42:41.993Z] +### 🔴 Critical Issues (Must Fix)
+[2026-01-08T01:42:41.994Z] +[List each critical issue with file:line reference]
+[2026-01-08T01:42:41.995Z] +
+[2026-01-08T01:42:41.996Z] +### 🟡 Warnings (Should Fix)
+[2026-01-08T01:42:41.997Z] +[List each warning]
+[2026-01-08T01:42:41.997Z] +
+[2026-01-08T01:42:41.998Z] +### 🟢 Good Practices Observed
+[2026-01-08T01:42:41.999Z] +[List positive patterns you found]
+[2026-01-08T01:42:41.999Z] +
+[2026-01-08T01:42:42.000Z] +### 💀 Tough Feedback
+[2026-01-08T01:42:42.001Z] +[Write 2-3 biting, professional sentences. Be harsh but constructive. If they hardcoded values, call it out explicitly.]
+[2026-01-08T01:42:42.002Z] +
+[2026-01-08T01:42:42.003Z] +### 📋 Push Decision
+[2026-01-08T01:42:42.004Z] +```
+[2026-01-08T01:42:42.007Z] +[If score >= 80] ✅ APPROVED: Push allowed.
+[2026-01-08T01:42:42.008Z] +[If score 70-79] ⚠️ CONDITIONAL: Fix critical issues, then push.
+[2026-01-08T01:42:42.009Z] +[If score < 70]  🚫 BLOCKED: Push denied. Score: X/100. Minimum required: 80.
+[2026-01-08T01:42:42.009Z] +```
+[2026-01-08T01:42:42.010Z] +
+[2026-01-08T01:42:42.011Z] +---
+[2026-01-08T01:42:42.012Z] +
+[2026-01-08T01:42:42.012Z] +## Review Process
+[2026-01-08T01:42:42.013Z] +
+[2026-01-08T01:42:42.014Z] +When the user asks you to review their changes:
+[2026-01-08T01:42:42.014Z] +
+[2026-01-08T01:42:42.015Z] +1. Run `git diff main...HEAD` to get the changes
+[2026-01-08T01:42:42.016Z] +2. Analyze EVERY changed file against ALL criteria
+[2026-01-08T01:42:42.016Z] +3. Be especially vigilant for:
+[2026-01-08T01:42:42.017Z] +   - Hardcoded numbers (thresholds, limits, timeouts)
+[2026-01-08T01:42:42.018Z] +   - Hardcoded strings (URLs, API keys, messages that should be configurable)
+[2026-01-08T01:42:42.018Z] +   - Missing error handling
+[2026-01-08T01:42:42.019Z] +   - Console.log instead of proper logging
+[2026-01-08T01:42:42.020Z] +   - Any bypass of the config system
+[2026-01-08T01:42:42.034Z] 
+... and 59604 more lines
+[2026-01-08T01:42:42.035Z] 
+▶ Step 6: Running Tests
+[2026-01-08T01:42:42.036Z] ────────────────────────────────────────
+[2026-01-08T01:42:42.037Z] 🧪 Running test suites...
+[2026-01-08T01:42:42.038Z]    Running backend tests...
+[2026-01-08T01:42:46.031Z]    ❌ Backend tests failed
+[2026-01-08T01:42:46.033Z]    Running frontend tests...
+[2026-01-08T01:42:50.067Z]    ❌ Frontend tests failed
+[2026-01-08T01:42:50.070Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-08T01:42:50.071Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-08T01:42:50.072Z] ────────────────────────────────────────
+[2026-01-08T01:42:50.216Z] 
+🔴 Critical Issues Found:
+[2026-01-08T01:42:50.217Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-08T01:42:50.218Z]    🔴 Hardcoded timeout value: Found 3 instance(s)
+[2026-01-08T01:42:50.219Z]    🔴 Hardcoded port number: Found 32 instance(s)
+[2026-01-08T01:42:50.219Z]    🔴 Hardcoded localhost URL: Found 14 instance(s)
+[2026-01-08T01:42:50.220Z]    🔴 Hardcoded external URL: Found 206 instance(s)
+[2026-01-08T01:42:50.221Z]    🔴 Hardcoded limit/threshold: Found 42 instance(s)
+[2026-01-08T01:42:50.222Z] 
+🟡 Warnings:
+[2026-01-08T01:42:50.223Z]    🟡 console.log usage: 464 instance(s) - Consider using proper logger
+[2026-01-08T01:42:50.223Z]    🟡 'any' type usage: 276 instance(s) - Prefer explicit types
+[2026-01-08T01:42:50.224Z]    🟡 TODO/FIXME comments: 9 instance(s)
+[2026-01-08T01:42:50.225Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-08T01:42:50.226Z] 
+▶ Step 8: Manual Review Required
+[2026-01-08T01:42:50.227Z] ────────────────────────────────────────
+[2026-01-08T01:42:50.227Z] 
+[2026-01-08T01:42:50.228Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-08T01:42:50.229Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-08T01:42:50.232Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-08T01:42:50.233Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-08T01:42:50.234Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-08T01:42:50.235Z] 
+[2026-01-08T01:42:50.236Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-08T01:42:50.237Z] 
+[2026-01-08T01:42:50.238Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-08T01:42:50.238Z] 
+[2026-01-08T01:42:50.239Z] 
+▶ Step 9: Push Confirmation
+[2026-01-08T01:42:50.240Z] ────────────────────────────────────────
+[2026-01-08T01:42:50.242Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-08T01:42:50.243Z] 📝 Pre-push automated score: 0
+[2026-01-08T01:42:50.244Z] 
+[2026-01-08T01:42:50.245Z] ⚠️ AUTOMATED CHECKS FOUND ISSUES
+[2026-01-08T01:42:50.246Z]    Pre-Score: 0/100 (Target: 80)
+[2026-01-08T01:42:50.248Z]    Issues were detected but push will proceed.
+[2026-01-08T01:42:50.250Z]    IMPORTANT: Complete manual review in Cursor before merging!
+[2026-01-08T01:42:50.251Z] 
+[2026-01-08T01:42:50.252Z] WARNING - Automated score: 0/100, pushed anyway (non-interactive)
+[2026-01-08T03:42:50+02:00] Push APPROVED
+[2026-01-08T04:18:37+02:00] Pre-push hook triggered
+[2026-01-08T02:18:49.058Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-08T02:18:49.076Z] 📋 Minimum passing score: 80/100
+[2026-01-08T02:18:49.079Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-08T02:18:49.083Z] 
+[2026-01-08T02:18:49.084Z] ════════════════════════════════════════════════════════════
+[2026-01-08T02:18:49.087Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-08T02:18:49.089Z] ════════════════════════════════════════════════════════════
+[2026-01-08T02:18:49.091Z] 
+[2026-01-08T02:18:49.146Z] 📅 Review started at: 1/8/2026, 4:18:49 AM
+[2026-01-08T02:18:49.149Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-08T02:18:49.160Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-08T02:18:49.163Z] ────────────────────────────────────────
+[2026-01-08T02:18:50.231Z] ✅ Git repository detected
+[2026-01-08T02:18:50.233Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-08T02:18:50.234Z] ────────────────────────────────────────
+[2026-01-08T02:18:51.116Z] 📍 Current branch: feature/cloud-database-upgrade
+[2026-01-08T02:18:51.120Z] 🎯 Comparing against: main
+[2026-01-08T02:18:52.245Z] ✅ Base branch 'main' exists
+[2026-01-08T02:18:52.248Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-08T02:18:52.249Z] ────────────────────────────────────────
+[2026-01-08T02:18:57.578Z] 
+▶ Step 4: Change Summary
+[2026-01-08T02:18:57.581Z] ────────────────────────────────────────
+[2026-01-08T02:18:57.585Z]  .cursor/rules/principal-architect-review.mdc       |  106 +
+ .github/workflows/deploy.yml                       |  172 +
+ .github/workflows/pr-check.yml                     |   64 +
+ .gitignore                                         |   16 +-
+ .npmrc                                             |    2 +
+ ARCHITECTURE.md                                    |  395 +-
+ CLOUD_SETUP.md                                     |  300 +
+ DATABASE_MIGRATIONS.md                             |  211 +
+ GOOGLE_SETUP.md                                    |  119 +
+ QUICKSTART.md                                      |   83 +-
+ README.md                                          |  210 +-
+ backend/.dockerignore                              |   39 +
+ backend/.env.example                               |   40 -
+ backend/.gitignore                                 |   54 +
+ backend/.npmrc                                     |    2 +
+ backend/Dockerfile                                 |   68 +
+ backend/env.example                                |   78 +-
+ backend/package-lock.json                          | 7674 +++++++++++---------
+ backend/package.json                               |   58 +-
+ backend/prisma.config.ts                           |   14 +
+ .../migration.sql                                  |  459 ++
+ .../migration.sql                                  |  121 +
+ .../migration.sql                                  |   31 +
+ backend/prisma/migrations/migration_lock.toml      |    3 +
+ backend/prisma/schema.prisma                       |  680 ++
+ backend/prisma/seed.ts                             |  101 +
+ backend/src/agents/AbstractAgent.ts                |  262 +
+ backend/src/agents/AgentRegistry.ts                |  160 +
+ backend/src/agents/EmailAgent.ts                   |   77 +
+ backend/src/agents/JobsAgent.ts                    |  197 +
+ backend/src/agents/LearningAgent.ts                |  399 +
+ backend/src/agents/ProblemsAgent.ts                |  335 +
+ backend/src/agents/ShoppingAgent.ts                |  995 +++
+ backend/src/agents/ToDoAgent.ts                    |  925 +++
+ backend/src/agents/TravelAgent.ts                  |  510 ++
+ backend/src/agents/index.ts                        |   50 +
+ backend/src/agents/types.ts                        |   70 +
+ backend/src/controllers/adminController.ts         |  710 ++
+ backend/src/controllers/agentController.ts         |  299 +-
+ backend/src/controllers/authController.ts          |  158 +
+ backend/src/controllers/configController.ts        |  232 +-
+ backend/src/controllers/jobController.ts           |  370 +-
+ backend/src/controllers/learningController.ts      |   70 +-
+ .../src/controllers/problemSolvingController.ts    |  630 ++
+ backend/src/controllers/shoppingController.ts      |  331 +
+ backend/src/controllers/todoController.ts          |  375 +
+ backend/src/controllers/travelController.ts        |  145 +-
+ backend/src/data/companyMappings.ts                |  535 ++
+ backend/src/data/curatedProblems.ts                |  240 +
+ backend/src/index.ts                               |  107 +-
+ backend/src/middleware/adminMiddleware.ts          |  250 +
+ backend/src/routes/admin.ts                        |   57 +
+ backend/src/routes/agent.ts                        |   12 +-
+ backend/src/routes/agents.ts                       |  198 +
+ backend/src/routes/auth.ts                         |   33 +
+ backend/src/routes/autocomplete.ts                 |  218 +
+ backend/src/routes/config.ts                       |  158 +
+ backend/src/routes/index.ts                        |   35 +
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/learning.ts                     |    5 +-
+ backend/src/routes/problemSolving.ts               |   61 +
+ backend/src/routes/settings.ts                     |  121 +
+ backend/src/routes/shopping.ts                     |   38 +
+ backend/src/routes/todo.ts                         |   33 +
+ backend/src/scripts/getGmailTokens.ts              |  129 +-
+ backend/src/scripts/seedConfig.ts                  |  388 +
+ backend/src/services/calendar/calendarService.ts   |  441 ++
+ backend/src/services/core/cacheService.ts          |  321 +
+ backend/src/services/{ => core}/claudeService.ts   |  107 +
+ backend/src/services/core/configService.ts         |  357 +
+ backend/src/services/core/databaseService.ts       |  285 +
+ backend/src/services/core/googleSearchService.ts   |  444 ++
+ backend/src/services/core/index.ts                 |   16 +
+ backend/src/services/core/processControlService.ts |  169 +
+ backend/src/services/{ => email}/driveService.ts   |   49 +-
+ .../{ => email}/emailNotificationService.ts        |    0
+ backend/src/services/email/emailPatternService.ts  |  440 ++
+ .../services/{ => email}/emailSchedulerService.ts  |    4 +-
+ backend/src/services/{ => email}/gmailService.ts   |    0
+ backend/src/services/email/googleAuthService.ts    |  406 ++
+ backend/src/services/email/index.ts                |   21 +
+ backend/src/services/index.ts                      |   43 +
+ backend/src/services/jobMatchingService.ts         |  205 -
+ .../src/services/{ => jobs}/additionalJobAPIs.ts   |    0
+ backend/src/services/jobs/aiJobSearchService.ts    |  195 +
+ .../src/services/jobs/companyEnrichmentService.ts  |  312 +
+ .../src/services/{ => jobs}/cvAnalysisService.ts   |    0
+ backend/src/services/jobs/index.ts                 |   23 +
+ .../src/services/jobs/israelTechScraperService.ts  |  244 +
+ .../src/services/{ => jobs}/israeliJobsService.ts  |    0
+ backend/src/services/jobs/jobMatchingService.ts    |  332 +
+ .../src/services/{ => jobs}/jobSourceService.ts    |    0
+ backend/src/services/learning/index.ts             |   16 +
+ .../src/services/{ => learning}/learningService.ts |   80 +-
+ .../discordNotificationService.ts                  |    0
+ backend/src/services/notifications/index.ts        |   18 +
+ .../telegramNotificationService.ts                 |    0
+ .../{ => notifications}/whatsappService.ts         |   10 +-
+ backend/src/services/problemSolving/index.ts       |   16 +
+ .../problemSolving/problemSolvingService.ts        | 1157 +++
+ backend/src/services/shopping/index.ts             |   10 +
+ .../src/services/shopping/israeliShopsService.ts   |  251 +
+ backend/src/services/shopping/zapScraperService.ts |  242 +
+ .../destinationRecommendationsService.ts           |    0
+ backend/src/services/travel/index.ts               |   19 +
+ .../{ => travel}/specializedTravelService.ts       |   29 +-
+ .../services/{ => travel}/travelSearchService.ts   |   64 +-
+ .../services/{ => travel}/tripPlanningService.ts   |    2 +-
+ backend/src/utils/anthropicClient.ts               |   87 +
+ backend/src/utils/emailProcessor.ts                |   10 +-
+ backend/tests/api/auth.test.ts                     |  189 +
+ backend/tests/services/configService.test.ts       |   76 +
+ backend/tests/services/googleAuthService.test.ts   |  135 +
+ backend/tests/utils/emailProcessor.test.ts         |  157 +
+ backend/vitest.config.ts                           |   30 +
+ frontend/.npmrc                                    |    2 +
+ frontend/index.html                                |   62 +-
+ frontend/package-lock.json                         | 5249 ++++++-------
+ frontend/package.json                              |   18 +-
+ frontend/public/favicon.svg                        |   32 +
+ frontend/src/App.tsx                               |  720 +-
+ frontend/src/components/AISummaryModal.tsx         |  518 ++
+ frontend/src/components/ActivityLog.tsx            |  387 +-
+ frontend/src/components/AdminPanel.tsx             |  958 +++
+ frontend/src/components/GmailAgent-new.tsx         |    0
+ frontend/src/components/GmailAgent-old.tsx         |  333 -
+ frontend/src/components/GmailAgent.tsx             |  602 +-
+ frontend/src/components/HomePage.tsx               |  480 ++
+ frontend/src/components/InvoiceList.tsx            |   93 +-
+ frontend/src/components/JobListings.tsx            |  442 +-
+ frontend/src/components/JobSearchPanel.tsx         |   77 +-
+ frontend/src/components/LearningAgent.tsx          |  377 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    | 1507 ++++
+ frontend/src/components/SearchButton.tsx           |   95 +
+ frontend/src/components/SettingsPage.tsx           |  816 +++
+ frontend/src/components/ShoppingAgent.tsx          |  636 ++
+ frontend/src/components/SkiDealsPanel.tsx          |  542 ++
+ frontend/src/components/ToDoAgent.tsx              |  797 ++
+ frontend/src/components/common/Button.tsx          |   78 +
+ frontend/src/components/common/Header.tsx          |  183 +
+ frontend/src/components/common/Modal.tsx           |   85 +
+ frontend/src/components/common/NavTabs.tsx         |  119 +
+ frontend/src/components/common/SignInModal.tsx     |  125 +
+ frontend/src/components/common/Toast.tsx           |  126 +
+ frontend/src/components/common/UserMenu.tsx        |  133 +
+ frontend/src/components/common/index.ts            |   16 +
+ frontend/src/config.ts                             |   46 +
+ frontend/src/hooks/index.ts                        |   30 +
+ frontend/src/hooks/useAdmin.ts                     |  245 +
+ frontend/src/hooks/useAuth.test.ts                 |  256 +
+ frontend/src/hooks/useAuth.ts                      |  113 +
+ frontend/src/hooks/useAutocomplete.ts              |  135 +
+ frontend/src/hooks/useGmail.ts                     |  196 +
+ frontend/src/hooks/useLearning.ts                  |  351 +
+ frontend/src/hooks/useNotification.ts              |   83 +
+ frontend/src/hooks/useProblems.ts                  |  329 +
+ frontend/src/hooks/useSearchController.ts          |  159 +
+ frontend/src/hooks/useSettings.ts                  |   74 +
+ frontend/src/hooks/useShopping.ts                  |  316 +
+ frontend/src/hooks/useTodo.ts                      |  298 +
+ frontend/src/index.css                             |   14 +-
+ frontend/src/main.tsx                              |    9 +-
+ frontend/src/services/adminApi.ts                  |  212 +
+ frontend/src/services/api.ts                       |    3 +-
+ frontend/src/services/authApi.ts                   |  228 +
+ frontend/src/services/configApi.ts                 |  162 +
+ frontend/src/services/shoppingApi.ts               |  147 +
+ frontend/src/services/todoApi.ts                   |  153 +
+ frontend/src/services/travelApi.ts                 |   78 +-
+ frontend/src/styles/admin.module.css               |  537 ++
+ frontend/src/styles/common.module.css              |  365 +
+ frontend/src/styles/gmail.module.css               |  284 +
+ frontend/src/styles/layout.module.css              |  374 +
+ frontend/src/styles/learning.module.css            |  432 ++
+ frontend/src/styles/modal.module.css               |  156 +
+ frontend/src/styles/problems.module.css            |  530 ++
+ frontend/src/styles/settings.module.css            |  510 ++
+ frontend/src/styles/shopping.module.css            |  861 +++
+ frontend/src/styles/todo.module.css                |  816 +++
+ frontend/src/test/setup.ts                         |   55 +
+ frontend/src/types/css.d.ts                        |   18 +
+ frontend/src/types/index.ts                        |   89 +
+ frontend/src/utils/fileParser.test.ts              |  158 +
+ frontend/src/utils/fileParser.ts                   |   69 +-
+ frontend/vitest.config.ts                          |   34 +
+ package-lock.json                                  | 4034 ++++------
+ package.json                                       |   17 +-
+ review-log.txt                                     | 2350 ++++++
+ scripts/check-quality.js                           |  386 +
+ scripts/check-quality.ts                           |  404 ++
+ scripts/run-tests.js                               |  243 +
+ scripts/run-tests.ts                               |  268 +
+ 192 files changed, 49638 insertions(+), 10640 deletions(-)
+
+[2026-01-08T02:18:57.589Z] 📊 Files changed: 192
+[2026-01-08T02:18:57.591Z] ➕ Lines added: 49638
+[2026-01-08T02:18:57.593Z] ➖ Lines removed: 10640
+[2026-01-08T02:18:57.595Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-08T02:18:57.597Z] ────────────────────────────────────────
+[2026-01-08T02:18:57.622Z] 
+diff --git a/.cursor/rules/principal-architect-review.mdc b/.cursor/rules/principal-architect-review.mdc
+[2026-01-08T02:18:57.624Z] new file mode 100644
+[2026-01-08T02:18:57.626Z] index 0000000..35b5d90
+[2026-01-08T02:18:57.627Z] --- /dev/null
+[2026-01-08T02:18:57.629Z] +++ b/.cursor/rules/principal-architect-review.mdc
+[2026-01-08T02:18:57.631Z] @@ -0,0 +1,106 @@
+[2026-01-08T02:18:57.633Z] +---
+[2026-01-08T02:18:57.636Z] +description: Mandatory local code review against main before pushing. Triggered by 'review changes', 'prepare push', or 'code review'.
+[2026-01-08T02:18:57.639Z] +globs: **/*
+[2026-01-08T02:18:57.641Z] +alwaysApply: false
+[2026-01-08T02:18:57.643Z] +---
+[2026-01-08T02:18:57.645Z] +
+[2026-01-08T02:18:57.648Z] +# Principal Architect Code Review Rule
+[2026-01-08T02:18:57.651Z] +
+[2026-01-08T02:18:57.659Z] +You are a **Principal Architect** and a **Tough, Restrictive Reviewer**. Your goal is to **BLOCK** any code that doesn't meet the project's high standards. You compare the current `HEAD` against `main` branch.
+[2026-01-08T02:18:57.661Z] +
+[2026-01-08T02:18:57.671Z] +## Your Persona
+[2026-01-08T02:18:57.674Z] +
+[2026-01-08T02:18:57.676Z] +- You are NOT friendly. You are professional but strict.
+[2026-01-08T02:18:57.677Z] +- You find issues that junior reviewers miss.
+[2026-01-08T02:18:57.679Z] +- You have zero tolerance for hardcoded values, magic numbers, or sloppy patterns.
+[2026-01-08T02:18:57.680Z] +- You enforce architectural consistency ruthlessly.
+[2026-01-08T02:18:57.682Z] +
+[2026-01-08T02:18:57.685Z] +## Review Criteria & Weights
+[2026-01-08T02:18:57.687Z] +
+[2026-01-08T02:18:57.689Z] +| Criteria | Weight | Hard Requirements |
+[2026-01-08T02:18:57.691Z] +| :--- | :---: | :--- |
+[2026-01-08T02:18:57.693Z] +| **Architectural Alignment** | 40% | RORO pattern, DRY principle, Separation of Concerns (UI/Hook/API/Service layers). Controllers must be thin. Services contain business logic. |
+[2026-01-08T02:18:57.695Z] +| **Config Management** | 20% | **ZERO TOLERANCE**: No hardcoded magic numbers/strings. Must use `configService` (backend) or `configApi` (frontend). All thresholds, limits, URLs must be configurable. |
+[2026-01-08T02:18:57.698Z] +| **Security & Auth** | 15% | Proper OAuth flow, token refreshing, input validation, role checks (SUPER_ADMIN gates), no secrets in code. |
+[2026-01-08T02:18:57.700Z] +| **Error Handling** | 15% | Early returns, guard clauses, specific error messages, proper logging with context (not just `console.log`). Try-catch around async operations. |
+[2026-01-08T02:18:57.706Z] +| **Maintainability** | 10% | Type hints for all function signatures (TypeScript/C#), JSDoc/XML comments for public APIs, meaningful variable names with auxiliary verbs (`is_`, `has_`, `should_`). |
+[2026-01-08T02:18:57.709Z] +
+[2026-01-08T02:18:57.710Z] +## Scoring System (0-100)
+[2026-01-08T02:18:57.718Z] +
+[2026-01-08T02:18:57.722Z] +| Score Range | Verdict | Action |
+[2026-01-08T02:18:57.724Z] +| :---: | :--- | :--- |
+[2026-01-08T02:18:57.725Z] +| **90-100** | ✅ **ELITE** | Perfect implementation. Push immediately. |
+[2026-01-08T02:18:57.727Z] +| **80-89** | ✅ **PASS** | Minor nits. Can push with noted improvements. |
+[2026-01-08T02:18:57.732Z] +| **70-79** | ⚠️ **CONDITIONAL** | Fix critical issues before pushing. |
+[2026-01-08T02:18:57.739Z] +| **0-69** | 🚫 **FAIL** | **PUSH BLOCKED**. Significant violations found. |
+[2026-01-08T02:18:57.741Z] +
+[2026-01-08T02:18:57.743Z] +## MANDATORY Output Format
+[2026-01-08T02:18:57.744Z] +
+[2026-01-08T02:18:57.757Z] +You MUST output the review in this EXACT format:
+[2026-01-08T02:18:57.758Z] +
+[2026-01-08T02:18:57.760Z] +---
+[2026-01-08T02:18:57.762Z] +
+[2026-01-08T02:18:57.763Z] +## 🏛️ PRINCIPAL ARCHITECT REVIEW REPORT
+[2026-01-08T02:18:57.765Z] +
+[2026-01-08T02:18:57.768Z] +**Branch:** `[current branch]` → `main`  
+[2026-01-08T02:18:57.773Z] +**Files Changed:** [count]  
+[2026-01-08T02:18:57.775Z] +**Review Date:** [date]
+[2026-01-08T02:18:57.778Z] +
+[2026-01-08T02:18:57.780Z] +### 📊 Score Breakdown
+[2026-01-08T02:18:57.783Z] +
+[2026-01-08T02:18:57.787Z] +| Category | Score | Max | Findings |
+[2026-01-08T02:18:57.790Z] +| :--- | :---: | :---: | :--- |
+[2026-01-08T02:18:57.792Z] +| Architectural Alignment | X | 40 | [Brief findings] |
+[2026-01-08T02:18:57.794Z] +| Config Management | X | 20 | [Brief findings] |
+[2026-01-08T02:18:57.796Z] +| Security & Auth | X | 15 | [Brief findings] |
+[2026-01-08T02:18:57.801Z] +| Error Handling | X | 15 | [Brief findings] |
+[2026-01-08T02:18:57.804Z] +| Maintainability | X | 10 | [Brief findings] |
+[2026-01-08T02:18:57.807Z] +| **TOTAL** | **X** | **100** | - |
+[2026-01-08T02:18:57.809Z] +
+[2026-01-08T02:18:57.810Z] +### 🎯 Verdict: [ELITE/PASS/CONDITIONAL/FAIL]
+[2026-01-08T02:18:57.812Z] +
+[2026-01-08T02:18:57.813Z] +### 🔴 Critical Issues (Must Fix)
+[2026-01-08T02:18:57.817Z] +[List each critical issue with file:line reference]
+[2026-01-08T02:18:57.820Z] +
+[2026-01-08T02:18:57.823Z] +### 🟡 Warnings (Should Fix)
+[2026-01-08T02:18:57.824Z] +[List each warning]
+[2026-01-08T02:18:57.826Z] +
+[2026-01-08T02:18:57.828Z] +### 🟢 Good Practices Observed
+[2026-01-08T02:18:57.829Z] +[List positive patterns you found]
+[2026-01-08T02:18:57.831Z] +
+[2026-01-08T02:18:57.834Z] +### 💀 Tough Feedback
+[2026-01-08T02:18:57.837Z] +[Write 2-3 biting, professional sentences. Be harsh but constructive. If they hardcoded values, call it out explicitly.]
+[2026-01-08T02:18:57.839Z] +
+[2026-01-08T02:18:57.840Z] +### 📋 Push Decision
+[2026-01-08T02:18:57.842Z] +```
+[2026-01-08T02:18:57.843Z] +[If score >= 80] ✅ APPROVED: Push allowed.
+[2026-01-08T02:18:57.845Z] +[If score 70-79] ⚠️ CONDITIONAL: Fix critical issues, then push.
+[2026-01-08T02:18:57.847Z] +[If score < 70]  🚫 BLOCKED: Push denied. Score: X/100. Minimum required: 80.
+[2026-01-08T02:18:57.849Z] +```
+[2026-01-08T02:18:57.852Z] +
+[2026-01-08T02:18:57.855Z] +---
+[2026-01-08T02:18:57.857Z] +
+[2026-01-08T02:18:57.860Z] +## Review Process
+[2026-01-08T02:18:57.873Z] +
+[2026-01-08T02:18:57.889Z] +When the user asks you to review their changes:
+[2026-01-08T02:18:57.892Z] +
+[2026-01-08T02:18:57.894Z] +1. Run `git diff main...HEAD` to get the changes
+[2026-01-08T02:18:57.899Z] +2. Analyze EVERY changed file against ALL criteria
+[2026-01-08T02:18:57.902Z] +3. Be especially vigilant for:
+[2026-01-08T02:18:57.904Z] +   - Hardcoded numbers (thresholds, limits, timeouts)
+[2026-01-08T02:18:57.906Z] +   - Hardcoded strings (URLs, API keys, messages that should be configurable)
+[2026-01-08T02:18:57.907Z] +   - Missing error handling
+[2026-01-08T02:18:57.909Z] +   - Console.log instead of proper logging
+[2026-01-08T02:18:57.917Z] +   - Any bypass of the config system
+[2026-01-08T02:18:57.962Z] 
+... and 66186 more lines
+[2026-01-08T02:18:57.964Z] 
+▶ Step 6: Running Tests
+[2026-01-08T02:18:57.968Z] ────────────────────────────────────────
+[2026-01-08T02:18:57.970Z] 🧪 Running test suites...
+[2026-01-08T02:18:57.972Z]    Running backend tests...
+[2026-01-08T02:19:03.630Z]    ❌ Backend tests failed
+[2026-01-08T02:19:03.634Z]    Running frontend tests...
+[2026-01-08T02:19:08.578Z]    ❌ Frontend tests failed
+[2026-01-08T02:19:08.580Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-08T02:19:08.581Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-08T02:19:08.583Z] ────────────────────────────────────────
+[2026-01-08T02:19:08.778Z] 
+🔴 Critical Issues Found:
+[2026-01-08T02:19:08.780Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-08T02:19:08.782Z]    🔴 Hardcoded timeout value: Found 3 instance(s)
+[2026-01-08T02:19:08.783Z]    🔴 Hardcoded port number: Found 35 instance(s)
+[2026-01-08T02:19:08.784Z]    🔴 Hardcoded localhost URL: Found 14 instance(s)
+[2026-01-08T02:19:08.785Z]    🔴 Hardcoded external URL: Found 206 instance(s)
+[2026-01-08T02:19:08.786Z]    🔴 Hardcoded limit/threshold: Found 42 instance(s)
+[2026-01-08T02:19:08.787Z] 
+🟡 Warnings:
+[2026-01-08T02:19:08.789Z]    🟡 console.log usage: 466 instance(s) - Consider using proper logger
+[2026-01-08T02:19:08.791Z]    🟡 'any' type usage: 276 instance(s) - Prefer explicit types
+[2026-01-08T02:19:08.792Z]    🟡 TODO/FIXME comments: 9 instance(s)
+[2026-01-08T02:19:08.793Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-08T02:19:08.795Z] 
+▶ Step 8: Manual Review Required
+[2026-01-08T02:19:08.796Z] ────────────────────────────────────────
+[2026-01-08T02:19:08.797Z] 
+[2026-01-08T02:19:08.798Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-08T02:19:08.800Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-08T02:19:08.801Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-08T02:19:08.803Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-08T02:19:08.805Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-08T02:19:08.810Z] 
+[2026-01-08T02:19:08.812Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-08T02:19:08.815Z] 
+[2026-01-08T02:19:08.818Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-08T02:19:08.819Z] 
+[2026-01-08T02:19:08.821Z] 
+▶ Step 9: Push Confirmation
+[2026-01-08T02:19:08.823Z] ────────────────────────────────────────
+[2026-01-08T02:19:08.826Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-08T02:19:08.828Z] 📝 Pre-push automated score: 0
+[2026-01-08T02:19:08.829Z] 
+[2026-01-08T02:19:08.830Z] ⚠️ AUTOMATED CHECKS FOUND ISSUES
+[2026-01-08T02:19:08.831Z]    Pre-Score: 0/100 (Target: 80)
+[2026-01-08T02:19:08.833Z]    Issues were detected but push will proceed.
+[2026-01-08T02:19:08.834Z]    IMPORTANT: Complete manual review in Cursor before merging!
+[2026-01-08T02:19:08.835Z] 
+[2026-01-08T02:19:08.837Z] WARNING - Automated score: 0/100, pushed anyway (non-interactive)
+[2026-01-08T04:19:09+02:00] Push APPROVED

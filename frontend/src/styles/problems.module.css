@@ -1,0 +1,530 @@
+/**
+ * Problem Solving Agent Styles
+ * 
+ * Modular CSS for the Problem Solving agent component.
+ */
+
+/* ============================================
+   CONTAINER & HEADER
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, rgb(34, 211, 238), rgb(59, 130, 246));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgb(203, 213, 225);
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+.mainLayout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 1.5rem;
+  min-height: 600px;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mainContent {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ============================================
+   SIDEBAR - FILTERS
+   ============================================ */
+.filtersSection {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.filterGroup {
+  margin-bottom: 1rem;
+}
+
+.filterGroup:last-child {
+  margin-bottom: 0;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(148, 163, 184);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.filterChip {
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterChipActive {
+  background: rgb(59, 130, 246);
+  color: white;
+}
+
+.filterChipInactive {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(148, 163, 184);
+}
+
+.filterChipInactive:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.875rem;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+}
+
+/* ============================================
+   SIDEBAR - PROBLEM LIST
+   ============================================ */
+.problemList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.problemItem {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+  border: 1px solid transparent;
+}
+
+.problemItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.problemItemSelected {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.problemTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.problemMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.difficultyBadge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.difficultyEasy {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(74, 222, 128);
+}
+
+.difficultyMedium {
+  background: rgba(234, 179, 8, 0.2);
+  color: rgb(250, 204, 21);
+}
+
+.difficultyHard {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(248, 113, 113);
+}
+
+.categoryBadge {
+  color: rgb(148, 163, 184);
+}
+
+/* ============================================
+   MAIN CONTENT - PROBLEM VIEW
+   ============================================ */
+.problemView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.problemHeader {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.problemViewTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.problemViewMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.problemDescription {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.problemDescriptionText {
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+  line-height: 1.6;
+}
+
+.problemExamples {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.exampleTitle {
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.exampleBlock {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   HINTS & SOLUTION
+   ============================================ */
+.hintsSection {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hintsRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.hintButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hintButtonPrimary {
+  background: rgba(234, 179, 8, 0.2);
+  color: rgb(250, 204, 21);
+}
+
+.hintButtonPrimary:hover {
+  background: rgba(234, 179, 8, 0.3);
+}
+
+.hintButtonDanger {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(248, 113, 113);
+}
+
+.hintButtonDanger:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.hintBox {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.hintProgress {
+  font-size: 0.75rem;
+  color: rgb(250, 204, 21);
+  margin-bottom: 0.5rem;
+}
+
+.hintText {
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+}
+
+.hintNextButton {
+  margin-top: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(234, 179, 8, 0.2);
+  color: rgb(250, 204, 21);
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.solutionBox {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.solutionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(248, 113, 113);
+  margin-bottom: 0.5rem;
+}
+
+.solutionCode {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: rgb(203, 213, 225);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* ============================================
+   CHAT SECTION
+   ============================================ */
+.chatSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chatMessage {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.chatMessageUser {
+  align-self: flex-end;
+  background: rgb(59, 130, 246);
+  color: white;
+}
+
+.chatMessageAssistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(203, 213, 225);
+}
+
+.chatMessageStreaming::after {
+  content: '▊';
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.chatInputRow {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 0.75rem;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.875rem;
+}
+
+.chatInput:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+}
+
+.chatSendButton {
+  padding: 0.75rem 1.5rem;
+  background: rgb(59, 130, 246);
+  border-radius: 0.75rem;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.chatSendButton:hover {
+  background: rgb(37, 99, 235);
+}
+
+.chatSendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chatStopButton {
+  background: rgb(239, 68, 68);
+}
+
+.chatStopButton:hover {
+  background: rgb(220, 38, 38);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  color: rgb(148, 163, 184);
+  opacity: 0.3;
+  margin-bottom: 1rem;
+}
+
+.emptyTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.emptySubtitle {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: rgb(59, 130, 246);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   ICONS
+   ============================================ */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.iconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconLarge {
+  width: 2rem;
+  height: 2rem;
+}
+
+
+

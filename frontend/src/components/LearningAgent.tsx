@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Settings } from 'lucide-react';
+import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import AISummaryModal from './AISummaryModal';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 interface LearningResource {
   id: string;
@@ -19,7 +21,9 @@ interface LearningResource {
 interface SearchFilters {
   topics: string[];
   sources: string[];
-  timeRange: 'day' | 'week' | 'month' | 'all';
+  timeRange: 'day' | 'week' | 'month' | 'year' | 'custom' | 'all';
+  customDateFrom?: string;
+  customDateTo?: string;
 }
 
 interface LinkedInInfo {
@@ -33,7 +37,6 @@ const LearningAgent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [logs, setLogs] = useState<Array<{ message: string; type: string; timestamp: string }>>([]);
   const [expandedResources, setExpandedResources] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showLinkedInInfo, setShowLinkedInInfo] = useState(false);
@@ -46,8 +49,14 @@ const LearningAgent = () => {
     sources: ['linkedin', 'devto', 'newsletters', 'hackernews', 'reddit'],
     timeRange: 'week'
   });
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [savedArticles, setSavedArticles] = useState<LearningResource[]>([]);
+  const [showSavedArticles, setShowSavedArticles] = useState(false);
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const socketRef = useRef<Socket | null>(null);
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const suggestedTopics = [
     'TypeScript best practices',
@@ -105,11 +114,7 @@ const LearningAgent = () => {
   };
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
-
-    socketRef.current.on('learning-log', (data: { message: string; type: string }) => {
-      addLog(data.message, data.type);
-    });
+    socketRef.current = io(SOCKET_URL);
 
     socketRef.current.on('learning-resource', (resource: LearningResource) => {
       setResources(prev => {
@@ -119,8 +124,9 @@ const LearningAgent = () => {
       });
     });
 
-    // Fetch LinkedIn integration info
+    // Fetch LinkedIn integration info and search history
     fetchLinkedInInfo();
+    loadSearchHistory();
 
     return () => {
       socketRef.current?.disconnect();
@@ -129,7 +135,7 @@ const LearningAgent = () => {
 
   const fetchLinkedInInfo = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/learning/linkedin-info');
+      const response = await fetch(`${API_BASE_URL}/learning/linkedin-info`);
       if (response.ok) {
         const data = await response.json();
         setLinkedInInfo(data);
@@ -139,17 +145,84 @@ const LearningAgent = () => {
     }
   };
 
-  const addLog = (message: string, type = 'info') => {
-    setLogs(prev => [...prev, {
-      message,
-      type,
-      timestamp: new Date().toLocaleTimeString()
-    }].slice(-50));
+  const loadSearchHistory = () => {
+    try {
+      const history = localStorage.getItem('learning-search-history');
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.warn('Could not load search history');
+    }
   };
+
+  const saveToSearchHistory = (query: string) => {
+    const updatedHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 10);
+    setSearchHistory(updatedHistory);
+    localStorage.setItem('learning-search-history', JSON.stringify(updatedHistory));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setUploadedFile(file);
+    
+    // Read file content and use as query
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      // Extract key topics from file content (first 500 chars for query)
+      const preview = content.substring(0, 500).replace(/\n/g, ' ').trim();
+      setSearchQuery(preview);
+    };
+    reader.readAsText(file);
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveArticle = async (resource: LearningResource) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agents/learning/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save-article',
+          articleData: {
+            id: resource.id,
+            title: resource.title,
+            url: resource.url,
+            source: resource.source,
+            description: resource.description,
+            summary: resource.summary,
+            tags: resource.tags
+          }
+        })
+      });
+      
+      if (response.ok) {
+        setSavedArticles(prev => [...prev, resource]);
+      }
+    } catch (error) {
+      console.error('Failed to save article:', error);
+    }
+  };
+
+  const filteredSuggestions = searchQuery.length > 0 
+    ? [...searchHistory, ...suggestedTopics].filter(
+        (topic, index, self) => 
+          topic.toLowerCase().includes(searchQuery.toLowerCase()) && 
+          self.indexOf(topic) === index
+      ).slice(0, 8)
+    : [];
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      addLog('Please enter a search topic', 'warning');
       return;
     }
 
@@ -158,9 +231,12 @@ const LearningAgent = () => {
       setResources([]);
       setTopicSummary(null);
       setShowSummary(false);
-      addLog(`🔍 Searching for "${searchQuery}"...`, 'info');
+      setShowAutocomplete(false);
+      
+      // Save to search history
+      saveToSearchHistory(searchQuery);
 
-      const response = await fetch('http://localhost:5000/api/learning/search', {
+      const response = await fetch(`${API_BASE_URL}/learning/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -173,30 +249,25 @@ const LearningAgent = () => {
       const data = await response.json();
 
       if (data.error) {
-        addLog(`❌ Error: ${data.error}`, 'error');
+        console.error('Search error:', data.error);
         return;
       }
 
       setResources(data.resources || []);
-      addLog(`✅ Found ${data.resources?.length || 0} learning resources`, 'success');
     } catch (error: any) {
-      addLog(`❌ Search failed: ${error.message}`, 'error');
+      console.error('Search failed:', error.message);
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleGenerateTopicSummary = async () => {
-    if (!searchQuery.trim()) {
-      addLog('Please enter a search topic first', 'warning');
-      return;
-    }
+    if (!searchQuery.trim()) return;
 
     try {
       setIsGeneratingSummary(true);
-      addLog(`🤖 Generating AI topic summary for "${searchQuery}"...`, 'info');
 
-      const response = await fetch('http://localhost:5000/api/learning/topic-summary', {
+      const response = await fetch(`${API_BASE_URL}/learning/topic-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: searchQuery })
@@ -205,15 +276,14 @@ const LearningAgent = () => {
       const data = await response.json();
 
       if (data.error) {
-        addLog(`❌ Error: ${data.error}`, 'error');
+        console.error('Topic summary error:', data.error);
         return;
       }
 
       setTopicSummary(data.summary);
       setShowSummary(true);
-      addLog(`✅ Topic summary generated`, 'success');
     } catch (error: any) {
-      addLog(`❌ Failed to generate summary: ${error.message}`, 'error');
+      console.error('Failed to generate summary:', error.message);
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -228,9 +298,7 @@ const LearningAgent = () => {
     ));
 
     try {
-      addLog(`📝 Summarizing "${resource.title}"...`, 'info');
-
-      const response = await fetch('http://localhost:5000/api/learning/summarize', {
+      const response = await fetch(`${API_BASE_URL}/learning/summarize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: resource.url, title: resource.title })
@@ -243,10 +311,9 @@ const LearningAgent = () => {
           r.id === resourceId ? { ...r, summary: data.summary, isSummarizing: false } : r
         ));
         setExpandedResources(prev => new Set([...prev, resourceId]));
-        addLog(`✅ Summary generated for "${resource.title}"`, 'success');
       }
     } catch (error: any) {
-      addLog(`❌ Failed to summarize: ${error.message}`, 'error');
+      console.error('Failed to summarize:', error.message);
       setResources(prev => prev.map(r =>
         r.id === resourceId ? { ...r, isSummarizing: false } : r
       ));
@@ -302,12 +369,72 @@ const LearningAgent = () => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowAutocomplete(e.target.value.length > 0);
+              }}
+              onFocus={() => setShowAutocomplete(searchQuery.length > 0)}
+              onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search for topics (e.g., 'TypeScript best practices', 'system design')"
               className="w-full bg-white/5 border border-white/20 rounded-xl pl-12 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
             />
+            
+            {/* Autocomplete dropdown */}
+            {showAutocomplete && filteredSuggestions.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/20 rounded-xl shadow-xl overflow-hidden">
+                {filteredSuggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      setShowAutocomplete(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-white/10 text-sm flex items-center gap-2"
+                  >
+                    {searchHistory.includes(suggestion) ? (
+                      <History className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <Search className="w-4 h-4 text-slate-400" />
+                    )}
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          
+          {/* File Upload Button */}
+          <div className="relative">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".txt,.md,.pdf"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl transition-all"
+              title="Upload a file to analyze"
+            >
+              <Upload className="w-5 h-5" />
+              {uploadedFile ? (
+                <span className="text-sm truncate max-w-[120px]">{uploadedFile.name}</span>
+              ) : (
+                <span className="hidden md:inline">Upload</span>
+              )}
+            </button>
+            {uploadedFile && (
+              <button
+                onClick={clearUploadedFile}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          
           <button
             onClick={handleSearch}
             disabled={isSearching}
@@ -401,20 +528,70 @@ const LearningAgent = () => {
           {/* Time Filter */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-slate-400 text-sm w-16 ml-5">Time:</span>
-            {['day', 'week', 'month', 'all'].map((range) => (
+            {['day', 'week', 'month', 'year', 'all'].map((range) => (
               <button
                 key={range}
-                onClick={() => setFilters(prev => ({ ...prev, timeRange: range as any }))}
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, timeRange: range as any }));
+                  setShowCustomDatePicker(false);
+                }}
                 className={`text-xs px-3 py-1 rounded-full transition-colors ${
                   filters.timeRange === range
                     ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
                     : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
                 }`}
               >
-                {range === 'day' ? 'Today' : range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
+                {range === 'day' ? 'Today' : 
+                 range === 'week' ? 'This Week' : 
+                 range === 'month' ? 'This Month' : 
+                 range === 'year' ? 'This Year' : 'All Time'}
               </button>
             ))}
+            {/* Custom Date Button */}
+            <button
+              onClick={() => {
+                setFilters(prev => ({ ...prev, timeRange: 'custom' }));
+                setShowCustomDatePicker(true);
+              }}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                filters.timeRange === 'custom'
+                  ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
+                  : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
+              }`}
+            >
+              Custom
+            </button>
           </div>
+          
+          {/* Custom Date Picker */}
+          {showCustomDatePicker && (
+            <div className="flex items-center gap-3 ml-5 mt-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">From:</span>
+                <input
+                  type="date"
+                  value={filters.customDateFrom || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, customDateFrom: e.target.value }))}
+                  className="text-xs bg-slate-700/50 border border-slate-600/50 rounded px-2 py-1 text-white focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">To:</span>
+                <input
+                  type="date"
+                  value={filters.customDateTo || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, customDateTo: e.target.value }))}
+                  className="text-xs bg-slate-700/50 border border-slate-600/50 rounded px-2 py-1 text-white focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
+              <button
+                onClick={() => setShowCustomDatePicker(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* LinkedIn Premium Info Panel */}
           {showLinkedInInfo && linkedInInfo && (
@@ -454,57 +631,34 @@ const LearningAgent = () => {
         </div>
       </div>
 
-      {/* AI Topic Summary Section */}
-      {topicSummary && showSummary && (
-        <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2 text-purple-300">
-              <Sparkles className="w-5 h-5" />
-              AI Topic Summary: {searchQuery}
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => copyToClipboard(topicSummary, 'summary')}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                {copiedId === 'summary' ? (
-                  <><Check className="w-3 h-3" /> Copied!</>
-                ) : (
-                  <><Copy className="w-3 h-3" /> Copy</>
-                )}
-              </button>
-              <button
-                onClick={() => setShowSummary(false)}
-                className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                Hide
-              </button>
+      {/* AI Summary Modal */}
+      <AISummaryModal
+        isOpen={showSummary && !!topicSummary}
+        onClose={() => setShowSummary(false)}
+        topic={searchQuery}
+        summary={topicSummary || ''}
+        onCopy={(text) => copyToClipboard(text, 'summary')}
+        isCopied={copiedId === 'summary'}
+      />
+
+      {/* AI Summary Preview Card (shows when summary exists but modal is closed) */}
+      {topicSummary && !showSummary && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 backdrop-blur-lg rounded-xl p-4 border border-amber-500/20 cursor-pointer hover:border-amber-500/40 transition-all"
+          onClick={() => setShowSummary(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">AI Summary Available</h3>
+                <p className="text-sm text-slate-400">Click to view the full interactive summary for "{searchQuery}"</p>
+              </div>
             </div>
-          </div>
-          <div className="text-sm text-slate-200 space-y-3 summary-content prose prose-invert max-w-none">
-            {topicSummary.split('\n').map((line, idx) => {
-              if (line.startsWith('**') && line.endsWith('**')) {
-                return (
-                  <h3 key={idx} className="font-bold text-purple-300 mt-4 first:mt-0">
-                    {line.replace(/\*\*/g, '')}
-                  </h3>
-                );
-              }
-              if (line.startsWith('•') || line.startsWith('-') || /^\d+\./.test(line.trim())) {
-                return (
-                  <p key={idx} className="ml-4 text-slate-300">
-                    {line}
-                  </p>
-                );
-              }
-              if (line.trim() === '---' || line.trim() === '') {
-                return <hr key={idx} className="border-purple-500/30 my-2" />;
-              }
-              if (line.trim()) {
-                return <p key={idx} className="text-slate-200">{line}</p>;
-              }
-              return null;
-            })}
+            <button className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-4 py-2 rounded-lg transition-colors">
+              Open Summary
+            </button>
           </div>
         </div>
       )}
@@ -635,7 +789,7 @@ const LearningAgent = () => {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => handleSummarize(resource.id)}
                     disabled={resource.isSummarizing || !!resource.summary}
@@ -676,6 +830,22 @@ const LearningAgent = () => {
                     </button>
                   )}
 
+                  <button
+                    onClick={() => handleSaveArticle(resource)}
+                    disabled={savedArticles.some(a => a.id === resource.id)}
+                    className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                      savedArticles.some(a => a.id === resource.id)
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
+                    }`}
+                  >
+                    {savedArticles.some(a => a.id === resource.id) ? (
+                      <><Check className="w-3 h-3" /> Saved</>
+                    ) : (
+                      <><Save className="w-3 h-3" /> Save</>
+                    )}
+                  </button>
+
                   <a
                     href={resource.url}
                     target="_blank"
@@ -692,29 +862,6 @@ const LearningAgent = () => {
         </div>
       )}
 
-      {/* Activity Log */}
-      {logs.length > 0 && (
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-          <h2 className="text-lg font-semibold mb-4">Activity Log</h2>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {logs.map((log, idx) => (
-              <div
-                key={idx}
-                className={`text-sm p-2 rounded-lg ${
-                  log.type === 'success' ? 'bg-green-500/20 text-green-200' :
-                  log.type === 'error' ? 'bg-red-500/20 text-red-200' :
-                  log.type === 'warning' ? 'bg-yellow-500/20 text-yellow-200' :
-                  'bg-blue-500/20 text-blue-200'
-                }`}
-              >
-                <span className="text-slate-400 text-xs mr-2">[{log.timestamp}]</span>
-                {log.message}
-              </div>
-            ))}
-            <div ref={logsEndRef} />
-          </div>
-        </div>
-      )}
 
       {/* Empty State */}
       {resources.length === 0 && !isSearching && (

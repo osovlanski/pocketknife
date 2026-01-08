@@ -24,7 +24,7 @@ npm run dev
 
 ---
 
-## 📝 Before First Run (30 seconds)
+## 📝 Before First Run
 
 ### ⚠️ IMPORTANT: Upgrade Node.js First (Required: Node 18+)
 
@@ -55,17 +55,60 @@ nvm use 20
 node --version  # Should show v20.x
 ```
 
-**After upgrading, run:**
+### 2. Configure Database (PostgreSQL)
 ```powershell
+# Create a PostgreSQL database (using psql or your preferred tool)
+# Then update backend/.env with your connection string:
+DATABASE_URL="postgresql://user:password@localhost:5432/pocketknife"
+
+# Run database migrations
 cd backend
-npm install  # Reinstall with modern packages
-npm run dev  # Should work perfectly now!
+npx prisma migrate dev
 ```
 
-### 2. Edit `backend\.env` - Update these 2 lines:
+### 3. Edit `backend\.env` - Update these lines:
 ```env
 GMAIL_USER_EMAIL=your-email@gmail.com
 ALERT_EMAIL=your-email@gmail.com
+DATABASE_URL=postgresql://user:password@localhost:5432/pocketknife
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### 4. Enable Google APIs (in Google Cloud Console)
+- Gmail API
+- Google Drive API  
+- **Google Calendar API** (required for ToDo agent calendar sync)
+- **Custom Search API** (optional, for enhanced search in all agents)
+
+### 5. (Optional) Google Custom Search Setup
+
+For enhanced web search in Shopping, Travel, Learning, and Problems agents:
+
+1. **Create Custom Search Engine:**
+   - Go to [cse.google.com](https://cse.google.com)
+   - Create a new search engine
+   - Under "Sites to search", add: `*.zap.co.il`, `*.ksp.co.il`, `*.tripadvisor.com`, etc.
+   - Get the **Search Engine ID** (cx parameter)
+
+2. **Get API Key:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Enable "Custom Search API"
+   - Create an API key
+
+3. **Add to `.env`:**
+   ```env
+   GOOGLE_CSE_API_KEY=your-api-key
+   GOOGLE_CSE_ID=your-search-engine-id
+   ```
+
+**Free Tier:** 100 queries/day shared across all agents. Falls back to scrapers when exhausted.
+
+**After configuring, run:**
+```powershell
+cd backend
+npm install
+npx prisma migrate dev  # Set up database
+npm run dev
 ```
 
 Everything else is already configured!

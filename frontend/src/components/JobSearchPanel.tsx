@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
 import { extractTextFromFile } from '../utils/fileParser';
 import { JobSearchFilters } from '../types';
+import { API_BASE_URL } from '../config';
 
 interface JobSearchPanelProps {
   onCVUploaded: (cvData: any) => void;
@@ -64,7 +65,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
 
     setUploading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/jobs/cv/upload', {
+      const response = await fetch(`${API_BASE_URL}/jobs/cv/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText })

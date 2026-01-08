@@ -5,10 +5,19 @@ import driveService from '../services/email/driveService';
 import emailProcessor from '../utils/emailProcessor';
 import emailSchedulerService from '../services/email/emailSchedulerService';
 import processControlService from '../services/core/processControlService';
+import emailPatternService from '../services/email/emailPatternService';
 // Import notification services only for test endpoint
 import emailNotificationService from '../services/email/emailNotificationService';
 import discordNotificationService from '../services/notifications/discordNotificationService';
 import telegramNotificationService from '../services/notifications/telegramNotificationService';
+
+// Helper for consistent logging
+const emitLog = (io: any, message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+  if (io) {
+    io.emit('log', { message, type, agent: 'email' });
+    io.emit('email-log', { message, type }); // Keep legacy event for backward compatibility
+  }
+};
 
 export const classifyEmail = async (req: Request, res: Response) => {
     const { email } = req.body;
@@ -71,15 +80,11 @@ export const processAllEmails = async (req: Request, res: Response) => {
         processControlService.startProcess('email');
         
         console.log('📧 Starting to process all emails...');
-        io.emit('log', { message: '🚀 Starting email processing...', type: 'info' });
+        emitLog(io, '🚀 Starting email processing...', 'info');
         
         const emails = await gmailService.getUnprocessedEmails();
         console.log(`📬 Found ${emails.length} unprocessed emails`);
-        io.emit('log', { 
-            message: `📬 Found ${emails.length} unread email(s) to process`, 
-            type: 'info',
-            details: { total: emails.length }
-        });
+        emitLog(io, `📬 Found ${emails.length} unread email(s) to process`, 'info');
         
         const results = {
             processed: 0,
@@ -107,14 +112,32 @@ export const processAllEmails = async (req: Request, res: Response) => {
             
             try {
                 console.log(`Processing email: ${email.subject}`);
-                io.emit('log', { 
-                    message: `📧 [${emailNum}/${emails.length}] Processing: "${email.subject.substring(0, 60)}${email.subject.length > 60 ? '...' : ''}"`, 
-                    type: 'info',
-                    details: { current: emailNum, total: emails.length, remaining }
-                });
+                emitLog(io, `📧 [${emailNum}/${emails.length}] Processing: "${email.subject.substring(0, 60)}${email.subject.length > 60 ? '...' : ''}"`, 'info');
                 
-                const classification = await claudeService.classifyEmail(email);
-                console.log(`Classification: ${classification.category} (${classification.confidence})`);
+                // Check for learned patterns first (faster than AI classification)
+                const patternMatch = await emailPatternService.findMatchingPattern(email);
+                let classification;
+                let usedPattern = false;
+                
+                if (patternMatch && patternMatch.confidence >= 0.8) {
+                  // Use learned pattern for classification
+                  classification = {
+                    category: patternMatch.category,
+                    confidence: patternMatch.confidence,
+                    customTag: patternMatch.customTag,
+                    reasoning: `Matched learned pattern${patternMatch.customTag ? `: ${patternMatch.customTag}` : ''}`
+                  };
+                  usedPattern = true;
+                  emitLog(io, `🧠 Using learned pattern: ${patternMatch.customTag || patternMatch.category}`, 'info');
+                } else {
+                  // Fall back to AI classification
+                  classification = await claudeService.classifyEmail(email);
+                  
+                  // Record this email for future pattern learning
+                  await emailPatternService.recordEmailForLearning(email, classification);
+                }
+                
+                console.log(`Classification: ${classification.category} (${classification.confidence})${usedPattern ? ' [from pattern]' : ''}`);
                 
                 // Check for stop signal after classification (API call)
                 if (processControlService.shouldStop('email')) {
@@ -127,56 +150,29 @@ export const processAllEmails = async (req: Request, res: Response) => {
                     // Delegate to emailProcessor for consistent business logic
                     switch (classification.category) {
                         case 'INVOICE':
-                            io.emit('log', { 
-                                message: `📄 Classified as INVOICE (${Math.round(classification.confidence * 100)}% confident)`, 
-                                type: 'success',
-                                details: { category: 'INVOICE', confidence: classification.confidence }
-                            });
+                            emitLog(io, `📄 Classified as INVOICE (${Math.round(classification.confidence * 100)}% confident)`, 'success');
                             const invoiceResult = await emailProcessor.handleInvoice(email, classification);
-                            io.emit('log', { 
-                                message: `💾 Invoice saved to Google Drive: ${classification.suggested_filename || 'invoice.pdf'}`, 
-                                type: 'success',
-                                details: { filename: classification.suggested_filename }
-                            });
+                            emitLog(io, `💾 Invoice saved to Google Drive: ${classification.suggested_filename || 'invoice.pdf'}`, 'success');
                             results.invoices++;
                             break;
                         
                         case 'JOB_OFFER':
-                            io.emit('log', { 
-                                message: `💼 Classified as JOB OFFER (${Math.round(classification.confidence * 100)}% confident)`, 
-                                type: 'success',
-                                details: { category: 'JOB_OFFER', confidence: classification.confidence }
-                            });
+                            emitLog(io, `💼 Classified as JOB OFFER (${Math.round(classification.confidence * 100)}% confident)`, 'success');
                             const jobResult = await emailProcessor.handleJobOffer(email, classification);
-                            io.emit('log', { 
-                                message: `📧 Job offer notification sent to ${process.env.ALERT_EMAIL}`, 
-                                type: 'success',
-                                details: { email: process.env.ALERT_EMAIL }
-                            });
+                            emitLog(io, `📧 Job offer notification sent to ${process.env.ALERT_EMAIL}`, 'success');
                             results.jobOffers++;
                             break;
                         
                         case 'SPAM':
-                            io.emit('log', { 
-                                message: `🗑️ Classified as SPAM (${Math.round(classification.confidence * 100)}% confident) - Moving to spam folder`, 
-                                type: 'warning',
-                                details: { category: 'SPAM', confidence: classification.confidence }
-                            });
+                            emitLog(io, `🗑️ Classified as SPAM (${Math.round(classification.confidence * 100)}% confident) - Moving to spam folder`, 'warning');
                             await emailProcessor.handleSpam(email);
                             results.spam++;
                             break;
                         
                         case 'OFFICIAL':
-                            io.emit('log', { 
-                                message: `🏛️ Classified as OFFICIAL (${Math.round(classification.confidence * 100)}% confident) - Government/Municipality email`, 
-                                type: 'success',
-                                details: { category: 'OFFICIAL', confidence: classification.confidence }
-                            });
+                            emitLog(io, `🏛️ Classified as OFFICIAL (${Math.round(classification.confidence * 100)}% confident) - Government/Municipality email`, 'success');
                             await emailProcessor.handleOfficial(email, classification);
-                            io.emit('log', { 
-                                message: `📁 Official email saved and labeled`, 
-                                type: 'success'
-                            });
+                            emitLog(io, '📁 Official email saved and labeled', 'success');
                             results.official++;
                             break;
                     }
@@ -184,11 +180,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
                     await gmailService.addLabel(email.id, 'processed');
                     results.processed++;
                     
-                    io.emit('log', { 
-                        message: `✅ Email ${emailNum}/${emails.length} processed (${remaining} remaining)`, 
-                        type: 'info',
-                        details: { current: emailNum, total: emails.length, remaining }
-                    });
+                    emitLog(io, `✅ Email ${emailNum}/${emails.length} processed (${remaining} remaining)`, 'info');
                 }
             } catch (error: any) {
                 console.error(`❌ Error processing email ${email.id}:`, error);
@@ -203,11 +195,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
                     console.error('❌ Authentication Error - Check API key');
                 }
                 
-                io.emit('log', { 
-                    message: `❌ Error processing email: ${errorMsg}`, 
-                    type: 'error',
-                    details: { error: errorMsg }
-                });
+                emitLog(io, `❌ Error processing email: ${errorMsg}`, 'error');
                 
                 results.errors++;
             }
@@ -217,18 +205,46 @@ export const processAllEmails = async (req: Request, res: Response) => {
         processControlService.completeProcess('email', wasStopped);
 
         if (wasStopped) {
-            io.emit('log', { 
-                message: `⏹️ Processing stopped. Processed: ${results.processed}/${emails.length} emails before stopping.`, 
-                type: 'warning',
-                details: results
-            });
+            emitLog(io, `⏹️ Processing stopped. Processed: ${results.processed}/${emails.length} emails before stopping.`, 'warning');
         } else {
             console.log('✅ All emails processed:', results);
-            io.emit('log', { 
-                message: `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 
-                type: 'success',
-                details: results
-            });
+            emitLog(io, `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 'success');
+            
+            // Learn patterns from this batch (improved sender pattern learning)
+            if (emails.length >= 3 && !wasStopped) {
+                try {
+                    emitLog(io, '🧠 Learning sender patterns for auto-tagging...', 'info');
+                    const learnedPatterns = await emailPatternService.learnPatternsFromBatch(emails);
+                    
+                    if (learnedPatterns.length > 0) {
+                        emitLog(io, `✨ Learned ${learnedPatterns.length} new sender patterns`, 'success');
+                        learnedPatterns.forEach(pattern => {
+                            const tag = pattern.customTag || pattern.category;
+                            emitLog(io, `  📋 ${pattern.senderDomain} → ${tag}`, 'info');
+                        });
+                        (results as any).learnedPatterns = learnedPatterns;
+                    }
+                } catch (patternError) {
+                    console.warn('Pattern learning failed:', patternError);
+                }
+                
+                // Also analyze patterns for additional rule suggestions
+                try {
+                    const patternAnalysis = await claudeService.analyzeEmailPatterns(emails);
+                    
+                    if (patternAnalysis.suggestedRules.length > 0) {
+                        emitLog(io, `💡 Found ${patternAnalysis.suggestedRules.length} potential new rules`, 'success');
+                        patternAnalysis.suggestedRules.forEach(rule => {
+                            emitLog(io, `  📋 ${rule.type}: "${rule.pattern}" → ${rule.suggestedCategory} (${Math.round(rule.confidence * 100)}%)`, 'info');
+                        });
+                    }
+                    
+                    // Add suggested rules to response
+                    (results as any).suggestedRules = patternAnalysis.suggestedRules;
+                } catch (patternError) {
+                    console.warn('Pattern analysis failed:', patternError);
+                }
+            }
         }
 
         res.status(200).json({ 
@@ -408,6 +424,74 @@ export const updateSchedule = async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ 
             message: 'Error updating schedule', 
+            error: (error as Error).message 
+        });
+    }
+};
+
+// ============ Email Pattern Learning Endpoints ============
+
+export const getLearnedPatterns = async (req: Request, res: Response) => {
+    try {
+        const patterns = await emailPatternService.getLearnedPatterns();
+        res.status(200).json({ patterns });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error getting learned patterns', 
+            error: (error as Error).message 
+        });
+    }
+};
+
+export const approvePattern = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const success = await emailPatternService.approvePattern(id);
+        if (success) {
+            res.status(200).json({ message: 'Pattern approved successfully' });
+        } else {
+            res.status(404).json({ message: 'Pattern not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error approving pattern', 
+            error: (error as Error).message 
+        });
+    }
+};
+
+export const deletePattern = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const success = await emailPatternService.deletePattern(id);
+        if (success) {
+            res.status(200).json({ message: 'Pattern deleted successfully' });
+        } else {
+            res.status(404).json({ message: 'Pattern not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error deleting pattern', 
+            error: (error as Error).message 
+        });
+    }
+};
+
+export const createCustomPattern = async (req: Request, res: Response) => {
+    try {
+        const { senderDomainOrEmail, category, customTag } = req.body;
+        if (!senderDomainOrEmail || !category) {
+            return res.status(400).json({ message: 'senderDomainOrEmail and category are required' });
+        }
+        const success = await emailPatternService.createCustomPattern(senderDomainOrEmail, category, customTag);
+        if (success) {
+            res.status(201).json({ message: 'Custom pattern created successfully' });
+        } else {
+            res.status(500).json({ message: 'Failed to create custom pattern' });
+        }
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error creating custom pattern', 
             error: (error as Error).message 
         });
     }

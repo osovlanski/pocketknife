@@ -1,0 +1,861 @@
+/**
+ * Shopping Agent Styles
+ * 
+ * Modular CSS for the Shopping agent component.
+ */
+
+/* ============================================
+   CONTAINER & HEADER
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, rgb(251, 191, 36), rgb(251, 146, 60));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgb(203, 213, 225);
+}
+
+/* ============================================
+   MODE TOGGLE
+   ============================================ */
+.modeToggle {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.modeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeButtonExplicit {
+  background: linear-gradient(to right, rgb(245, 158, 11), rgb(249, 115, 22));
+  color: white;
+}
+
+.modeButtonHobby {
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(236, 72, 153));
+  color: white;
+}
+
+.modeButtonInactive {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(203, 213, 225);
+}
+
+.modeButtonInactive:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   SEARCH PANEL
+   ============================================ */
+.searchPanel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.searchRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1rem;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgb(245, 158, 11);
+}
+
+.searchInput::placeholder {
+  color: rgb(148, 163, 184);
+}
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.searchButtonPrimary {
+  background: linear-gradient(to right, rgb(245, 158, 11), rgb(249, 115, 22));
+  color: white;
+}
+
+.searchButtonPrimary:hover {
+  opacity: 0.9;
+}
+
+.searchButtonStop {
+  background: rgb(239, 68, 68);
+  color: white;
+}
+
+.searchButtonStop:hover {
+  background: rgb(220, 38, 38);
+}
+
+/* ============================================
+   SOURCES
+   ============================================ */
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.sourcesLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.sourceButton {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sourceButtonActive {
+  color: white;
+}
+
+.sourceButtonInactive {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(148, 163, 184);
+}
+
+.sourceEbay { background: rgb(234, 179, 8); }
+.sourceAliexpress { background: rgb(249, 115, 22); }
+.sourceAmazon { background: rgb(59, 130, 246); }
+.sourceTelegram { background: rgb(6, 182, 212); }
+.sourceIsraeli { 
+  background: linear-gradient(135deg, rgb(59, 130, 246), rgb(255, 255, 255));
+  color: rgb(30, 41, 59) !important;
+  font-weight: 600;
+}
+
+/* ============================================
+   HOBBIES
+   ============================================ */
+.hobbySection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hobbyLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.hobbyInputRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.hobbyAddButton {
+  padding: 0.75rem 1rem;
+  background: rgb(139, 92, 246);
+  border-radius: 0.75rem;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.hobbyAddButton:hover {
+  background: rgb(124, 58, 237);
+}
+
+.hobbyTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hobbyTag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+  border-radius: 0.5rem;
+}
+
+.hobbyTagRemove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hobbyTagRemove:hover {
+  color: white;
+}
+
+.hobbyTextarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  resize: none;
+  height: 6rem;
+}
+
+.hobbyTextarea:focus {
+  outline: none;
+  border-color: rgb(139, 92, 246);
+}
+
+.hobbySearchButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(236, 72, 153));
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.hobbySearchButton:hover {
+  opacity: 0.9;
+}
+
+.hobbySearchButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   FILTERS
+   ============================================ */
+.filtersToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.filtersToggle:hover {
+  color: white;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.filterGroup label {
+  display: block;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.25rem;
+}
+
+.filterInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+.filterSelect option {
+  background: rgb(30, 41, 59);
+  color: white;
+}
+
+.filterSlider {
+  width: 100%;
+}
+
+.filterValue {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* ============================================
+   QUICK ACTIONS
+   ============================================ */
+.quickActions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.quickActionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.quickActionInactive {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.quickActionInactive:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.quickActionSaved {
+  background: rgb(236, 72, 153);
+}
+
+.quickActionAlerts {
+  background: rgb(59, 130, 246);
+}
+
+/* ============================================
+   PANELS (SAVED, ALERTS)
+   ============================================ */
+.savedPanel {
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.alertsPanel {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.suggestionsPanel {
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.panelTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.panelEmpty {
+  text-align: center;
+  padding: 1rem;
+  color: rgb(148, 163, 184);
+}
+
+/* ============================================
+   PRODUCT GRID
+   ============================================ */
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ============================================
+   PRODUCT CARD
+   ============================================ */
+.productCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.productCard:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.productImage {
+  position: relative;
+  height: 12rem;
+  background: linear-gradient(to bottom right, rgb(51, 65, 85), rgb(30, 41, 59));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.productImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productImagePlaceholder {
+  width: 4rem;
+  height: 4rem;
+  color: rgb(71, 85, 105);
+}
+
+.dealScoreBadge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: white;
+}
+
+.discountBadge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgb(239, 68, 68);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+}
+
+.sourceBadge {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.productContent {
+  padding: 1rem;
+}
+
+.productTitle {
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 3rem;
+  color: white;
+}
+
+.productReason {
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.productPricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.productPrice {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(52, 211, 153);
+}
+
+.productOriginalPrice {
+  font-size: 0.875rem;
+  color: rgb(100, 116, 139);
+  text-decoration: line-through;
+}
+
+.productCategory {
+  margin-top: 0.5rem;
+}
+
+.productCategoryBadge {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.productActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.viewDealButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: rgb(245, 158, 11);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.viewDealButton:hover {
+  background: rgb(217, 119, 6);
+}
+
+.actionIconButton {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.saveButton {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.saveButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.saveButtonActive {
+  background: rgb(236, 72, 153);
+}
+
+.alertButton {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.alertButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   LOADING & EMPTY STATE
+   ============================================ */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: rgb(251, 191, 36);
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  color: rgb(148, 163, 184);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 0;
+  color: rgb(148, 163, 184);
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  opacity: 0.3;
+}
+
+.emptyTitle {
+  font-size: 1.125rem;
+}
+
+.emptyHint {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   RESULTS
+   ============================================ */
+.resultsTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+/* ============================================
+   PRICE ALERT MODAL
+   ============================================ */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: rgb(30, 41, 59);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.modalPrice {
+  color: rgb(148, 163, 184);
+  margin-bottom: 1rem;
+}
+
+.modalPriceValue {
+  color: white;
+  font-weight: 700;
+}
+
+.modalInputGroup {
+  margin-bottom: 1rem;
+}
+
+.modalInputLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.25rem;
+}
+
+.modalInputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modalInputIcon {
+  color: rgb(148, 163, 184);
+}
+
+.modalInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.modalInput:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+}
+
+.modalSavings {
+  font-size: 0.875rem;
+  color: rgb(100, 116, 139);
+  margin-top: 0.5rem;
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modalButton {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.modalButtonCancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.modalButtonCancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modalButtonConfirm {
+  background: rgb(59, 130, 246);
+  color: white;
+}
+
+.modalButtonConfirm:hover {
+  background: rgb(37, 99, 235);
+}
+
+/* ============================================
+   ALERTS LIST
+   ============================================ */
+.alertsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alertCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alertInfo p:first-child {
+  font-weight: 600;
+  color: white;
+}
+
+.alertInfo p:last-child {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.alertDrop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(96, 165, 250);
+}
+
+/* ============================================
+   ICON SIZES
+   ============================================ */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.iconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconXSmall {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.iconLarge {
+  width: 3rem;
+  height: 3rem;
+}
+

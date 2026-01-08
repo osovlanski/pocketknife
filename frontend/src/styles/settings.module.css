@@ -1,0 +1,510 @@
+/* =============================================================================
+   SETTINGS PAGE STYLES
+   ============================================================================= */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Header
+   ----------------------------------------------------------------------------- */
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.headerTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.headerTitleText {
+  background: linear-gradient(to right, rgb(203, 213, 225), rgb(241, 245, 249));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.headerIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: rgb(148, 163, 184);
+}
+
+.headerSubtitle {
+  color: rgb(148, 163, 184);
+}
+
+/* -----------------------------------------------------------------------------
+   Layout
+   ----------------------------------------------------------------------------- */
+
+.layout {
+  display: flex;
+  gap: 1.5rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Sidebar
+   ----------------------------------------------------------------------------- */
+
+.sidebar {
+  width: 16rem;
+  flex-shrink: 0;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebarItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: rgb(148, 163, 184);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebarItem:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebarItemActive {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebarItemIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Content Panel
+   ----------------------------------------------------------------------------- */
+
+.content {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.sectionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Form Groups
+   ----------------------------------------------------------------------------- */
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.formLabel {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  color: white;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.formInput:focus {
+  border-color: rgb(59, 130, 246);
+}
+
+.formInputDisabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgb(148, 163, 184);
+  cursor: not-allowed;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Role/Status Badges
+   ----------------------------------------------------------------------------- */
+
+.statusBadge {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+}
+
+.statusBadgeSuperAdmin {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(252, 211, 77);
+}
+
+.statusBadgeAdmin {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+}
+
+.statusBadgeUser {
+  background: rgba(100, 116, 139, 0.2);
+  color: rgb(203, 213, 225);
+}
+
+.statusBadgeActive {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgb(110, 231, 183);
+}
+
+/* -----------------------------------------------------------------------------
+   Integration Cards
+   ----------------------------------------------------------------------------- */
+
+.integrationCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.integrationCardDisabled {
+  opacity: 0.5;
+}
+
+.integrationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.integrationInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.integrationIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.integrationIconGoogle {
+  background: white;
+}
+
+.integrationIconTelegram {
+  background: rgb(59, 130, 246);
+}
+
+.integrationTitle {
+  font-weight: 700;
+}
+
+.integrationDescription {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.integrationPermissions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.integrationPermissionsTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.5rem;
+}
+
+.integrationTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.integrationTag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.integrationTagGmail {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(147, 197, 253);
+}
+
+.integrationTagCalendar {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgb(110, 231, 183);
+}
+
+.integrationTagDrive {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(252, 211, 77);
+}
+
+/* -----------------------------------------------------------------------------
+   Toggle Buttons
+   ----------------------------------------------------------------------------- */
+
+.toggleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toggleButton {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgb(203, 213, 225);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.toggleButtonActive {
+  background: rgb(139, 92, 246);
+  color: white;
+}
+
+.toggleButtonSuccess {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.toggleButtonWarning {
+  background: rgb(245, 158, 11);
+  color: white;
+}
+
+.toggleButtonDanger {
+  background: rgb(239, 68, 68);
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   Star Rating
+   ----------------------------------------------------------------------------- */
+
+.starGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.starButton {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgb(203, 213, 225);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.starButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.starButtonActive {
+  background: rgb(245, 158, 11);
+  color: white;
+}
+
+/* -----------------------------------------------------------------------------
+   Range Slider
+   ----------------------------------------------------------------------------- */
+
+.rangeSlider {
+  width: 100%;
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.rangeSlider::-webkit-slider-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: rgb(139, 92, 246);
+  border-radius: 9999px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+.rangeHint {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+  margin-top: 0.25rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Switch Toggle
+   ----------------------------------------------------------------------------- */
+
+.switchContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+}
+
+.switchInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.switchTitle {
+  font-weight: 500;
+}
+
+.switchDescription {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.switch {
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.switchOff {
+  background: rgb(71, 85, 105);
+}
+
+.switchOn {
+  background: rgb(16, 185, 129);
+}
+
+.switchThumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: white;
+  border-radius: 9999px;
+  transition: transform 0.2s ease;
+}
+
+.switchThumbOff {
+  transform: translateX(0.125rem);
+}
+
+.switchThumbOn {
+  transform: translateX(1.625rem);
+}
+
+/* -----------------------------------------------------------------------------
+   Checkbox
+   ----------------------------------------------------------------------------- */
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------------------------
+   Save Button
+   ----------------------------------------------------------------------------- */
+
+.footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.saveButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveButtonDefault {
+  background: rgb(59, 130, 246);
+  color: white;
+}
+
+.saveButtonDefault:hover {
+  background: rgb(37, 99, 235);
+}
+
+.saveButtonSuccess {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.saveButtonIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+
+

@@ -61,3 +61,92 @@ export interface JobSearchFilters {
     experienceLevel?: 'junior' | 'mid' | 'senior' | 'any';
     jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship' | 'any';
 }
+
+// ToDo Agent Types
+export interface Task {
+    id: string;
+    title: string;
+    description?: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    dueDate?: string;
+    dueTime?: string;
+    duration?: number;
+    isRecurring: boolean;
+    recurrenceRule?: string;
+    category?: string;
+    tags: string[];
+    syncEnabled: boolean;
+    sourceType: 'manual' | 'routine' | 'suggested';
+    confidence?: number;
+    completedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface DailyAgenda {
+    date: string;
+    tasks: Task[];
+    routineTasks: Task[];
+    suggestedTasks: Task[];
+    totalDuration: number;
+    completedCount: number;
+}
+
+export interface RoutinePattern {
+    id: string;
+    patternName: string;
+    description?: string;
+    dayOfWeek: string[];
+    timeSlot?: string;
+    preferredTime?: string;
+    taskTemplate: Record<string, unknown>;
+    frequency: number;
+    confidence: number;
+    isApproved: boolean;
+}
+
+// Shopping Agent Types
+export interface Product {
+    id: string;
+    title: string;
+    description?: string;
+    price: number;
+    originalPrice?: number;
+    currency: string;
+    discount?: number;
+    source: string;
+    sourceUrl: string;
+    sourceId?: string;
+    imageUrl?: string;
+    dealScore?: number;
+    dealReason?: string;
+    category?: string;
+    tags: string[];
+    isSaved: boolean;
+    isPurchased: boolean;
+    notifyOnDrop: boolean;
+    targetPrice?: number;
+    createdAt: string;
+}
+
+export interface ProductSuggestion {
+    product: Product;
+    reason: string;
+    matchScore: number;
+}
+
+export interface PriceAlert {
+    id: string;
+    productId: string;
+    targetPrice: number;
+    currentPrice: number;
+    isTriggered: boolean;
+    triggeredAt?: string;
+}
+
+export interface UserInterest {
+    type: 'hobby' | 'category' | 'brand' | 'keyword';
+    value: string;
+    weight?: number;
+}

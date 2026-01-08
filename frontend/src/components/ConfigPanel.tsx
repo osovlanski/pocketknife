@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 
-const ConfigPanel = ({ config, setConfig }) => {
+interface ConfigPanelProps {
+  config: {
+    whatsappNumber: string;
+    checkInterval: number;
+  };
+  setConfig: (config: { whatsappNumber: string; checkInterval: number }) => void;
+}
+
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, setConfig }) => {
   const [whatsappNumber, setWhatsappNumber] = useState(config.whatsappNumber);
   const [checkInterval, setCheckInterval] = useState(config.checkInterval);
 

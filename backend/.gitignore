@@ -43,3 +43,12 @@ temp/
 .vscode/
 *.swp
 
+
+
+/src/generated/prisma
+
+
+
+
+
+

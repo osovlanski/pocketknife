@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { fetchEmails, processEmail } from '../services/api';
 
+interface LogEntry {
+  message: string;
+  type: string;
+  timestamp: string;
+}
+
 const useAgent = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [stats, setStats] = useState({ invoices: 0, jobOffers: 0, spam: 0, processed: 0 });
 
-  const addLog = (message, type = 'info') => {
+  const addLog = (message: string, type = 'info') => {
     setLogs(prev => [...prev, { message, type, timestamp: new Date().toLocaleTimeString() }].slice(-50));
   };
 

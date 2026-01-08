@@ -1,0 +1,432 @@
+/**
+ * Learning Agent Styles
+ * 
+ * Modular CSS for the Learning agent component.
+ */
+
+/* ============================================
+   CONTAINER & HEADER
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, rgb(129, 140, 248), rgb(167, 139, 250));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgb(203, 213, 225);
+}
+
+/* ============================================
+   SEARCH SECTION
+   ============================================ */
+.searchPanel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.searchRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1rem;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgb(129, 140, 248);
+}
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, rgb(99, 102, 241), rgb(139, 92, 246));
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.searchButton:hover {
+  opacity: 0.9;
+}
+
+.searchButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   SUGGESTED TOPICS
+   ============================================ */
+.suggestedTopics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.topicChip {
+  padding: 0.25rem 0.75rem;
+  background: rgba(99, 102, 241, 0.2);
+  color: rgb(165, 180, 252);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topicChip:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================
+   SOURCES & FILTERS
+   ============================================ */
+.sourcesPanel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sourcesTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.75rem;
+}
+
+.sourcesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.sourceButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sourceActive {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgb(99, 102, 241);
+  color: white;
+}
+
+.sourceInactive {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgb(148, 163, 184);
+}
+
+.sourceInactive:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.premiumBadge {
+  font-size: 0.625rem;
+  background: linear-gradient(to right, rgb(251, 191, 36), rgb(245, 158, 11));
+  color: rgb(30, 41, 59);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+/* ============================================
+   TIME RANGE
+   ============================================ */
+.timeRangeRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.timeRangeButton {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeRangeActive {
+  background: rgb(99, 102, 241);
+  color: white;
+  border-color: transparent;
+}
+
+.timeRangeInactive {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgb(148, 163, 184);
+}
+
+/* ============================================
+   RESOURCE CARDS
+   ============================================ */
+.resourcesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resourceCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.resourceCard:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.resourceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.resourceTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+}
+
+.resourceTitle:hover {
+  color: rgb(165, 180, 252);
+}
+
+.resourceMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+.resourceSource {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+}
+
+.resourceDescription {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+  line-height: 1.5;
+}
+
+.resourceTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.resourceTag {
+  padding: 0.125rem 0.5rem;
+  background: rgba(99, 102, 241, 0.2);
+  color: rgb(165, 180, 252);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.resourceActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.resourceActionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resourceActionButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.summaryBox {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.summaryTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(165, 180, 252);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summaryText {
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+  line-height: 1.6;
+}
+
+/* ============================================
+   LOADING & EMPTY STATE
+   ============================================ */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: rgb(129, 140, 248);
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  color: rgb(148, 163, 184);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 0;
+  color: rgb(148, 163, 184);
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  opacity: 0.3;
+}
+
+/* ============================================
+   TOPIC SUMMARY
+   ============================================ */
+.topicSummaryPanel {
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.topicSummaryTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.topicSummaryContent {
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* ============================================
+   SAVED ARTICLES
+   ============================================ */
+.savedPanel {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.savedTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+/* ============================================
+   ICONS
+   ============================================ */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.iconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconLarge {
+  width: 2rem;
+  height: 2rem;
+}
+
+
+

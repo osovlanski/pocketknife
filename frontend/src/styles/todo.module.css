@@ -1,0 +1,816 @@
+/**
+ * ToDo Agent Styles
+ * 
+ * Modular CSS for the ToDo agent component.
+ */
+
+/* ============================================
+   HEADER
+   ============================================ */
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, rgb(52, 211, 153), rgb(45, 212, 191));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgb(203, 213, 225);
+}
+
+/* ============================================
+   ACTION BUTTONS
+   ============================================ */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButtonPrimary {
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(20, 184, 166));
+  color: white;
+}
+
+.actionButtonPrimary:hover {
+  opacity: 0.9;
+}
+
+.actionButtonSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.actionButtonSecondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.actionButtonSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButtonActive {
+  background: rgb(139, 92, 246);
+}
+
+/* ============================================
+   DATE NAVIGATION
+   ============================================ */
+.dateNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.dateNavButton {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dateNavButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dateTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  min-width: 200px;
+  text-align: center;
+  color: white;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.progressCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.5rem;
+}
+
+.progressBar {
+  height: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(20, 184, 166));
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+
+.progressDuration {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   TASK LIST
+   ============================================ */
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: rgb(52, 211, 153);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 0;
+  color: rgb(148, 163, 184);
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  opacity: 0.3;
+}
+
+.emptyTitle {
+  font-size: 1.125rem;
+}
+
+.emptyHint {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   TASK CARD
+   ============================================ */
+.taskCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.taskCard:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.taskCardCompleted {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.05);
+}
+
+.taskCardRoutine {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.taskCardSuggested {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.taskContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.toggleButton {
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.toggleButtonPending {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(148, 163, 184);
+}
+
+.toggleButtonPending:hover {
+  background: rgba(52, 211, 153, 0.2);
+  color: rgb(52, 211, 153);
+}
+
+.toggleButtonCompleted {
+  background: rgba(52, 211, 153, 0.2);
+  color: rgb(52, 211, 153);
+}
+
+.toggleButtonCompleted:hover {
+  background: rgba(52, 211, 153, 0.3);
+}
+
+.taskDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.taskHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.taskTitle {
+  font-weight: 600;
+  color: white;
+}
+
+.taskTitleCompleted {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.taskDescription {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.25rem;
+}
+
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.taskTags {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.taskActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.editButton {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: rgb(148, 163, 184);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.375rem;
+}
+
+.editButton:hover {
+  color: rgb(96, 165, 250);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.deleteButton {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: rgb(148, 163, 184);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.375rem;
+}
+
+.deleteButton:hover {
+  color: rgb(248, 113, 113);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badgePriority {
+  color: white;
+}
+
+.badgeLow { background: rgb(100, 116, 139); }
+.badgeMedium { background: rgb(59, 130, 246); }
+.badgeHigh { background: rgb(249, 115, 22); }
+.badgeUrgent { background: rgb(239, 68, 68); }
+
+.badgeCategory {
+  color: white;
+}
+
+.badgeWork { background: rgb(139, 92, 246); }
+.badgePersonal { background: rgb(16, 185, 129); }
+.badgeHealth { background: rgb(236, 72, 153); }
+.badgeLearning { background: rgb(245, 158, 11); }
+.badgeErrands { background: rgb(6, 182, 212); }
+
+.badgeRoutine {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(147, 197, 253);
+}
+
+.badgeSuggested {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+}
+
+.tagBadge {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(203, 213, 225);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.metaItem {
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* ============================================
+   ROUTINES PANEL
+   ============================================ */
+.routinesPanel {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.routinesTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.routinesTitleIcon {
+  color: rgb(167, 139, 250);
+}
+
+.routinesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.routineCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.routineInfo h4 {
+  font-weight: 600;
+  color: white;
+}
+
+.routineInfo p {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+.routineDays {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.routineDay {
+  font-size: 0.75rem;
+  background: rgba(139, 92, 246, 0.2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(196, 181, 253);
+}
+
+.routineTime {
+  font-size: 0.75rem;
+  background: rgba(59, 130, 246, 0.2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(147, 197, 253);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.routineConfidence {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+  margin-top: 0.5rem;
+}
+
+.routineActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.routineActionButton {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.routineApprove {
+  background: rgba(52, 211, 153, 0.2);
+  color: rgb(52, 211, 153);
+}
+
+.routineApprove:hover {
+  background: rgba(52, 211, 153, 0.3);
+}
+
+.routineDismiss {
+  background: rgba(248, 113, 113, 0.2);
+  color: rgb(248, 113, 113);
+}
+
+.routineDismiss:hover {
+  background: rgba(248, 113, 113, 0.3);
+}
+
+/* ============================================
+   MODAL
+   ============================================ */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: rgb(30, 41, 59);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1rem;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: rgb(52, 211, 153);
+}
+
+.formInput::placeholder {
+  color: rgb(148, 163, 184);
+}
+
+.formTextarea {
+  resize: none;
+  height: 6rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.25rem;
+}
+
+.formSelect {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.formRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.formCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: white;
+}
+
+.formHint {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.modalButton {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.modalButtonSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.modalButtonSecondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modalButtonPrimary {
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(20, 184, 166));
+  color: white;
+}
+
+.modalButtonPrimary:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   MAIN CONTENT LAYOUT
+   ============================================ */
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   CALENDAR PANEL
+   ============================================ */
+.calendarPanel {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 1rem;
+  padding: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.calendarPanelTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.calendarPanelTitleIcon {
+  color: rgb(147, 197, 253);
+}
+
+.calendarEmpty {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.calendarEventsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.calendarEventCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border-left: 3px solid rgb(59, 130, 246);
+  transition: background 0.2s ease;
+}
+
+.calendarEventCard:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.calendarEventPocketknife {
+  border-left-color: rgb(52, 211, 153);
+}
+
+.calendarEventTime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 60px;
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+.calendarEventAllDay {
+  background: rgba(59, 130, 246, 0.2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(147, 197, 253);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.calendarEventDuration {
+  font-size: 0.625rem;
+  color: rgb(100, 116, 139);
+  margin-top: 0.125rem;
+}
+
+.calendarEventDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendarEventTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.calendarEventPocketknifeBadge {
+  font-size: 0.625rem;
+  background: rgba(52, 211, 153, 0.2);
+  color: rgb(52, 211, 153);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.calendarEventDescription {
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendarEventLink {
+  padding: 0.25rem;
+  color: rgb(148, 163, 184);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.calendarEventLink:hover {
+  color: rgb(59, 130, 246);
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.iconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconXSmall {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+
+
