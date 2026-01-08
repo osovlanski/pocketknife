@@ -2,6 +2,14 @@
 
 This guide walks you through setting up free cloud infrastructure for Pocketknife.
 
+## Quick Start (TL;DR)
+
+1. **Database**: Create free PostgreSQL at [neon.tech](https://neon.tech)
+2. **Cache**: Create free Redis at [upstash.com](https://upstash.com)
+3. **Backend**: Deploy to [railway.app](https://railway.app) from GitHub
+4. **Frontend**: Deploy to [vercel.com](https://vercel.com) from GitHub
+5. **Configure**: Set environment variables and update OAuth redirects
+
 ## Overview
 
 | Service | Provider | Free Tier Limits | Purpose |
@@ -9,7 +17,24 @@ This guide walks you through setting up free cloud infrastructure for Pocketknif
 | Frontend | Vercel | Unlimited deploys, 100GB bandwidth | React app hosting |
 | Backend | Railway | $5/month credit, 512MB RAM | Node.js API |
 | Database | Neon | 0.5GB storage, 3 compute hours/day | PostgreSQL |
-| Cache | Upstash | 10K commands/day | Redis (optional) |
+| Cache | Upstash | 10K commands/day | Redis (distributed cache) |
+
+## Architecture Diagram
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│     Vercel      │────▶│     Railway     │────▶│      Neon       │
+│   (Frontend)    │     │    (Backend)    │     │  (PostgreSQL)   │
+│   React + Vite  │     │  Node.js + API  │     │   Database      │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │     Upstash     │
+                        │    (Redis)      │
+                        │  Cache Layer    │
+                        └─────────────────┘
+```
 
 ---
 
@@ -58,29 +83,54 @@ npm run db:studio
 
 ---
 
-## Step 2: Cache Setup (Upstash Redis - Optional)
+## Step 2: Cache Setup (Upstash Redis - Recommended)
+
+Upstash provides serverless Redis with a generous free tier. The cache layer significantly improves performance for job searches, travel queries, and problem solving features.
 
 ### 2.1 Create Upstash Account
 
 1. Go to [https://upstash.com](https://upstash.com)
 2. Click "Sign Up" (use GitHub for easy signup)
+3. Verify your email
 
 ### 2.2 Create Redis Database
 
-1. Click "Create Database"
+1. From the Console, click "Create Database"
 2. **Name**: `pocketknife-cache`
-3. **Type**: Regional
-4. **Region**: Choose closest to your backend (same region as Neon if possible)
-5. Click "Create"
+3. **Type**: Regional (lower latency, recommended)
+4. **Region**: Choose **the same region as your Railway backend** for lowest latency
+   - If Railway is in `us-east`, choose Upstash `us-east-1`
+5. **Eviction**: Enabled (prevents memory issues)
+6. Click "Create"
 
 ### 2.3 Get Connection URL
 
-1. Go to your database details
-2. Copy the "Redis URL" that looks like:
+1. After creation, go to your database details page
+2. Find the **Redis URL** section
+3. Copy the connection string that looks like:
    ```
-   redis://default:xxx@xxx.upstash.io:6379
+   redis://default:AXXXxxxxxxxxxxxxxx@willing-cat-12345.upstash.io:6379
    ```
-3. Save this as your `REDIS_URL` or `UPSTASH_REDIS_URL`
+4. Save this as your `REDIS_URL` **and** `UPSTASH_REDIS_URL`
+
+### 2.4 Free Tier Limits
+
+| Feature | Free Tier Limit |
+|---------|-----------------|
+| Commands/day | 10,000 |
+| Storage | 256 MB |
+| Max connections | 1,000 |
+| Bandwidth | 10 GB/month |
+
+> **Note**: The app gracefully falls back to in-memory cache if Redis is unavailable.
+
+### 2.5 Verify Redis Connection (Optional)
+
+```bash
+# Using redis-cli (if installed locally)
+redis-cli -u "redis://default:YOUR_TOKEN@your-db.upstash.io:6379" PING
+# Should return: PONG
+```
 
 ---
 
@@ -100,10 +150,13 @@ npm run db:studio
 
 ### 3.3 Configure Service
 
-1. Railway will detect the Dockerfile in `/backend`
+1. Railway will auto-detect the build configuration (Dockerfile or Nixpacks)
 2. Click on the service, then "Settings"
 3. **Root Directory**: Set to `backend`
-4. **Build Command**: (auto-detected from Dockerfile)
+4. **Build Command**: Auto-detected from `railway.json` or `Dockerfile`
+5. Health checks are pre-configured at `/health`
+
+> **Note**: The project includes both `Dockerfile` and `nixpacks.toml` for flexibility. Railway will use Dockerfile by default.
 
 ### 3.4 Set Environment Variables
 
@@ -218,14 +271,51 @@ railway run npm run db:migrate:prod
 
 ## Verification Checklist
 
-- [ ] Database created on Neon
-- [ ] `npm run db:push` successful
-- [ ] Backend deployed on Railway
-- [ ] Health check passes: `https://your-backend.railway.app/health`
+### Infrastructure
+- [ ] Neon PostgreSQL database created
+- [ ] `npm run db:push` successful (schema deployed)
+- [ ] Upstash Redis database created
+- [ ] Backend deployed on Railway (check: `https://your-backend.railway.app/health`)
 - [ ] Frontend deployed on Vercel
-- [ ] Frontend can reach backend (check browser console)
-- [ ] Google OAuth redirect configured with production URLs
+
+### Connectivity
+- [ ] Backend health check shows `"database": "connected"`
+- [ ] Backend health check shows `"redis": "connected"` (if configured)
+- [ ] Frontend can reach backend (no CORS errors in browser console)
+- [ ] WebSocket connection working (check network tab for socket.io)
+
+### Authentication
+- [ ] Google OAuth redirect URI updated in Google Cloud Console
+- [ ] OAuth flow works: can connect Google account from frontend
+- [ ] Token refresh working (check after 1 hour)
+
+### CI/CD
+- [ ] GitHub secrets configured (RAILWAY_TOKEN, VERCEL_TOKEN, etc.)
 - [ ] GitHub Actions workflows enabled
+- [ ] Test push to main triggers deployment
+
+## Environment Variables Quick Reference
+
+### Railway (Backend)
+
+| Variable | Required | Source |
+|----------|----------|--------|
+| `DATABASE_URL` | ✅ | Neon connection string |
+| `REDIS_URL` | ⬜ | Upstash connection string |
+| `ANTHROPIC_API_KEY` | ✅ | Anthropic Console |
+| `GOOGLE_CLIENT_ID` | ✅ | Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | ✅ | Google Cloud Console |
+| `GOOGLE_REDIRECT_URI` | ✅ | `https://your-backend.railway.app/api/auth/google/callback` |
+| `FRONTEND_URL` | ✅ | Your Vercel URL |
+| `NODE_ENV` | ✅ | `production` |
+
+### Vercel (Frontend)
+
+| Variable | Required | Source |
+|----------|----------|--------|
+| `VITE_API_URL` | ✅ | `https://your-backend.railway.app/api` |
+| `VITE_WS_URL` | ✅ | `https://your-backend.railway.app` |
+| `VITE_SOCKET_URL` | ✅ | `https://your-backend.railway.app` |
 
 ---
 
