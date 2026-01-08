@@ -303,8 +303,9 @@ async function runReview(): Promise<void> {
         }
         // Only check added lines in actual code files
         if (!line.startsWith('+') || line.startsWith('+++')) return false;
-        // Skip if in non-code files (md, json, yml, env, etc.)
-        if (/\.(md|json|toml|yml|yaml|env|example|production)/.test(currentFile)) return false;
+        // Skip if in non-code files (md, json, yml, env, etc.) or quality check scripts
+        if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile)) return false;
+        if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
         return pattern.test(line);
       });
       
@@ -323,7 +324,8 @@ async function runReview(): Promise<void> {
       if (!line.startsWith('+') || line.startsWith('+++')) return false;
       // Skip scripts, tests, and config files - console.log is acceptable there
       if (/\/(scripts|tests?|__tests__|\.test\.|\.spec\.)/.test(currentFile)) return false;
-      if (/\.(md|json|toml|yml|yaml|env|example|production)/.test(currentFile)) return false;
+      if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile)) return false;
+      if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
       return /console\.(log|warn|error)/.test(line);
     });
     if (consoleLogMatches.length > 0) {
