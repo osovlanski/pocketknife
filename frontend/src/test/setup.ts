@@ -4,6 +4,7 @@
  * This file runs before all tests to configure the testing environment.
  */
 
+import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 // Mock window.matchMedia for components that use media queries
@@ -22,27 +23,29 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+class MockResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-};
+}
+(globalThis as Record<string, unknown>).ResizeObserver = MockResizeObserver;
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
+class MockIntersectionObserver {
   root = null;
   rootMargin = '';
-  thresholds = [];
+  thresholds: ReadonlyArray<number> = [];
   
-  constructor() {}
+  constructor(_callback?: unknown, _options?: unknown) {}
   observe() {}
   unobserve() {}
   disconnect() {}
   takeRecords() { return []; }
-};
+}
+(globalThis as Record<string, unknown>).IntersectionObserver = MockIntersectionObserver;
 
 // Mock fetch
-global.fetch = vi.fn(() =>
+(globalThis as Record<string, unknown>).fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({}),

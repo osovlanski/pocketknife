@@ -36,7 +36,7 @@ export const useAutocomplete = (options: UseAutocompleteOptions): UseAutocomplet
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchSuggestions = useCallback((query: string) => {

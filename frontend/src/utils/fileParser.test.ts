@@ -116,7 +116,7 @@ describe('fileParser', () => {
 
     it('should detect file type correctly when MIME is empty', () => {
       const fileName = 'document.pdf';
-      const fileType = '';
+      const fileType: string = '';
       
       // The function should check extension as fallback
       const isPdf = fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');

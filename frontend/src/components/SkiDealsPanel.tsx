@@ -66,7 +66,7 @@ const SkiDealsPanel: React.FC<SkiDealsPanelProps> = ({ onDealsFound }) => {
 
   // Generate booking links
   const getBookingLinks = (deal: SkiDeal) => ({
-    flights: `https://www.skyscanner.com/transport/flights/${query.origin}/${deal.resort.nearestAirport || 'GVA'}/${query.departureDate}/`,
+    flights: `https://www.skyscanner.com/transport/flights/${query.origin}/${deal.resort.airportCode || 'GVA'}/${query.departureDate}/`,
     hotels: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(deal.resort.name + ' ' + deal.resort.country)}`,
     skiPass: `https://www.google.com/search?q=${encodeURIComponent(deal.resort.name + ' ski pass prices')}`,
     resort: `https://www.google.com/search?q=${encodeURIComponent(deal.resort.name + ' official website')}`,

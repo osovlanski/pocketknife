@@ -180,7 +180,7 @@ export const useGmail = (): UseGmailReturn => {
     isAuthenticated,
     authUrl,
     userEmail,
-    isProcessing: searchController.isSearching,
+    isProcessing: searchController.state.isSearching,
     searchController,
     handleProcessAll,
     handleStop,

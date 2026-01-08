@@ -17,6 +17,21 @@ vi.mock('../services/authApi', () => ({
   signOut: vi.fn()
 }));
 
+// Helper to create complete mock user objects
+const createMockUser = (overrides: Partial<authApi.CurrentUser> = {}): authApi.CurrentUser => ({
+  id: '1',
+  email: 'test@example.com',
+  name: 'Test User',
+  avatarUrl: null,
+  role: 'USER',
+  status: 'ACTIVE',
+  isVerified: true,
+  lastLoginAt: new Date().toISOString(),
+  loginCount: 1,
+  createdAt: new Date().toISOString(),
+  ...overrides
+});
+
 describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,7 +39,7 @@ describe('useAuth', () => {
     vi.mocked(authApi.getCurrentUser).mockResolvedValue(null);
     vi.mocked(authApi.getGoogleAuthStatus).mockResolvedValue({
       authenticated: false,
-      email: null
+      message: 'Not authenticated'
     });
   });
 
@@ -40,12 +55,7 @@ describe('useAuth', () => {
     });
 
     it('should load user on mount', async () => {
-      const mockUser = {
-        id: '1',
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'USER' as const
-      };
+      const mockUser = createMockUser();
       
       vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockUser);
 
@@ -62,7 +72,8 @@ describe('useAuth', () => {
     it('should load Google status on mount', async () => {
       const mockGoogleStatus = {
         authenticated: true,
-        email: 'google@example.com'
+        email: 'google@example.com',
+        message: 'Authenticated'
       };
       
       vi.mocked(authApi.getGoogleAuthStatus).mockResolvedValue(mockGoogleStatus);
@@ -90,12 +101,11 @@ describe('useAuth', () => {
 
   describe('Admin Detection', () => {
     it('should detect ADMIN role', async () => {
-      const mockAdmin = {
-        id: '1',
+      const mockAdmin = createMockUser({
         email: 'admin@example.com',
         name: 'Admin User',
-        role: 'ADMIN' as const
-      };
+        role: 'ADMIN'
+      });
       
       vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockAdmin);
 
@@ -110,12 +120,11 @@ describe('useAuth', () => {
     });
 
     it('should detect SUPER_ADMIN role', async () => {
-      const mockSuperAdmin = {
-        id: '1',
+      const mockSuperAdmin = createMockUser({
         email: 'superadmin@example.com',
         name: 'Super Admin',
-        role: 'SUPER_ADMIN' as const
-      };
+        role: 'SUPER_ADMIN'
+      });
       
       vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockSuperAdmin);
 
@@ -130,12 +139,11 @@ describe('useAuth', () => {
     });
 
     it('should not grant admin to regular USER', async () => {
-      const mockUser = {
-        id: '1',
+      const mockUser = createMockUser({
         email: 'user@example.com',
         name: 'Regular User',
-        role: 'USER' as const
-      };
+        role: 'USER'
+      });
       
       vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockUser);
 
@@ -152,12 +160,7 @@ describe('useAuth', () => {
 
   describe('Sign In', () => {
     it('should call signIn API and update state on success', async () => {
-      const mockUser = {
-        id: '1',
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'USER' as const
-      };
+      const mockUser = createMockUser();
       
       vi.mocked(authApi.signIn).mockResolvedValue({
         success: true,
@@ -200,12 +203,7 @@ describe('useAuth', () => {
 
   describe('Sign Out', () => {
     it('should clear user state on sign out', async () => {
-      const mockUser = {
-        id: '1',
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'USER' as const
-      };
+      const mockUser = createMockUser();
       
       vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockUser);
 
