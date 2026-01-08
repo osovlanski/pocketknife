@@ -36,10 +36,11 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S pocketknife -u 1001
 
 # Copy production dependencies
+# Use --ignore-scripts to skip postinstall (prisma generate) since schema isn't copied yet
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
 
-# Copy built files
+# Copy built files and Prisma client from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
