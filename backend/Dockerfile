@@ -1,5 +1,7 @@
 # Pocketknife Backend - Production Dockerfile
 # Multi-stage build for optimized image size
+# NOTE: This Dockerfile is built from repo root with context at /
+#       All paths are relative to backend/ folder
 
 # ============================================
 # Stage 1: Build
@@ -9,11 +11,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies first (cache layer)
-COPY package*.json ./
+# Copy from backend/ since build context is repo root
+COPY backend/package*.json ./
 RUN npm ci
 
-# Copy source and build
-COPY . .
+# Copy source and build (from backend/ folder)
+COPY backend/ .
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -33,7 +36,7 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S pocketknife -u 1001
 
 # Copy production dependencies
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm ci --only=production
 
 # Copy built files
