@@ -148,6 +148,10 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(() => {
+    // Initialize to true if URL has auth=success to prevent flash of logged-out state
+    return window.location.search.includes('auth=success');
+  });
   
   // Agent enabled status (from admin settings)
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
@@ -240,6 +244,8 @@ const App: React.FC = () => {
       const authEmail = urlParams.get('email');
       
       if (authStatus === 'success') {
+        setIsProcessingOAuth(true);
+        
         // Verify the connection actually works by refreshing Google status
         try {
           await auth.refreshGoogleStatus();
@@ -270,6 +276,8 @@ const App: React.FC = () => {
           notifications.showWarning(
             'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
           );
+        } finally {
+          setIsProcessingOAuth(false);
         }
         navigate(location.pathname, { replace: true });
       } else if (authStatus === 'error') {
@@ -452,7 +460,7 @@ const App: React.FC = () => {
       {/* Header */}
       <Header
         user={auth.currentUser}
-        isLoading={auth.isLoading}
+        isLoading={auth.isLoading || isProcessingOAuth}
         isAdmin={auth.isAdmin}
         activeView={isOnHomePage ? 'home' : (activeTab || location.pathname.slice(1))}
         googleStatus={auth.googleStatus}

@@ -141,7 +141,28 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* User Menu or Sign In */}
           {isLoading ? (
-            <div className={styles.userAvatar} style={{ animation: 'pulse 2s infinite', background: 'rgba(255, 255, 255, 0.1)' }} />
+            <div 
+              className={styles.signInButton}
+              style={{ 
+                opacity: 0.7,
+                cursor: 'wait',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <div 
+                style={{ 
+                  width: '1rem', 
+                  height: '1rem', 
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'white',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} 
+              />
+              <span>Signing in...</span>
+            </div>
           ) : user ? (
             <UserMenu
               user={user}
