@@ -243,11 +243,29 @@ const App: React.FC = () => {
         // Verify the connection actually works by refreshing Google status
         try {
           await auth.refreshGoogleStatus();
-          const emailInfo = authEmail ? ` (${authEmail})` : '';
-          notifications.showSuccess(
-            `Google account connected successfully${emailInfo}! You can now use Gmail, Calendar, and Drive features.`
-          );
-        } catch {
+          
+          // Also sign the user into the app if we have their email
+          if (authEmail) {
+            console.log('[Auth] Google OAuth success, signing in user:', authEmail);
+            const signInResult = await auth.signIn(authEmail);
+            if (signInResult.success) {
+              notifications.showSuccess(
+                `Welcome, ${authEmail}! Google account connected. You can now use Gmail, Calendar, and Drive features.`
+              );
+            } else {
+              // Google connected but app sign-in failed
+              notifications.showSuccess(
+                `Google account connected (${authEmail})! You can now use Gmail, Calendar, and Drive features.`
+              );
+              console.warn('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
+            }
+          } else {
+            notifications.showSuccess(
+              'Google account connected successfully! You can now use Gmail, Calendar, and Drive features.'
+            );
+          }
+        } catch (error) {
+          console.error('[Auth] Google OAuth verification error:', error);
           // Backend said success but verification failed - show warning
           notifications.showWarning(
             'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
