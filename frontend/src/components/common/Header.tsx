@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Wrench, Settings, Shield, User, Home, ChevronRight, CheckCircle } from 'lucide-react';
+import { Wrench, Settings, Shield, User, Home, ChevronRight } from 'lucide-react';
 import UserMenu from './UserMenu';
 import type { CurrentUser, AuthStatus } from '../../services/authApi';
 import styles from '../../styles/layout.module.css';
@@ -150,24 +150,6 @@ const Header: React.FC<HeaderProps> = ({
               onAdminClick={onAdminClick}
               onSignOut={onSignOut}
             />
-          ) : googleStatus?.authenticated && googleStatus.email ? (
-            /* Show Google connected status when no local user but Google is connected */
-            <div 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                background: 'rgba(34, 197, 94, 0.15)',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                color: 'rgb(134, 239, 172)',
-                fontSize: '0.875rem'
-              }}
-            >
-              <CheckCircle style={{ width: '1rem', height: '1rem', color: 'rgb(34, 197, 94)' }} />
-              <span>{googleStatus.email}</span>
-            </div>
           ) : (
             <button className={styles.signInButton} onClick={onSignInClick}>
               <User style={{ width: '1.25rem', height: '1.25rem' }} />

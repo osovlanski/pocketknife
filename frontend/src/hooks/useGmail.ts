@@ -9,8 +9,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { processAllEmails, testNotification } from '../services/api';
+import * as authApi from '../services/authApi';
 import useSearchController from './useSearchController';
-import { API_BASE_URL, SOCKET_URL } from '../config';
+import { SOCKET_URL } from '../config';
 
 export interface GmailStats {
   invoices: number;
