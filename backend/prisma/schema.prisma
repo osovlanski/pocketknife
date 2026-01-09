@@ -645,6 +645,50 @@ model FeatureFlag {
 }
 
 // =============================================================================
+// EXTERNAL API CONFIGURATION
+// =============================================================================
+
+model ExternalApiConfig {
+  id          String   @id @default(uuid())
+  
+  // API identification
+  name        String   @unique  // e.g., "jsearch", "adzuna", "remoteok"
+  displayName String             // Human-readable name
+  category    String             // "jobs", "travel", "shopping", etc.
+  
+  // API configuration
+  baseUrl     String?           // Base URL for the API
+  apiKeyEnvVar String?          // Environment variable name for API key
+  
+  // Status
+  isEnabled   Boolean  @default(true)
+  isHealthy   Boolean  @default(true)
+  lastHealthCheck DateTime?
+  lastError   String?
+  
+  // Rate limiting
+  rateLimit       Int?      // Requests per period
+  rateLimitPeriod String?   // "minute", "hour", "day", "month"
+  currentUsage    Int       @default(0)
+  usageResetAt    DateTime?
+  
+  // Metadata
+  description String?
+  docsUrl     String?
+  requiresAuth Boolean  @default(false)
+  authType    String?   // "api_key", "oauth", "basic"
+  
+  // Priority for fallback ordering
+  priority    Int       @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isEnabled])
+  @@index([name])
+}
+
+// =============================================================================
 // EMAIL SENDER PATTERN LEARNING
 // =============================================================================
 

@@ -32,7 +32,7 @@ import useSettings from '../hooks/useSettings';
 
 // Services & Types
 import * as authApi from '../services/authApi';
-import type { CurrentUser, UserPreferences, AuthStatus } from '../services/authApi';
+import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus } from '../services/authApi';
 
 // Styles
 import styles from '../styles/settings.module.css';
@@ -174,7 +174,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user }) => {
         <input
           type="text"
           value={user?.name || ''}
-          className={styles.formInput}
+          readOnly
+          className={`${styles.formInput} ${styles.formInputDisabled}`}
           placeholder="Your name"
         />
       </FormGroup>
@@ -208,6 +209,18 @@ interface IntegrationsSectionProps {
   onConnect: () => void;
   onDisconnect: () => void;
   onRetry: () => void;
+  // Telegram
+  telegramStatus: TelegramStatus | null;
+  isLoadingTelegram: boolean;
+  isTestingTelegram: boolean;
+  onTestTelegram: () => void;
+  onRetryTelegram: () => void;
+  // Discord
+  discordStatus: DiscordStatus | null;
+  isLoadingDiscord: boolean;
+  isTestingDiscord: boolean;
+  onTestDiscord: () => void;
+  onRetryDiscord: () => void;
 }
 
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
@@ -216,7 +229,17 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
   loadError,
   onConnect,
   onDisconnect,
-  onRetry
+  onRetry,
+  telegramStatus,
+  isLoadingTelegram,
+  isTestingTelegram,
+  onTestTelegram,
+  onRetryTelegram,
+  discordStatus,
+  isLoadingDiscord,
+  isTestingDiscord,
+  onTestDiscord,
+  onRetryDiscord
 }) => (
   <div className={styles.sectionContent}>
     <h2 className={styles.sectionTitle}>Integrations</h2>
@@ -306,17 +329,177 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       )}
     </div>
 
-    {/* Telegram (Coming Soon) */}
-    <div className={`${styles.integrationCard} ${styles.integrationCardDisabled}`}>
-      <div className={styles.integrationInfo}>
-        <div className={`${styles.integrationIcon} ${styles.integrationIconTelegram}`}>
-          <Mail style={{ width: '1.5rem', height: '1.5rem', color: 'white' }} />
+    {/* Telegram Integration */}
+    <div className={`${styles.integrationCard} ${telegramStatus?.connected ? '' : styles.integrationCardDisabled}`}>
+      <div className={styles.integrationHeader}>
+        <div className={styles.integrationInfo}>
+          <div className={`${styles.integrationIcon} ${styles.integrationIconTelegram}`}>
+            <Mail style={{ width: '1.5rem', height: '1.5rem', color: 'white' }} />
+          </div>
+          <div>
+            <h3 className={styles.integrationTitle}>Telegram</h3>
+            <p className={styles.integrationDescription}>
+              {isLoadingTelegram 
+                ? 'Checking connection status...'
+                : telegramStatus?.connected
+                  ? `Connected to @${telegramStatus.botUsername || 'bot'}`
+                  : telegramStatus?.configured
+                    ? `Configuration error: ${telegramStatus.error || 'Unknown'}`
+                    : 'Not configured - Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className={styles.integrationTitle}>Telegram</h3>
-          <p className={styles.integrationDescription}>Coming soon - Get notifications via Telegram</p>
-        </div>
+
+        {isLoadingTelegram ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : telegramStatus?.connected ? (
+          <button
+            onClick={onTestTelegram}
+            disabled={isTestingTelegram}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
+          >
+            {isTestingTelegram ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
+          </button>
+        ) : telegramStatus?.error ? (
+          <button
+            onClick={onRetryTelegram}
+            className={`${commonStyles.btn}`}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
+
+      {telegramStatus?.connected && (
+        <div className={styles.integrationPermissions}>
+          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
+          <div className={styles.integrationTags}>
+            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: 'rgb(59, 130, 246)' }}>
+              Bot: @{telegramStatus.botUsername}
+            </span>
+            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: 'rgb(16, 185, 129)' }}>
+              Chat ID: {telegramStatus.chatId}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!telegramStatus?.configured && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(251, 191, 36)'
+        }}>
+          <strong>Setup Instructions:</strong>
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Create a bot with <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>@BotFather</a> on Telegram</li>
+            <li>Copy the bot token to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>TELEGRAM_BOT_TOKEN</code> in .env</li>
+            <li>Send any message to your bot, then get your chat ID from the API</li>
+            <li>Add the chat ID to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>TELEGRAM_CHAT_ID</code> in .env</li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
+    </div>
+
+    {/* Discord Integration */}
+    <div className={`${styles.integrationCard} ${discordStatus?.connected ? '' : styles.integrationCardDisabled}`}>
+      <div className={styles.integrationHeader}>
+        <div className={styles.integrationInfo}>
+          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(88, 101, 242, 0.2)' }}>
+            <span style={{ fontSize: '1.25rem' }}>💬</span>
+          </div>
+          <div>
+            <h3 className={styles.integrationTitle}>Discord</h3>
+            <p className={styles.integrationDescription}>
+              {isLoadingDiscord 
+                ? 'Checking connection status...'
+                : discordStatus?.connected
+                  ? `Connected to ${discordStatus.webhookUrl || 'webhook'}`
+                  : discordStatus?.configured
+                    ? `Configuration error: ${discordStatus.error || 'Unknown'}`
+                    : 'Not configured - Add DISCORD_WEBHOOK_URL to .env'}
+            </p>
+          </div>
+        </div>
+
+        {isLoadingDiscord ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : discordStatus?.connected ? (
+          <button
+            onClick={onTestDiscord}
+            disabled={isTestingDiscord}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
+          >
+            {isTestingDiscord ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
+          </button>
+        ) : discordStatus?.error ? (
+          <button
+            onClick={onRetryDiscord}
+            className={`${commonStyles.btn}`}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+
+      {discordStatus?.connected && (
+        <div className={styles.integrationPermissions}>
+          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
+          <div className={styles.integrationTags}>
+            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(88, 101, 242, 0.2)', color: 'rgb(129, 140, 248)' }}>
+              Channel: {discordStatus.webhookUrl}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!discordStatus?.configured && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(251, 191, 36)'
+        }}>
+          <strong>Setup Instructions:</strong>
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Open Discord and go to Server Settings → Integrations → Webhooks</li>
+            <li>Click "New Webhook" and choose a channel</li>
+            <li>Copy the Webhook URL</li>
+            <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>DISCORD_WEBHOOK_URL</code> in .env</li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
     </div>
   </div>
 );
@@ -617,6 +800,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(true);
   const [googleLoadError, setGoogleLoadError] = useState<string | null>(null);
   
+  // Telegram state
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [isLoadingTelegram, setIsLoadingTelegram] = useState(true);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+
+  // Discord state
+  const [discordStatus, setDiscordStatus] = useState<DiscordStatus | null>(null);
+  const [isLoadingDiscord, setIsLoadingDiscord] = useState(true);
+  const [isTestingDiscord, setIsTestingDiscord] = useState(false);
+  
   const location = useLocation();
   const settings = useSettings(onUserUpdate);
 
@@ -644,13 +837,81 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
     }
   }, []);
 
-  // Load Google status and user preferences on mount
+  const loadTelegramStatus = useCallback(async () => {
+    try {
+      setIsLoadingTelegram(true);
+      const status = await authApi.getTelegramStatus();
+      setTelegramStatus(status);
+    } catch (error: any) {
+      console.error('Failed to load Telegram status:', error);
+      setTelegramStatus({
+        configured: false,
+        connected: false,
+        error: 'Failed to check status'
+      });
+    } finally {
+      setIsLoadingTelegram(false);
+    }
+  }, []);
+
+  const handleTestTelegram = async () => {
+    try {
+      setIsTestingTelegram(true);
+      const result = await authApi.testTelegramConnection();
+      if (result.success) {
+        alert('✅ ' + result.message);
+      } else {
+        alert('❌ ' + result.message);
+      }
+    } catch (error: any) {
+      alert('❌ Failed to test connection');
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const loadDiscordStatus = useCallback(async () => {
+    try {
+      setIsLoadingDiscord(true);
+      const status = await authApi.getDiscordStatus();
+      setDiscordStatus(status);
+    } catch (error: any) {
+      console.error('Failed to load Discord status:', error);
+      setDiscordStatus({
+        configured: false,
+        connected: false,
+        error: 'Failed to check status'
+      });
+    } finally {
+      setIsLoadingDiscord(false);
+    }
+  }, []);
+
+  const handleTestDiscord = async () => {
+    try {
+      setIsTestingDiscord(true);
+      const result = await authApi.testDiscordConnection();
+      if (result.success) {
+        alert('✅ ' + result.message);
+      } else {
+        alert('❌ ' + result.message);
+      }
+    } catch (error: any) {
+      alert('❌ Failed to test connection');
+    } finally {
+      setIsTestingDiscord(false);
+    }
+  };
+
+  // Load Google, Telegram, Discord status and user preferences on mount
   useEffect(() => {
     loadGoogleStatus();
+    loadTelegramStatus();
+    loadDiscordStatus();
     if (user?.preferences) {
       settings.loadPreferences(user.preferences);
     }
-  }, [user, loadGoogleStatus]);
+  }, [user, loadGoogleStatus, loadTelegramStatus, loadDiscordStatus]);
 
   // Reload Google status when returning from OAuth (URL has auth param)
   useEffect(() => {
@@ -708,6 +969,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
             onConnect={handleGoogleConnect}
             onDisconnect={handleGoogleDisconnect}
             onRetry={loadGoogleStatus}
+            telegramStatus={telegramStatus}
+            isLoadingTelegram={isLoadingTelegram}
+            isTestingTelegram={isTestingTelegram}
+            onTestTelegram={handleTestTelegram}
+            onRetryTelegram={loadTelegramStatus}
+            discordStatus={discordStatus}
+            isLoadingDiscord={isLoadingDiscord}
+            isTestingDiscord={isTestingDiscord}
+            onTestDiscord={handleTestDiscord}
+            onRetryDiscord={loadDiscordStatus}
           />
         );
       case 'jobs':

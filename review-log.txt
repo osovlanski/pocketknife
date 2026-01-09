@@ -5544,3 +5544,199 @@ diff --git a/CLOUD_SETUP.md b/CLOUD_SETUP.md
 [2026-01-08T15:52:51.767Z] 
 [2026-01-08T15:52:51.770Z] ✅ Automated checks passed - Push proceeding
 [2026-01-08T15:52:51.772Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-08T17:54:00+02:00] Pre-push hook triggered
+[2026-01-08T15:54:05.774Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-08T15:54:05.806Z] 📋 Minimum passing score: 80/100
+[2026-01-08T15:54:05.811Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-08T15:54:05.821Z] 
+[2026-01-08T15:54:05.824Z] ════════════════════════════════════════════════════════════
+[2026-01-08T15:54:05.826Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-08T15:54:05.829Z] ════════════════════════════════════════════════════════════
+[2026-01-08T15:54:05.833Z] 
+[2026-01-08T15:54:05.932Z] 📅 Review started at: 1/8/2026, 5:54:05 PM
+[2026-01-08T15:54:05.944Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-08T15:54:05.950Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-08T15:54:05.953Z] ────────────────────────────────────────
+[2026-01-08T15:54:07.930Z] ✅ Git repository detected
+[2026-01-08T15:54:07.935Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-08T15:54:07.939Z] ────────────────────────────────────────
+[2026-01-08T15:54:09.383Z] 📍 Current branch: feature/cloud-deployment
+[2026-01-08T15:54:09.386Z] 🎯 Comparing against: main
+[2026-01-08T15:54:10.952Z] ✅ Base branch 'main' exists
+[2026-01-08T15:54:10.967Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-08T15:54:10.971Z] ────────────────────────────────────────
+[2026-01-08T15:54:15.739Z] 
+▶ Step 4: Change Summary
+[2026-01-08T15:54:15.742Z] ────────────────────────────────────────
+[2026-01-08T15:54:15.745Z]  .github/workflows/deploy.yml                 |   45 +-
+ CLOUD_SETUP.md                               |  126 +-
+ backend/Dockerfile                           |   21 +-
+ backend/env.production                       |   79 +
+ backend/nixpacks.toml                        |   18 +
+ backend/railway.json                         |   15 +
+ backend/tests/services/configService.test.ts |    2 +-
+ frontend/env.production                      |   16 +
+ frontend/package-lock.json                   |  148 +-
+ frontend/vercel.json                         |   42 +
+ review-log.txt                               | 2811 ++++++++++++++++++++++++++
+ scripts/check-quality.js                     |  817 +++++---
+ scripts/check-quality.ts                     |  273 ++-
+ scripts/deploy-check.js                      |  183 ++
+ 14 files changed, 4099 insertions(+), 497 deletions(-)
+
+[2026-01-08T15:54:15.748Z] 📊 Files changed: 14
+[2026-01-08T15:54:15.751Z] ➕ Lines added: 4099
+[2026-01-08T15:54:15.754Z] ➖ Lines removed: 497
+[2026-01-08T15:54:15.757Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-08T15:54:15.760Z] ────────────────────────────────────────
+[2026-01-08T15:54:15.765Z] 
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+[2026-01-08T15:54:15.767Z] index 775b8c5..f05526a 100644
+[2026-01-08T15:54:15.770Z] --- a/.github/workflows/deploy.yml
+[2026-01-08T15:54:15.773Z] +++ b/.github/workflows/deploy.yml
+[2026-01-08T15:54:15.776Z] @@ -62,13 +62,56 @@ jobs:
+[2026-01-08T15:54:15.779Z]          working-directory: frontend
+[2026-01-08T15:54:15.782Z]          run: npx tsc --noEmit
+[2026-01-08T15:54:15.786Z]  
+[2026-01-08T15:54:15.788Z] +  # ============================================
+[2026-01-08T15:54:15.792Z] +  # Test Suite
+[2026-01-08T15:54:15.795Z] +  # ============================================
+[2026-01-08T15:54:15.798Z] +  test:
+[2026-01-08T15:54:15.801Z] +    name: Run Tests
+[2026-01-08T15:54:15.804Z] +    runs-on: ubuntu-latest
+[2026-01-08T15:54:15.815Z] +    needs: lint
+[2026-01-08T15:54:15.818Z] +    
+[2026-01-08T15:54:15.821Z] +    steps:
+[2026-01-08T15:54:15.824Z] +      - name: Checkout code
+[2026-01-08T15:54:15.833Z] +        uses: actions/checkout@v4
+[2026-01-08T15:54:15.838Z] +
+[2026-01-08T15:54:15.841Z] +      - name: Setup Node.js
+[2026-01-08T15:54:15.844Z] +        uses: actions/setup-node@v4
+[2026-01-08T15:54:15.848Z] +        with:
+[2026-01-08T15:54:15.851Z] +          node-version: ${{ env.NODE_VERSION }}
+[2026-01-08T15:54:15.855Z] +          cache: 'npm'
+[2026-01-08T15:54:15.863Z] +          cache-dependency-path: |
+[2026-01-08T15:54:15.870Z] +            backend/package-lock.json
+[2026-01-08T15:54:15.876Z] +            frontend/package-lock.json
+[2026-01-08T15:54:15.882Z] +
+[2026-01-08T15:54:15.887Z] +      - name: Install backend dependencies
+[2026-01-08T15:54:15.894Z] +        working-directory: backend
+[2026-01-08T15:54:15.900Z] +        run: npm ci
+[2026-01-08T15:54:15.904Z] +
+[2026-01-08T15:54:15.906Z] +      - name: Generate Prisma client
+[2026-01-08T15:54:15.909Z] +        working-directory: backend
+[2026-01-08T15:54:15.913Z] +        run: npx prisma generate
+[2026-01-08T15:54:15.916Z] +
+[2026-01-08T15:54:15.921Z] +      - name: Run backend tests
+[2026-01-08T15:54:15.926Z] +        working-directory: backend
+[2026-01-08T15:54:15.941Z] +        run: npm run test:coverage
+[2026-01-08T15:54:15.951Z] +        env:
+[2026-01-08T15:54:15.954Z] +          NODE_ENV: test
+[2026-01-08T15:54:15.957Z] +
+[2026-01-08T15:54:15.960Z] +      - name: Install frontend dependencies
+[2026-01-08T15:54:15.965Z] +        working-directory: frontend
+[2026-01-08T15:54:15.967Z] +        run: npm ci
+[2026-01-08T15:54:15.974Z] +
+[2026-01-08T15:54:15.994Z] +      - name: Run frontend tests
+[2026-01-08T15:54:15.997Z] +        working-directory: frontend
+[2026-01-08T15:54:15.999Z] +        run: npm run test:coverage
+[2026-01-08T15:54:16.019Z] +
+[2026-01-08T15:54:16.031Z]    # ============================================
+[2026-01-08T15:54:16.036Z]    # Build Test
+[2026-01-08T15:54:16.042Z]    # ============================================
+[2026-01-08T15:54:16.045Z]    build:
+[2026-01-08T15:54:16.048Z]      name: Build Test
+[2026-01-08T15:54:16.051Z]      runs-on: ubuntu-latest
+[2026-01-08T15:54:16.054Z] -    needs: lint
+[2026-01-08T15:54:16.059Z] +    needs: [lint, test]
+[2026-01-08T15:54:16.062Z]      
+[2026-01-08T15:54:16.067Z]      steps:
+[2026-01-08T15:54:16.074Z]        - name: Checkout code
+[2026-01-08T15:54:16.091Z] 
+diff --git a/CLOUD_SETUP.md b/CLOUD_SETUP.md
+[2026-01-08T15:54:16.099Z] index 07763c3..6b78a1c 100644
+[2026-01-08T15:54:16.102Z] --- a/CLOUD_SETUP.md
+[2026-01-08T15:54:16.105Z] +++ b/CLOUD_SETUP.md
+[2026-01-08T15:54:16.109Z] @@ -2,6 +2,14 @@
+[2026-01-08T15:54:16.114Z]  
+[2026-01-08T15:54:16.116Z]  This guide walks you through setting up free cloud infrastructure for Pocketknife.
+[2026-01-08T15:54:16.119Z]  
+[2026-01-08T15:54:16.122Z] +## Quick Start (TL;DR)
+[2026-01-08T15:54:16.129Z] +
+[2026-01-08T15:54:16.131Z] +1. **Database**: Create free PostgreSQL at [neon.tech](https://neon.tech)
+[2026-01-08T15:54:16.136Z] +2. **Cache**: Create free Redis at [upstash.com](https://upstash.com)
+[2026-01-08T15:54:16.157Z] +3. **Backend**: Deploy to [railway.app](https://railway.app) from GitHub
+[2026-01-08T15:54:16.170Z] +4. **Frontend**: Deploy to [vercel.com](https://vercel.com) from GitHub
+[2026-01-08T15:54:16.172Z] +5. **Configure**: Set environment variables and update OAuth redirects
+[2026-01-08T15:54:16.175Z] +
+[2026-01-08T15:54:16.178Z]  ## Overview
+[2026-01-08T15:54:16.181Z]  
+[2026-01-08T15:54:16.185Z]  | Service | Provider | Free Tier Limits | Purpose |
+[2026-01-08T15:54:16.202Z] @@ -9,7 +17,24 @@ This guide walks you through setting up free cloud infrastructure for Pocketknif
+[2026-01-08T15:54:16.207Z]  | Frontend | Vercel | Unlimited deploys, 100GB bandwidth | React app hosting |
+[2026-01-08T15:54:16.210Z]  | Backend | Railway | $5/month credit, 512MB RAM | Node.js API |
+[2026-01-08T15:54:16.213Z]  | Database | Neon | 0.5GB storage, 3 compute hours/day | PostgreSQL |
+[2026-01-08T15:54:16.216Z] -| Cache | Upstash | 10K commands/day | Redis (optional) |
+[2026-01-08T15:54:16.221Z] +| Cache | Upstash | 10K commands/day | Redis (distributed cache) |
+[2026-01-08T15:54:16.226Z] +
+[2026-01-08T15:54:16.231Z] +## Architecture Diagram
+[2026-01-08T15:54:16.235Z] +
+[2026-01-08T15:54:16.244Z] +```
+[2026-01-08T15:54:16.249Z] +┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+[2026-01-08T15:54:16.254Z] +│     Vercel      │────▶│     Railway     │────▶│      Neon       │
+[2026-01-08T15:54:16.262Z] +│   (Frontend)    │     │    (Backend)    │     │  (PostgreSQL)   │
+[2026-01-08T15:54:16.264Z] +│   React + Vite  │     │  Node.js + API  │     │   Database      │
+[2026-01-08T15:54:16.266Z] +└─────────────────┘     └────────┬────────┘     └─────────────────┘
+[2026-01-08T15:54:16.268Z] +                                 │
+[2026-01-08T15:54:16.271Z] +                                 ▼
+[2026-01-08T15:54:16.274Z] +                        ┌─────────────────┐
+[2026-01-08T15:54:16.277Z] +                        │     Upstash     │
+[2026-01-08T15:54:16.287Z] 
+... and 4820 more lines
+[2026-01-08T15:54:16.299Z] 
+▶ Step 6: Running Tests
+[2026-01-08T15:54:16.302Z] ────────────────────────────────────────
+[2026-01-08T15:54:16.305Z] 🧪 Running test suites...
+[2026-01-08T15:54:16.311Z]    Running backend tests...
+[2026-01-08T15:55:37.159Z]    ✅ Backend tests passed
+[2026-01-08T15:55:37.172Z]    Running frontend tests...
+[2026-01-08T15:57:14.451Z]    ✅ Frontend tests passed
+[2026-01-08T15:57:14.461Z] ✅ All tests passed!
+[2026-01-08T15:57:14.466Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-08T15:57:14.469Z] ────────────────────────────────────────
+[2026-01-08T15:57:14.500Z] ✅ No automated issues detected
+[2026-01-08T15:57:14.504Z] 
+📊 Automated Pre-Score: 100/100
+[2026-01-08T15:57:14.507Z] 
+▶ Step 8: Manual Review Required
+[2026-01-08T15:57:14.513Z] ────────────────────────────────────────
+[2026-01-08T15:57:14.517Z] 
+[2026-01-08T15:57:14.519Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-08T15:57:14.521Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-08T15:57:14.522Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-08T15:57:14.524Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-08T15:57:14.528Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-08T15:57:14.532Z] 
+[2026-01-08T15:57:14.535Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-08T15:57:14.539Z] 
+[2026-01-08T15:57:14.541Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-08T15:57:14.542Z] 
+[2026-01-08T15:57:14.544Z] 
+▶ Step 9: Push Confirmation
+[2026-01-08T15:57:14.545Z] ────────────────────────────────────────
+[2026-01-08T15:57:14.551Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-08T15:57:14.553Z] 📝 Pre-push automated score: 100
+[2026-01-08T15:57:14.555Z] 
+[2026-01-08T15:57:14.557Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-08T15:57:14.559Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-08T15:57:14.561Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-08T15:57:14.564Z] 
+[2026-01-08T15:57:14.567Z] ✅ Automated checks passed - Push proceeding
+[2026-01-08T15:57:14.571Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-08T17:57:15+02:00] Push APPROVED

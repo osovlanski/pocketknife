@@ -16,17 +16,107 @@ interface Classification {
   reasoning?: string;
 }
 
-class TelegramNotificationService {
-  private botToken: string;
-  private chatId: string;
+export interface TelegramStatus {
+  configured: boolean;
+  connected: boolean;
+  botUsername?: string;
+  chatId?: string;
+  error?: string;
+}
 
-  constructor() {
-    this.botToken = process.env.TELEGRAM_BOT_TOKEN || '';
-    this.chatId = process.env.TELEGRAM_CHAT_ID || '';
+class TelegramNotificationService {
+  // Read env vars dynamically (not cached) so changes are picked up without restart
+  private get botToken(): string {
+    return process.env.TELEGRAM_BOT_TOKEN || '';
   }
 
-  private isConfigured(): boolean {
+  private get chatId(): string {
+    return process.env.TELEGRAM_CHAT_ID || '';
+  }
+
+  public isConfigured(): boolean {
     return !!(this.botToken && this.chatId);
+  }
+
+  /**
+   * Get the current status of Telegram integration
+   */
+  async getStatus(): Promise<TelegramStatus> {
+    if (!this.botToken) {
+      return {
+        configured: false,
+        connected: false,
+        error: 'TELEGRAM_BOT_TOKEN not set in .env'
+      };
+    }
+
+    if (!this.chatId) {
+      return {
+        configured: false,
+        connected: false,
+        error: 'TELEGRAM_CHAT_ID not set in .env'
+      };
+    }
+
+    try {
+      // Test the bot token by getting bot info
+      const url = `https://api.telegram.org/bot${this.botToken}/getMe`;
+      const response = await axios.get(url, { timeout: 5000 });
+
+      if (response.data.ok) {
+        return {
+          configured: true,
+          connected: true,
+          botUsername: response.data.result.username,
+          chatId: this.chatId
+        };
+      }
+
+      return {
+        configured: true,
+        connected: false,
+        error: 'Bot token invalid'
+      };
+    } catch (error: any) {
+      return {
+        configured: true,
+        connected: false,
+        error: error.response?.data?.description || error.message || 'Connection failed'
+      };
+    }
+  }
+
+  /**
+   * Test the connection by sending a test message
+   */
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        message: 'Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env'
+      };
+    }
+
+    try {
+      const result = await this.sendMessage('🧪 <b>Test Message</b>\n\nYour Pocketknife Telegram integration is working!');
+      
+      if (result) {
+        return {
+          success: true,
+          message: 'Test message sent successfully! Check your Telegram.'
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Failed to send test message'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.description || error.message || 'Connection test failed'
+      };
+    }
   }
 
   private escapeHtml(text: string): string {

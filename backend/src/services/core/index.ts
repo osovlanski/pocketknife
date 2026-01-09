@@ -11,6 +11,8 @@ export { databaseService, prisma } from './databaseService';
 export { cacheService, cacheKeys } from './cacheService';
 export { configService } from './configService';
 export { googleSearchService, quotaManager } from './googleSearchService';
+export { externalApiService } from './externalApiService';
 export type { SearchResult, ParsedSearchResult, AgentType } from './googleSearchService';
+export type { ExternalApiConfig } from './externalApiService';
 
 

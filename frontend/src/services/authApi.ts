@@ -226,3 +226,80 @@ export const updateProfile = async (data: { name?: string }): Promise<{ success:
   }
 };
 
+// =============================================================================
+// TELEGRAM INTEGRATION
+// =============================================================================
+
+export interface TelegramStatus {
+  configured: boolean;
+  connected: boolean;
+  botUsername?: string;
+  chatId?: string;
+  error?: string;
+}
+
+export const getTelegramStatus = async (): Promise<TelegramStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/telegram/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Telegram status'
+    };
+  }
+};
+
+export const testTelegramConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/telegram/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
+    };
+  }
+};
+
+// =============================================================================
+// DISCORD INTEGRATION
+// =============================================================================
+
+export interface DiscordStatus {
+  configured: boolean;
+  connected: boolean;
+  webhookUrl?: string;
+  error?: string;
+}
+
+export const getDiscordStatus = async (): Promise<DiscordStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/discord/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Discord status'
+    };
+  }
+};
+
+export const testDiscordConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/discord/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
+    };
+  }
+};
+

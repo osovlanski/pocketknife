@@ -51,6 +51,28 @@ router.get('/stats', authenticate, requireAdmin, adminController.getStats);
 // System settings (edit)
 router.put('/settings/:id', authenticate, requireSuperAdmin, adminController.updateSetting);
 
+// =============================================================================
+// EXTERNAL API MANAGEMENT (ADMIN+)
+// =============================================================================
+
+// Get all external API configurations
+router.get('/apis', authenticate, requireAdmin, adminController.getExternalApis);
+
+// Test all external APIs (must be before :name route!)
+router.post('/apis/test-all', authenticate, requireAdmin, adminController.testAllExternalApis);
+
+// Get single external API configuration
+router.get('/apis/:name', authenticate, requireAdmin, adminController.getExternalApi);
+
+// Update external API configuration (SUPER_ADMIN only)
+router.put('/apis/:name', authenticate, requireSuperAdmin, adminController.updateExternalApi);
+
+// Toggle external API enabled status (SUPER_ADMIN only)
+router.post('/apis/:name/toggle', authenticate, requireSuperAdmin, adminController.toggleExternalApi);
+
+// Test a single external API
+router.post('/apis/:name/test', authenticate, requireAdmin, adminController.testExternalApi);
+
 export default router;
 
 

@@ -99,11 +99,40 @@ class IsraeliJobsService {
    * Generate job listings from Israeli tech companies
    * This returns career page URLs for manual search
    */
+  /**
+   * Extract role title from search query, removing industry buzzwords
+   * that shouldn't be part of the job title
+   */
+  private extractRoleTitle(query: string): string {
+    // Industry buzzwords that shouldn't be in job titles
+    const industryBuzzwords = [
+      'fintech', 'healthtech', 'edtech', 'proptech', 'insurtech', 'regtech',
+      'cybersecurity', 'cyber', 'blockchain', 'crypto', 'ai', 'ml', 'saas',
+      'b2b', 'b2c', 'ecommerce', 'e-commerce', 'gaming', 'adtech', 'martech',
+      'foodtech', 'agtech', 'cleantech', 'biotech', 'medtech', 'legaltech'
+    ];
+    
+    // Split query into words and filter out industry buzzwords
+    const words = query.split(/\s+/);
+    const filteredWords = words.filter(word => 
+      !industryBuzzwords.includes(word.toLowerCase())
+    );
+    
+    // Rejoin the remaining words
+    const cleanTitle = filteredWords.join(' ').trim();
+    
+    // If we filtered everything, return original query
+    return cleanTitle || query;
+  }
+
   async getIsraeliTechJobs(query: string): Promise<JobListing[]> {
     console.log('🇮🇱 Getting Israeli tech company career pages...');
 
     const queryLower = query.toLowerCase();
     const keywords = queryLower.split(/\s+/);
+    
+    // Extract clean role title for job listings
+    const roleTitle = this.extractRoleTitle(query);
 
     // Match companies based on relevance to query
     const relevantCompanies = this.topIsraeliCompanies.filter(company => {
@@ -117,13 +146,13 @@ class IsraeliJobsService {
     const companies = relevantCompanies.length > 0 ? relevantCompanies : this.topIsraeliCompanies;
 
     return companies.slice(0, 30).map((company, index) => ({
-      id: `il-company-${index}`,
+      id: `il-company-${index}-${company.name.toLowerCase().replace(/\s+/g, '-')}`,
       source: 'Israeli Tech',
-      title: `${query} positions at ${company.name}`,
+      title: roleTitle, // Clean job title without company name
       company: company.name,
       location: 'Israel (Tel Aviv, Herzliya, Ra\'anana)',
       remote: false,
-      description: `${company.name} is one of Israel's leading tech companies. Visit their careers page to find current openings for ${query} roles. ${company.name} is known for innovation and offers competitive compensation in the Israeli market.`,
+      description: `${company.name} is one of Israel's leading tech companies. Visit their careers page to find current openings for ${roleTitle} roles. ${company.name} is known for innovation and offers competitive compensation in the Israeli market.`,
       applyUrl: company.careersUrl,
       postedAt: new Date().toISOString(),
       tags: ['israel', 'tech', 'startup'],

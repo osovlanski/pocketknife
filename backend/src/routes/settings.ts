@@ -7,8 +7,89 @@
 import { Router, Request, Response } from 'express';
 import { getPrisma } from '../services/core/databaseService';
 import { authenticate } from '../middleware/adminMiddleware';
+import telegramService from '../services/notifications/telegramNotificationService';
+import discordService from '../services/notifications/discordNotificationService';
 
 const router = Router();
+
+// =============================================================================
+// INTEGRATIONS
+// =============================================================================
+
+/**
+ * Get Telegram integration status
+ * Note: No auth required - just returns config status, no sensitive data
+ */
+router.get('/integrations/telegram/status', async (_req: Request, res: Response) => {
+  try {
+    console.log('📱 Telegram status check - BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'SET' : 'NOT SET');
+    console.log('📱 Telegram status check - CHAT_ID:', process.env.TELEGRAM_CHAT_ID ? 'SET' : 'NOT SET');
+    const status = await telegramService.getStatus();
+    res.json(status);
+  } catch (error: any) {
+    console.error('Get Telegram status error:', error);
+    res.status(500).json({ 
+      configured: false, 
+      connected: false, 
+      error: 'Failed to get status' 
+    });
+  }
+});
+
+/**
+ * Test Telegram connection
+ */
+router.post('/integrations/telegram/test', authenticate, async (_req: Request, res: Response) => {
+  try {
+    const result = await telegramService.testConnection();
+    res.json(result);
+  } catch (error: any) {
+    console.error('Test Telegram connection error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to test connection' 
+    });
+  }
+});
+
+/**
+ * Get Discord integration status
+ * Note: No auth required - just returns config status, no sensitive data
+ */
+router.get('/integrations/discord/status', async (_req: Request, res: Response) => {
+  try {
+    console.log('💬 Discord status check - WEBHOOK_URL:', process.env.DISCORD_WEBHOOK_URL ? 'SET' : 'NOT SET');
+    const status = await discordService.getStatus();
+    res.json(status);
+  } catch (error: any) {
+    console.error('Get Discord status error:', error);
+    res.status(500).json({ 
+      configured: false, 
+      connected: false, 
+      error: 'Failed to get status' 
+    });
+  }
+});
+
+/**
+ * Test Discord connection
+ */
+router.post('/integrations/discord/test', authenticate, async (_req: Request, res: Response) => {
+  try {
+    const result = await discordService.testConnection();
+    res.json(result);
+  } catch (error: any) {
+    console.error('Test Discord connection error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to test connection' 
+    });
+  }
+});
+
+// =============================================================================
+// USER PREFERENCES
+// =============================================================================
 
 /**
  * Get user preferences

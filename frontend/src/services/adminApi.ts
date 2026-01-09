@@ -210,3 +210,91 @@ export const getStats = async (): Promise<{ stats: PlatformStats }> => {
   return response.data;
 };
 
+// =============================================================================
+// EXTERNAL API MANAGEMENT
+// =============================================================================
+
+export interface ExternalApiConfig {
+  id: string;
+  name: string;
+  displayName: string;
+  category: string;
+  baseUrl?: string | null;
+  apiKeyEnvVar?: string | null;
+  isEnabled: boolean;
+  isHealthy: boolean;
+  lastHealthCheck?: string | null;
+  lastError?: string | null;
+  rateLimit?: number | null;
+  rateLimitPeriod?: string | null;
+  currentUsage: number;
+  usageResetAt?: string | null;
+  description?: string | null;
+  docsUrl?: string | null;
+  requiresAuth: boolean;
+  authType?: string | null;
+  priority: number;
+  hasApiKey?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExternalApisResponse {
+  apis: Record<string, ExternalApiConfig[]>;
+  flat: ExternalApiConfig[];
+}
+
+export interface ApiTestResult {
+  name: string;
+  displayName: string;
+  isHealthy: boolean;
+  responseTime: number;
+  error?: string;
+  hasApiKey: boolean;
+  requiresAuth?: boolean;
+}
+
+export interface TestAllApisResponse {
+  results: ApiTestResult[];
+  summary: {
+    total: number;
+    healthy: number;
+    unhealthy: number;
+    healthPercentage: number;
+  };
+}
+
+export const getExternalApis = async (category?: string): Promise<ExternalApisResponse> => {
+  const response = await adminApi.get('/admin/apis', { params: { category } });
+  return response.data;
+};
+
+export const getExternalApi = async (name: string): Promise<{ api: ExternalApiConfig }> => {
+  const response = await adminApi.get(`/admin/apis/${name}`);
+  return response.data;
+};
+
+export const updateExternalApi = async (name: string, data: {
+  isEnabled?: boolean;
+  priority?: number;
+  description?: string;
+}): Promise<{ api: ExternalApiConfig }> => {
+  const response = await adminApi.put(`/admin/apis/${name}`, data);
+  return response.data;
+};
+
+export const toggleExternalApi = async (name: string): Promise<{ api: ExternalApiConfig; message: string }> => {
+  const response = await adminApi.post(`/admin/apis/${name}/toggle`);
+  return response.data;
+};
+
+export const testExternalApi = async (name: string): Promise<ApiTestResult> => {
+  const response = await adminApi.post(`/admin/apis/${name}/test`);
+  return response.data;
+};
+
+export const testAllExternalApis = async (category?: string): Promise<TestAllApisResponse> => {
+  const response = await adminApi.post('/admin/apis/test-all', {}, { params: { category } });
+  return response.data;
+};
+

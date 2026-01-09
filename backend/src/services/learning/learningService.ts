@@ -88,10 +88,14 @@ class LearningService {
 
   /**
    * Configure LinkedIn Premium access
+   * 
+   * ⚠️ FUTURE ENHANCEMENT: LinkedIn API integration is not yet implemented.
+   * Currently, LinkedIn jobs are accessed via JSearch API (RapidAPI) which works without OAuth.
+   * Direct LinkedIn API would require approved developer app with Marketing API access.
    */
   configureLinkedIn(config: LinkedInConfig) {
     this.linkedInConfig = config;
-    console.log(`🔗 LinkedIn configured: Premium=${config.isPremium ? 'Yes' : 'No'}`);
+    console.log(`🔗 LinkedIn config saved (Note: Direct API not yet implemented, using JSearch for jobs)`);
   }
 
   /**
@@ -228,30 +232,21 @@ class LearningService {
   }
 
   /**
-   * Search for LinkedIn-style professional content
-   * If LinkedIn Premium is configured, use enhanced API features
+   * Search for professional/career content
+   * 
+   * Note: This searches DEV.to career articles as LinkedIn API is not implemented.
+   * LinkedIn JOBS are available via JSearch API in the Jobs Agent.
    */
   async searchLinkedInStyle(query: string): Promise<LearningResource[]> {
     try {
-      console.log('🔍 Searching for professional content:', query);
+      console.log('🔍 Searching for professional/career content:', query);
       
       const results: LearningResource[] = [];
 
-      // If LinkedIn Premium is configured with access token, use LinkedIn API
-      if (this.linkedInConfig.accessToken && this.linkedInConfig.isPremium) {
-        console.log('🔗 Using LinkedIn Premium API...');
-        try {
-          // LinkedIn Marketing API for content search (requires approved app)
-          // Note: LinkedIn API requires OAuth 2.0 and approved application
-          // This shows the structure - actual implementation requires LinkedIn Developer account
-          const linkedInResults = await this.searchLinkedInPremium(query);
-          results.push(...linkedInResults);
-        } catch (linkedInError: any) {
-          console.warn('⚠️ LinkedIn Premium API failed, falling back to alternatives:', linkedInError.message);
-        }
-      }
+      // Note: LinkedIn Premium API is a future enhancement
+      // For now, we use DEV.to career content as an alternative
 
-      // Search professional/career focused content from Dev.to as fallback/supplement
+      // Search professional/career focused content from Dev.to
       const response = await axios.get('https://dev.to/api/articles', {
         params: {
           tag: 'career',
@@ -291,40 +286,22 @@ class LearningService {
 
   /**
    * Search LinkedIn Premium API (requires OAuth token)
-   * LinkedIn Premium features:
-   * - Access to LinkedIn Learning courses
-   * - InMail messaging for networking
-   * - Who viewed your profile (for content ideas)
-   * - Premium insights on posts
+   * 
+   * ⚠️ FUTURE ENHANCEMENT - NOT YET IMPLEMENTED
+   * 
+   * LinkedIn API requires:
+   * 1. Approved LinkedIn Developer App (takes weeks for approval)
+   * 2. Marketing API or Community Management API access
+   * 3. OAuth 2.0 with specific scopes
+   * 
+   * Current alternative: JSearch API provides LinkedIn job data without OAuth.
+   * For learning content: DEV.to, GitHub, and newsletters are used instead.
    */
-  private async searchLinkedInPremium(query: string): Promise<LearningResource[]> {
-    if (!this.linkedInConfig.accessToken) {
-      throw new Error('LinkedIn access token not configured');
-    }
-
-    try {
-      // LinkedIn API endpoints for premium users
-      // Note: These require a LinkedIn Developer application with proper permissions
-      
-      // Option 1: LinkedIn Marketing API for content discovery
-      // POST https://api.linkedin.com/v2/search with authorization
-
-      // Option 2: Use LinkedIn's Share API to find popular posts
-      // GET https://api.linkedin.com/v2/shares
-
-      // For now, simulate what premium access would provide
-      console.log('🔗 LinkedIn Premium: Searching for posts related to:', query);
-      
-      // In production, you would:
-      // 1. Register app at https://www.linkedin.com/developers/
-      // 2. Get OAuth 2.0 access token with proper scopes
-      // 3. Use Marketing API or Content Suggestions API
-      
-      return [];
-    } catch (error: any) {
-      console.error('❌ LinkedIn Premium API error:', error.message);
-      return [];
-    }
+  private async searchLinkedInPremium(_query: string): Promise<LearningResource[]> {
+    // Not implemented - would require approved LinkedIn Developer App
+    // LinkedIn jobs are already available via JSearch API
+    console.log('ℹ️ LinkedIn Premium API not implemented. Using alternative sources.');
+    return [];
   }
 
   /**
@@ -683,13 +660,17 @@ Create the expert summary:`
   }
 
   /**
-   * Get LinkedIn Premium integration status and instructions
+   * Get LinkedIn integration status and instructions
+   * 
+   * ⚠️ Note: Direct LinkedIn API is a FUTURE ENHANCEMENT.
+   * LinkedIn jobs are currently accessed via JSearch API (working).
    */
   getLinkedInIntegrationInfo(): { 
     configured: boolean; 
     isPremium: boolean; 
     instructions: string;
     features: string[];
+    currentStatus: string;
   } {
     const configured = !!this.linkedInConfig.accessToken;
     const isPremium = this.linkedInConfig.isPremium || false;
@@ -697,26 +678,22 @@ Create the expert summary:`
     return {
       configured,
       isPremium,
-      instructions: configured 
-        ? 'LinkedIn Premium is configured and active.'
-        : `To integrate LinkedIn Premium:
-1. Go to https://www.linkedin.com/developers/apps and create an app
-2. Request access to Marketing API or Content Suggestions API
-3. Get OAuth 2.0 access token with proper scopes:
-   - r_liteprofile
-   - r_emailaddress
-   - w_member_social
-4. Add to your .env file:
-   LINKEDIN_ACCESS_TOKEN=your_token
-   LINKEDIN_IS_PREMIUM=true
-5. Restart the backend server`,
+      currentStatus: '✅ LinkedIn JOBS work via JSearch API (no config needed). Direct LinkedIn API for learning content is a future enhancement.',
+      instructions: `LinkedIn Integration Status:
+
+✅ WORKING NOW:
+• LinkedIn job listings via JSearch API (requires RAPIDAPI_KEY)
+• No LinkedIn OAuth needed for job search
+
+🔮 FUTURE ENHANCEMENT (not yet implemented):
+• Direct LinkedIn API for posts/articles
+• LinkedIn Learning course metadata
+• Requires approved LinkedIn Developer App (complex approval process)`,
       features: [
-        '📊 Access to LinkedIn Learning courses metadata',
-        '🔍 Search LinkedIn posts and articles directly',
-        '👥 Find content from industry leaders in your network',
-        '📈 Get insights on trending topics in your industry',
-        '🎯 Personalized content recommendations',
-        '📬 Save articles to LinkedIn for later reading'
+        '✅ LinkedIn job search (via JSearch API - WORKING)',
+        '🔮 LinkedIn Learning courses (future enhancement)',
+        '🔮 LinkedIn posts/articles search (future enhancement)',
+        '🔮 Industry insights from network (future enhancement)'
       ]
     };
   }
