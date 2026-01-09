@@ -91,12 +91,23 @@ const createAuthApi = () => {
 // =============================================================================
 
 export const getGoogleAuthStatus = async (): Promise<AuthStatus> => {
-  const response = await axios.get(`${API_BASE_URL}/auth/status`);
-  return response.data;
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/auth/status');
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to get auth status:', error);
+    return {
+      authenticated: false,
+      message: 'Failed to check authentication status'
+    };
+  }
 };
 
 export const getGoogleAuthUrl = (): string => {
-  return `${API_BASE_URL}/auth/google`;
+  const email = getStoredEmail();
+  const baseUrl = `${API_BASE_URL}/auth/google`;
+  return email ? `${baseUrl}?userEmail=${encodeURIComponent(email)}` : baseUrl;
 };
 
 export const disconnectGoogle = async (): Promise<{ success: boolean; message?: string; error?: string }> => {
