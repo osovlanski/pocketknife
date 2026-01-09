@@ -869,21 +869,24 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'remoteok':
           await axios.default.get('https://remoteok.com/api', {
             headers: { 'User-Agent': 'JobSearchAgent/1.0' },
-            timeout: 10000
+            timeout: 10000,
+            httpsAgent
           });
           isHealthy = true;
           break;
           
         case 'remotive':
           await axios.default.get('https://remotive.com/api/remote-jobs', {
-            timeout: 10000
+            timeout: 10000,
+            httpsAgent
           });
           isHealthy = true;
           break;
           
         case 'arbeitnow':
           await axios.default.get('https://www.arbeitnow.com/api/job-board-api', {
-            timeout: 10000
+            timeout: 10000,
+            httpsAgent
           });
           isHealthy = true;
           break;
@@ -891,7 +894,8 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'themuse':
           const museRes = await axios.default.get('https://www.themuse.com/api/public/jobs', {
             params: { page: 0, api_key: 'public' },
-            timeout: 10000
+            timeout: 10000,
+            httpsAgent
           });
           isHealthy = museRes.status === 200;
           break;
@@ -900,6 +904,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
           const findworkRes = await axios.default.get('https://findwork.dev/api/jobs/', {
             headers: { 'Authorization': 'Token public' },
             timeout: 10000,
+            httpsAgent,
             validateStatus: (s) => s < 500
           });
           isHealthy = findworkRes.status !== 401 && findworkRes.status !== 403;
@@ -909,6 +914,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'himalayas':
           const himRes = await axios.default.get('https://himalayas.app/jobs.json', {
             timeout: 10000,
+            httpsAgent,
             validateStatus: (s) => s < 500
           });
           isHealthy = himRes.status === 200;
@@ -925,7 +931,8 @@ export const testExternalApi = async (req: Request, res: Response) => {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
                 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
               },
-              timeout: 20000
+              timeout: 20000,
+              httpsAgent
             });
             isHealthy = jsearchRes.status === 200;
           }
@@ -943,7 +950,8 @@ export const testExternalApi = async (req: Request, res: Response) => {
                 what: 'developer',
                 results_per_page: 1
               },
-              timeout: 15000
+              timeout: 15000,
+              httpsAgent
             });
             isHealthy = adzunaRes.status === 200;
           }
@@ -1024,8 +1032,10 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
 
     // Import axios for HTTP testing
     let axios;
+    let https;
     try {
       axios = await import('axios');
+      https = await import('https');
     } catch (importError: any) {
       console.error('❌ Failed to import axios:', importError);
       return res.status(500).json({ 
@@ -1033,6 +1043,10 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         details: importError.message 
       });
     }
+
+    // Create HTTPS agent that ignores SSL errors (for health checks only)
+    // This is needed because Railway/cloud platforms may use proxies with self-signed certs
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
     // Test each API sequentially to avoid rate limits
     for (const api of apis) {
@@ -1057,6 +1071,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
             { query: '{ __typename }' }, // Minimal GraphQL introspection
             {
               timeout: 10000,
+              httpsAgent,
               validateStatus: (s: number) => s < 500,
               headers: { 'Content-Type': 'application/json' }
             }
@@ -1068,6 +1083,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         else if (api.authType === 'scraper') {
           const response = await axios.default.get(api.baseUrl!, {
             timeout: 10000,
+            httpsAgent,
             validateStatus: (s: number) => s < 500,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -1103,6 +1119,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         else if (api.baseUrl) {
           const response = await axios.default.get(api.baseUrl, {
             timeout: 10000,
+            httpsAgent,
             validateStatus: (s: number) => s < 500,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
