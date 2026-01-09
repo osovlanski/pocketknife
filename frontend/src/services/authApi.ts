@@ -131,21 +131,29 @@ export const forceGoogleReauth = async (): Promise<{ success: boolean; authUrl: 
 export const signIn = async (email: string): Promise<{ success: boolean; user?: CurrentUser; error?: string }> => {
   try {
     const normalizedEmail = email.toLowerCase().trim();
+    console.log('[authApi] signIn starting for:', normalizedEmail);
+    console.log('[authApi] API_BASE_URL:', API_BASE_URL);
     
     // Store the email first so subsequent requests include it
     setStoredEmail(normalizedEmail);
+    console.log('[authApi] Email stored in localStorage');
     
     // Initialize admin - this will create/upgrade the user if it's the admin email
-    await axios.post(`${API_BASE_URL}/admin/initialize`, {}, {
+    console.log('[authApi] Calling /admin/initialize...');
+    const initResponse = await axios.post(`${API_BASE_URL}/admin/initialize`, {}, {
       headers: { 'X-User-Email': normalizedEmail }
     });
+    console.log('[authApi] Initialize response:', initResponse.status);
     
     // Get user info
+    console.log('[authApi] Calling /admin/me...');
     const api = createAuthApi();
     const response = await api.get('/admin/me');
+    console.log('[authApi] /admin/me response:', response.status, response.data);
     
     const user = response.data.user;
     if (!user) {
+      console.error('[authApi] No user in response');
       clearStoredEmail();
       return {
         success: false,
@@ -153,16 +161,22 @@ export const signIn = async (email: string): Promise<{ success: boolean; user?: 
       };
     }
     
+    console.log('[authApi] Sign in successful, user role:', user.role);
     return {
       success: true,
       user
     };
   } catch (error: any) {
-    console.error('Sign in error:', error);
+    console.error('[authApi] Sign in error:', error);
+    console.error('[authApi] Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     clearStoredEmail();
     return {
       success: false,
-      error: error.response?.data?.error || 'Failed to sign in'
+      error: error.response?.data?.error || error.message || 'Failed to sign in'
     };
   }
 };

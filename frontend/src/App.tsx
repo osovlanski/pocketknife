@@ -306,11 +306,25 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
 
   const handleSignIn = useCallback(async (email: string) => {
-    const result = await auth.signIn(email);
-    if (result.success) {
-      notifications.showSuccess(`Welcome back, ${email}!`);
+    try {
+      console.log('[Auth] Attempting sign in for:', email);
+      const result = await auth.signIn(email);
+      console.log('[Auth] Sign in result:', result);
+      
+      if (result.success) {
+        notifications.showSuccess(`Welcome back, ${email}!`);
+        // Force refresh user state to ensure UI updates
+        await auth.refreshUser();
+      } else {
+        console.error('[Auth] Sign in failed:', result.error);
+        notifications.showError(result.error || 'Sign in failed');
+      }
+      return result;
+    } catch (error: any) {
+      console.error('[Auth] Sign in exception:', error);
+      notifications.showError('Sign in failed: ' + (error.message || 'Unknown error'));
+      return { success: false, error: error.message };
     }
-    return result;
   }, [auth, notifications]);
 
   const handleSignOut = useCallback(() => {
