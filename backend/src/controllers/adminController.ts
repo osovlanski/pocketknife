@@ -961,6 +961,67 @@ export const testExternalApi = async (req: Request, res: Response) => {
           // This is a local service, always healthy
           isHealthy = true;
           break;
+        
+        // Google APIs - explicitly check for GOOGLE_CSE_API_KEY
+        case 'google_cse':
+        case 'google_places':
+          if (!process.env.GOOGLE_CSE_API_KEY) {
+            isHealthy = false;
+            error = 'GOOGLE_CSE_API_KEY not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // GitHub API - explicitly check for GITHUB_TOKEN
+        case 'github_api':
+          if (!process.env.GITHUB_TOKEN) {
+            isHealthy = false;
+            error = 'GITHUB_TOKEN not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // Telegram - explicitly check for token
+        case 'telegram_bot':
+          if (!process.env.TELEGRAM_BOT_TOKEN) {
+            isHealthy = false;
+            error = 'TELEGRAM_BOT_TOKEN not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // Discord - explicitly check for webhook URL
+        case 'discord_webhook':
+          if (!process.env.DISCORD_WEBHOOK_URL) {
+            isHealthy = false;
+            error = 'DISCORD_WEBHOOK_URL not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // Anthropic Claude - explicitly check
+        case 'anthropic_claude':
+          if (!process.env.ANTHROPIC_API_KEY) {
+            isHealthy = false;
+            error = 'ANTHROPIC_API_KEY not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // Gmail API - check OAuth is configured
+        case 'gmail_api':
+          if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+            isHealthy = false;
+            error = 'GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
           
         default:
           error = 'Unknown API';
@@ -1061,10 +1122,66 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
           error = 'API disabled';
           isHealthy = false;
         }
+        // ============ Explicit API checks (override database values) ============
         // Local/internal services
         else if (api.name === 'israeli_tech') {
           isHealthy = true;
         }
+        // Google APIs - explicitly check for GOOGLE_CSE_API_KEY
+        else if (api.name === 'google_cse' || api.name === 'google_places') {
+          if (process.env.GOOGLE_CSE_API_KEY) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'GOOGLE_CSE_API_KEY not configured';
+          }
+        }
+        // GitHub API
+        else if (api.name === 'github_api') {
+          if (process.env.GITHUB_TOKEN) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'GITHUB_TOKEN not configured';
+          }
+        }
+        // Telegram
+        else if (api.name === 'telegram_bot') {
+          if (process.env.TELEGRAM_BOT_TOKEN) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'TELEGRAM_BOT_TOKEN not configured';
+          }
+        }
+        // Discord
+        else if (api.name === 'discord_webhook') {
+          if (process.env.DISCORD_WEBHOOK_URL) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'DISCORD_WEBHOOK_URL not configured';
+          }
+        }
+        // Anthropic Claude
+        else if (api.name === 'anthropic_claude') {
+          if (process.env.ANTHROPIC_API_KEY) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'ANTHROPIC_API_KEY not configured';
+          }
+        }
+        // Gmail API
+        else if (api.name === 'gmail_api') {
+          if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+            isHealthy = true;
+          } else {
+            isHealthy = false;
+            error = 'GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured';
+          }
+        }
+        // ============ Generic checks for remaining APIs ============
         // GraphQL APIs need POST request
         else if (api.authType === 'graphql') {
           const response = await axios.default.post(api.baseUrl!, 
@@ -1149,13 +1266,49 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         // Ignore DB update errors
       }
       
+      // Compute hasApiKey based on actual env vars, not database cache
+      let hasApiKey = false;
+      switch (api.name) {
+        case 'google_cse':
+        case 'google_places':
+          hasApiKey = !!process.env.GOOGLE_CSE_API_KEY;
+          break;
+        case 'github_api':
+          hasApiKey = !!process.env.GITHUB_TOKEN;
+          break;
+        case 'telegram_bot':
+          hasApiKey = !!process.env.TELEGRAM_BOT_TOKEN;
+          break;
+        case 'discord_webhook':
+          hasApiKey = !!process.env.DISCORD_WEBHOOK_URL;
+          break;
+        case 'anthropic_claude':
+          hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+          break;
+        case 'gmail_api':
+          hasApiKey = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+          break;
+        case 'jsearch':
+          hasApiKey = !!process.env.RAPIDAPI_KEY;
+          break;
+        case 'adzuna':
+          hasApiKey = !!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY);
+          break;
+        case 'amadeus':
+          hasApiKey = !!(process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET);
+          break;
+        default:
+          // For APIs without specific key requirements, use the database value or true for free APIs
+          hasApiKey = api.requiresAuth ? (api.hasApiKey || false) : true;
+      }
+      
       results.push({
         name: api.name,
         displayName: api.displayName,
         isHealthy,
         responseTime,
         error,
-        hasApiKey: api.hasApiKey || false
+        hasApiKey
       });
     }
 
