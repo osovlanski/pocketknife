@@ -40,6 +40,7 @@
     "express": "^4.21.1",
     "googleapis": "^144.0.0",
     "ioredis": "^5.8.2",
+    "meilisearch": "^0.55.0",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",

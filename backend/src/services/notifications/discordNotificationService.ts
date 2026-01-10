@@ -37,7 +37,9 @@ class DiscordNotificationService {
    * Get the current status of Discord integration
    */
   async getStatus(): Promise<DiscordStatus> {
-    if (!this.webhookUrl) {
+    const webhookUrl = this.webhookUrl?.trim();
+    
+    if (!webhookUrl) {
       return {
         configured: false,
         connected: false,
@@ -45,13 +47,25 @@ class DiscordNotificationService {
       };
     }
 
+    // Validate webhook URL format
+    if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+      return {
+        configured: true,
+        connected: false,
+        error: 'Invalid webhook URL format. Should start with https://discord.com/api/webhooks/'
+      };
+    }
+
     try {
       // Discord webhooks can be tested with a GET request to get webhook info
-      const response = await axios.get(this.webhookUrl, { timeout: 5000 });
+      console.log('🔍 Testing Discord webhook connection...');
+      const response = await axios.get(webhookUrl, { timeout: 5000 });
 
       if (response.data && response.data.id) {
         // Mask the webhook URL for security (only show channel name)
-        const channelName = response.data.name || 'Unknown Channel';
+        const channelName = response.data.name || 'Webhook';
+        const guildName = response.data.guild_id ? 'Server' : '';
+        console.log(`✅ Discord connected: ${channelName}`);
         return {
           configured: true,
           connected: true,
@@ -62,13 +76,20 @@ class DiscordNotificationService {
       return {
         configured: true,
         connected: false,
-        error: 'Invalid webhook response'
+        error: 'Invalid webhook response - missing id'
       };
     } catch (error: any) {
+      const errorMsg = error.response?.status === 404 
+        ? 'Webhook not found - it may have been deleted'
+        : error.response?.status === 401 
+          ? 'Unauthorized - invalid webhook token'
+          : error.response?.data?.message || error.message || 'Connection failed';
+      
+      console.error('❌ Discord connection failed:', errorMsg);
       return {
         configured: true,
         connected: false,
-        error: error.response?.data?.message || error.message || 'Connection failed'
+        error: errorMsg
       };
     }
   }

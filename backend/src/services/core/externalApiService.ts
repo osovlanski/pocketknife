@@ -353,6 +353,38 @@ const DEFAULT_NOTIFICATION_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'u
     docsUrl: 'https://developers.notion.com/',
     priority: 1,
     currentUsage: 0
+  },
+  {
+    name: 'meilisearch',
+    displayName: 'MeiliSearch',
+    category: 'search',
+    baseUrl: 'http://localhost:7700',
+    apiKeyEnvVar: 'MEILISEARCH_HOST',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    authType: 'none',
+    description: 'Local full-text search engine for instant search across jobs, recipes, resources',
+    docsUrl: 'https://docs.meilisearch.com/',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'serpapi',
+    displayName: 'SerpApi',
+    category: 'search',
+    baseUrl: 'https://serpapi.com/search',
+    apiKeyEnvVar: 'SERPAPI_KEY',
+    rateLimit: 100,
+    rateLimitPeriod: 'month',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Google/Bing web search API for tutorials, products, and enhanced search results',
+    docsUrl: 'https://serpapi.com/docs',
+    priority: 2,
+    currentUsage: 0
   }
 ];
 

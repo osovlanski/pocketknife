@@ -492,14 +492,83 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
         }}>
           <strong>Setup Instructions:</strong>
           <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-            <li>Open Discord and go to Server Settings → Integrations → Webhooks</li>
-            <li>Click "New Webhook" and choose a channel</li>
-            <li>Copy the Webhook URL</li>
+            <li>Open Discord and go to your server</li>
+            <li>Right-click a channel → Edit Channel → Integrations → Webhooks</li>
+            <li>Click "New Webhook" and copy the URL</li>
             <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>DISCORD_WEBHOOK_URL</code> in .env</li>
             <li>Restart the backend server</li>
           </ol>
         </div>
       )}
+    </div>
+
+    {/* Facebook Integration - Coming Soon */}
+    <div className={`${styles.integrationCard} ${styles.integrationCardDisabled}`}>
+      <div className={styles.integrationHeader}>
+        <div className={styles.integrationInfo}>
+          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)' }}>
+            <span style={{ fontSize: '1.25rem' }}>📘</span>
+          </div>
+          <div>
+            <h3 className={styles.integrationTitle}>Facebook</h3>
+            <p className={styles.integrationDescription}>
+              Coming soon - Sign in with Facebook and share to your feed
+            </p>
+          </div>
+        </div>
+        <span style={{ 
+          padding: '0.25rem 0.75rem', 
+          backgroundColor: 'rgba(148, 163, 184, 0.2)', 
+          borderRadius: '0.25rem',
+          fontSize: '0.75rem',
+          color: 'rgb(148, 163, 184)'
+        }}>
+          Coming Soon
+        </span>
+      </div>
+    </div>
+
+    {/* Notion Integration */}
+    <div className={`${styles.integrationCard}`} style={{ opacity: 0.9 }}>
+      <div className={styles.integrationHeader}>
+        <div className={styles.integrationInfo}>
+          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <span style={{ fontSize: '1.25rem' }}>📝</span>
+          </div>
+          <div>
+            <h3 className={styles.integrationTitle}>Notion</h3>
+            <p className={styles.integrationDescription}>
+              Save learning resources, jobs, recipes, and tasks to Notion
+            </p>
+          </div>
+        </div>
+        <span style={{ 
+          padding: '0.25rem 0.75rem', 
+          backgroundColor: 'rgba(16, 185, 129, 0.2)', 
+          borderRadius: '0.25rem',
+          fontSize: '0.75rem',
+          color: 'rgb(16, 185, 129)'
+        }}>
+          Available
+        </span>
+      </div>
+      <div style={{ 
+        marginTop: '0.75rem', 
+        padding: '0.75rem', 
+        backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+        borderRadius: '0.375rem',
+        fontSize: '0.875rem',
+        color: 'rgb(147, 197, 253)'
+      }}>
+        <strong>Setup Instructions:</strong>
+        <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+          <li>Go to <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>notion.so/my-integrations</a></li>
+          <li>Create a new integration named "Pocketknife"</li>
+          <li>Copy the Internal Integration Token</li>
+          <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>NOTION_TOKEN</code> in .env</li>
+          <li>Share your Notion databases with the integration</li>
+        </ol>
+      </div>
     </div>
   </div>
 );
