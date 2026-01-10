@@ -1,21 +1,23 @@
 import { google, Auth } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
+import { getPrisma } from '../core/database';
+
+const PROVIDER = 'google';
+const DEFAULT_USER_EMAIL = process.env.GMAIL_USER_EMAIL || 'default';
 
 class GoogleAuthService {
   private oauth2Client: Auth.OAuth2Client | null = null;
-  private tokenPath: string;
   private hasValidTokens: boolean = false;
-  private storedScopes: string = ''; // Store scopes from token file
+  private storedScopes: string = '';
+  private currentUserEmail: string = DEFAULT_USER_EMAIL;
 
   constructor() {
-    this.tokenPath = path.join(process.cwd(), 'credentials', 'gmail-token.json');
+    // No file path needed - tokens stored in database
   }
 
   /**
    * Initialize the OAuth2 client
    */
-  initialize() {
+  async initialize() {
     this.oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -23,69 +25,183 @@ class GoogleAuthService {
     );
 
     // Set up automatic token refresh callback
-    this.oauth2Client.on('tokens', (tokens) => {
+    this.oauth2Client.on('tokens', async (tokens) => {
       console.log('🔄 Token refresh event received');
       if (tokens.refresh_token) {
         console.log('✅ New refresh token received');
       }
       if (tokens.access_token) {
         console.log('✅ New access token received, updating saved tokens');
-        // Update the saved token file with new tokens
-        this.updateSavedTokens(tokens);
+        await this.saveTokensToDatabase(tokens);
       }
     });
 
-    // Try to load existing tokens
-    if (fs.existsSync(this.tokenPath)) {
-      try {
-        const tokens = JSON.parse(fs.readFileSync(this.tokenPath, 'utf-8'));
-        this.oauth2Client.setCredentials(tokens);
+    // Try to load existing tokens from database
+    await this.loadTokensFromDatabase();
+  }
+
+  /**
+   * Load tokens from database
+   */
+  private async loadTokensFromDatabase(): Promise<boolean> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) {
+        console.warn('⚠️ Database not available for token loading');
+        return false;
+      }
+
+      // Check if OAuthToken table exists
+      if (!(prisma as any).oAuthToken) {
+        console.warn('⚠️ OAuthToken table not found. Run migrations.');
+        return false;
+      }
+
+      const tokenRecord = await (prisma as any).oAuthToken.findUnique({
+        where: {
+          provider_userEmail: {
+            provider: PROVIDER,
+            userEmail: this.currentUserEmail
+          }
+        }
+      });
+
+      if (tokenRecord) {
+        const tokens: Auth.Credentials = {
+          access_token: tokenRecord.accessToken,
+          refresh_token: tokenRecord.refreshToken,
+          token_type: tokenRecord.tokenType,
+          scope: tokenRecord.scope,
+          expiry_date: tokenRecord.expiryDate?.getTime()
+        };
+
+        this.oauth2Client?.setCredentials(tokens);
         this.hasValidTokens = true;
-        this.storedScopes = tokens.scope || ''; // Store the scopes from token file
-        console.log('✅ Google OAuth tokens loaded');
-        console.log('📋 Token scopes:', this.storedScopes);
-        
-        // Check if access token is expired and we have a refresh token
-        if (tokens.expiry_date && tokens.refresh_token) {
-          const isExpired = tokens.expiry_date < Date.now();
+        this.storedScopes = tokenRecord.scope || '';
+        console.log('✅ Google OAuth tokens loaded from database');
+        console.log('📋 Token scopes:', this.storedScopes.substring(0, 100) + '...');
+
+        // Check if access token is expired
+        if (tokenRecord.expiryDate && tokenRecord.refreshToken) {
+          const isExpired = tokenRecord.expiryDate.getTime() < Date.now();
           if (isExpired) {
             console.log('⚠️ Access token expired, will refresh on next API call');
           }
         }
-      } catch (error) {
-        console.warn('⚠️ Failed to load Google tokens:', error);
+        return true;
+      } else {
+        console.warn('⚠️ No Google OAuth tokens found in database');
         this.hasValidTokens = false;
         this.storedScopes = '';
+        return false;
       }
-    } else {
-      console.warn('⚠️ No Google OAuth tokens found');
+    } catch (error: any) {
+      // Handle table not existing gracefully
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        console.warn('⚠️ OAuthToken table not found. Run migrations first.');
+      } else {
+        console.warn('⚠️ Failed to load Google tokens from database:', error.message);
+      }
       this.hasValidTokens = false;
       this.storedScopes = '';
+      return false;
     }
   }
 
   /**
-   * Update saved tokens file when tokens are refreshed
+   * Save tokens to database
    */
-  private updateSavedTokens(newTokens: Auth.Credentials) {
+  private async saveTokensToDatabase(tokens: Auth.Credentials): Promise<boolean> {
     try {
-      let existingTokens: Auth.Credentials = {};
-      if (fs.existsSync(this.tokenPath)) {
-        existingTokens = JSON.parse(fs.readFileSync(this.tokenPath, 'utf-8'));
+      const prisma = getPrisma();
+      if (!prisma) {
+        console.warn('⚠️ Database not available for token saving');
+        return false;
       }
-      
-      // Merge new tokens with existing (keep refresh_token if not in new tokens)
-      const mergedTokens = {
-        ...existingTokens,
-        ...newTokens,
-        refresh_token: newTokens.refresh_token || existingTokens.refresh_token
-      };
-      
-      fs.writeFileSync(this.tokenPath, JSON.stringify(mergedTokens, null, 2));
-      this.storedScopes = mergedTokens.scope || this.storedScopes;
-      console.log('✅ Token file updated with refreshed tokens');
-    } catch (error) {
-      console.error('❌ Failed to update token file:', error);
+
+      if (!(prisma as any).oAuthToken) {
+        console.warn('⚠️ OAuthToken table not found. Run migrations.');
+        return false;
+      }
+
+      // Merge with existing tokens (keep refresh_token if not in new tokens)
+      let existingRefreshToken: string | null = null;
+      try {
+        const existing = await (prisma as any).oAuthToken.findUnique({
+          where: {
+            provider_userEmail: {
+              provider: PROVIDER,
+              userEmail: this.currentUserEmail
+            }
+          }
+        });
+        if (existing) {
+          existingRefreshToken = existing.refreshToken;
+        }
+      } catch {
+        // No existing token, that's fine
+      }
+
+      await (prisma as any).oAuthToken.upsert({
+        where: {
+          provider_userEmail: {
+            provider: PROVIDER,
+            userEmail: this.currentUserEmail
+          }
+        },
+        update: {
+          accessToken: tokens.access_token || '',
+          refreshToken: tokens.refresh_token || existingRefreshToken,
+          tokenType: tokens.token_type || 'Bearer',
+          scope: tokens.scope,
+          expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null
+        },
+        create: {
+          provider: PROVIDER,
+          userEmail: this.currentUserEmail,
+          accessToken: tokens.access_token || '',
+          refreshToken: tokens.refresh_token,
+          tokenType: tokens.token_type || 'Bearer',
+          scope: tokens.scope,
+          expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null
+        }
+      });
+
+      this.storedScopes = tokens.scope || this.storedScopes;
+      console.log('✅ Tokens saved to database');
+      return true;
+    } catch (error: any) {
+      console.error('❌ Failed to save tokens to database:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Delete tokens from database
+   */
+  private async deleteTokensFromDatabase(): Promise<boolean> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma || !(prisma as any).oAuthToken) {
+        return false;
+      }
+
+      await (prisma as any).oAuthToken.delete({
+        where: {
+          provider_userEmail: {
+            provider: PROVIDER,
+            userEmail: this.currentUserEmail
+          }
+        }
+      });
+      console.log('✅ Tokens deleted from database');
+      return true;
+    } catch (error: any) {
+      // P2025 = record not found, which is fine
+      if (error.code !== 'P2025') {
+        console.error('❌ Failed to delete tokens from database:', error.message);
+      }
+      return false;
     }
   }
 
@@ -94,7 +210,7 @@ class GoogleAuthService {
    */
   private async ensureValidClient(): Promise<Auth.OAuth2Client> {
     if (!this.oauth2Client) {
-      this.initialize();
+      await this.initialize();
     }
     
     if (!this.oauth2Client) {
@@ -111,7 +227,7 @@ class GoogleAuthService {
         try {
           const { credentials: newCredentials } = await this.oauth2Client.refreshAccessToken();
           this.oauth2Client.setCredentials(newCredentials);
-          this.updateSavedTokens(newCredentials);
+          await this.saveTokensToDatabase(newCredentials);
           console.log('✅ Access token refreshed successfully');
         } catch (refreshError: any) {
           console.error('❌ Failed to refresh access token:', refreshError.message);
@@ -128,7 +244,8 @@ class GoogleAuthService {
    */
   getClient(): Auth.OAuth2Client | null {
     if (!this.oauth2Client) {
-      this.initialize();
+      // Can't call async initialize here, just return null
+      return null;
     }
     return this.oauth2Client;
   }
@@ -152,32 +269,30 @@ class GoogleAuthService {
    */
   getAuthUrl(): string {
     if (!this.oauth2Client) {
-      this.initialize();
+      // Synchronous initialization for auth URL generation
+      this.oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback'
+      );
     }
 
     const scopes = [
-      // OpenID Connect scopes for user info
       'openid',
       'email',
       'profile',
-      // Gmail scopes
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.modify',
       'https://www.googleapis.com/auth/gmail.labels',
-      // Drive scopes
       'https://www.googleapis.com/auth/drive.file',
-      // Calendar scopes
       'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/calendar.events'
     ];
 
-    if (!this.oauth2Client) {
-      this.initialize();
-    }
-    return this.oauth2Client!.generateAuthUrl({
+    return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      prompt: 'consent' // Force to get refresh token
+      prompt: 'consent'
     });
   }
 
@@ -186,9 +301,8 @@ class GoogleAuthService {
    */
   async handleCallback(code: string): Promise<{ success: boolean; error?: string; email?: string }> {
     try {
-      // Ensure OAuth client is initialized
       if (!this.oauth2Client) {
-        this.initialize();
+        await this.initialize();
       }
       
       if (!this.oauth2Client) {
@@ -198,7 +312,6 @@ class GoogleAuthService {
       console.log('🔄 Exchanging authorization code for tokens...');
       const { tokens } = await this.oauth2Client.getToken(code);
       
-      // Check we got the essential tokens
       if (!tokens.access_token) {
         console.error('❌ No access token received');
         return { success: false, error: 'No access token received from Google. Please try again.' };
@@ -211,24 +324,9 @@ class GoogleAuthService {
         scopes: tokens.scope?.substring(0, 100) + '...'
       });
       
-      // Save tokens to file first
-      const credentialsDir = path.dirname(this.tokenPath);
-      if (!fs.existsSync(credentialsDir)) {
-        fs.mkdirSync(credentialsDir, { recursive: true });
-      }
-      
-      fs.writeFileSync(this.tokenPath, JSON.stringify(tokens, null, 2));
-      console.log('✅ Tokens saved to:', this.tokenPath);
-      
-      // Set credentials on client
-      this.oauth2Client.setCredentials(tokens);
-      this.hasValidTokens = true;
-      this.storedScopes = tokens.scope || '';
-      
-      // Try to get user email (optional - don't fail if this doesn't work)
+      // Get user email to associate with tokens
       let userEmail: string | undefined;
       try {
-        // First try to get email from id_token (no API call needed)
         if (tokens.id_token) {
           try {
             const payload = JSON.parse(
@@ -236,32 +334,42 @@ class GoogleAuthService {
             );
             if (payload.email) {
               userEmail = payload.email;
+              this.currentUserEmail = userEmail;
               console.log('✅ Got email from id_token:', userEmail);
             }
           } catch {
-            // id_token decode failed, try API
+            // id_token decode failed
           }
         }
         
-        // If no email from id_token, try API call
         if (!userEmail) {
+          this.oauth2Client.setCredentials(tokens);
           const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
           const { data } = await oauth2.userinfo.get();
           userEmail = data.email || undefined;
+          if (userEmail) {
+            this.currentUserEmail = userEmail;
+          }
           console.log('✅ Got email from API:', userEmail);
         }
       } catch (verifyError: any) {
-        // Log but don't fail - tokens might still work for Gmail/Calendar
         console.warn('⚠️ Could not fetch user info (tokens may still work):', verifyError.message);
       }
       
-      console.log('✅ Google OAuth tokens saved successfully');
-      console.log('📋 Token scopes:', this.storedScopes);
+      // Save tokens to database
+      await this.saveTokensToDatabase(tokens);
+      
+      // Set credentials on client
+      this.oauth2Client.setCredentials(tokens);
+      this.hasValidTokens = true;
+      this.storedScopes = tokens.scope || '';
+      
+      console.log('✅ Google OAuth tokens saved successfully to database');
+      console.log('📋 Token scopes:', this.storedScopes.substring(0, 100) + '...');
       
       return { success: true, email: userEmail };
     } catch (error: any) {
       console.error('❌ Error exchanging OAuth code:', error);
-      // Provide more specific error messages
       let errorMessage = error.message || 'Unknown error';
       if (error.response?.data?.error_description) {
         errorMessage = error.response.data.error_description;
@@ -273,17 +381,19 @@ class GoogleAuthService {
   }
 
   /**
-   * Revoke tokens and delete saved file
+   * Revoke tokens and delete from database
    */
   async disconnect(): Promise<{ success: boolean; error?: string }> {
     try {
       if (this.oauth2Client?.credentials?.access_token) {
-        await this.oauth2Client.revokeToken(this.oauth2Client.credentials.access_token);
+        try {
+          await this.oauth2Client.revokeToken(this.oauth2Client.credentials.access_token);
+        } catch (revokeError) {
+          console.warn('⚠️ Failed to revoke token (may already be revoked)');
+        }
       }
       
-      if (fs.existsSync(this.tokenPath)) {
-        fs.unlinkSync(this.tokenPath);
-      }
+      await this.deleteTokensFromDatabase();
       
       this.hasValidTokens = false;
       this.storedScopes = '';
@@ -298,20 +408,17 @@ class GoogleAuthService {
   }
 
   /**
-   * Force re-authentication by deleting tokens (without revoking)
-   * This is useful when scopes have been updated
+   * Force re-authentication by deleting tokens
    */
-  forceReauth(): { success: boolean; authUrl: string } {
+  async forceReauth(): Promise<{ success: boolean; authUrl: string }> {
     try {
-      // Delete existing tokens without revoking (so we don't lose refresh capability)
-      if (fs.existsSync(this.tokenPath)) {
-        fs.unlinkSync(this.tokenPath);
-        console.log('🔄 Deleted existing tokens for re-authentication');
-      }
+      await this.deleteTokensFromDatabase();
       
       this.hasValidTokens = false;
       this.storedScopes = '';
       this.oauth2Client?.setCredentials({});
+      
+      console.log('🔄 Deleted existing tokens for re-authentication');
       
       return { 
         success: true, 
@@ -334,11 +441,8 @@ class GoogleAuthService {
       return false;
     }
     
-    // Check stored scopes (from token file) or credentials scope
     const scope = this.storedScopes || this.oauth2Client?.credentials?.scope || '';
     const hasCalendar = scope.includes('calendar');
-    
-    console.log('🔍 Checking calendar scopes:', { hasCalendar, scope: scope.substring(0, 100) + '...' });
     
     return hasCalendar;
   }
@@ -350,7 +454,6 @@ class GoogleAuthService {
     if (!this.hasValidTokens) return null;
 
     try {
-      // Get a valid client with refreshed tokens
       const client = await this.ensureValidClient();
       const oauth2 = google.oauth2({ version: 'v2', auth: client });
       const { data } = await oauth2.userinfo.get();
@@ -358,10 +461,8 @@ class GoogleAuthService {
     } catch (error: any) {
       console.warn('Could not get user info:', error.message);
       
-      // If unauthorized, tokens might be invalid - mark as not authenticated
       if (error.status === 401 || error.code === 401) {
         console.warn('⚠️ 401 Unauthorized - tokens may be revoked or invalid');
-        // Don't set hasValidTokens to false here, let the user reconnect
       }
       
       return null;
@@ -370,16 +471,13 @@ class GoogleAuthService {
 
   /**
    * Get email from stored tokens without making API call
-   * Falls back to API call if email not in tokens
    */
   async getEmailFromTokens(): Promise<string | null> {
     if (!this.hasValidTokens || !this.oauth2Client) return null;
 
     try {
-      // First, try to get email from token info
       const credentials = this.oauth2Client.credentials;
       
-      // Try to decode the id_token if present (contains email)
       if (credentials.id_token) {
         try {
           const payload = JSON.parse(
@@ -389,11 +487,10 @@ class GoogleAuthService {
             return payload.email;
           }
         } catch {
-          // id_token decode failed, try API
+          // id_token decode failed
         }
       }
       
-      // Fall back to API call
       const userInfo = await this.getUserInfo();
       return userInfo?.email || null;
     } catch {
@@ -403,4 +500,3 @@ class GoogleAuthService {
 }
 
 export default new GoogleAuthService();
-

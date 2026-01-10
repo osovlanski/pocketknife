@@ -81,6 +81,31 @@ model User {
   @@index([status])
 }
 
+// =============================================================================
+// OAUTH TOKENS (for Google, etc.)
+// =============================================================================
+
+model OAuthToken {
+  id           String   @id @default(uuid())
+  provider     String   // "google", "linkedin", etc.
+  userEmail    String   // The email associated with this token
+  
+  // Token data
+  accessToken  String   @db.Text
+  refreshToken String?  @db.Text
+  tokenType    String   @default("Bearer")
+  scope        String?  @db.Text
+  expiryDate   DateTime?
+  
+  // Metadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([provider, userEmail])
+  @@index([provider])
+  @@index([userEmail])
+}
+
 model UserPreferences {
   id     String @id @default(uuid())
   userId String @unique
