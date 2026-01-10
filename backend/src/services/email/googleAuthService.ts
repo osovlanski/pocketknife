@@ -86,9 +86,9 @@ class GoogleAuthService {
         });
         
         // Update currentUserEmail if we found a token under different email
-        if (tokenRecord) {
+        if (tokenRecord && tokenRecord.userEmail) {
           console.log(`✅ Found Google OAuth token for user: ${tokenRecord.userEmail}`);
-          this.currentUserEmail = tokenRecord.userEmail;
+          this.currentUserEmail = tokenRecord.userEmail as string;
         }
       }
 
@@ -358,9 +358,9 @@ class GoogleAuthService {
             const payload = JSON.parse(
               Buffer.from(tokens.id_token.split('.')[1], 'base64').toString()
             );
-            if (payload.email) {
+            if (payload.email && typeof payload.email === 'string') {
               userEmail = payload.email;
-              this.currentUserEmail = userEmail;
+              this.currentUserEmail = payload.email;
               console.log('✅ Got email from id_token:', userEmail);
             }
           } catch {
