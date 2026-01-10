@@ -3,6 +3,9 @@ import driveService from '../services/email/driveService';
 import emailNotificationService from '../services/email/emailNotificationService';
 import discordNotificationService from '../services/notifications/discordNotificationService';
 import telegramNotificationService from '../services/notifications/telegramNotificationService';
+import { groceriesService } from '../services/groceries';
+import claudeService from '../services/core/claudeService';
+import { configService } from '../services/core/configService';
 
 class EmailProcessor {
   async initialize(oauth2Client: any) {
@@ -93,6 +96,69 @@ ${email.body}`;
     }
 
     await gmailService.addLabel(email.id, 'Invoice-Saved');
+
+    // Try to extract grocery items from grocery store invoices
+    await this.tryExtractGroceryItems(email, classification);
+  }
+
+  /**
+   * Attempt to extract grocery items from invoice emails
+   * Only processes invoices from grocery stores/supermarkets
+   */
+  private async tryExtractGroceryItems(email: any, classification: any) {
+    const autoDetect = configService.get('groceries.invoice.autoDetect', true);
+    if (!autoDetect) {
+      return;
+    }
+
+    try {
+      // Use AI to determine if this is a grocery invoice and extract items
+      const prompt = `Analyze this email to determine if it's from a grocery store/supermarket and extract any items.
+
+Email Subject: ${email.subject}
+From: ${email.from}
+Content: ${(email.body || email.snippet || '').substring(0, 3000)}
+
+If this is NOT a grocery store receipt/invoice (e.g., it's from a utility company, online service, etc.), return:
+{"isGroceryInvoice": false}
+
+If this IS a grocery store receipt/invoice, extract items and return:
+{
+  "isGroceryInvoice": true,
+  "merchant": "store name",
+  "items": [
+    {"name": "item name", "quantity": 1, "unit": "pcs", "price": 0.00}
+  ]
+}
+
+Common grocery stores: Walmart, Target, Kroger, Safeway, Whole Foods, Trader Joe's, Costco, Aldi, Publix, Ralphs, Shufersal, Rami Levy, etc.
+
+Respond ONLY with valid JSON.`;
+
+      const response = await claudeService.generateText(prompt, 1500);
+      const cleanResponse = response.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(cleanResponse);
+
+      if (!data.isGroceryInvoice || !data.items || data.items.length === 0) {
+        console.log('📧 Invoice is not from a grocery store, skipping grocery extraction');
+        return;
+      }
+
+      console.log(`🛒 Detected grocery invoice from ${data.merchant}, found ${data.items.length} items`);
+
+      // Process the grocery items
+      const result = await groceriesService.processInvoiceItems(
+        email.id,
+        new Date(email.date),
+        data.merchant,
+        data.items
+      );
+
+      console.log(`✅ Processed ${result.processed} grocery items from invoice`);
+    } catch (error) {
+      // Non-critical error - just log and continue
+      console.warn('⚠️ Could not extract grocery items from invoice:', error);
+    }
   }
 
   async handleSpam(email: any) {

@@ -22,6 +22,7 @@ export { learningAgent, LearningAgent } from './LearningAgent';
 export { problemsAgent, ProblemsAgent } from './ProblemsAgent';
 export { todoAgent, ToDoAgent } from './ToDoAgent';
 export { shoppingAgent, ShoppingAgent } from './ShoppingAgent';
+export { groceriesAgent, GroceriesAgent } from './GroceriesAgent';
 
 // Register all agents
 import { agentRegistry } from './AgentRegistry';
@@ -32,6 +33,7 @@ import { learningAgent } from './LearningAgent';
 import { problemsAgent } from './ProblemsAgent';
 import { todoAgent } from './ToDoAgent';
 import { shoppingAgent } from './ShoppingAgent';
+import { groceriesAgent } from './GroceriesAgent';
 
 /**
  * Initialize all agents and register them
@@ -44,6 +46,7 @@ export const initializeAgents = () => {
   agentRegistry.register(problemsAgent);
   agentRegistry.register(todoAgent);
   agentRegistry.register(shoppingAgent);
+  agentRegistry.register(groceriesAgent);
   
   console.log('✅ All agents registered');
   console.log(`   📦 Registered: ${agentRegistry.getAll().map(a => a.metadata.name).join(', ')}`);

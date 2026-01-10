@@ -28,11 +28,15 @@ export * from './learning';
 // Problem Solving Agent
 export * from './problemSolving';
 
+// Groceries Agent
+export * from './groceries';
+
 // Notification Services
 export * from './notifications';
 
 // Core Services
 export * from './core';
+
 
 
 

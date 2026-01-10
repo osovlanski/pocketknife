@@ -22,6 +22,7 @@ import agentsRoutes from './agents';
 import autocompleteRoutes from './autocomplete';
 import todoRoutes from './todo';
 import shoppingRoutes from './shopping';
+import groceriesRoutes from './groceries';
 import adminRoutes from './admin';
 import settingsRoutes from './settings';
 
@@ -73,6 +74,9 @@ router.use('/todo', todoRoutes);
 
 // Shopping agent routes
 router.use('/shopping', shoppingRoutes);
+
+// Groceries agent routes
+router.use('/groceries', groceriesRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

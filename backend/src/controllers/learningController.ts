@@ -191,4 +191,3 @@ export async function generateTopicSummary(req: Request, res: Response) {
     });
   }
 }
-

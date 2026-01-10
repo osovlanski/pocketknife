@@ -86,6 +86,17 @@ const DEFAULT_CONFIG = {
   'todo.ai.maxTokens': 2000,
   
   // ==========================================================================
+  // GROCERIES AGENT
+  // ==========================================================================
+  'groceries.search.maxResults': 20,
+  'groceries.recipe.maxResults': 10,
+  'groceries.expiryWarning.daysAhead': 3,  // Days before expiry to warn
+  'groceries.lowStock.threshold': 2,        // Quantity below this = low stock
+  'groceries.invoice.autoDetect': true,     // Auto-detect groceries from invoices
+  'groceries.invoice.confidenceThreshold': 0.7, // Min confidence for auto-matching
+  'groceries.ai.maxTokens': 2000,
+  
+  // ==========================================================================
   // GOOGLE SEARCH API
   // ==========================================================================
   'google.cse.dailyLimit': 100,
