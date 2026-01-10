@@ -41,6 +41,13 @@ class GoogleAuthService {
   }
 
   /**
+   * Reload tokens from database (public method to refresh auth state)
+   */
+  async refreshFromDatabase(): Promise<boolean> {
+    return this.loadTokensFromDatabase();
+  }
+
+  /**
    * Load tokens from database
    */
   private async loadTokensFromDatabase(): Promise<boolean> {

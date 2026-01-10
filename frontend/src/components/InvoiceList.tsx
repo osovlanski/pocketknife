@@ -60,17 +60,40 @@ const InvoiceList: React.FC = () => {
     }
   }, [location.search, fetchInvoices]);
 
-  // Re-fetch when window regains focus (in case OAuth completed)
+  // Re-fetch when window regains focus or visibility changes (in case OAuth completed)
   useEffect(() => {
     const handleFocus = () => {
-      // Only re-fetch if auth is currently required
+      // Always re-fetch when window regains focus if auth is required
       if (authRequired) {
+        console.log('[InvoiceList] Window focused, re-fetching...');
         fetchInvoices();
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && authRequired) {
+        console.log('[InvoiceList] Tab visible, re-fetching...');
+        fetchInvoices();
+      }
+    };
+
+    // Also re-fetch periodically if auth is required (every 5 seconds)
+    let interval: NodeJS.Timeout | null = null;
+    if (authRequired) {
+      interval = setInterval(() => {
+        console.log('[InvoiceList] Periodic check for auth status...');
+        fetchInvoices();
+      }, 5000);
+    }
+
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (interval) clearInterval(interval);
+    };
   }, [authRequired, fetchInvoices]);
 
   const formatDate = (dateString: string) => {

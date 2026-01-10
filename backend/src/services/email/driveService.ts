@@ -88,14 +88,20 @@ class DriveService {
       await this.initialize();
     }
 
+    // Refresh auth state from database in case tokens were just saved
+    await googleAuthService.refreshFromDatabase();
+
     // Check if we have valid tokens using the shared service
     if (!googleAuthService.isAuthenticated()) {
+      console.log('[DriveService] Not authenticated, returning authRequired');
       return { 
         invoices: [], 
         authRequired: true,
         message: 'Google Drive not connected. Please authenticate first.' 
       };
     }
+    
+    console.log('[DriveService] Authenticated, fetching invoices...');
 
     try {
       const drive = await this.ensureValidClient();
