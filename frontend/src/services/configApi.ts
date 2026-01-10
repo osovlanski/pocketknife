@@ -145,7 +145,8 @@ export const getDefaultConfig = (): ConfigResponse => ({
     learning: true,
     problems: true,
     todo: true,
-    shopping: true
+    shopping: true,
+    groceries: true
   }
 });
 
