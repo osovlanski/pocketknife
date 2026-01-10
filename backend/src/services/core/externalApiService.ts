@@ -422,7 +422,19 @@ export const externalApiService = {
       try {
         await (prisma as any).externalApiConfig.upsert({
           where: { name: api.name },
-          update: {}, // Don't overwrite existing configs
+          update: {
+            // Always update these fields to ensure correct values
+            apiKeyEnvVar: api.apiKeyEnvVar,
+            displayName: api.displayName,
+            baseUrl: api.baseUrl,
+            category: api.category,
+            description: api.description,
+            docsUrl: api.docsUrl,
+            requiresAuth: api.requiresAuth,
+            authType: api.authType,
+            rateLimit: api.rateLimit,
+            rateLimitPeriod: api.rateLimitPeriod
+          },
           create: api as any
         });
         successCount++;
@@ -438,7 +450,10 @@ export const externalApiService = {
     }
 
     if (successCount > 0) {
-      console.log(`✅ Initialized ${successCount} external API configurations`);
+      console.log(`✅ Initialized/updated ${successCount} external API configurations`);
+      // Clear cache to ensure fresh data is loaded
+      await cacheService.delete(cacheKeys.allExternalApis());
+      await cacheService.invalidateByPattern('api:config');
     }
     if (skipCount > 0) {
       console.log(`⚠️ Skipped ${skipCount} API configurations due to errors`);
