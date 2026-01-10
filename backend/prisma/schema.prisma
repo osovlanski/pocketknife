@@ -138,6 +138,9 @@ model UserPreferences {
   autoArchiveSpam     Boolean   @default(false)
   emailDigestTime     String?   // "09:00" - when to send daily digest
   
+  // Notification preferences
+  notificationMethod  String    @default("email")  // "email", "discord", "telegram", "all"
+  
   // ToDo preferences
   defaultTaskDuration  Int?      // Default duration in minutes
   workingHoursStart    String?   // "09:00"

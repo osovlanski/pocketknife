@@ -6,8 +6,24 @@ import telegramNotificationService from '../services/notifications/telegramNotif
 import { groceriesService } from '../services/groceries';
 import claudeService from '../services/core/claudeService';
 import { configService } from '../services/core/configService';
+import { getPrisma } from '../services/core/databaseService';
 
 class EmailProcessor {
+  private userNotificationMethod: string | null = null;
+
+  /**
+   * Set the notification method from user preferences
+   */
+  setUserNotificationMethod(method: string | null) {
+    this.userNotificationMethod = method;
+  }
+
+  /**
+   * Get the notification method (user preference > env > default)
+   */
+  private getNotificationMethod(): string {
+    return this.userNotificationMethod || process.env.NOTIFICATION_METHOD || 'email';
+  }
   async initialize(oauth2Client: any) {
     await gmailService.initialize();
     await driveService.initialize();
@@ -18,8 +34,9 @@ class EmailProcessor {
   async handleJobOffer(email: any, classification: any) {
     console.log('💼 Processing job offer notification');
 
-    // Send via all configured methods
-    const notificationMethod = process.env.NOTIFICATION_METHOD || 'email';
+    // Send via user preference or configured method
+    const notificationMethod = this.getNotificationMethod();
+    console.log(`📤 Using notification method: ${notificationMethod}`);
 
     try {
       switch (notificationMethod) {
@@ -68,8 +85,9 @@ ${email.body}`;
       'text/plain'
     );
 
-    // Send notification
-    const notificationMethod = process.env.NOTIFICATION_METHOD || 'email';
+    // Send notification using user preference or configured method
+    const notificationMethod = this.getNotificationMethod();
+    console.log(`📤 Using notification method: ${notificationMethod}`);
 
     switch (notificationMethod) {
       case 'email':

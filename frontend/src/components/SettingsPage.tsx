@@ -767,6 +767,23 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ preferences
   <div className={styles.sectionContent}>
     <h2 className={styles.sectionTitle}>Notification Settings</h2>
     
+    <FormGroup label="Notification Method">
+      <select
+        value={preferences.notificationMethod || 'email'}
+        onChange={(e) => onChange({ notificationMethod: e.target.value })}
+        className={styles.formInput}
+      >
+        <option value="email">📧 Email Only</option>
+        <option value="discord">💬 Discord Only</option>
+        <option value="telegram">📱 Telegram Only</option>
+        <option value="all">🔔 All Methods</option>
+      </select>
+      <p style={{ fontSize: '0.75rem', color: 'rgb(148, 163, 184)', marginTop: '0.25rem' }}>
+        Choose how you want to receive notifications for job offers, invoices, and alerts.
+        Make sure the selected service is configured in the Integrations section.
+      </p>
+    </FormGroup>
+    
     <div className={styles.switchContainer}>
       <div className={styles.switchInfo}>
         <h4 className={styles.switchTitle}>Email Digest</h4>

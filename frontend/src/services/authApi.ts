@@ -48,6 +48,7 @@ export interface UserPreferences {
   preferredDifficulty?: string;
   autoArchiveSpam: boolean;
   emailDigestTime?: string;
+  notificationMethod: string; // "email", "discord", "telegram", "all"
   defaultTaskDuration?: number;
   workingHoursStart?: string;
   workingHoursEnd?: string;
