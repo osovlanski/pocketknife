@@ -854,8 +854,12 @@ export const testExternalApi = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'API configuration not found' });
     }
 
-    // Import axios dynamically for testing
+    // Import axios and https dynamically for testing
     const axios = await import('axios');
+    const https = await import('https');
+    
+    // Create HTTPS agent that ignores SSL errors (for health checks on Railway/cloud)
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
     
     let isHealthy = false;
     let error: string | undefined;
