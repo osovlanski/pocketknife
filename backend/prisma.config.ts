@@ -1,22 +1,24 @@
 // Prisma configuration for migrations and client generation
 // Works in both local (with .env) and Docker (with container env vars)
 
-// Only load dotenv if available and not in production container
+// Load dotenv for local development
 try {
-  if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config();
-  }
+  require('dotenv').config();
 } catch {
-  // dotenv not available, using container environment variables
+  // dotenv not available in production, using container environment variables
 }
 
 import { defineConfig } from "prisma/config";
 
-// Ensure DATABASE_URL is available
+// Get DATABASE_URL from environment
+// During Docker build, this won't be set - use a placeholder for prisma generate
+// At runtime, the real URL will be available for migrations
 const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  console.error('❌ DATABASE_URL environment variable is not set!');
-  console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('DB')));
+
+// Only warn if we're running migrations (not during build/generate)
+const isGenerating = process.argv.some(arg => arg.includes('generate'));
+if (!databaseUrl && !isGenerating) {
+  console.warn('⚠️ DATABASE_URL not set - migrations will fail');
 }
 
 export default defineConfig({
@@ -25,6 +27,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: databaseUrl || '',
+    // Use placeholder during build, real URL at runtime
+    url: databaseUrl || 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
 });
