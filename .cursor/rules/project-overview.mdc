@@ -1,0 +1,184 @@
+---
+description: Pocketknife project overview and architecture. Always applied for context.
+globs: **/*
+alwaysApply: true
+---
+
+# Pocketknife Project Overview
+
+Pocketknife is a personal AI-powered productivity platform with multiple specialized agents.
+
+## Tech Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite, TailwindCSS |
+| **Backend** | Node.js, Express, TypeScript |
+| **Database** | PostgreSQL (Neon), Prisma ORM |
+| **AI** | Anthropic Claude API |
+| **Auth** | Google OAuth 2.0 |
+| **Caching** | NodeCache (memory), Redis (optional) |
+| **Deployment** | Railway (backend), Vercel (frontend) |
+
+## Project Structure
+
+```
+pocketknife/
+├── frontend/                 # React frontend
+│   ├── src/
+│   │   ├── components/      # UI components
+│   │   ├── hooks/           # Custom React hooks (business logic)
+│   │   ├── services/        # API client functions
+│   │   ├── types/           # TypeScript types
+│   │   └── styles/          # CSS modules
+│   └── index.html
+│
+├── backend/                  # Express backend
+│   ├── src/
+│   │   ├── agents/          # AI agents (orchestration)
+│   │   ├── controllers/     # HTTP request handlers
+│   │   ├── routes/          # Express routes
+│   │   ├── services/        # Business logic
+│   │   │   ├── core/        # Cache, config, database
+│   │   │   ├── email/       # Gmail, Drive integration
+│   │   │   ├── jobs/        # Job search APIs
+│   │   │   └── ...
+│   │   ├── middleware/      # Auth, logging, etc.
+│   │   └── types/           # TypeScript types
+│   ├── prisma/              # Database schema & migrations
+│   └── tests/               # Test files
+│
+└── .cursor/rules/           # Cursor AI rules
+```
+
+## Available Agents
+
+| Agent | Purpose | Key Services |
+| :--- | :--- | :--- |
+| **Email Agent** | Gmail processing, invoice extraction | Gmail API, Drive API, Claude |
+| **Jobs Agent** | Job search, CV matching | RemoteOK, Remotive, JSearch, Adzuna |
+| **Travel Agent** | Flight/hotel search | Amadeus API, Google Places |
+| **Learning Agent** | Tech tutorials, resources | DEV.to, HackerNews, Google CSE |
+| **Problems Agent** | Coding practice | LeetCode GraphQL |
+| **ToDo Agent** | Task management | Google Calendar, Prisma |
+| **Shopping Agent** | Deal finding | Zap.co.il, KSP scrapers |
+
+## Key Patterns
+
+### 1. Separation of Concerns
+
+```
+UI (Component) → Hook (Logic) → Service (API) → Backend Controller → Service → Database
+```
+
+### 2. Agent Architecture
+
+Agents orchestrate multiple services and use AI for intelligent processing:
+
+```typescript
+// agents/JobsAgent.ts
+class JobsAgent extends AbstractAgent {
+  async execute(params) {
+    // 1. Analyze CV with AI
+    const cvAnalysis = await cvAnalysisService.analyze(cv);
+    
+    // 2. Search multiple job sources in parallel
+    const jobs = await jobAggregatorService.search(query);
+    
+    // 3. Match jobs to CV with AI
+    const matches = await jobMatchingService.match(jobs, cvAnalysis);
+    
+    return { success: true, data: matches };
+  }
+}
+```
+
+### 3. Configuration Management
+
+All configurable values use `configService`:
+
+```typescript
+// Backend
+const batchSize = configService.get('email.batch.size', 50);
+
+// Frontend
+const config = await configApi.getConfig();
+```
+
+### 4. Caching Strategy
+
+```typescript
+// Check cache first
+const cached = await cacheService.get(key);
+if (cached) return cached;
+
+// Expensive operation
+const data = await fetchFromAPI();
+
+// Cache result
+await cacheService.set(key, data, { ttl: 3600 });
+```
+
+## Authentication Flow
+
+1. User clicks "Sign In" → Redirected to Google OAuth
+2. Google callback → Backend receives tokens
+3. Tokens stored in `OAuthToken` table (database-backed)
+4. Frontend stores user email in localStorage
+5. All API calls include `X-User-Email` header
+
+## Role-Based Access
+
+| Role | Access Level |
+| :--- | :--- |
+| `USER` | Standard features |
+| `ADMIN` | User management, settings |
+| `SUPER_ADMIN` | Full system access, API management |
+
+## Environment Variables
+
+### Backend (`.env`)
+```
+DATABASE_URL=postgresql://...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+ANTHROPIC_API_KEY=...
+RAPIDAPI_KEY=...
+```
+
+### Frontend (Vercel)
+```
+VITE_API_URL=https://backend.railway.app/api
+```
+
+## External API Categories
+
+| Category | APIs |
+| :--- | :--- |
+| **Jobs** | RemoteOK, Remotive, JSearch, Adzuna, Arbeitnow, The Muse, Himalayas |
+| **Travel** | Amadeus, Google Places |
+| **Learning** | Google CSE, DEV.to, GitHub |
+| **Notifications** | Telegram Bot, Discord Webhook |
+| **AI** | Anthropic Claude |
+
+## Common Tasks
+
+### Adding a New API
+1. Add to `externalApiService.ts` DEFAULT_*_APIS
+2. Create service in appropriate `services/` directory
+3. Add to agent if needed
+4. Run migrations if storing config in DB
+
+### Adding a New Feature
+1. Create backend service in `services/`
+2. Create controller in `controllers/`
+3. Add routes in `routes/`
+4. Create frontend hook in `hooks/`
+5. Create UI component in `components/`
+6. Add tests in `tests/`
+
+### Debugging Production
+1. Check Railway logs for backend errors
+2. Check browser console for frontend errors
+3. Verify environment variables are set correctly
+4. Check database with Prisma Studio
