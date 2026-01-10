@@ -91,38 +91,67 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
     }
   };
 
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
   const getLocationFromGPS = () => {
     setUseGPS(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            // Use reverse geocoding to get city name
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-            );
-            const data = await response.json();
-            const city = data.address.city || data.address.town || data.address.village || '';
-            const country = data.address.country || '';
-            setLocation(`${city}, ${country}`);
-            setUseGPS(false);
-          } catch (error) {
-            console.error('Error getting location name:', error);
-            setLocation(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
-            setUseGPS(false);
-          }
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Could not get your location. Please enter it manually.');
-          setUseGPS(false);
-        }
-      );
-    } else {
-      alert('Geolocation is not supported by your browser');
+    setGpsError(null);
+    
+    if (!('geolocation' in navigator)) {
+      setGpsError('Geolocation is not supported by your browser. Please enter location manually.');
       setUseGPS(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Use reverse geocoding to get city name
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { headers: { 'User-Agent': 'Pocketknife/1.0' } }
+          );
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.village || data.address.county || '';
+          const country = data.address.country || '';
+          setLocation(city && country ? `${city}, ${country}` : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          setGpsError(null);
+        } catch (error) {
+          console.error('Error getting location name:', error);
+          // Fallback to coordinates
+          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        }
+        setUseGPS(false);
+      },
+      (error) => {
+        console.error('Geolocation error:', error.code, error.message);
+        
+        // Provide specific error messages based on error code
+        let errorMessage = 'Could not get your location. ';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location access was denied. Please enable location permissions in your browser settings or enter location manually.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable. Please enter location manually.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again or enter location manually.';
+            break;
+          default:
+            errorMessage += 'Please enter location manually.';
+        }
+        
+        setGpsError(errorMessage);
+        setUseGPS(false);
+      },
+      {
+        enableHighAccuracy: false, // Don't require GPS, accept network location
+        timeout: 10000, // 10 second timeout
+        maximumAge: 300000 // Accept cached location up to 5 minutes old
+      }
+    );
   };
 
   return (
@@ -269,6 +298,22 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               )}
             </button>
           </div>
+          
+          {/* GPS Error Message */}
+          {gpsError && (
+            <div className="mt-2 p-3 bg-amber-500/20 border border-amber-500/40 rounded-lg text-sm text-amber-200 flex items-start gap-2">
+              <span className="text-amber-400">⚠️</span>
+              <div>
+                <p>{gpsError}</p>
+                <button 
+                  onClick={() => setGpsError(null)}
+                  className="text-amber-400 hover:text-amber-300 text-xs mt-1 underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Work Location Filter */}
           <div className="space-y-2">
