@@ -1,5 +1,5 @@
 import { google, Auth } from 'googleapis';
-import { getPrisma } from '../core/database';
+import { getPrisma } from '../core/databaseService';
 
 const PROVIDER = 'google';
 const DEFAULT_USER_EMAIL = process.env.GMAIL_USER_EMAIL || 'default';
@@ -64,7 +64,8 @@ class GoogleAuthService {
         return false;
       }
 
-      const tokenRecord = await (prisma as any).oAuthToken.findUnique({
+      // First, try to find token with currentUserEmail
+      let tokenRecord = await (prisma as any).oAuthToken.findUnique({
         where: {
           provider_userEmail: {
             provider: PROVIDER,
@@ -72,6 +73,24 @@ class GoogleAuthService {
           }
         }
       });
+
+      // If not found with currentUserEmail, try to find ANY google token
+      // This handles the case where tokens were saved under the actual OAuth email
+      // but the service restarted and currentUserEmail was reset to default
+      if (!tokenRecord) {
+        console.log(`⚠️ No token found for email "${this.currentUserEmail}", searching for any Google OAuth token...`);
+        tokenRecord = await (prisma as any).oAuthToken.findFirst({
+          where: {
+            provider: PROVIDER
+          }
+        });
+        
+        // Update currentUserEmail if we found a token under different email
+        if (tokenRecord) {
+          console.log(`✅ Found Google OAuth token for user: ${tokenRecord.userEmail}`);
+          this.currentUserEmail = tokenRecord.userEmail;
+        }
+      }
 
       if (tokenRecord) {
         const tokens: Auth.Credentials = {
@@ -85,7 +104,7 @@ class GoogleAuthService {
         this.oauth2Client?.setCredentials(tokens);
         this.hasValidTokens = true;
         this.storedScopes = tokenRecord.scope || '';
-        console.log('✅ Google OAuth tokens loaded from database');
+        console.log('✅ Google OAuth tokens loaded from database for:', this.currentUserEmail);
         console.log('📋 Token scopes:', this.storedScopes.substring(0, 100) + '...');
 
         // Check if access token is expired
@@ -97,7 +116,7 @@ class GoogleAuthService {
         }
         return true;
       } else {
-        console.warn('⚠️ No Google OAuth tokens found in database');
+        console.warn('⚠️ No Google OAuth tokens found in database for any user');
         this.hasValidTokens = false;
         this.storedScopes = '';
         return false;
