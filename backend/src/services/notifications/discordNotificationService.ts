@@ -47,8 +47,11 @@ class DiscordNotificationService {
       };
     }
 
-    // Validate webhook URL format
-    if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+    // Validate webhook URL format (both discord.com and discordapp.com are valid)
+    const isValidUrl = webhookUrl.startsWith('https://discord.com/api/webhooks/') 
+      || webhookUrl.startsWith('https://discordapp.com/api/webhooks/');
+    
+    if (!isValidUrl) {
       return {
         configured: true,
         connected: false,
