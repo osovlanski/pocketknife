@@ -1022,9 +1022,67 @@ export const testExternalApi = async (req: Request, res: Response) => {
             isHealthy = true;
           }
           break;
+        
+        // DEV.to API - free, no auth needed
+        case 'dev_to':
+          try {
+            const devtoRes = await axios.default.get('https://dev.to/api/articles?per_page=1', {
+              timeout: 10000
+            });
+            isHealthy = devtoRes.status === 200;
+          } catch {
+            isHealthy = false;
+            error = 'DEV.to API unreachable';
+          }
+          break;
+        
+        // Amadeus API - check OAuth credentials
+        case 'amadeus':
+          if (!process.env.AMADEUS_API_KEY || !process.env.AMADEUS_API_SECRET) {
+            isHealthy = false;
+            error = 'AMADEUS_API_KEY or AMADEUS_API_SECRET not configured';
+          } else {
+            isHealthy = true;
+          }
+          break;
+        
+        // LeetCode GraphQL - no auth needed
+        case 'leetcode_graphql':
+          try {
+            const leetcodeRes = await axios.default.post('https://leetcode.com/graphql', 
+              { query: '{ __typename }' },
+              { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+            );
+            isHealthy = leetcodeRes.status === 200;
+          } catch {
+            isHealthy = false;
+            error = 'LeetCode API unreachable';
+          }
+          break;
+        
+        // Scrapers - mark as healthy if they exist (can't test without actual scraping)
+        case 'zap_scraper':
+        case 'ksp_scraper':
+          isHealthy = true; // Internal scrapers, always available
+          break;
           
         default:
-          error = 'Unknown API';
+          // For any API not explicitly handled, try a simple GET if it has a baseUrl
+          if (api.baseUrl) {
+            try {
+              const response = await axios.default.get(api.baseUrl, {
+                timeout: 10000,
+                validateStatus: (s: number) => s < 500
+              });
+              isHealthy = response.status === 200;
+              if (!isHealthy) error = `HTTP ${response.status}`;
+            } catch (e: any) {
+              isHealthy = false;
+              error = e.message || 'Connection failed';
+            }
+          } else {
+            error = 'Unknown API';
+          }
       }
     } catch (testError: any) {
       isHealthy = false;
