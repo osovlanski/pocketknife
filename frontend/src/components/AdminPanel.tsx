@@ -30,7 +30,12 @@ import {
   Eye,
   Save,
   X,
-  LogIn
+  LogIn,
+  Plug,
+  Play,
+  Power,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 
 // Hooks
@@ -38,7 +43,7 @@ import useAdmin from '../hooks/useAdmin';
 
 // Services & Types
 import * as adminApi from '../services/adminApi';
-import type { User, AuditLog, SystemSetting, PlatformStats } from '../services/adminApi';
+import type { User, AuditLog, SystemSetting, PlatformStats, ExternalApiConfig, ApiTestResult } from '../services/adminApi';
 
 // Styles
 import styles from '../styles/admin.module.css';
@@ -48,7 +53,7 @@ import commonStyles from '../styles/common.module.css';
 // TYPES
 // =============================================================================
 
-type AdminTab = 'dashboard' | 'users' | 'settings' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'settings' | 'apis' | 'audit';
 
 // =============================================================================
 // CONSTANTS
@@ -99,6 +104,9 @@ const AdminPanel: React.FC = () => {
           break;
         case 'settings':
           admin.loadSettings();
+          break;
+        case 'apis':
+          // APIs tab handles its own loading
           break;
         case 'audit':
           admin.loadAuditLogs();
@@ -192,6 +200,12 @@ const AdminPanel: React.FC = () => {
           label="Settings"
         />
         <TabButton
+          active={activeTab === 'apis'}
+          onClick={() => setActiveTab('apis')}
+          icon={<Plug className="w-5 h-5" />}
+          label="External APIs"
+        />
+        <TabButton
           active={activeTab === 'audit'}
           onClick={() => setActiveTab('audit')}
           icon={<Activity className="w-5 h-5" />}
@@ -203,6 +217,7 @@ const AdminPanel: React.FC = () => {
       {activeTab === 'dashboard' && <DashboardTab />}
       {activeTab === 'users' && <UsersTab currentUser={admin.currentUser} />}
       {activeTab === 'settings' && <SettingsTab isSuperAdmin={admin.currentUser?.role === 'SUPER_ADMIN'} />}
+      {activeTab === 'apis' && <ExternalApisTab isSuperAdmin={admin.currentUser?.role === 'SUPER_ADMIN'} />}
       {activeTab === 'audit' && <AuditTab />}
     </div>
   );
@@ -702,6 +717,314 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave, isSuperAdm
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// EXTERNAL APIS TAB
+// =============================================================================
+
+interface ExternalApisTabProps {
+  isSuperAdmin?: boolean;
+}
+
+const ExternalApisTab: React.FC<ExternalApisTabProps> = ({ isSuperAdmin }) => {
+  const [apis, setApis] = useState<Record<string, ExternalApiConfig[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, ApiTestResult>>({});
+  const [testingAll, setTestingAll] = useState(false);
+
+  useEffect(() => {
+    loadApis();
+  }, []);
+
+  const loadApis = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('📡 Loading external API configurations...');
+      const response = await adminApi.getExternalApis();
+      console.log('📊 API Response:', response);
+      const grouped = response.apis || {};
+      console.log('📦 Grouped APIs:', grouped, 'Count:', Object.keys(grouped).length);
+      setApis(grouped);
+    } catch (err: any) {
+      console.error('❌ Failed to load APIs:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load API configurations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggle = async (name: string) => {
+    try {
+      await adminApi.toggleExternalApi(name);
+      loadApis();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to toggle API');
+    }
+  };
+
+  const handleTestSingle = async (name: string) => {
+    try {
+      setTesting(name);
+      const result = await adminApi.testExternalApi(name);
+      setTestResults(prev => ({ ...prev, [name]: result }));
+      loadApis();
+    } catch (error) {
+      console.error('Test failed:', error);
+    } finally {
+      setTesting(null);
+    }
+  };
+
+  const handleTestAll = async () => {
+    try {
+      setTestingAll(true);
+      setError(null);
+      console.log('🧪 Testing all APIs across all categories...');
+      const response = await adminApi.testAllExternalApis(); // Test all categories
+      console.log('📊 Test results:', response);
+      const resultMap: Record<string, ApiTestResult> = {};
+      response.results.forEach(r => { resultMap[r.name] = r; });
+      setTestResults(resultMap);
+      loadApis();
+    } catch (err: any) {
+      console.error('❌ Test all failed:', err);
+      console.error('   Response:', err.response?.data);
+      console.error('   Status:', err.response?.status);
+      const errorMessage = err.response?.data?.error || err.message || 'Unknown error';
+      const errorDetails = err.response?.data?.details || '';
+      setError(`Test failed: ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
+    } finally {
+      setTestingAll(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-red-400 font-medium mb-2">
+            <XCircle className="w-5 h-5" />
+            Failed to Load API Configurations
+          </div>
+          <p className="text-sm text-red-300">{error}</p>
+          <button
+            onClick={loadApis}
+            className="mt-3 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const apiCount = Object.values(apis).flat().length;
+  const categoryLabels: Record<string, { label: string; icon: string }> = {
+    jobs: { label: '💼 Job Search APIs', icon: '💼' },
+    travel: { label: '✈️ Travel APIs', icon: '✈️' },
+    learning: { label: '📚 Learning APIs', icon: '📚' },
+    shopping: { label: '🛒 Shopping APIs', icon: '🛒' },
+    problems: { label: '🧩 Problem Solving APIs', icon: '🧩' },
+    ai: { label: '🤖 AI/LLM APIs', icon: '🤖' },
+    notifications: { label: '🔔 Notification APIs', icon: '🔔' },
+    email: { label: '📧 Email APIs', icon: '📧' }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Test All button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold">External API Configuration</h2>
+          <p className="text-sm text-slate-400">
+            Manage which external APIs are used by agents. Toggle APIs on/off or test their connectivity.
+          </p>
+        </div>
+        <button
+          onClick={handleTestAll}
+          disabled={testingAll || apiCount === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+        >
+          {testingAll ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Zap className="w-4 h-4" />
+          )}
+          Test All APIs
+        </button>
+      </div>
+
+      {/* Empty State */}
+      {apiCount === 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-amber-300 mb-2">No External APIs Configured</h3>
+          <p className="text-slate-400 text-sm mb-4">
+            The external API configurations haven't been initialized yet. This usually means the database migration needs to be run.
+          </p>
+          <div className="bg-slate-800/50 rounded-lg p-3 text-left text-xs font-mono text-slate-300">
+            <p className="mb-1"># Run these commands in the backend folder:</p>
+            <p>cd backend</p>
+            <p>npx prisma migrate dev --name add_external_api_config</p>
+            <p>npx prisma generate</p>
+          </div>
+          <button
+            onClick={loadApis}
+            className="mt-4 px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg text-sm text-amber-300"
+          >
+            <RefreshCw className="w-4 h-4 inline mr-2" />
+            Refresh
+          </button>
+        </div>
+      )}
+
+      {/* API Categories */}
+      {Object.entries(apis).map(([category, categoryApis]) => (
+        <div key={category} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+          <div className="bg-white/5 px-4 py-3 border-b border-white/10">
+            <h3 className="font-bold">
+              {categoryLabels[category]?.label || category}
+            </h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {categoryApis.map((api) => {
+              const result = testResults[api.name];
+              const isCurrentlyTesting = testing === api.name;
+              
+              return (
+                <div key={api.name} className="px-4 py-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-white">{api.displayName}</h4>
+                        
+                        {/* Status indicators */}
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          api.isEnabled 
+                            ? 'bg-emerald-500/20 text-emerald-400' 
+                            : 'bg-slate-500/20 text-slate-400'
+                        }`}>
+                          {api.isEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                        
+                        {api.requiresAuth && (
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            api.hasApiKey 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {api.hasApiKey ? '🔑 API Key Set' : '⚠️ No API Key'}
+                          </span>
+                        )}
+                        
+                        {result && (
+                          <span className={`px-2 py-0.5 text-xs rounded-full flex items-center gap-1 ${
+                            result.isHealthy 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {result.isHealthy ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                            {result.isHealthy ? `${result.responseTime}ms` : 'Failed'}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm text-slate-400 mt-1">
+                        {api.description || 'No description'}
+                      </p>
+                      
+                      {/* Additional info */}
+                      <div className="flex flex-wrap gap-3 mt-2 text-xs text-slate-500">
+                        {api.rateLimit && (
+                          <span>Rate limit: {api.rateLimit}/{api.rateLimitPeriod}</span>
+                        )}
+                        {api.apiKeyEnvVar && (
+                          <span>Env: {api.apiKeyEnvVar}</span>
+                        )}
+                        {api.docsUrl && (
+                          <a 
+                            href={api.docsUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Docs
+                          </a>
+                        )}
+                      </div>
+                      
+                      {/* Error display */}
+                      {result && !result.isHealthy && result.error && (
+                        <div className="mt-2 text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
+                          Error: {result.error}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => handleTestSingle(api.name)}
+                        disabled={isCurrentlyTesting}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        title="Test API"
+                      >
+                        {isCurrentlyTesting ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                        ) : (
+                          <Play className="w-4 h-4 text-blue-400" />
+                        )}
+                      </button>
+                      
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleToggle(api.name)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            api.isEnabled 
+                              ? 'hover:bg-red-500/20 text-emerald-400' 
+                              : 'hover:bg-emerald-500/20 text-slate-400'
+                          }`}
+                          title={api.isEnabled ? 'Disable API' : 'Enable API'}
+                        >
+                          <Power className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Help text */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-sm">
+        <p className="text-blue-300 font-medium mb-2">💡 About External APIs</p>
+        <ul className="text-slate-400 space-y-1">
+          <li>• <strong>Free APIs</strong> (RemoteOK, Remotive, Arbeitnow, DEV.to, LeetCode): No configuration needed</li>
+          <li>• <strong>JSearch</strong>: Requires RAPIDAPI_KEY for LinkedIn/Glassdoor data</li>
+          <li>• <strong>Amadeus</strong>: Requires AMADEUS_API_KEY and AMADEUS_API_SECRET for flight/hotel search</li>
+          <li>• <strong>Anthropic</strong>: Requires ANTHROPIC_API_KEY for AI features</li>
+          <li>• <strong>Telegram/Discord</strong>: Configure bot tokens for notifications</li>
+          <li>• Disabled APIs will be skipped by their respective agents</li>
+        </ul>
       </div>
     </div>
   );

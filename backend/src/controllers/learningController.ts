@@ -2,8 +2,13 @@ import { Request, Response } from 'express';
 import learningService from '../services/learning/learningService';
 import { databaseService } from '../services/core/databaseService';
 
-// Initialize LinkedIn from environment on startup
+// LinkedIn environment variables check
+// Note: Direct LinkedIn API is a FUTURE ENHANCEMENT - not yet implemented
+// LinkedIn JOBS work via JSearch API (RAPIDAPI_KEY)
 if (process.env.LINKEDIN_ACCESS_TOKEN) {
+  console.log('ℹ️ LINKEDIN_ACCESS_TOKEN found in .env');
+  console.log('   Note: Direct LinkedIn API is not yet implemented.');
+  console.log('   LinkedIn JOBS are available via JSearch API (working).');
   learningService.configureLinkedIn({
     accessToken: process.env.LINKEDIN_ACCESS_TOKEN,
     isPremium: process.env.LINKEDIN_IS_PREMIUM === 'true'

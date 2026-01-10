@@ -105,16 +105,26 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ notifications, o
     <div
       style={{
         position: 'fixed',
-        top: '1rem',
-        right: '1rem',
-        zIndex: 50,
+        top: '5rem', // Below the header (header is ~4rem tall)
+        right: '1.5rem',
+        zIndex: 9999, // Ensure it's above everything including modals
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem'
+        gap: '0.75rem',
+        maxWidth: 'calc(100vw - 3rem)', // Prevent overflow on mobile
+        pointerEvents: 'none' // Allow clicks to pass through container
       }}
     >
       {notifications.map(notification => (
-        <Toast key={notification.id} notification={notification} onDismiss={onDismiss} />
+        <div 
+          key={notification.id} 
+          style={{ 
+            pointerEvents: 'auto', // But toasts themselves are clickable
+            animation: 'slideInRight 0.3s ease-out'
+          }}
+        >
+          <Toast notification={notification} onDismiss={onDismiss} />
+        </div>
       ))}
     </div>
   );

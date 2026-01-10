@@ -1,58 +1,53 @@
 import { google } from 'googleapis';
 import stream from 'stream';
-import fs from 'fs';
-import path from 'path';
+import googleAuthService from './googleAuthService';
 
 class DriveService {
   private drive: any = null;
   private initialized: boolean = false;
-  private oauth2Client: any = null;
-  private hasValidTokens: boolean = false;
 
   async initialize() {
     if (this.initialized) return;
 
     try {
-      // Use OAuth2 (same as Gmail) instead of Service Account
-      this.oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
-      );
-
-      // Load OAuth tokens (same file as Gmail)
-      const tokenPath = path.join(process.cwd(), 'credentials', 'gmail-token.json');
+      // Initialize the shared googleAuthService if not already done
+      await googleAuthService.initialize();
       
-      if (fs.existsSync(tokenPath)) {
-        const tokens = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
-        this.oauth2Client.setCredentials(tokens);
-        this.hasValidTokens = true;
-        console.log('✅ Loaded Drive OAuth tokens (shared with Gmail)');
-      } else {
-        this.hasValidTokens = false;
-        console.warn('⚠️ No OAuth tokens found. Drive features will be limited.');
-        console.warn('💡 Run: npm run auth:gmail to authorize Google Drive access.');
+      const client = googleAuthService.getClient();
+      if (client) {
+        this.drive = google.drive({ version: 'v3', auth: client });
       }
-
-      this.drive = google.drive({ version: 'v3', auth: this.oauth2Client });
+      
       this.initialized = true;
-      console.log('✅ Drive service initialized with OAuth2');
+      console.log('✅ Drive service ready');
     } catch (error) {
       console.error('❌ Error initializing Drive service:', error);
-      throw error;
+      this.initialized = true; // Mark as initialized to avoid retry loops
     }
   }
 
-  async uploadInvoice(filename: string, content: string, mimeType: string = 'text/plain') {
+  /**
+   * Ensure we have a valid Drive client
+   */
+  private async ensureValidClient() {
     if (!this.initialized) {
-      throw new Error('Drive service not initialized');
+      await this.initialize();
     }
+    
+    // Get fresh client from googleAuthService
+    const client = await googleAuthService.getValidClient();
+    this.drive = google.drive({ version: 'v3', auth: client });
+    return this.drive;
+  }
+
+  async uploadInvoice(filename: string, content: string, mimeType: string = 'text/plain') {
+    const drive = await this.ensureValidClient();
 
     try {
       const bufferStream = new stream.PassThrough();
       bufferStream.end(Buffer.from(content));
 
-      const response = await this.drive.files.create({
+      const response = await drive.files.create({
         requestBody: {
           name: filename,
           mimeType: mimeType,
@@ -88,20 +83,28 @@ class DriveService {
 
   async listInvoices(pageSize: number = 50) {
     if (!this.initialized) {
-      throw new Error('Drive service not initialized');
+      await this.initialize();
     }
 
-    // Check if we have valid tokens
-    if (!this.hasValidTokens) {
+    // Refresh auth state from database in case tokens were just saved
+    await googleAuthService.refreshFromDatabase();
+
+    // Check if we have valid tokens using the shared service
+    if (!googleAuthService.isAuthenticated()) {
+      console.log('[DriveService] Not authenticated, returning authRequired');
       return { 
         invoices: [], 
         authRequired: true,
         message: 'Google Drive not connected. Please authenticate first.' 
       };
     }
+    
+    console.log('[DriveService] Authenticated, fetching invoices...');
 
     try {
-      const response = await this.drive.files.list({
+      const drive = await this.ensureValidClient();
+      
+      const response = await drive.files.list({
         q: `'${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
         pageSize: pageSize,
         fields: 'files(id, name, webViewLink, webContentLink, createdTime, size, mimeType)',
@@ -111,8 +114,9 @@ class DriveService {
       return { invoices: response.data.files || [], authRequired: false };
     } catch (error: any) {
       // Handle token expired or invalid
-      if (error.message?.includes('No access') || error.message?.includes('invalid_grant')) {
-        this.hasValidTokens = false;
+      if (error.message?.includes('No access') || 
+          error.message?.includes('invalid_grant') ||
+          error.code === 401) {
         return { 
           invoices: [], 
           authRequired: true,
@@ -128,24 +132,14 @@ class DriveService {
    * Check if Google Drive is authenticated
    */
   isAuthenticated(): boolean {
-    return this.hasValidTokens;
+    return googleAuthService.isAuthenticated();
   }
 
   /**
    * Get the OAuth2 authorization URL
    */
   getAuthUrl(): string {
-    if (!this.oauth2Client) {
-      return '';
-    }
-    return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: [
-        'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/gmail.modify',
-        'https://www.googleapis.com/auth/drive.file'
-      ]
-    });
+    return googleAuthService.getAuthUrl();
   }
 }
 

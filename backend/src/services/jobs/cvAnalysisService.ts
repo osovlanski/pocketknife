@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
+import crypto from 'crypto';
+import { cacheService, cacheKeys } from '../core/cacheService';
 
 interface CVData {
   name?: string;
@@ -31,6 +33,9 @@ interface JobPreferences {
   notificationThreshold: number;
 }
 
+// Cache TTL for CV analysis (24 hours - CV data doesn't change often)
+const CV_CACHE_TTL_SECONDS = 86400;
+
 class CVAnalysisService {
   private client: Anthropic | null = null;
 
@@ -45,7 +50,27 @@ class CVAnalysisService {
     this.client = new Anthropic({ apiKey });
   }
 
-  async analyzeCV(cvText: string): Promise<CVData> {
+  /**
+   * Generate a hash for the CV text to use as cache key
+   */
+  private generateCVHash(cvText: string): string {
+    return crypto.createHash('md5').update(cvText.trim()).digest('hex');
+  }
+
+  async analyzeCV(cvText: string, useCache: boolean = true): Promise<CVData> {
+    // Generate cache key from CV hash
+    const cvHash = this.generateCVHash(cvText);
+    const cacheKey = `cv:analysis:${cvHash}`;
+    
+    // Try to get from cache first
+    if (useCache) {
+      const cached = await cacheService.get<CVData>(cacheKey);
+      if (cached) {
+        console.log('✅ CV analysis loaded from cache');
+        return cached;
+      }
+    }
+    
     this.initializeClient();
     
     if (!this.client) {
@@ -121,6 +146,13 @@ Important:
     console.log(`📋 Name: ${cvData.name || 'Not found'}`);
     console.log(`🎯 Skills found: ${cvData.skills.length}`);
     console.log(`💼 Experience entries: ${cvData.experience.length}`);
+
+    // Cache the result for future use
+    await cacheService.set(cacheKey, cvData, { 
+      ttl: CV_CACHE_TTL_SECONDS,
+      tags: ['cv', 'analysis']
+    });
+    console.log('💾 CV analysis cached for 24 hours');
 
     return cvData;
   }

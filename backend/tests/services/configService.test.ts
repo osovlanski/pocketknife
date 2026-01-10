@@ -21,7 +21,7 @@ describe('ConfigService', () => {
       
       expect(configService.parseValue('true', false)).toBe(true);
       expect(configService.parseValue('false', true)).toBe(false);
-    });
+    }, 30000); // Extended timeout for first import which initializes Prisma
 
     it('should parse numeric strings correctly', async () => {
       const { configService } = await import('../../src/services/core/configService');

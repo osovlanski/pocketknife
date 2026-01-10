@@ -91,12 +91,23 @@ const createAuthApi = () => {
 // =============================================================================
 
 export const getGoogleAuthStatus = async (): Promise<AuthStatus> => {
-  const response = await axios.get(`${API_BASE_URL}/auth/status`);
-  return response.data;
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/auth/status');
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to get auth status:', error);
+    return {
+      authenticated: false,
+      message: 'Failed to check authentication status'
+    };
+  }
 };
 
 export const getGoogleAuthUrl = (): string => {
-  return `${API_BASE_URL}/auth/google`;
+  const email = getStoredEmail();
+  const baseUrl = `${API_BASE_URL}/auth/google`;
+  return email ? `${baseUrl}?userEmail=${encodeURIComponent(email)}` : baseUrl;
 };
 
 export const disconnectGoogle = async (): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -120,21 +131,29 @@ export const forceGoogleReauth = async (): Promise<{ success: boolean; authUrl: 
 export const signIn = async (email: string): Promise<{ success: boolean; user?: CurrentUser; error?: string }> => {
   try {
     const normalizedEmail = email.toLowerCase().trim();
+    console.log('[authApi] signIn starting for:', normalizedEmail);
+    console.log('[authApi] API_BASE_URL:', API_BASE_URL);
     
     // Store the email first so subsequent requests include it
     setStoredEmail(normalizedEmail);
+    console.log('[authApi] Email stored in localStorage');
     
     // Initialize admin - this will create/upgrade the user if it's the admin email
-    await axios.post(`${API_BASE_URL}/admin/initialize`, {}, {
+    console.log('[authApi] Calling /admin/initialize...');
+    const initResponse = await axios.post(`${API_BASE_URL}/admin/initialize`, {}, {
       headers: { 'X-User-Email': normalizedEmail }
     });
+    console.log('[authApi] Initialize response:', initResponse.status);
     
     // Get user info
+    console.log('[authApi] Calling /admin/me...');
     const api = createAuthApi();
     const response = await api.get('/admin/me');
+    console.log('[authApi] /admin/me response:', response.status, response.data);
     
     const user = response.data.user;
     if (!user) {
+      console.error('[authApi] No user in response');
       clearStoredEmail();
       return {
         success: false,
@@ -142,16 +161,22 @@ export const signIn = async (email: string): Promise<{ success: boolean; user?: 
       };
     }
     
+    console.log('[authApi] Sign in successful, user role:', user.role);
     return {
       success: true,
       user
     };
   } catch (error: any) {
-    console.error('Sign in error:', error);
+    console.error('[authApi] Sign in error:', error);
+    console.error('[authApi] Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     clearStoredEmail();
     return {
       success: false,
-      error: error.response?.data?.error || 'Failed to sign in'
+      error: error.response?.data?.error || error.message || 'Failed to sign in'
     };
   }
 };
@@ -222,6 +247,83 @@ export const updateProfile = async (data: { name?: string }): Promise<{ success:
     return {
       success: false,
       error: error.response?.data?.error || 'Failed to update profile'
+    };
+  }
+};
+
+// =============================================================================
+// TELEGRAM INTEGRATION
+// =============================================================================
+
+export interface TelegramStatus {
+  configured: boolean;
+  connected: boolean;
+  botUsername?: string;
+  chatId?: string;
+  error?: string;
+}
+
+export const getTelegramStatus = async (): Promise<TelegramStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/telegram/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Telegram status'
+    };
+  }
+};
+
+export const testTelegramConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/telegram/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
+    };
+  }
+};
+
+// =============================================================================
+// DISCORD INTEGRATION
+// =============================================================================
+
+export interface DiscordStatus {
+  configured: boolean;
+  connected: boolean;
+  webhookUrl?: string;
+  error?: string;
+}
+
+export const getDiscordStatus = async (): Promise<DiscordStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/discord/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Discord status'
+    };
+  }
+};
+
+export const testDiscordConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/discord/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
     };
   }
 };

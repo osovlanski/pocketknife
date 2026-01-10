@@ -1,0 +1,270 @@
+---
+description: Backend Node.js/TypeScript coding standards. Always applied to backend code.
+globs: backend/**/*.ts
+alwaysApply: true
+---
+
+# Backend Node.js/TypeScript Coding Standards
+
+You are a Senior Backend Developer and an Expert in Node.js, TypeScript, Express, and Prisma ORM.
+
+## Core Principles
+
+- Write concise, technical responses with accurate TypeScript examples
+- Use functional, declarative programming; avoid classes where possible (except for services)
+- Prefer iteration and modularization over code duplication (DRY)
+- Use descriptive variable names with auxiliary verbs (`isActive`, `hasPermission`, `shouldRetry`)
+- Use lowercase with underscores for directories and files (e.g., `services/job_service.ts`)
+- Favor named exports for routes and utility functions
+
+## Architecture Pattern
+
+```
+backend/
+  src/
+    agents/         <- AI agents (business logic orchestration)
+    controllers/    <- HTTP request handlers (thin, delegate to services)
+    routes/         <- Express route definitions
+    services/       <- Business logic and external API calls
+      core/         <- Core services (database, cache, config)
+      email/        <- Email-related services
+      jobs/         <- Job search services
+    middleware/     <- Express middleware
+    types/          <- TypeScript types/interfaces
+    utils/          <- Utility functions
+```
+
+### Layer Responsibilities
+
+| Layer | Responsibility | Example |
+| :--- | :--- | :--- |
+| **Routes** | Define endpoints, apply middleware | `router.get('/jobs', authenticate, jobController.search)` |
+| **Controllers** | Parse request, call service, format response | Extract params, call service, return JSON |
+| **Services** | Business logic, external APIs, database ops | `jobService.searchJobs(query, filters)` |
+| **Agents** | AI-powered orchestration across services | Combine CV analysis + job search + matching |
+
+## Code Style Guidelines
+
+### Function Signatures
+
+```typescript
+// Good - async/await, typed parameters and return
+export const searchJobs = async (
+  query: string,
+  filters: JobFilters
+): Promise<JobSearchResult> => {
+  // implementation
+};
+
+// Bad - no types, callback style
+export function searchJobs(query, filters, callback) {
+  // implementation
+}
+```
+
+### Naming Conventions
+
+| Type | Convention | Example |
+| :--- | :--- | :--- |
+| Files | lowercase with underscores | `job_service.ts`, `auth_middleware.ts` |
+| Functions | camelCase | `searchJobs`, `validateToken` |
+| Classes | PascalCase | `JobSearchService`, `CacheManager` |
+| Interfaces | PascalCase with `I` prefix optional | `JobFilters`, `IAuthService` |
+| Constants | UPPER_SNAKE_CASE | `MAX_RETRIES`, `DEFAULT_TTL` |
+| Environment vars | UPPER_SNAKE_CASE | `DATABASE_URL`, `API_KEY` |
+
+### Error Handling
+
+```typescript
+// Use early returns and guard clauses
+export const getUser = async (userId: string): Promise<User> => {
+  // Guard clause - early return for invalid input
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+
+  const prisma = getPrisma();
+  if (!prisma) {
+    throw new Error('Database not available');
+  }
+
+  // Happy path last
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return user;
+};
+```
+
+### Controller Pattern
+
+```typescript
+// controllers/jobController.ts
+export const searchJobs = async (req: Request, res: Response) => {
+  try {
+    // 1. Extract and validate input
+    const { query, location } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
+
+    // 2. Call service (business logic)
+    const results = await jobService.search(query, location);
+
+    // 3. Return response
+    res.json({ success: true, data: results });
+  } catch (error: any) {
+    // 4. Handle errors
+    console.error('Job search failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Internal server error' 
+    });
+  }
+};
+```
+
+### Service Pattern
+
+```typescript
+// services/jobs/jobService.ts
+export const jobService = {
+  search: async (query: string, location?: string): Promise<Job[]> => {
+    // Business logic here
+    const cacheKey = cacheKeys.jobSearch(query, location);
+    
+    // Check cache first
+    const cached = await cacheService.get<Job[]>(cacheKey);
+    if (cached) return cached;
+
+    // Fetch from multiple sources in parallel
+    const results = await Promise.allSettled([
+      remoteOkService.search(query),
+      remotiveService.search(query),
+      jsearchService.search(query, location)
+    ]);
+
+    // Process and cache results
+    const jobs = processResults(results);
+    await cacheService.set(cacheKey, jobs, { ttl: 3600 });
+
+    return jobs;
+  }
+};
+```
+
+## Best Practices
+
+### Async Operations
+
+```typescript
+// Use async/await, not callbacks
+// Use Promise.all for independent parallel operations
+// Use Promise.allSettled when failures shouldn't block others
+
+const [users, jobs, stats] = await Promise.all([
+  fetchUsers(),
+  fetchJobs(),
+  fetchStats()
+]);
+```
+
+### Configuration Management
+
+```typescript
+// NEVER hardcode values
+// Bad
+const timeout = 5000;
+const apiUrl = 'https://api.example.com';
+
+// Good - use configService or environment variables
+const timeout = configService.get('api.timeout', 5000);
+const apiUrl = process.env.API_URL;
+```
+
+### Database Operations (Prisma)
+
+```typescript
+// Use transactions for related operations
+await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({ data: userData });
+  await tx.userPreferences.create({ 
+    data: { userId: user.id, ...defaultPrefs } 
+  });
+  return user;
+});
+
+// Use select to limit returned fields
+const users = await prisma.user.findMany({
+  select: { id: true, email: true, name: true },
+  where: { status: 'ACTIVE' }
+});
+```
+
+### Caching Strategy
+
+```typescript
+// Use cache keys from cacheService
+import { cacheService, cacheKeys } from '../services/core';
+
+const key = cacheKeys.jobSearch(query, location);
+const cached = await cacheService.get(key);
+
+if (!cached) {
+  const data = await expensiveOperation();
+  await cacheService.set(key, data, { ttl: 3600 }); // 1 hour
+}
+```
+
+### Logging
+
+```typescript
+// Use structured logging with context
+import logger from '../utils/logger';
+
+logger.info('Job search started', { query, location, userId });
+logger.error('Job search failed', { error: error.message, stack: error.stack });
+
+// Avoid console.log in production code
+// console.log('debug'); // Bad
+```
+
+### Security
+
+- Always validate and sanitize user input
+- Use parameterized queries (Prisma handles this)
+- Never log sensitive data (tokens, passwords)
+- Use environment variables for secrets
+- Implement rate limiting for public endpoints
+- Check user roles for protected operations
+
+```typescript
+// Role-based access control
+if (user.role !== 'SUPER_ADMIN') {
+  return res.status(403).json({ error: 'Forbidden' });
+}
+```
+
+## Testing
+
+```typescript
+// tests/services/jobService.test.ts
+import { describe, it, expect, vi } from 'vitest';
+
+describe('JobService', () => {
+  it('should return cached results when available', async () => {
+    // Arrange
+    vi.mock('../services/core/cacheService');
+    
+    // Act
+    const result = await jobService.search('developer');
+    
+    // Assert
+    expect(result).toBeDefined();
+  });
+});
+```

@@ -148,6 +148,10 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(() => {
+    // Initialize to true if URL has auth=success to prevent flash of logged-out state
+    return window.location.search.includes('auth=success');
+  });
   
   // Agent enabled status (from admin settings)
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
@@ -240,18 +244,40 @@ const App: React.FC = () => {
       const authEmail = urlParams.get('email');
       
       if (authStatus === 'success') {
+        setIsProcessingOAuth(true);
+        
         // Verify the connection actually works by refreshing Google status
         try {
           await auth.refreshGoogleStatus();
-          const emailInfo = authEmail ? ` (${authEmail})` : '';
-          notifications.showSuccess(
-            `Google account connected successfully${emailInfo}! You can now use Gmail, Calendar, and Drive features.`
-          );
-        } catch {
+          
+          // Also sign the user into the app if we have their email
+          if (authEmail) {
+            console.log('[Auth] Google OAuth success, signing in user:', authEmail);
+            const signInResult = await auth.signIn(authEmail);
+            if (signInResult.success) {
+              notifications.showSuccess(
+                `Welcome, ${authEmail}! Google account connected. You can now use Gmail, Calendar, and Drive features.`
+              );
+            } else {
+              // Google connected but app sign-in failed - show error to user
+              console.error('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
+              notifications.showError(
+                `Sign-in failed: ${signInResult.error || 'Unknown error'}. Google is connected, but please try signing in manually.`
+              );
+            }
+          } else {
+            notifications.showSuccess(
+              'Google account connected successfully! You can now use Gmail, Calendar, and Drive features.'
+            );
+          }
+        } catch (error) {
+          console.error('[Auth] Google OAuth verification error:', error);
           // Backend said success but verification failed - show warning
           notifications.showWarning(
             'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
           );
+        } finally {
+          setIsProcessingOAuth(false);
         }
         navigate(location.pathname, { replace: true });
       } else if (authStatus === 'error') {
@@ -306,11 +332,25 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
 
   const handleSignIn = useCallback(async (email: string) => {
-    const result = await auth.signIn(email);
-    if (result.success) {
-      notifications.showSuccess(`Welcome back, ${email}!`);
+    try {
+      console.log('[Auth] Attempting sign in for:', email);
+      const result = await auth.signIn(email);
+      console.log('[Auth] Sign in result:', result);
+      
+      if (result.success) {
+        notifications.showSuccess(`Welcome back, ${email}!`);
+        // Force refresh user state to ensure UI updates
+        await auth.refreshUser();
+      } else {
+        console.error('[Auth] Sign in failed:', result.error);
+        notifications.showError(result.error || 'Sign in failed');
+      }
+      return result;
+    } catch (error: any) {
+      console.error('[Auth] Sign in exception:', error);
+      notifications.showError('Sign in failed: ' + (error.message || 'Unknown error'));
+      return { success: false, error: error.message };
     }
-    return result;
   }, [auth, notifications]);
 
   const handleSignOut = useCallback(() => {
@@ -420,7 +460,7 @@ const App: React.FC = () => {
       {/* Header */}
       <Header
         user={auth.currentUser}
-        isLoading={auth.isLoading}
+        isLoading={auth.isLoading || isProcessingOAuth}
         isAdmin={auth.isAdmin}
         activeView={isOnHomePage ? 'home' : (activeTab || location.pathname.slice(1))}
         googleStatus={auth.googleStatus}

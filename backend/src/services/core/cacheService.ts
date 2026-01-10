@@ -295,6 +295,14 @@ export const cacheKeys = {
     `job:details:${source}:${jobId}`,
   companyInfo: (company: string) => 
     `company:${company.toLowerCase().replace(/\s+/g, '-')}`,
+  jobSearchResults: (queryHash: string, optionsHash: string) =>
+    `job:results:${queryHash}:${optionsHash}`,
+
+  // CV Analysis
+  cvAnalysis: (cvHash: string) =>
+    `cv:analysis:${cvHash}`,
+  cvJobPreferences: (cvHash: string) =>
+    `cv:preferences:${cvHash}`,
 
   // Problem solving
   problemList: (source: string, filters: string) => 
@@ -314,7 +322,13 @@ export const cacheKeys = {
   userPreferences: (userId: string) => 
     `user:pref:${userId}`,
   userStats: (userId: string, agent: string) => 
-    `user:stats:${userId}:${agent}`
+    `user:stats:${userId}:${agent}`,
+
+  // External API Config
+  externalApiConfig: (apiName: string) =>
+    `api:config:${apiName}`,
+  allExternalApis: () =>
+    `api:config:all`
 };
 
 export default cacheService;

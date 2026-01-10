@@ -913,9 +913,27 @@ Respond ONLY with valid JSON:
    * Create a Google Calendar event for a task
    */
   private async createCalendarEvent(userId: string, task: any): Promise<void> {
-    // TODO: Implement actual Google Calendar API call
-    // This would use googleapis package
-    this.emitLog(`📅 Would create calendar event for: ${task.title}`, 'info');
+    if (!calendarService.isAvailable()) {
+      this.emitLog('⚠️ Calendar not available, skipping event creation', 'warning');
+      return;
+    }
+
+    try {
+      const eventId = await calendarService.createEvent(task);
+      if (eventId) {
+        // Update the task with the Google Event ID
+        const prisma = getPrisma();
+        if (prisma) {
+          await prisma.task.update({
+            where: { id: task.id },
+            data: { googleEventId: eventId, lastSyncedAt: new Date() }
+          });
+        }
+        this.emitLog(`📅 Created calendar event for: ${task.title}`, 'success');
+      }
+    } catch (error: any) {
+      this.emitLog(`⚠️ Failed to create calendar event: ${error.message}`, 'warning');
+    }
   }
 }
 

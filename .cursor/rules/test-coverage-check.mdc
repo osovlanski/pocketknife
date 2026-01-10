@@ -1,0 +1,205 @@
+---
+description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+globs: **/*
+alwaysApply: false
+---
+
+# Test Coverage Pre-Push Check Rule
+
+Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+
+## When This Rule Applies
+
+This rule is triggered by:
+- "check tests"
+- "test coverage"
+- "prepare push"
+- "pre-push check"
+- Any push-related request
+
+## Quick Coverage Check Process
+
+### Step 1: Run Coverage Report (Backend)
+```bash
+cd backend && npm test -- --run --coverage
+```
+
+### Step 2: Analyze Results
+Check if coverage meets thresholds defined in `vitest.config.ts`:
+- Statements: Current threshold
+- Branches: Current threshold
+- Functions: Current threshold
+- Lines: Current threshold
+
+## Coverage Strategy (Balanced Approach)
+
+### Priority Tiers for Testing
+
+| Priority | What to Test | Time Investment | Coverage Goal |
+| :---: | :--- | :---: | :---: |
+| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+| **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+| **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+| **P3 - Low** | Routes, static data | Skip | 0% OK |
+
+### When to Add Tests
+
+**MUST add tests if:**
+- New service or utility function is created
+- Core business logic is modified
+- Bug fix (add regression test)
+- Security-related code changes
+
+**CAN skip tests if:**
+- Simple route definitions
+- Configuration changes only
+- Documentation updates
+- Styling/UI-only changes (frontend)
+
+## Test Suggestion Template
+
+When coverage is insufficient, suggest tests in this format:
+
+```typescript
+/**
+ * [ServiceName] Tests
+ * 
+ * Tests for [brief description].
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+describe('[ServiceName]', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('[methodName]', () => {
+    it('should [expected behavior]', async () => {
+      const { serviceName } = await import('../../src/path/to/service');
+      
+      // Arrange
+      const input = /* test input */;
+      
+      // Act
+      const result = await serviceName.methodName(input);
+      
+      // Assert
+      expect(result).toBe(/* expected */);
+    });
+  });
+});
+```
+
+## Coverage Report Output Format
+
+When reporting coverage status:
+
+---
+
+## 🧪 TEST COVERAGE REPORT
+
+**Branch:** `[current branch]`
+**Date:** [date]
+
+### 📊 Coverage Summary
+
+| Metric | Current | Threshold | Status |
+| :--- | :---: | :---: | :---: |
+| Statements | X% | Y% | ✅/❌ |
+| Branches | X% | Y% | ✅/❌ |
+| Functions | X% | Y% | ✅/❌ |
+| Lines | X% | Y% | ✅/❌ |
+
+### 🎯 Verdict: [PASS/NEEDS TESTS]
+
+### 📝 Suggested Tests (if needed)
+
+For files with 0% coverage that were modified:
+
+1. **`path/to/file.ts`**
+   - Test: `methodName` - [brief description]
+   - Priority: P0/P1/P2
+
+### ⏱️ Estimated Time to Fix
+
+- Quick fix (< 5 min): [list simple tests]
+- Medium (5-15 min): [list moderate tests]
+- Complex (> 15 min): [suggest deferring to separate PR]
+
+### 📋 Recommendation
+
+```
+[If all thresholds met] ✅ READY TO PUSH
+[If minor gaps] ⚠️ SUGGEST: Add [N] quick tests before push
+[If major gaps] 🚫 BLOCKED: Add critical tests first
+```
+
+---
+
+## Best Practices
+
+### Test File Naming
+- Place tests in `tests/` directory mirroring `src/` structure
+- Name: `[filename].test.ts`
+
+### Test Categories
+- **Unit Tests**: Test individual functions in isolation
+- **Integration Tests**: Test service interactions
+- **API Tests**: Test HTTP endpoints
+
+### Mocking Guidelines
+- Mock external APIs (axios calls)
+- Mock database (Prisma) for unit tests
+- Don't mock the code you're testing
+
+### Quick Test Patterns
+
+**Testing a service method:**
+```typescript
+it('should return data for valid input', async () => {
+  const { service } = await import('../../src/services/myService');
+  const result = await service.getData('valid-id');
+  expect(result).toBeDefined();
+});
+```
+
+**Testing error handling:**
+```typescript
+it('should throw error for invalid input', async () => {
+  const { service } = await import('../../src/services/myService');
+  await expect(service.getData('')).rejects.toThrow();
+});
+```
+
+**Testing with mocks:**
+```typescript
+it('should call external API', async () => {
+  vi.mock('axios');
+  const axios = await import('axios');
+  (axios.default.get as any).mockResolvedValue({ data: { result: 'ok' } });
+  
+  const { service } = await import('../../src/services/myService');
+  const result = await service.fetchData();
+  
+  expect(axios.default.get).toHaveBeenCalled();
+});
+```
+
+## Threshold Progression Plan
+
+As codebase matures, incrementally increase thresholds:
+
+| Phase | Statements | Branches | Functions | Lines |
+| :--- | :---: | :---: | :---: | :---: |
+| **Current** | 1% | 15% | 5% | 1% |
+| **Phase 1** | 10% | 20% | 15% | 10% |
+| **Phase 2** | 25% | 30% | 25% | 25% |
+| **Phase 3** | 40% | 40% | 40% | 40% |
+| **Target** | 60% | 50% | 60% | 60% |
+
+Update `vitest.config.ts` thresholds as coverage improves.

@@ -23,6 +23,7 @@ export interface UseTodoReturn {
   learningPatterns: boolean;
   syncing: boolean;
   newTask: TaskData;
+  lastSyncAt: string | null;
   
   // Computed
   allTasks: Task[];
@@ -69,6 +70,7 @@ export const useTodo = (): UseTodoReturn => {
   const [showRoutines, setShowRoutines] = useState(false);
   const [learningPatterns, setLearningPatterns] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   
   // Form state
   const [newTask, setNewTask] = useState<TaskData>(DEFAULT_NEW_TASK);
@@ -203,7 +205,15 @@ export const useTodo = (): UseTodoReturn => {
     try {
       setSyncing(true);
       const result = await todoApi.syncCalendar();
-      alert(`Synced ${result.synced} tasks with Google Calendar!`);
+      
+      // Track when last synced
+      setLastSyncAt(result.lastSyncAt || new Date().toISOString());
+      
+      // Refresh agenda to show updated calendar events
+      await loadAgendaData();
+      
+      // Show success message without blocking
+      console.log(`✅ Synced ${result.synced} tasks with Google Calendar`);
     } catch (error: any) {
       console.error('Failed to sync calendar:', error);
       alert(error.response?.data?.error || 'Failed to sync calendar');
@@ -266,6 +276,7 @@ export const useTodo = (): UseTodoReturn => {
     learningPatterns,
     syncing,
     newTask,
+    lastSyncAt,
     
     // Computed
     allTasks,

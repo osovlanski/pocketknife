@@ -16,15 +16,96 @@ interface Classification {
   reasoning?: string;
 }
 
-class DiscordNotificationService {
-  private webhookUrl: string;
+export interface DiscordStatus {
+  configured: boolean;
+  connected: boolean;
+  webhookUrl?: string;
+  error?: string;
+}
 
-  constructor() {
-    this.webhookUrl = process.env.DISCORD_WEBHOOK_URL || '';
+class DiscordNotificationService {
+  // Read env vars dynamically so changes are picked up on restart
+  private get webhookUrl(): string {
+    return process.env.DISCORD_WEBHOOK_URL || '';
   }
 
-  private isConfigured(): boolean {
+  public isConfigured(): boolean {
     return !!this.webhookUrl;
+  }
+
+  /**
+   * Get the current status of Discord integration
+   */
+  async getStatus(): Promise<DiscordStatus> {
+    if (!this.webhookUrl) {
+      return {
+        configured: false,
+        connected: false,
+        error: 'DISCORD_WEBHOOK_URL not set in .env'
+      };
+    }
+
+    try {
+      // Discord webhooks can be tested with a GET request to get webhook info
+      const response = await axios.get(this.webhookUrl, { timeout: 5000 });
+
+      if (response.data && response.data.id) {
+        // Mask the webhook URL for security (only show channel name)
+        const channelName = response.data.name || 'Unknown Channel';
+        return {
+          configured: true,
+          connected: true,
+          webhookUrl: `#${channelName}`
+        };
+      }
+
+      return {
+        configured: true,
+        connected: false,
+        error: 'Invalid webhook response'
+      };
+    } catch (error: any) {
+      return {
+        configured: true,
+        connected: false,
+        error: error.response?.data?.message || error.message || 'Connection failed'
+      };
+    }
+  }
+
+  /**
+   * Test the connection by sending a test message
+   */
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        message: 'Discord not configured. Set DISCORD_WEBHOOK_URL in .env'
+      };
+    }
+
+    try {
+      await axios.post(this.webhookUrl, {
+        username: 'Pocketknife',
+        embeds: [{
+          title: '🧪 Test Message',
+          description: 'Your Pocketknife Discord integration is working!',
+          color: 0x4CAF50,
+          timestamp: new Date().toISOString(),
+          footer: { text: 'Pocketknife AI Platform' }
+        }]
+      });
+
+      return {
+        success: true,
+        message: 'Test message sent successfully! Check your Discord channel.'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Connection test failed'
+      };
+    }
   }
 
   async sendJobOfferAlert(email: Email, analysis: Classification) {

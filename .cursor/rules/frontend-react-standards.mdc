@@ -1,0 +1,172 @@
+---
+description: Frontend React/TypeScript coding standards. Always applied to frontend code.
+globs: frontend/**/*.{ts,tsx,js,jsx,css}
+alwaysApply: true
+---
+
+# Frontend React/TypeScript Coding Standards
+
+You are a Senior Front-End Developer and an Expert in ReactJS, TypeScript, HTML, CSS, and modern UI/UX frameworks (TailwindCSS, Shadcn, Radix).
+
+## Core Principles
+
+- Follow the user's requirements carefully & to the letter
+- First think step-by-step - describe your plan in pseudocode
+- Always write correct, best practice, DRY principle code
+- Focus on readability over performance
+- Fully implement all requested functionality
+- Leave NO TODOs, placeholders, or missing pieces
+- Ensure code is complete and verified
+
+## Code Style Guidelines
+
+### Component Structure
+```typescript
+// 1. Imports (React, libraries, components, hooks, types, styles)
+import React, { useState, useEffect, useCallback } from 'react';
+import { SomeComponent } from '../components';
+import { useCustomHook } from '../hooks';
+import type { MyType } from '../types';
+import styles from './Component.module.css';
+
+// 2. Types/Interfaces
+interface ComponentProps {
+  title: string;
+  isActive?: boolean;
+  onAction: (id: string) => void;
+}
+
+// 3. Component (use const with arrow function)
+const MyComponent: React.FC<ComponentProps> = ({ title, isActive = false, onAction }) => {
+  // 4. Hooks
+  const [state, setState] = useState<string>('');
+  
+  // 5. Handlers (prefix with 'handle')
+  const handleClick = useCallback(() => {
+    onAction('id');
+  }, [onAction]);
+  
+  // 6. Early returns for guards
+  if (!title) return null;
+  
+  // 7. Render
+  return (
+    <div className={styles.container}>
+      {/* content */}
+    </div>
+  );
+};
+
+export default MyComponent;
+```
+
+### Naming Conventions
+
+| Type | Convention | Example |
+| :--- | :--- | :--- |
+| Components | PascalCase | `UserProfile`, `JobSearchPanel` |
+| Hooks | camelCase with `use` prefix | `useAuth`, `useTodo` |
+| Event handlers | camelCase with `handle` prefix | `handleClick`, `handleSubmit` |
+| Boolean variables | camelCase with `is/has/should` prefix | `isLoading`, `hasError` |
+| Constants | UPPER_SNAKE_CASE | `API_BASE_URL`, `MAX_RETRIES` |
+| Types/Interfaces | PascalCase | `UserData`, `ApiResponse` |
+
+### Styling Rules
+
+- **Always use Tailwind classes** for styling HTML elements
+- Avoid inline CSS or `<style>` tags
+- Use CSS Modules for complex component-specific styles
+- Prefer `className={condition ? 'class-a' : 'class-b'}` for conditional classes
+- For multiple conditions, use template literals or classnames library
+
+### Accessibility (a11y)
+
+All interactive elements MUST include:
+```tsx
+<button
+  onClick={handleClick}
+  onKeyDown={handleKeyDown}
+  tabIndex={0}
+  aria-label="Descriptive label"
+  role="button"
+>
+  Click me
+</button>
+```
+
+### TypeScript Best Practices
+
+- Use type hints for ALL function signatures
+- Prefer interfaces over types for object shapes
+- Use generics where appropriate
+- Avoid `any` - use `unknown` if type is truly unknown
+- Export types from a central `types/` directory
+
+```typescript
+// Good
+const fetchData = async <T>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  return response.json();
+};
+
+// Bad
+const fetchData = async (url) => {
+  const response = await fetch(url);
+  return response.json();
+};
+```
+
+### State Management
+
+- Use React hooks for local state
+- Use context for shared state across component tree
+- Keep state as close to where it's used as possible
+- Extract complex state logic into custom hooks
+
+### Error Handling
+
+```typescript
+// Use early returns for error conditions
+const handleSubmit = async (data: FormData) => {
+  if (!data.email) {
+    setError('Email is required');
+    return;
+  }
+  
+  try {
+    await submitForm(data);
+    setSuccess(true);
+  } catch (error) {
+    setError(error instanceof Error ? error.message : 'Unknown error');
+  }
+};
+```
+
+## Project-Specific Patterns
+
+### Hooks Pattern (Separation of Concerns)
+```
+src/
+  components/     <- UI only, no business logic
+  hooks/          <- Business logic, state management
+  services/       <- API calls, external integrations
+  types/          <- TypeScript types/interfaces
+```
+
+### API Calls
+- Use axios with interceptors for auth
+- Handle loading, error, and success states
+- Use the `services/` directory for API functions
+
+```typescript
+// services/api.ts
+export const fetchUser = async (id: string): Promise<User> => {
+  const response = await axios.get(`${API_BASE_URL}/users/${id}`);
+  return response.data;
+};
+```
+
+### Environment Variables
+- Use `import.meta.env.VITE_*` for Vite projects
+- Define in `src/config.ts` for centralized access
+- Never hardcode API URLs or keys

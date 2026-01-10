@@ -1,57 +1,65 @@
 import { google } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
+import googleAuthService from './googleAuthService';
 
 class GmailService {
   private gmail: any = null;
   private initialized: boolean = false;
-  private oauth2Client: any = null;
 
   async initialize() {
     if (this.initialized) return;
 
     try {
-      this.oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
-      );
-
-      // Try to load existing tokens
-      const tokenPath = path.join(process.cwd(), 'credentials', 'gmail-token.json');
+      // Initialize the shared googleAuthService
+      await googleAuthService.initialize();
       
-      if (fs.existsSync(tokenPath)) {
-        const tokens = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
-        this.oauth2Client.setCredentials(tokens);
-        console.log('✅ Loaded Gmail OAuth tokens');
-      } else {
-        console.warn('⚠️ No Gmail OAuth tokens found. Gmail features will be limited.');
-        console.warn('💡 Run OAuth flow to authorize Gmail access.');
-        console.warn('💡 For now, using mock email data for testing.');
+      const client = googleAuthService.getClient();
+      if (client) {
+        this.gmail = google.gmail({ version: 'v1', auth: client });
       }
-
-      this.gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+      
       this.initialized = true;
-      console.log('✅ Gmail service initialized');
+      
+      // Log a single status message
+      if (googleAuthService.isAuthenticated()) {
+        console.log('✅ Gmail service ready with OAuth tokens');
+      } else {
+        console.log('ℹ️ Gmail service ready (OAuth tokens will be loaded after user authenticates)');
+      }
     } catch (error) {
       console.error('❌ Error initializing Gmail service:', error);
-      throw error;
+      this.initialized = true; // Mark as initialized to avoid retry loops
     }
+  }
+
+  /**
+   * Ensure we have a valid Gmail client
+   */
+  private async ensureValidClient() {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    
+    // Get fresh client from googleAuthService
+    const client = await googleAuthService.getValidClient();
+    this.gmail = google.gmail({ version: 'v1', auth: client });
+    return this.gmail;
   }
 
   async getUnprocessedEmails() {
     if (!this.initialized) {
-      throw new Error('Gmail service not initialized');
+      await this.initialize();
     }
 
     try {
       // Check if we have valid credentials
-      if (!this.oauth2Client.credentials || !this.oauth2Client.credentials.access_token) {
+      if (!googleAuthService.isAuthenticated()) {
         console.warn('⚠️ No Gmail access token. Returning mock emails for testing.');
         return this.getMockEmails();
       }
 
-      const response = await this.gmail.users.messages.list({
+      const gmail = await this.ensureValidClient();
+      
+      const response = await gmail.users.messages.list({
         userId: 'me',
         q: 'is:unread -label:processed',
         maxResults: 100
@@ -157,7 +165,9 @@ Amount: ₪120`
   }
 
   async getEmailDetails(messageId: string) {
-    const response = await this.gmail.users.messages.get({
+    const gmail = await this.ensureValidClient();
+    
+    const response = await gmail.users.messages.get({
       userId: 'me',
       id: messageId,
       format: 'full'
@@ -192,22 +202,24 @@ Amount: ₪120`
 
   async addLabel(messageId: string, labelName: string) {
     if (!this.initialized) {
-      throw new Error('Gmail service not initialized');
+      await this.initialize();
     }
 
     try {
-      const labels = await this.gmail.users.labels.list({ userId: 'me' });
+      const gmail = await this.ensureValidClient();
+      
+      const labels = await gmail.users.labels.list({ userId: 'me' });
       let label = labels.data.labels.find((l: any) => l.name === labelName);
 
       if (!label) {
-        const created = await this.gmail.users.labels.create({
+        const created = await gmail.users.labels.create({
           userId: 'me',
           requestBody: { name: labelName }
         });
         label = created.data;
       }
 
-      await this.gmail.users.messages.modify({
+      await gmail.users.messages.modify({
         userId: 'me',
         id: messageId,
         requestBody: {

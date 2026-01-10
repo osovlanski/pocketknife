@@ -140,7 +140,7 @@ export const disconnectGoogle = async (req: Request, res: Response) => {
  */
 export const forceReauth = async (req: Request, res: Response) => {
   try {
-    const result = googleAuthService.forceReauth();
+    const result = await googleAuthService.forceReauth();
     
     res.json({
       success: result.success,

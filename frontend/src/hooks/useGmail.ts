@@ -9,8 +9,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { processAllEmails, testNotification } from '../services/api';
+import * as authApi from '../services/authApi';
 import useSearchController from './useSearchController';
-import { API_BASE_URL, SOCKET_URL } from '../config';
+import { SOCKET_URL, API_BASE_URL } from '../config';
 
 export interface GmailStats {
   invoices: number;
@@ -69,10 +70,9 @@ export const useGmail = (): UseGmailReturn => {
   // Check Google auth status
   const checkAuthStatus = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/status`);
-      const data = await response.json();
+      const data = await authApi.getGoogleAuthStatus();
       setIsAuthenticated(data.authenticated);
-      setAuthUrl(data.authUrl);
+      setAuthUrl(authApi.getGoogleAuthUrl());
       setUserEmail(data.email || null);
     } catch (error) {
       console.error('Failed to check auth status:', error);
