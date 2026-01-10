@@ -329,3 +329,66 @@ export const testDiscordConnection = async (): Promise<{ success: boolean; messa
   }
 };
 
+// =============================================================================
+// FACEBOOK INTEGRATION
+// =============================================================================
+
+export interface FacebookStatus {
+  configured: boolean;
+  connected: boolean;
+  appName?: string;
+  error?: string;
+}
+
+export const getFacebookStatus = async (): Promise<FacebookStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/facebook/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Facebook status'
+    };
+  }
+};
+
+export const testFacebookConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/facebook/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
+    };
+  }
+};
+
+// =============================================================================
+// NOTION INTEGRATION
+// =============================================================================
+
+export interface NotionStatus {
+  configured: boolean;
+  connected: boolean;
+  workspaceName?: string;
+  error?: string;
+}
+
+export const getNotionStatus = async (): Promise<NotionStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/notion/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Notion status'
+    };
+  }
+};
+

@@ -32,7 +32,7 @@ import useSettings from '../hooks/useSettings';
 
 // Services & Types
 import * as authApi from '../services/authApi';
-import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus } from '../services/authApi';
+import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus, FacebookStatus, NotionStatus } from '../services/authApi';
 
 // Styles
 import styles from '../styles/settings.module.css';
@@ -221,6 +221,16 @@ interface IntegrationsSectionProps {
   isTestingDiscord: boolean;
   onTestDiscord: () => void;
   onRetryDiscord: () => void;
+  // Facebook
+  facebookStatus: FacebookStatus | null;
+  isLoadingFacebook: boolean;
+  isTestingFacebook: boolean;
+  onTestFacebook: () => void;
+  onRetryFacebook: () => void;
+  // Notion
+  notionStatus: NotionStatus | null;
+  isLoadingNotion: boolean;
+  onRetryNotion: () => void;
 }
 
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
@@ -239,7 +249,15 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
   isLoadingDiscord,
   isTestingDiscord,
   onTestDiscord,
-  onRetryDiscord
+  onRetryDiscord,
+  facebookStatus,
+  isLoadingFacebook,
+  isTestingFacebook,
+  onTestFacebook,
+  onRetryFacebook,
+  notionStatus,
+  isLoadingNotion,
+  onRetryNotion
 }) => (
   <div className={styles.sectionContent}>
     <h2 className={styles.sectionTitle}>Integrations</h2>
@@ -502,8 +520,8 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       )}
     </div>
 
-    {/* Facebook Integration - Coming Soon */}
-    <div className={`${styles.integrationCard} ${styles.integrationCardDisabled}`}>
+    {/* Facebook Integration */}
+    <div className={`${styles.integrationCard} ${facebookStatus?.connected ? '' : styles.integrationCardDisabled}`}>
       <div className={styles.integrationHeader}>
         <div className={styles.integrationInfo}>
           <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)' }}>
@@ -512,24 +530,72 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
           <div>
             <h3 className={styles.integrationTitle}>Facebook</h3>
             <p className={styles.integrationDescription}>
-              Coming soon - Sign in with Facebook and share to your feed
+              {isLoadingFacebook 
+                ? 'Checking connection status...'
+                : facebookStatus?.connected
+                  ? `Connected to ${facebookStatus.appName || 'Facebook App'}`
+                  : facebookStatus?.configured
+                    ? `Error: ${facebookStatus.error || 'Connection failed'}`
+                    : 'Not configured - Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to .env'}
             </p>
           </div>
         </div>
-        <span style={{ 
-          padding: '0.25rem 0.75rem', 
-          backgroundColor: 'rgba(148, 163, 184, 0.2)', 
-          borderRadius: '0.25rem',
-          fontSize: '0.75rem',
-          color: 'rgb(148, 163, 184)'
-        }}>
-          Coming Soon
-        </span>
+
+        {isLoadingFacebook ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : facebookStatus?.connected ? (
+          <button
+            onClick={onTestFacebook}
+            disabled={isTestingFacebook}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
+          >
+            {isTestingFacebook ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Testing...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
+          </button>
+        ) : facebookStatus?.error ? (
+          <button
+            onClick={onRetryFacebook}
+            className={`${commonStyles.btn}`}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
+
+      {!facebookStatus?.configured && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(251, 191, 36)'
+        }}>
+          <strong>Setup Instructions:</strong>
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Go to <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>developers.facebook.com/apps</a></li>
+            <li>Create a new app → Select "Consumer" type</li>
+            <li>Add "Facebook Login" product</li>
+            <li>Copy App ID and App Secret to .env</li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
     </div>
 
     {/* Notion Integration */}
-    <div className={`${styles.integrationCard}`} style={{ opacity: 0.9 }}>
+    <div className={`${styles.integrationCard} ${notionStatus?.connected ? '' : styles.integrationCardDisabled}`}>
       <div className={styles.integrationHeader}>
         <div className={styles.integrationInfo}>
           <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
@@ -538,38 +604,78 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
           <div>
             <h3 className={styles.integrationTitle}>Notion</h3>
             <p className={styles.integrationDescription}>
-              Save learning resources, jobs, recipes, and tasks to Notion
+              {isLoadingNotion 
+                ? 'Checking connection status...'
+                : notionStatus?.connected
+                  ? `Connected${notionStatus.workspaceName ? ` to ${notionStatus.workspaceName}` : ''}`
+                  : notionStatus?.configured
+                    ? `Error: ${notionStatus.error || 'Connection failed'}`
+                    : 'Not configured - Add NOTION_TOKEN to .env'}
             </p>
           </div>
         </div>
-        <span style={{ 
-          padding: '0.25rem 0.75rem', 
-          backgroundColor: 'rgba(16, 185, 129, 0.2)', 
-          borderRadius: '0.25rem',
-          fontSize: '0.75rem',
-          color: 'rgb(16, 185, 129)'
+
+        {isLoadingNotion ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : notionStatus?.connected ? (
+          <span style={{ 
+            padding: '0.25rem 0.75rem', 
+            backgroundColor: 'rgba(16, 185, 129, 0.2)', 
+            borderRadius: '0.25rem',
+            fontSize: '0.75rem',
+            color: 'rgb(16, 185, 129)'
+          }}>
+            ✓ Connected
+          </span>
+        ) : notionStatus?.error ? (
+          <button
+            onClick={onRetryNotion}
+            className={`${commonStyles.btn}`}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+
+      {!notionStatus?.configured && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(251, 191, 36)'
         }}>
-          Available
-        </span>
-      </div>
-      <div style={{ 
-        marginTop: '0.75rem', 
-        padding: '0.75rem', 
-        backgroundColor: 'rgba(59, 130, 246, 0.1)', 
-        borderRadius: '0.375rem',
-        fontSize: '0.875rem',
-        color: 'rgb(147, 197, 253)'
-      }}>
-        <strong>Setup Instructions:</strong>
-        <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-          <li>Go to <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>notion.so/my-integrations</a></li>
-          <li>Create a new integration named "Pocketknife"</li>
-          <li>Copy the Internal Integration Token</li>
-          <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>NOTION_TOKEN</code> in .env</li>
-          <li>Share your Notion databases with the integration</li>
-        </ol>
-      </div>
-    </div>
+          <strong>Setup Instructions:</strong>
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Go to <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>notion.so/my-integrations</a></li>
+            <li>Create a new integration named "Pocketknife"</li>
+            <li>Copy the Internal Integration Token</li>
+            <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>NOTION_TOKEN</code> in .env</li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
+
+      {notionStatus?.connected && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(147, 197, 253)'
+        }}>
+          <strong>📌 Important:</strong> To use Notion with Pocketknife, you must share your databases with the integration:
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Open each Notion database you want to use</li>
+            <li>Click "Share" in the top right</li>
+            <li>Invite "Pocketknife" integration</li>
+          </ol>
+          <p style={{ marginTop: '0.5rem', opacity: 0.8 }}>This is a Notion security requirement and cannot be automated.</p>
+        </div>
+      )}
   </div>
 );
 
@@ -895,6 +1001,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
   const [discordStatus, setDiscordStatus] = useState<DiscordStatus | null>(null);
   const [isLoadingDiscord, setIsLoadingDiscord] = useState(true);
   const [isTestingDiscord, setIsTestingDiscord] = useState(false);
+
+  // Facebook state
+  const [facebookStatus, setFacebookStatus] = useState<FacebookStatus | null>(null);
+  const [isLoadingFacebook, setIsLoadingFacebook] = useState(true);
+  const [isTestingFacebook, setIsTestingFacebook] = useState(false);
+
+  // Notion state
+  const [notionStatus, setNotionStatus] = useState<NotionStatus | null>(null);
+  const [isLoadingNotion, setIsLoadingNotion] = useState(true);
   
   const location = useLocation();
   const settings = useSettings(onUserUpdate);
@@ -989,15 +1104,67 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
     }
   };
 
-  // Load Google, Telegram, Discord status and user preferences on mount
+  const loadFacebookStatus = useCallback(async () => {
+    try {
+      setIsLoadingFacebook(true);
+      const status = await authApi.getFacebookStatus();
+      setFacebookStatus(status);
+    } catch (error: any) {
+      console.error('Failed to load Facebook status:', error);
+      setFacebookStatus({
+        configured: false,
+        connected: false,
+        error: 'Failed to check status'
+      });
+    } finally {
+      setIsLoadingFacebook(false);
+    }
+  }, []);
+
+  const handleTestFacebook = async () => {
+    try {
+      setIsTestingFacebook(true);
+      const result = await authApi.testFacebookConnection();
+      if (result.success) {
+        alert('✅ ' + result.message);
+      } else {
+        alert('❌ ' + result.message);
+      }
+    } catch (error: any) {
+      alert('❌ Failed to test connection');
+    } finally {
+      setIsTestingFacebook(false);
+    }
+  };
+
+  const loadNotionStatus = useCallback(async () => {
+    try {
+      setIsLoadingNotion(true);
+      const status = await authApi.getNotionStatus();
+      setNotionStatus(status);
+    } catch (error: any) {
+      console.error('Failed to load Notion status:', error);
+      setNotionStatus({
+        configured: false,
+        connected: false,
+        error: 'Failed to check status'
+      });
+    } finally {
+      setIsLoadingNotion(false);
+    }
+  }, []);
+
+  // Load all integration statuses and user preferences on mount
   useEffect(() => {
     loadGoogleStatus();
     loadTelegramStatus();
     loadDiscordStatus();
+    loadFacebookStatus();
+    loadNotionStatus();
     if (user?.preferences) {
       settings.loadPreferences(user.preferences);
     }
-  }, [user, loadGoogleStatus, loadTelegramStatus, loadDiscordStatus]);
+  }, [user, loadGoogleStatus, loadTelegramStatus, loadDiscordStatus, loadFacebookStatus, loadNotionStatus]);
 
   // Reload Google status when returning from OAuth (URL has auth param)
   useEffect(() => {
@@ -1065,6 +1232,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
             isTestingDiscord={isTestingDiscord}
             onTestDiscord={handleTestDiscord}
             onRetryDiscord={loadDiscordStatus}
+            facebookStatus={facebookStatus}
+            isLoadingFacebook={isLoadingFacebook}
+            isTestingFacebook={isTestingFacebook}
+            onTestFacebook={handleTestFacebook}
+            onRetryFacebook={loadFacebookStatus}
+            notionStatus={notionStatus}
+            isLoadingNotion={isLoadingNotion}
+            onRetryNotion={loadNotionStatus}
           />
         );
       case 'jobs':
