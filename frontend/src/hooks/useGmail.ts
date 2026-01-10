@@ -11,7 +11,7 @@ import { io, Socket } from 'socket.io-client';
 import { processAllEmails, testNotification } from '../services/api';
 import * as authApi from '../services/authApi';
 import useSearchController from './useSearchController';
-import { SOCKET_URL } from '../config';
+import { SOCKET_URL, API_BASE_URL } from '../config';
 
 export interface GmailStats {
   invoices: number;

@@ -78,7 +78,7 @@ const InvoiceList: React.FC = () => {
     };
 
     // Also re-fetch periodically if auth is required (every 5 seconds)
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (authRequired) {
       interval = setInterval(() => {
         console.log('[InvoiceList] Periodic check for auth status...');
