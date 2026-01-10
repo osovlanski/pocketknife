@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, ArrowRight, Sparkles,
-  Zap, Shield, Settings
+  Zap, Shield, Settings, Utensils
 } from 'lucide-react';
 import type { CurrentUser } from '../services/authApi';
 import type { AgentStatus } from '../services/configApi';
@@ -87,6 +87,15 @@ const agents: AgentCard[] = [
     path: '/agents/shopping',
     gradient: 'from-rose-500 to-red-600',
     features: ['Deal scoring', 'Price alerts', 'Multi-platform']
+  },
+  {
+    id: 'groceries',
+    name: 'Groceries Agent',
+    description: 'Track your grocery inventory, manage shopping lists, and discover recipes based on what you have.',
+    icon: Utensils,
+    path: '/agents/groceries',
+    gradient: 'from-lime-500 to-green-600',
+    features: ['Inventory tracking', 'Shopping lists', 'Recipe suggestions']
   }
 ];
 

@@ -33,6 +33,7 @@ export interface AgentStatus {
   problems: boolean;
   todo: boolean;
   shopping: boolean;
+  groceries: boolean;
 }
 
 export interface ConfigResponse {

@@ -39,7 +39,8 @@ const getBreadcrumb = (pathname: string): { label: string; icon?: React.FC<any> 
       learning: 'Learning Agent',
       problems: 'Problem Solving',
       todo: 'ToDo Agent',
-      shopping: 'Shopping Agent'
+      shopping: 'Shopping Agent',
+      groceries: 'Groceries Agent'
     };
     return { label: agentNames[agent] || 'Agent' };
   }
