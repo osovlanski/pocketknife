@@ -16,6 +16,7 @@ class GoogleAuthService {
 
   /**
    * Initialize the OAuth2 client
+   * Note: Tokens are loaded lazily on first use, not at startup
    */
   async initialize() {
     this.oauth2Client = new google.auth.OAuth2(
@@ -36,31 +37,37 @@ class GoogleAuthService {
       }
     });
 
-    // Try to load existing tokens from database
-    await this.loadTokensFromDatabase();
+    // Try to load existing tokens from database (silent mode for startup)
+    const hasTokens = await this.loadTokensFromDatabase(true);
+    if (hasTokens) {
+      console.log('✅ Google OAuth tokens loaded from database');
+    } else {
+      console.log('ℹ️ No Google OAuth tokens yet - user will need to authenticate via Settings');
+    }
   }
 
   /**
    * Reload tokens from database (public method to refresh auth state)
    */
   async refreshFromDatabase(): Promise<boolean> {
-    return this.loadTokensFromDatabase();
+    return this.loadTokensFromDatabase(false);
   }
 
   /**
    * Load tokens from database
+   * @param silent - If true, suppress warning logs (used during startup)
    */
-  private async loadTokensFromDatabase(): Promise<boolean> {
+  private async loadTokensFromDatabase(silent: boolean = false): Promise<boolean> {
     try {
       const prisma = getPrisma();
       if (!prisma) {
-        console.warn('⚠️ Database not available for token loading');
+        if (!silent) console.warn('⚠️ Database not available for token loading');
         return false;
       }
 
       // Check if OAuthToken table exists
       if (!(prisma as any).oAuthToken) {
-        console.warn('⚠️ OAuthToken table not found. Run migrations.');
+        if (!silent) console.warn('⚠️ OAuthToken table not found. Run migrations.');
         return false;
       }
 
@@ -78,7 +85,6 @@ class GoogleAuthService {
       // This handles the case where tokens were saved under the actual OAuth email
       // but the service restarted and currentUserEmail was reset to default
       if (!tokenRecord) {
-        console.log(`⚠️ No token found for email "${this.currentUserEmail}", searching for any Google OAuth token...`);
         tokenRecord = await (prisma as any).oAuthToken.findFirst({
           where: {
             provider: PROVIDER
@@ -87,7 +93,7 @@ class GoogleAuthService {
         
         // Update currentUserEmail if we found a token under different email
         if (tokenRecord && tokenRecord.userEmail) {
-          console.log(`✅ Found Google OAuth token for user: ${tokenRecord.userEmail}`);
+          if (!silent) console.log(`✅ Found Google OAuth token for user: ${tokenRecord.userEmail}`);
           this.currentUserEmail = tokenRecord.userEmail as string;
         }
       }
@@ -104,19 +110,17 @@ class GoogleAuthService {
         this.oauth2Client?.setCredentials(tokens);
         this.hasValidTokens = true;
         this.storedScopes = tokenRecord.scope || '';
-        console.log('✅ Google OAuth tokens loaded from database for:', this.currentUserEmail);
-        console.log('📋 Token scopes:', this.storedScopes.substring(0, 100) + '...');
 
         // Check if access token is expired
         if (tokenRecord.expiryDate && tokenRecord.refreshToken) {
           const isExpired = tokenRecord.expiryDate.getTime() < Date.now();
-          if (isExpired) {
-            console.log('⚠️ Access token expired, will refresh on next API call');
+          if (isExpired && !silent) {
+            console.log('ℹ️ Access token expired, will refresh on next API call');
           }
         }
         return true;
       } else {
-        console.warn('⚠️ No Google OAuth tokens found in database for any user');
+        // No tokens found - this is expected for new deployments
         this.hasValidTokens = false;
         this.storedScopes = '';
         return false;

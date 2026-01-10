@@ -16,12 +16,10 @@ class DriveService {
       const client = googleAuthService.getClient();
       if (client) {
         this.drive = google.drive({ version: 'v3', auth: client });
-        console.log('✅ Drive service initialized (using shared GoogleAuthService)');
-      } else {
-        console.warn('⚠️ Google OAuth not configured. Drive features will be limited.');
       }
       
       this.initialized = true;
+      console.log('✅ Drive service ready');
     } catch (error) {
       console.error('❌ Error initializing Drive service:', error);
       this.initialized = true; // Mark as initialized to avoid retry loops

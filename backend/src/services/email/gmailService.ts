@@ -15,20 +15,16 @@ class GmailService {
       const client = googleAuthService.getClient();
       if (client) {
         this.gmail = google.gmail({ version: 'v1', auth: client });
-        
-        if (googleAuthService.isAuthenticated()) {
-          console.log('✅ Gmail service initialized with OAuth tokens');
-        } else {
-          console.warn('⚠️ No Gmail OAuth tokens found. Gmail features will be limited.');
-          console.warn('💡 Run OAuth flow to authorize Gmail access.');
-          console.warn('💡 For now, using mock email data for testing.');
-        }
-      } else {
-        console.warn('⚠️ Google OAuth not configured. Gmail features will be limited.');
       }
       
       this.initialized = true;
-      console.log('✅ Gmail service initialized');
+      
+      // Log a single status message
+      if (googleAuthService.isAuthenticated()) {
+        console.log('✅ Gmail service ready with OAuth tokens');
+      } else {
+        console.log('ℹ️ Gmail service ready (OAuth tokens will be loaded after user authenticates)');
+      }
     } catch (error) {
       console.error('❌ Error initializing Gmail service:', error);
       this.initialized = true; // Mark as initialized to avoid retry loops
