@@ -97,6 +97,16 @@ const DEFAULT_CONFIG = {
   'groceries.ai.maxTokens': 2000,
   
   // ==========================================================================
+  // NOTION INTEGRATION
+  // ==========================================================================
+  'notion.search.maxResults': 20,
+  'notion.query.maxResults': 100,
+  'notion.databases.learning': '',      // Database ID for learning resources
+  'notion.databases.jobs': '',          // Database ID for job applications
+  'notion.databases.recipes': '',       // Database ID for saved recipes
+  'notion.databases.tasks': '',         // Database ID for tasks
+  
+  // ==========================================================================
   // GOOGLE SEARCH API
   // ==========================================================================
   'google.cse.dailyLimit': 100,

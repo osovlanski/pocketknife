@@ -338,6 +338,21 @@ const DEFAULT_NOTIFICATION_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'u
     docsUrl: 'https://discord.com/developers/docs/resources/webhook',
     priority: 2,
     currentUsage: 0
+  },
+  {
+    name: 'notion_api',
+    displayName: 'Notion API',
+    category: 'integrations',
+    baseUrl: 'https://api.notion.com/v1',
+    apiKeyEnvVar: 'NOTION_TOKEN',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'bearer',
+    description: 'Knowledge management: save resources, jobs, recipes, tasks to Notion',
+    docsUrl: 'https://developers.notion.com/',
+    priority: 1,
+    currentUsage: 0
   }
 ];
 
