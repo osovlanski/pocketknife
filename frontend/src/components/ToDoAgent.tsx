@@ -651,10 +651,17 @@ const ToDoAgent: React.FC = () => {
         <button
           onClick={todo.handleSyncCalendar}
           disabled={todo.syncing}
-          className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+          className={`${styles.actionButton} ${todo.lastSyncAt ? styles.actionButtonSuccess : styles.actionButtonSecondary}`}
+          title={todo.lastSyncAt ? `Last synced: ${new Date(todo.lastSyncAt).toLocaleTimeString()}` : 'Sync tasks to Google Calendar'}
         >
-          {todo.syncing ? <Loader2 className={`${styles.icon} ${styles.spinner}`} /> : <Calendar className={styles.icon} />}
-          Sync Calendar
+          {todo.syncing ? (
+            <Loader2 className={`${styles.icon} ${styles.spinner}`} />
+          ) : todo.lastSyncAt ? (
+            <Check className={styles.icon} />
+          ) : (
+            <Calendar className={styles.icon} />
+          )}
+          {todo.lastSyncAt ? 'Synced ✓' : 'Sync Calendar'}
         </button>
         <button
           onClick={todo.handleLearnPatterns}

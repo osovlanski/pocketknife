@@ -75,6 +75,16 @@
   background: rgb(139, 92, 246);
 }
 
+.actionButtonSuccess {
+  background: rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: rgb(110, 231, 183);
+}
+
+.actionButtonSuccess:hover {
+  background: rgba(16, 185, 129, 0.4);
+}
+
 /* ============================================
    DATE NAVIGATION
    ============================================ */
