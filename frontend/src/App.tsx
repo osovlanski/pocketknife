@@ -259,11 +259,11 @@ const App: React.FC = () => {
                 `Welcome, ${authEmail}! Google account connected. You can now use Gmail, Calendar, and Drive features.`
               );
             } else {
-              // Google connected but app sign-in failed
-              notifications.showSuccess(
-                `Google account connected (${authEmail})! You can now use Gmail, Calendar, and Drive features.`
+              // Google connected but app sign-in failed - show error to user
+              console.error('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
+              notifications.showError(
+                `Sign-in failed: ${signInResult.error || 'Unknown error'}. Google is connected, but please try signing in manually.`
               );
-              console.warn('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
             }
           } else {
             notifications.showSuccess(

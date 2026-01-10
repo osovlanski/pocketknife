@@ -109,9 +109,22 @@ export const getConfig = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching config:', error);
+    console.error('Stack:', error.stack);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to fetch configuration';
+    if (error.code === 'P2021') {
+      errorMessage = 'Database table not found. Run migrations: npx prisma migrate deploy';
+    } else if (error.code === 'P1001') {
+      errorMessage = 'Cannot connect to database. Check DATABASE_URL';
+    } else if (error.message) {
+      errorMessage = `Config error: ${error.message}`;
+    }
+    
     res.status(500).json({ 
       success: false,
-      error: 'Failed to fetch configuration' 
+      error: errorMessage,
+      code: error.code
     });
   }
 };

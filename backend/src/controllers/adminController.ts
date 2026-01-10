@@ -711,7 +711,25 @@ export const initializeAdmin = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Initialize admin error:', error);
-    res.status(500).json({ error: 'Failed to initialize admin' });
+    console.error('Stack:', error.stack);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to initialize admin';
+    if (error.code === 'P2002') {
+      errorMessage = 'User already exists with this email';
+    } else if (error.code === 'P2021') {
+      errorMessage = 'Database table not found. Run migrations: npx prisma migrate deploy';
+    } else if (error.code === 'P1001') {
+      errorMessage = 'Cannot connect to database. Check DATABASE_URL';
+    } else if (error.message) {
+      errorMessage = `Admin initialization failed: ${error.message}`;
+    }
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      code: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
