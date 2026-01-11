@@ -121,7 +121,7 @@ class NotionService {
    */
   async getDatabase(databaseId: string): Promise<NotionDatabase> {
     const client = this.getClient();
-    const response = await client.databases.retrieve({ database_id: databaseId });
+    const response = await client.databases.retrieve({ database_id: databaseId }) as any;
 
     return {
       id: response.id,
@@ -134,7 +134,7 @@ class NotionService {
    * Query a database
    */
   async queryDatabase(databaseId: string, filter?: any, sorts?: any[]): Promise<NotionPage[]> {
-    const client = this.getClient();
+    const client = this.getClient() as any;
     
     const queryParams: any = {
       database_id: databaseId,
@@ -165,7 +165,7 @@ class NotionService {
     const response = await client.pages.create({
       parent: { database_id: databaseId },
       properties
-    });
+    }) as any;
 
     return {
       id: response.id,
@@ -186,7 +186,7 @@ class NotionService {
     const response = await client.pages.update({
       page_id: pageId,
       properties
-    });
+    }) as any;
 
     return {
       id: response.id,

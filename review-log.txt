@@ -6586,3 +6586,307 @@ diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
 [2026-01-11T11:39:00.810Z] 
 [2026-01-11T11:39:00.811Z] BLOCKED - Automated score: 0/100 (min: 80)
 [2026-01-11T13:39:01+02:00] Push BLOCKED - Exit code: 1
+[2026-01-11T15:30:21+02:00] Pre-push hook triggered
+[2026-01-11T13:30:24.942Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-11T13:30:24.969Z] 📋 Minimum passing score: 80/100
+[2026-01-11T13:30:24.972Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-11T13:30:24.979Z] 
+[2026-01-11T13:30:24.982Z] ════════════════════════════════════════════════════════════
+[2026-01-11T13:30:24.986Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-11T13:30:24.988Z] ════════════════════════════════════════════════════════════
+[2026-01-11T13:30:24.990Z] 
+[2026-01-11T13:30:25.185Z] 📅 Review started at: 1/11/2026, 3:30:24 PM
+[2026-01-11T13:30:25.188Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-11T13:30:25.195Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-11T13:30:25.199Z] ────────────────────────────────────────
+[2026-01-11T13:30:25.895Z] ✅ Git repository detected
+[2026-01-11T13:30:25.899Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-11T13:30:25.901Z] ────────────────────────────────────────
+[2026-01-11T13:30:26.563Z] 📍 Current branch: feature/groceries-agent
+[2026-01-11T13:30:26.567Z] 🎯 Comparing against: main
+[2026-01-11T13:30:27.230Z] ✅ Base branch 'main' exists
+[2026-01-11T13:30:27.232Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-11T13:30:27.234Z] ────────────────────────────────────────
+[2026-01-11T13:30:30.194Z] 
+▶ Step 4: Change Summary
+[2026-01-11T13:30:30.196Z] ────────────────────────────────────────
+[2026-01-11T13:30:30.197Z]  .cursor/rules/add-new-agent.mdc                    |  653 ++++++++++++
+ .github/workflows/deploy.yml                       |    1 +
+ .github/workflows/pr-check.yml                     |    1 +
+ CLOUD_SETUP.md                                     |    1 +
+ DATABASE_MIGRATIONS.md                             |    1 +
+ GOOGLE_SETUP.md                                    |    1 +
+ README.md                                          |   25 +
+ backend/.dockerignore                              |    1 +
+ backend/.gitignore                                 |    1 +
+ backend/Dockerfile                                 |    1 +
+ backend/env.example                                |   18 +
+ backend/package-lock.json                          |   10 +
+ backend/package.json                               |    2 +
+ backend/prisma/schema.prisma                       |  193 ++++
+ backend/railway.json                               |    1 +
+ backend/src/agents/CookingAgent.ts                 |  518 ++++++++++
+ backend/src/agents/index.ts                        |    3 +
+ backend/src/agents/types.ts                        |    2 +-
+ backend/src/controllers/adminController.ts         |   31 +-
+ backend/src/controllers/agentController.ts         |   31 +
+ backend/src/controllers/cookingController.ts       |  593 +++++++++++
+ backend/src/controllers/learningController.ts      |    5 +-
+ backend/src/data/companyMappings.ts                |    1 +
+ backend/src/data/curatedProblems.ts                |    1 +
+ backend/src/index.ts                               |   58 +-
+ backend/src/routes/admin.ts                        |    1 +
+ backend/src/routes/agents.ts                       |    1 +
+ backend/src/routes/auth.ts                         |   75 +-
+ backend/src/routes/cooking.ts                      |   60 ++
+ backend/src/routes/index.ts                        |    4 +
+ backend/src/routes/settings.ts                     |   54 +
+ backend/src/routes/shopping.ts                     |    1 +
+ backend/src/services/cooking/cookingService.ts     | 1044 ++++++++++++++++++++
+ backend/src/services/cooking/index.ts              |   13 +
+ backend/src/services/core/configService.ts         |   33 +
+ backend/src/services/core/databaseService.ts       |   47 +
+ backend/src/services/core/externalApiService.ts    |   47 +
+ backend/src/services/core/googleSearchService.ts   |    1 +
+ backend/src/services/email/emailPatternService.ts  |    1 +
+ backend/src/services/index.ts                      |    4 +
+ .../src/services/integrations/facebookService.ts   |  184 ++++
+ backend/src/services/integrations/index.ts         |   20 +
+ .../services/integrations/meiliSearchService.ts    |  277 ++++++
+ backend/src/services/integrations/notionService.ts |  329 ++++++
+ .../src/services/integrations/serpApiService.ts    |  239 +++++
+ backend/src/services/jobs/index.ts                 |    1 +
+ backend/src/services/learning/index.ts             |    1 +
+ .../notifications/discordNotificationService.ts    |   34 +-
+ backend/src/services/notifications/index.ts        |    1 +
+ backend/src/services/problemSolving/index.ts       |    1 +
+ backend/src/services/shopping/zapScraperService.ts |    3 +-
+ backend/src/services/travel/index.ts               |    1 +
+ backend/src/utils/anthropicClient.ts               |    1 +
+ backend/src/utils/emailProcessor.ts                |   92 +-
+ backend/tests/agents/cookingAgent.test.ts          |  277 ++++++
+ backend/tests/services/cookingService.test.ts      |  430 ++++++++
+ frontend/public/favicon.svg                        |    1 +
+ frontend/src/App.tsx                               |   11 +-
+ frontend/src/components/AISummaryModal.tsx         |    1 +
+ frontend/src/components/CookingAgent.tsx           |  816 +++++++++++++++
+ frontend/src/components/HomePage.tsx               |   12 +-
+ frontend/src/components/HotelResults.tsx           |   24 +-
+ frontend/src/components/SearchButton.tsx           |    1 +
+ frontend/src/components/SettingsPage.tsx           |  202 +++-
+ frontend/src/components/common/Button.tsx          |    1 +
+ frontend/src/components/common/Header.tsx          |    3 +-
+ frontend/src/components/common/Modal.tsx           |    1 +
+ frontend/src/components/common/SignInModal.tsx     |  117 ++-
+ frontend/src/components/common/Toast.tsx           |    1 +
+ frontend/src/components/common/UserMenu.tsx        |    1 +
+ frontend/src/components/common/index.ts            |    1 +
+ frontend/src/hooks/index.ts                        |    3 +-
+ frontend/src/hooks/useAutocomplete.ts              |    1 +
+ frontend/src/hooks/useCooking.ts                   |  410 ++++++++
+ frontend/src/hooks/useLearning.ts                  |    1 +
+ frontend/src/hooks/useNotification.ts              |    1 +
+ frontend/src/hooks/useProblems.ts                  |    1 +
+ frontend/src/hooks/useSettings.ts                  |    1 +
+ frontend/src/hooks/useTodo.ts                      |    1 +
+ frontend/src/index.css                             |   20 +
+ frontend/src/services/api.ts                       |    3 +-
+ frontend/src/services/authApi.ts                   |  122 +++
+ frontend/src/services/configApi.ts                 |    4 +-
+ frontend/src/services/cookingApi.ts                |  284 ++++++
+ frontend/src/styles/admin.module.css               |    1 +
+ frontend/src/styles/common.module.css              |    1 +
+ frontend/src/styles/cooking.module.css             |  823 +++++++++++++++
+ frontend/src/styles/gmail.module.css               |    1 +
+ frontend/src/styles/learning.module.css            |    1 +
+ frontend/src/styles/modal.module.css               |   71 ++
+ frontend/src/styles/problems.module.css            |    1 +
+ frontend/src/styles/settings.module.css            |    1 +
+ frontend/src/styles/todo.module.css                |    5 +
+ frontend/src/types/css.d.ts                        |    1 +
+ frontend/vercel.json                               |    1 +
+ review-log.txt                                     |  581 +++++++++++
+ 96 files changed, 8894 insertions(+), 69 deletions(-)
+
+[2026-01-11T13:30:30.199Z] 📊 Files changed: 96
+[2026-01-11T13:30:30.201Z] ➕ Lines added: 8894
+[2026-01-11T13:30:30.203Z] ➖ Lines removed: 69
+[2026-01-11T13:30:30.205Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-11T13:30:30.208Z] ────────────────────────────────────────
+[2026-01-11T13:30:30.212Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T13:30:30.214Z] new file mode 100644
+[2026-01-11T13:30:30.215Z] index 0000000..f4d90a8
+[2026-01-11T13:30:30.217Z] --- /dev/null
+[2026-01-11T13:30:30.219Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T13:30:30.221Z] @@ -0,0 +1,653 @@
+[2026-01-11T13:30:30.224Z] +---
+[2026-01-11T13:30:30.225Z] +description: Step-by-step guide for adding a new agent to the Pocketknife platform. Triggered by 'add agent', 'new agent', 'create agent'.
+[2026-01-11T13:30:30.226Z] +globs: **/*
+[2026-01-11T13:30:30.228Z] +alwaysApply: false
+[2026-01-11T13:30:30.229Z] +---
+[2026-01-11T13:30:30.231Z] +
+[2026-01-11T13:30:30.232Z] +# Adding a New Agent to Pocketknife
+[2026-01-11T13:30:30.237Z] +
+[2026-01-11T13:30:30.239Z] +This guide outlines the complete process for adding a new agent to the Pocketknife platform. Follow this checklist to ensure consistency across all agents.
+[2026-01-11T13:30:30.241Z] +
+[2026-01-11T13:30:30.243Z] +## Quick Checklist
+[2026-01-11T13:30:30.246Z] +
+[2026-01-11T13:30:30.247Z] +| Step | Backend | Frontend | Database |
+[2026-01-11T13:30:30.249Z] +|:---:|:---|:---|:---|
+[2026-01-11T13:30:30.251Z] +| 1 | ☐ Prisma Schema | ☐ Types | ☐ Models |
+[2026-01-11T13:30:30.254Z] +| 2 | ☐ Service | ☐ API Service | - |
+[2026-01-11T13:30:30.256Z] +| 3 | ☐ Agent Class | ☐ Hook | - |
+[2026-01-11T13:30:30.258Z] +| 4 | ☐ Controller | ☐ Component | - |
+[2026-01-11T13:30:30.260Z] +| 5 | ☐ Routes | ☐ App.tsx Tab | - |
+[2026-01-11T13:30:30.263Z] +| 6 | ☐ Config Entries | ☐ Styles | - |
+[2026-01-11T13:30:30.265Z] +| 7 | ☐ Register Agent | - | - |
+[2026-01-11T13:30:30.268Z] +
+[2026-01-11T13:30:30.270Z] +---
+[2026-01-11T13:30:30.273Z] +
+[2026-01-11T13:30:30.275Z] +## Step 1: Database Schema (Prisma)
+[2026-01-11T13:30:30.277Z] +
+[2026-01-11T13:30:30.278Z] +### File: `backend/prisma/schema.prisma`
+[2026-01-11T13:30:30.279Z] +
+[2026-01-11T13:30:30.283Z] +Add your models at the end of the file:
+[2026-01-11T13:30:30.285Z] +
+[2026-01-11T13:30:30.287Z] +```prisma
+[2026-01-11T13:30:30.289Z] +// =============================================================================
+[2026-01-11T13:30:30.291Z] +// YOUR_AGENT_NAME AGENT
+[2026-01-11T13:30:30.294Z] +// =============================================================================
+[2026-01-11T13:30:30.296Z] +
+[2026-01-11T13:30:30.299Z] +model YourModel {
+[2026-01-11T13:30:30.301Z] +  id        String   @id @default(uuid())
+[2026-01-11T13:30:30.303Z] +  userId    String
+[2026-01-11T13:30:30.306Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-11T13:30:30.309Z] +  
+[2026-01-11T13:30:30.311Z] +  // Your fields here
+[2026-01-11T13:30:30.314Z] +  name      String
+[2026-01-11T13:30:30.316Z] +  status    String   @default("active")
+[2026-01-11T13:30:30.317Z] +  
+[2026-01-11T13:30:30.319Z] +  createdAt DateTime @default(now())
+[2026-01-11T13:30:30.321Z] +  updatedAt DateTime @updatedAt
+[2026-01-11T13:30:30.322Z] +
+[2026-01-11T13:30:30.326Z] +  @@index([userId])
+[2026-01-11T13:30:30.328Z] +}
+[2026-01-11T13:30:30.330Z] +```
+[2026-01-11T13:30:30.332Z] +
+[2026-01-11T13:30:30.334Z] +### Add User Relations
+[2026-01-11T13:30:30.335Z] +
+[2026-01-11T13:30:30.338Z] +In the `User` model, add your agent's relations:
+[2026-01-11T13:30:30.340Z] +
+[2026-01-11T13:30:30.342Z] +```prisma
+[2026-01-11T13:30:30.345Z] +model User {
+[2026-01-11T13:30:30.346Z] +  // ... existing relations ...
+[2026-01-11T13:30:30.348Z] +  
+[2026-01-11T13:30:30.350Z] +  // YourAgent relations
+[2026-01-11T13:30:30.352Z] +  yourModels    YourModel[]
+[2026-01-11T13:30:30.354Z] +}
+[2026-01-11T13:30:30.357Z] +```
+[2026-01-11T13:30:30.359Z] +
+[2026-01-11T13:30:30.361Z] +### Run Migration
+[2026-01-11T13:30:30.364Z] +
+[2026-01-11T13:30:30.365Z] +```bash
+[2026-01-11T13:30:30.367Z] +cd backend && npx prisma migrate dev --name add_your_agent
+[2026-01-11T13:30:30.368Z] +```
+[2026-01-11T13:30:30.370Z] +
+[2026-01-11T13:30:30.372Z] +---
+[2026-01-11T13:30:30.375Z] +
+[2026-01-11T13:30:30.378Z] +## Step 2: Backend Service
+[2026-01-11T13:30:30.379Z] +
+[2026-01-11T13:30:30.381Z] +### File: `backend/src/services/yourAgent/yourAgentService.ts`
+[2026-01-11T13:30:30.383Z] +
+[2026-01-11T13:30:30.384Z] +```typescript
+[2026-01-11T13:30:30.386Z] +/**
+[2026-01-11T13:30:30.389Z] + * YourAgent Service
+[2026-01-11T13:30:30.391Z] + * 
+[2026-01-11T13:30:30.394Z] + * Business logic for your agent.
+[2026-01-11T13:30:30.396Z] + */
+[2026-01-11T13:30:30.397Z] +
+[2026-01-11T13:30:30.398Z] +import { getPrisma } from '../core/databaseService';
+[2026-01-11T13:30:30.400Z] +import { configService } from '../core/configService';
+[2026-01-11T13:30:30.401Z] +import claudeService from '../core/claudeService';
+[2026-01-11T13:30:30.404Z] +
+[2026-01-11T13:30:30.406Z] +export interface YourDataType {
+[2026-01-11T13:30:30.409Z] +  name: string;
+[2026-01-11T13:30:30.411Z] +  // ... your fields
+[2026-01-11T13:30:30.413Z] +}
+[2026-01-11T13:30:30.415Z] +
+[2026-01-11T13:30:30.416Z] +export const yourAgentService = {
+[2026-01-11T13:30:30.418Z] +  /**
+[2026-01-11T13:30:30.424Z] 
+... and 10011 more lines
+[2026-01-11T13:30:30.426Z] 
+▶ Step 6: Running Tests
+[2026-01-11T13:30:30.427Z] ────────────────────────────────────────
+[2026-01-11T13:30:30.429Z] 🧪 Running test suites...
+[2026-01-11T13:30:30.430Z]    Running backend tests...
+[2026-01-11T13:32:01.564Z]    ❌ Backend tests failed
+[2026-01-11T13:32:01.578Z]       FAIL  tests/services/cacheService.test.ts > CacheService > cacheKeys > should generate correct job search cache keys
+[2026-01-11T13:32:01.581Z]       FAIL  tests/services/databaseService.test.ts > DatabaseService > getPrisma > should return a Prisma client or null
+[2026-01-11T13:32:01.585Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > metadata > should have correct agent metadata
+[2026-01-11T13:32:01.589Z]       FAIL  tests/utils/logger.test.ts > Logger > logger object > should have standard logging methods
+[2026-01-11T13:32:01.592Z]       FAIL  tests/utils/logger.test.ts > Logger > logger object > should not throw when logging
+[2026-01-11T13:32:01.595Z]    Running frontend tests...
+[2026-01-11T13:34:48.468Z]    ✅ Frontend tests passed
+[2026-01-11T13:34:48.484Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-11T13:34:48.489Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-11T13:34:48.492Z] ────────────────────────────────────────
+[2026-01-11T13:34:48.585Z] 
+🔴 Critical Issues Found:
+[2026-01-11T13:34:48.589Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-11T13:34:48.591Z]    🔴 Hardcoded port number: Found 5 instance(s)
+[2026-01-11T13:34:48.597Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T13:34:48.599Z]    🔴 Hardcoded external URL: Found 13 instance(s)
+[2026-01-11T13:34:48.601Z] 
+🟡 Warnings:
+[2026-01-11T13:34:48.604Z]    🟡 console.log usage: 85 instance(s) - Consider using proper logger
+[2026-01-11T13:34:48.608Z]    🟡 'any' type usage: 87 instance(s) - Prefer explicit types
+[2026-01-11T13:34:48.615Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-11T13:34:48.617Z] 
+▶ Step 8: Manual Review Required
+[2026-01-11T13:34:48.620Z] ────────────────────────────────────────
+[2026-01-11T13:34:48.622Z] 
+[2026-01-11T13:34:48.625Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T13:34:48.628Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-11T13:34:48.630Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-11T13:34:48.631Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-11T13:34:48.634Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T13:34:48.636Z] 
+[2026-01-11T13:34:48.638Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-11T13:34:48.640Z] 
+[2026-01-11T13:34:48.642Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-11T13:34:48.645Z] 
+[2026-01-11T13:34:48.648Z] 
+▶ Step 9: Push Confirmation
+[2026-01-11T13:34:48.651Z] ────────────────────────────────────────
+[2026-01-11T13:34:48.657Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-11T13:34:48.659Z] 📝 Pre-push automated score: 0
+[2026-01-11T13:34:48.662Z] 
+[2026-01-11T13:34:48.663Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T13:34:48.665Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-11T13:34:48.667Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T13:34:48.669Z] 
+[2026-01-11T13:34:48.672Z]    Score: 0/100 (Minimum required: 80)
+[2026-01-11T13:34:48.674Z] 
+[2026-01-11T13:34:48.683Z]    Fix the following issues before pushing:
+[2026-01-11T13:34:48.687Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-11T13:34:48.691Z]    🔴 Hardcoded port number: Found 5 instance(s)
+[2026-01-11T13:34:48.693Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T13:34:48.695Z]    🔴 Hardcoded external URL: Found 13 instance(s)
+[2026-01-11T13:34:48.697Z] 
+[2026-01-11T13:34:48.699Z]    Also consider fixing these warnings:
+[2026-01-11T13:34:48.702Z]    🟡 console.log usage: 85 instance(s) - Consider using proper logger
+[2026-01-11T13:34:48.705Z]    🟡 'any' type usage: 87 instance(s) - Prefer explicit types
+[2026-01-11T13:34:48.709Z] 
+[2026-01-11T13:34:48.713Z]    After fixing, run: git push
+[2026-01-11T13:34:48.715Z] 
+[2026-01-11T13:34:48.719Z] BLOCKED - Automated score: 0/100 (min: 80)
+[2026-01-11T15:34:49+02:00] Push BLOCKED - Exit code: 1

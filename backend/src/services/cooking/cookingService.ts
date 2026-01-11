@@ -750,7 +750,7 @@ Respond ONLY with valid JSON:
   /**
    * Fetch a recipe image using web search or placeholder
    */
-  fetchRecipeImage: async (recipeTitle: string): Promise<string> => {
+  fetchRecipeImage: async (recipeTitle: string): Promise<string | undefined> => {
     // Try using SerpApi for image search
     const serpApiKey = process.env.SERPAPI_KEY;
     if (serpApiKey) {
