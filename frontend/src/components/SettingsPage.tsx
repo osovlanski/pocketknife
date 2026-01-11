@@ -32,7 +32,7 @@ import useSettings from '../hooks/useSettings';
 
 // Services & Types
 import * as authApi from '../services/authApi';
-import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus } from '../services/authApi';
+import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus, FacebookStatus } from '../services/authApi';
 
 // Styles
 import styles from '../styles/settings.module.css';
@@ -221,6 +221,12 @@ interface IntegrationsSectionProps {
   isTestingDiscord: boolean;
   onTestDiscord: () => void;
   onRetryDiscord: () => void;
+  // Facebook
+  facebookStatus: FacebookStatus | null;
+  isLoadingFacebook: boolean;
+  isTestingFacebook: boolean;
+  onTestFacebook: () => void;
+  onRetryFacebook: () => void;
 }
 
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
@@ -239,7 +245,12 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
   isLoadingDiscord,
   isTestingDiscord,
   onTestDiscord,
-  onRetryDiscord
+  onRetryDiscord,
+  facebookStatus,
+  isLoadingFacebook,
+  isTestingFacebook,
+  onTestFacebook,
+  onRetryFacebook
 }) => (
   <div className={styles.sectionContent}>
     <h2 className={styles.sectionTitle}>Integrations</h2>
@@ -422,7 +433,9 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       <div className={styles.integrationHeader}>
         <div className={styles.integrationInfo}>
           <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(88, 101, 242, 0.2)' }}>
-            <span style={{ fontSize: '1.25rem' }}>💬</span>
+            <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="rgb(88, 101, 242)">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
           </div>
           <div>
             <h3 className={styles.integrationTitle}>Discord</h3>
@@ -431,9 +444,11 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
                 ? 'Checking connection status...'
                 : discordStatus?.connected
                   ? `Connected to ${discordStatus.webhookUrl || 'webhook'}`
-                  : discordStatus?.configured
-                    ? `Configuration error: ${discordStatus.error || 'Unknown'}`
-                    : 'Not configured - Add DISCORD_WEBHOOK_URL to .env'}
+                  : discordStatus?.error
+                    ? `Connection error: ${discordStatus.error}`
+                    : discordStatus?.configured
+                      ? 'Configured - Click Test to verify webhook'
+                      : 'Not configured - Add DISCORD_WEBHOOK_URL to .env'}
             </p>
           </div>
         </div>
@@ -459,13 +474,24 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
               </>
             )}
           </button>
-        ) : discordStatus?.error ? (
+        ) : discordStatus?.configured ? (
           <button
-            onClick={onRetryDiscord}
-            className={`${commonStyles.btn}`}
-            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
+            onClick={onTestDiscord}
+            disabled={isTestingDiscord}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
           >
-            Retry
+            {isTestingDiscord ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Testing...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
           </button>
         ) : null}
       </div>
@@ -496,6 +522,106 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
             <li>Click "New Webhook" and choose a channel</li>
             <li>Copy the Webhook URL</li>
             <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>DISCORD_WEBHOOK_URL</code> in .env</li>
+            <li>Restart the backend server</li>
+          </ol>
+        </div>
+      )}
+    </div>
+
+    {/* Facebook Integration */}
+    <div className={`${styles.integrationCard} ${facebookStatus?.connected ? '' : styles.integrationCardDisabled}`}>
+      <div className={styles.integrationHeader}>
+        <div className={styles.integrationInfo}>
+          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)' }}>
+            <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="rgb(24, 119, 242)">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className={styles.integrationTitle}>Facebook</h3>
+            <p className={styles.integrationDescription}>
+              {isLoadingFacebook 
+                ? 'Checking connection status...'
+                : facebookStatus?.connected
+                  ? `Connected to ${facebookStatus.appName || 'Facebook App'}`
+                  : facebookStatus?.error
+                    ? `Connection error: ${facebookStatus.error}`
+                    : facebookStatus?.configured
+                      ? 'Configured - Click Test to verify connection'
+                      : 'Not configured - Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to .env'}
+            </p>
+          </div>
+        </div>
+
+        {isLoadingFacebook ? (
+          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
+        ) : facebookStatus?.connected ? (
+          <button
+            onClick={onTestFacebook}
+            disabled={isTestingFacebook}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
+          >
+            {isTestingFacebook ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
+          </button>
+        ) : facebookStatus?.configured ? (
+          <button
+            onClick={onTestFacebook}
+            disabled={isTestingFacebook}
+            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
+            style={{ minWidth: '140px' }}
+          >
+            {isTestingFacebook ? (
+              <>
+                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
+                Testing...
+              </>
+            ) : (
+              <>
+                <Check style={{ width: '1rem', height: '1rem' }} />
+                Test Connection
+              </>
+            )}
+          </button>
+        ) : null}
+      </div>
+
+      {facebookStatus?.connected && (
+        <div className={styles.integrationPermissions}>
+          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
+          <div className={styles.integrationTags}>
+            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)', color: 'rgb(66, 133, 244)' }}>
+              App: {facebookStatus.appName}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!facebookStatus?.configured && (
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          color: 'rgb(251, 191, 36)'
+        }}>
+          <strong>Setup Instructions:</strong>
+          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
+            <li>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>Facebook Developers</a></li>
+            <li>Create a new app or select an existing one</li>
+            <li>Copy the App ID to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>FACEBOOK_APP_ID</code> in .env</li>
+            <li>Copy the App Secret to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>FACEBOOK_APP_SECRET</code> in .env</li>
             <li>Restart the backend server</li>
           </ol>
         </div>
@@ -809,6 +935,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
   const [discordStatus, setDiscordStatus] = useState<DiscordStatus | null>(null);
   const [isLoadingDiscord, setIsLoadingDiscord] = useState(true);
   const [isTestingDiscord, setIsTestingDiscord] = useState(false);
+
+  // Facebook state
+  const [facebookStatus, setFacebookStatus] = useState<FacebookStatus | null>(null);
+  const [isLoadingFacebook, setIsLoadingFacebook] = useState(true);
+  const [isTestingFacebook, setIsTestingFacebook] = useState(false);
   
   const location = useLocation();
   const settings = useSettings(onUserUpdate);
@@ -860,6 +991,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       const result = await authApi.testTelegramConnection();
       if (result.success) {
         alert('✅ ' + result.message);
+        // Reload status to update connected state
+        loadTelegramStatus();
       } else {
         alert('❌ ' + result.message);
       }
@@ -893,6 +1026,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       const result = await authApi.testDiscordConnection();
       if (result.success) {
         alert('✅ ' + result.message);
+        // Reload status to update connected state
+        loadDiscordStatus();
       } else {
         alert('❌ ' + result.message);
       }
@@ -903,15 +1038,51 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
     }
   };
 
-  // Load Google, Telegram, Discord status and user preferences on mount
+  const loadFacebookStatus = useCallback(async () => {
+    try {
+      setIsLoadingFacebook(true);
+      const status = await authApi.getFacebookStatus();
+      setFacebookStatus(status);
+    } catch (error: any) {
+      console.error('Failed to load Facebook status:', error);
+      setFacebookStatus({
+        configured: false,
+        connected: false,
+        error: 'Failed to check status'
+      });
+    } finally {
+      setIsLoadingFacebook(false);
+    }
+  }, []);
+
+  const handleTestFacebook = async () => {
+    try {
+      setIsTestingFacebook(true);
+      const result = await authApi.testFacebookConnection();
+      if (result.success) {
+        alert('✅ ' + result.message);
+        // Reload status to update connected state
+        loadFacebookStatus();
+      } else {
+        alert('❌ ' + result.message);
+      }
+    } catch (error: any) {
+      alert('❌ Failed to test connection');
+    } finally {
+      setIsTestingFacebook(false);
+    }
+  };
+
+  // Load Google, Telegram, Discord, Facebook status and user preferences on mount
   useEffect(() => {
     loadGoogleStatus();
     loadTelegramStatus();
     loadDiscordStatus();
+    loadFacebookStatus();
     if (user?.preferences) {
       settings.loadPreferences(user.preferences);
     }
-  }, [user, loadGoogleStatus, loadTelegramStatus, loadDiscordStatus]);
+  }, [user, loadGoogleStatus, loadTelegramStatus, loadDiscordStatus, loadFacebookStatus]);
 
   // Reload Google status when returning from OAuth (URL has auth param)
   useEffect(() => {
@@ -979,6 +1150,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
             isTestingDiscord={isTestingDiscord}
             onTestDiscord={handleTestDiscord}
             onRetryDiscord={loadDiscordStatus}
+            facebookStatus={facebookStatus}
+            isLoadingFacebook={isLoadingFacebook}
+            isTestingFacebook={isTestingFacebook}
+            onTestFacebook={handleTestFacebook}
+            onRetryFacebook={loadFacebookStatus}
           />
         );
       case 'jobs':
