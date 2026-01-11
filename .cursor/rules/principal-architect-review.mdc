@@ -84,16 +84,23 @@ You MUST output the review in this EXACT format:
 
 When the user asks you to review their changes:
 
-1. Run `git diff main...HEAD` to get the changes
-2. Analyze EVERY changed file against ALL criteria
-3. Be especially vigilant for:
+1. **Run TypeScript Type Checks FIRST** (matches CI/CD pipeline):
+   ```bash
+   cd backend && npm run lint
+   cd frontend && npx tsc --noEmit
+   ```
+   > If these fail, the review is automatically BLOCKED. CI/CD will catch these errors.
+
+2. Run `git diff main...HEAD` to get the changes
+3. Analyze EVERY changed file against ALL criteria
+4. Be especially vigilant for:
    - Hardcoded numbers (thresholds, limits, timeouts)
    - Hardcoded strings (URLs, API keys, messages that should be configurable)
    - Missing error handling
    - Console.log instead of proper logging
    - Any bypass of the config system
-4. Calculate the score honestly - do NOT be generous
-5. Output the report in the EXACT format above
+5. Calculate the score honestly - do NOT be generous
+6. Output the report in the EXACT format above
 
 ## Example Deductions
 
