@@ -119,7 +119,11 @@ const DEFAULT_CONFIG = {
   'diy.search.maxResults': 20,
   'diy.ai.maxTokens': 3000,
   'diy.cache.ttlSeconds': 86400,          // 24 hours for generated projects
+  'diy.cache.featuredTtlSeconds': 3600,   // 1 hour for featured ideas
   'diy.ideas.aiTokens': 800,              // Tokens for idea suggestions
+  'diy.ideas.featuredTokens': 1500,       // Tokens for featured ideas
+  'diy.ideas.inspirationTokens': 500,     // Tokens for inspire me
+  'diy.ideas.featuredCount': 8,           // Number of featured ideas
   
   // ==========================================================================
   // NOTION INTEGRATION

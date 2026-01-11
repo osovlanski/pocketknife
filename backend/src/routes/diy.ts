@@ -23,6 +23,8 @@ router.post('/shopping-list', controller.createShoppingList);
 
 // Ideas & Templates
 router.get('/ideas', controller.searchIdeas);
+router.get('/ideas/featured', controller.getFeaturedIdeas);
+router.get('/ideas/inspire', controller.getInspiration);
 router.get('/templates', controller.getTemplates);
 router.get('/categories', controller.getCategories);
 

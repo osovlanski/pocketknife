@@ -87,6 +87,11 @@ export interface DIYSearchResult {
   category: string;
   difficulty: string;
   estimatedTime: number;
+  estimatedCostMin?: number;
+  estimatedCostMax?: number;
+  popularity?: number;
+  whyItsAwesome?: string;
+  tags?: string[];
   source: string;
 }
 
@@ -451,6 +456,157 @@ Return as JSON array with this format:
     } catch (error) {
       console.error('Failed to search DIY ideas:', error);
       return [];
+    }
+  },
+
+  /**
+   * Get featured/trending DIY ideas with smart filtering
+   * AI-powered suggestions based on category, difficulty, and popularity
+   */
+  getFeaturedIdeas: async (options?: {
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    timeAvailable?: number; // max hours
+    count?: number;
+  }): Promise<DIYSearchResult[]> => {
+    const count = options?.count || configService.get('diy.ideas.featuredCount', 8);
+    const skillLevel = options?.skillLevel || 'intermediate';
+    
+    // Map skill level to difficulty preference
+    const difficultyPreference = options?.difficulty || (
+      skillLevel === 'beginner' ? 'easy' :
+      skillLevel === 'advanced' ? 'hard' : 'medium'
+    );
+    
+    const categoryContext = options?.category 
+      ? `in the ${options.category.replace('_', ' ')} category` 
+      : 'across various categories';
+    
+    const timeContext = options?.timeAvailable
+      ? `that can be completed in ${options.timeAvailable} hours or less`
+      : '';
+
+    const prompt = `You are a DIY project curator. Generate ${count} diverse, popular, and inspiring DIY project ideas ${categoryContext} ${timeContext}.
+
+Requirements:
+- Mix of practical and creative projects
+- Focus on ${difficultyPreference} difficulty level (but include some variety)
+- Projects that are currently trending or timeless classics
+- Include a "popularity" score 1-100 (higher = more popular)
+- Include estimated cost range
+
+Return as JSON array with this EXACT format:
+[
+  {
+    "title": "Creative project title",
+    "description": "Engaging 2-sentence description explaining what you'll build and why it's great",
+    "category": "${options?.category || 'one of: home_improvement, electronics, crafts, woodworking, gardening, furniture'}",
+    "difficulty": "easy|medium|hard",
+    "estimatedTime": <minutes as number>,
+    "estimatedCostMin": <dollars>,
+    "estimatedCostMax": <dollars>,
+    "popularity": <1-100>,
+    "tags": ["tag1", "tag2", "tag3"]
+  }
+]
+
+Make them specific, actionable, and exciting!`;
+
+    try {
+      const cacheKey = `diy:featured:${options?.category || 'all'}:${difficultyPreference}:${count}`;
+      const cached = await cacheService.get<DIYSearchResult[]>(cacheKey);
+      if (cached) return cached;
+
+      const ideaTokens = configService.get('diy.ideas.featuredTokens', 1500);
+      const result = await claudeService.generateText(prompt, ideaTokens);
+      const jsonMatch = result.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) return [];
+      
+      const ideas = JSON.parse(jsonMatch[0]);
+      const mappedIdeas = ideas.map((idea: any, index: number) => ({
+        id: `featured-${Date.now()}-${index}`,
+        title: idea.title,
+        description: idea.description,
+        category: idea.category,
+        difficulty: idea.difficulty,
+        estimatedTime: idea.estimatedTime,
+        estimatedCostMin: idea.estimatedCostMin,
+        estimatedCostMax: idea.estimatedCostMax,
+        popularity: idea.popularity,
+        tags: idea.tags || [],
+        source: 'ai_featured'
+      }));
+
+      // Cache for 1 hour
+      const cacheTtl = configService.get('diy.cache.featuredTtlSeconds', 3600);
+      await cacheService.set(cacheKey, mappedIdeas, { ttl: cacheTtl });
+
+      return mappedIdeas;
+    } catch (error) {
+      console.error('Failed to get featured ideas:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get a random "Inspire Me" suggestion
+   * Returns a single creative project idea with full context
+   */
+  getRandomInspiration: async (options?: {
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    excludeCategories?: string[];
+  }): Promise<DIYSearchResult | null> => {
+    const skillLevel = options?.skillLevel || 'intermediate';
+    const excludeText = options?.excludeCategories?.length 
+      ? `Avoid these categories: ${options.excludeCategories.join(', ')}.` 
+      : '';
+
+    const prompt = `Generate 1 creative, inspiring, and fun DIY project idea for a ${skillLevel} skill level.
+${excludeText}
+
+Make it:
+- Unique and interesting (not boring!)
+- Practical with a cool outcome
+- Something that would make someone say "I want to try that!"
+
+Return as JSON with this EXACT format:
+{
+  "title": "Creative project title",
+  "description": "Engaging 3-sentence description that sells the project",
+  "category": "category name",
+  "difficulty": "easy|medium|hard",
+  "estimatedTime": <minutes>,
+  "estimatedCostMin": <dollars>,
+  "estimatedCostMax": <dollars>,
+  "whyItsAwesome": "One sentence on why this project is worth doing",
+  "tags": ["tag1", "tag2", "tag3"]
+}`;
+
+    try {
+      const ideaTokens = configService.get('diy.ideas.inspirationTokens', 500);
+      const result = await claudeService.generateText(prompt, ideaTokens);
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      
+      const idea = JSON.parse(jsonMatch[0]);
+      return {
+        id: `inspiration-${Date.now()}`,
+        title: idea.title,
+        description: idea.description,
+        category: idea.category,
+        difficulty: idea.difficulty,
+        estimatedTime: idea.estimatedTime,
+        estimatedCostMin: idea.estimatedCostMin,
+        estimatedCostMax: idea.estimatedCostMax,
+        popularity: 85, // High since it's curated
+        whyItsAwesome: idea.whyItsAwesome,
+        tags: idea.tags || [],
+        source: 'ai_inspiration'
+      };
+    } catch (error) {
+      console.error('Failed to get inspiration:', error);
+      return null;
     }
   },
 

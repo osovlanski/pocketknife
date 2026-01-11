@@ -107,6 +107,7 @@ const DIYAgent: React.FC = () => {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([1]));
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [ideaQuery, setIdeaQuery] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState<'easy' | 'medium' | 'hard' | null>(null);
 
   // Handlers
   const handleGenerate = useCallback(async () => {
@@ -443,59 +444,230 @@ const DIYAgent: React.FC = () => {
       case 'ideas':
         return (
           <div className={styles.ideasContainer}>
-            <div className={styles.searchBox}>
-              <Search className="w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search for DIY ideas..."
-                value={ideaQuery}
-                onChange={(e) => setIdeaQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearchIdeas()}
-                className={styles.searchInput}
-              />
-              <button onClick={handleSearchIdeas} className={styles.searchButton}>
-                Search
-              </button>
-            </div>
-
-            <h4>Categories</h4>
-            <div className={styles.categoriesGrid}>
-              {DIY_CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setCategory(cat.id);
-                    setActiveTab('generate');
-                  }}
-                  className={styles.categoryCard}
+            {/* Inspire Me Section */}
+            <div className={styles.inspireSection}>
+              <div className={styles.inspireHeader}>
+                <h3>🎲 Need Inspiration?</h3>
+                <p>Let AI suggest a creative project for you!</p>
+              </div>
+              <div className={styles.inspireControls}>
+                <select
+                  value={skillLevel}
+                  onChange={(e) => setSkillLevel(e.target.value as any)}
+                  className={styles.inspireSelect}
+                  aria-label="Skill level"
                 >
-                  <span className={styles.categoryIcon}>{cat.icon}</span>
-                  <span>{cat.label}</span>
+                  {SKILL_LEVELS.map(level => (
+                    <option key={level.id} value={level.id}>
+                      {level.label}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => diy.handleGetInspiration({ skillLevel })}
+                  disabled={diy.loadingInspiration}
+                  className={styles.inspireButton}
+                >
+                  {diy.loadingInspiration ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Finding...</>
+                  ) : (
+                    <><Lightbulb className="w-5 h-5" /> Inspire Me!</>
+                  )}
                 </button>
-              ))}
+              </div>
+              
+              {diy.inspiration && (
+                <div className={styles.inspirationCard}>
+                  <div className={styles.inspirationBadge}>✨ Suggested for you</div>
+                  <h4>{diy.inspiration.title}</h4>
+                  <p>{diy.inspiration.description}</p>
+                  {diy.inspiration.whyItsAwesome && (
+                    <p className={styles.whyAwesome}>💡 {diy.inspiration.whyItsAwesome}</p>
+                  )}
+                  <div className={styles.inspirationMeta}>
+                    <span 
+                      className={styles.difficultyBadge}
+                      style={{ background: DIFFICULTY_COLORS[diy.inspiration.difficulty] || '#666' }}
+                    >
+                      {diy.inspiration.difficulty}
+                    </span>
+                    <span><Clock className="w-4 h-4" /> {formatDuration(diy.inspiration.estimatedTime)}</span>
+                    {diy.inspiration.estimatedCostMin && (
+                      <span><DollarSign className="w-4 h-4" /> ${diy.inspiration.estimatedCostMin} - ${diy.inspiration.estimatedCostMax}</span>
+                    )}
+                  </div>
+                  {diy.inspiration.tags && diy.inspiration.tags.length > 0 && (
+                    <div className={styles.tags}>
+                      {diy.inspiration.tags.map((tag, i) => (
+                        <span key={i} className={styles.tag}>#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => handleSelectIdea(diy.inspiration!)}
+                    className={styles.startButton}
+                  >
+                    Start This Project →
+                  </button>
+                </div>
+              )}
             </div>
 
-            {diy.ideas.length > 0 && (
-              <>
-                <h4>Search Results</h4>
-                <div className={styles.ideasGrid}>
+            {/* Filter Section */}
+            <div className={styles.filterSection}>
+              <h3>🔥 Trending Ideas</h3>
+              <div className={styles.filterControls}>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={styles.filterSelect}
+                  aria-label="Category filter"
+                >
+                  <option value="">All Categories</option>
+                  {DIY_CATEGORIES.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.label}
+                    </option>
+                  ))}
+                </select>
+                <div className={styles.difficultyFilters}>
+                  {(['easy', 'medium', 'hard'] as const).map(diff => (
+                    <button
+                      key={diff}
+                      onClick={() => setDifficultyFilter(prev => prev === diff ? null : diff)}
+                      className={`${styles.difficultyFilter} ${difficultyFilter === diff ? styles.active : ''}`}
+                      style={{ '--filter-color': DIFFICULTY_COLORS[diff] } as any}
+                    >
+                      {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => diy.handleGetFeaturedIdeas({ 
+                    category: category || undefined, 
+                    difficulty: difficultyFilter || undefined,
+                    skillLevel 
+                  })}
+                  disabled={diy.loadingFeatured}
+                  className={styles.loadButton}
+                >
+                  {diy.loadingFeatured ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  {diy.loadingFeatured ? 'Loading...' : 'Find Ideas'}
+                </button>
+              </div>
+            </div>
+
+            {/* Featured Ideas Grid */}
+            {diy.featuredIdeas.length > 0 && (
+              <div className={styles.featuredGrid}>
+                {diy.featuredIdeas.map(idea => (
+                  <div 
+                    key={idea.id} 
+                    className={styles.featuredCard}
+                    onClick={() => handleSelectIdea(idea)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSelectIdea(idea)}
+                    tabIndex={0}
+                    role="button"
+                  >
+                    <div className={styles.cardHeader}>
+                      <span 
+                        className={styles.difficultyBadge}
+                        style={{ background: DIFFICULTY_COLORS[idea.difficulty] || '#666' }}
+                      >
+                        {idea.difficulty}
+                      </span>
+                      {idea.popularity && idea.popularity >= 80 && (
+                        <span className={styles.popularBadge}>
+                          <Star className="w-3 h-3" /> Popular
+                        </span>
+                      )}
+                    </div>
+                    <h5>{idea.title}</h5>
+                    <p>{idea.description}</p>
+                    <div className={styles.cardMeta}>
+                      <span><Clock className="w-3 h-3" /> {formatDuration(idea.estimatedTime)}</span>
+                      {idea.estimatedCostMin && (
+                        <span><DollarSign className="w-3 h-3" /> ${idea.estimatedCostMin}-${idea.estimatedCostMax}</span>
+                      )}
+                    </div>
+                    {idea.tags && idea.tags.length > 0 && (
+                      <div className={styles.cardTags}>
+                        {idea.tags.slice(0, 3).map((tag, i) => (
+                          <span key={i}>#{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Quick Search */}
+            <div className={styles.quickSearch}>
+              <h4>🔍 Custom Search</h4>
+              <div className={styles.searchBox}>
+                <Search className="w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search for specific DIY ideas..."
+                  value={ideaQuery}
+                  onChange={(e) => setIdeaQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchIdeas()}
+                  className={styles.searchInput}
+                />
+                <button onClick={handleSearchIdeas} className={styles.searchButton}>
+                  Search
+                </button>
+              </div>
+              
+              {diy.ideas.length > 0 && (
+                <div className={styles.searchResults}>
                   {diy.ideas.map(idea => (
                     <div 
                       key={idea.id} 
-                      className={styles.ideaCard}
+                      className={styles.searchResultCard}
                       onClick={() => handleSelectIdea(idea)}
                     >
                       <h5>{idea.title}</h5>
                       <p>{idea.description}</p>
                       <div className={styles.ideaMeta}>
-                        <span>{idea.difficulty}</span>
+                        <span 
+                          className={styles.difficultyBadge}
+                          style={{ background: DIFFICULTY_COLORS[idea.difficulty] || '#666' }}
+                        >
+                          {idea.difficulty}
+                        </span>
                         <span>{formatDuration(idea.estimatedTime)}</span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </>
-            )}
+              )}
+            </div>
+
+            {/* Categories Grid */}
+            <div className={styles.categoriesSection}>
+              <h4>📁 Browse by Category</h4>
+              <div className={styles.categoriesGrid}>
+                {DIY_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setCategory(cat.id);
+                      diy.handleGetFeaturedIdeas({ category: cat.id, skillLevel });
+                    }}
+                    className={styles.categoryCard}
+                  >
+                    <span className={styles.categoryIcon}>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
     }

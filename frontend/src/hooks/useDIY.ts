@@ -18,10 +18,14 @@ export interface UseDIYReturn {
   currentProject: DIYProject | null;
   projects: DIYProject[];
   ideas: DIYIdea[];
+  featuredIdeas: DIYIdea[];
+  inspiration: DIYIdea | null;
   templates: DIYIdea[];
   categories: string[];
   loading: boolean;
   generating: boolean;
+  loadingFeatured: boolean;
+  loadingInspiration: boolean;
   error: string | null;
   
   // Actions
@@ -38,6 +42,15 @@ export interface UseDIYReturn {
   handleGetMaterialsLinks: (materials: DIYMaterial[], location?: string) => Promise<DIYMaterial[]>;
   handleCreateShoppingList: (projectId: string, materials: DIYMaterial[]) => Promise<string | null>;
   handleSearchIdeas: (query: string) => Promise<void>;
+  handleGetFeaturedIdeas: (options?: {
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    timeAvailable?: number;
+  }) => Promise<void>;
+  handleGetInspiration: (options?: {
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  }) => Promise<void>;
   handleGetTemplates: (category?: string) => Promise<void>;
   setCurrentProject: (project: DIYProject | null) => void;
   clearError: () => void;
@@ -48,10 +61,14 @@ export const useDIY = (): UseDIYReturn => {
   const [currentProject, setCurrentProject] = useState<DIYProject | null>(null);
   const [projects, setProjects] = useState<DIYProject[]>([]);
   const [ideas, setIdeas] = useState<DIYIdea[]>([]);
+  const [featuredIdeas, setFeaturedIdeas] = useState<DIYIdea[]>([]);
+  const [inspiration, setInspiration] = useState<DIYIdea | null>(null);
   const [templates, setTemplates] = useState<DIYIdea[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [loadingFeatured, setLoadingFeatured] = useState(false);
+  const [loadingInspiration, setLoadingInspiration] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load categories on mount
@@ -209,6 +226,43 @@ export const useDIY = (): UseDIYReturn => {
     }
   }, []);
 
+  // Get featured ideas
+  const handleGetFeaturedIdeas = useCallback(async (options?: {
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    timeAvailable?: number;
+  }) => {
+    try {
+      setLoadingFeatured(true);
+      setError(null);
+      const result = await diyApi.getFeaturedIdeas(options);
+      setFeaturedIdeas(result.ideas || []);
+    } catch (err: any) {
+      console.error('Get featured ideas failed:', err);
+      setError(err.message || 'Failed to load featured ideas');
+    } finally {
+      setLoadingFeatured(false);
+    }
+  }, []);
+
+  // Get random inspiration
+  const handleGetInspiration = useCallback(async (options?: {
+    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  }) => {
+    try {
+      setLoadingInspiration(true);
+      setError(null);
+      const result = await diyApi.getInspiration(options);
+      setInspiration(result.inspiration || null);
+    } catch (err: any) {
+      console.error('Get inspiration failed:', err);
+      setError(err.message || 'Failed to get inspiration');
+    } finally {
+      setLoadingInspiration(false);
+    }
+  }, []);
+
   // Get templates
   const handleGetTemplates = useCallback(async (category?: string) => {
     try {
@@ -231,10 +285,14 @@ export const useDIY = (): UseDIYReturn => {
     currentProject,
     projects,
     ideas,
+    featuredIdeas,
+    inspiration,
     templates,
     categories,
     loading,
     generating,
+    loadingFeatured,
+    loadingInspiration,
     error,
     handleGenerate,
     handleGetProject,
@@ -245,6 +303,8 @@ export const useDIY = (): UseDIYReturn => {
     handleGetMaterialsLinks,
     handleCreateShoppingList,
     handleSearchIdeas,
+    handleGetFeaturedIdeas,
+    handleGetInspiration,
     handleGetTemplates,
     setCurrentProject,
     clearError

@@ -78,6 +78,11 @@ export interface DIYIdea {
   category: string;
   difficulty: string;
   estimatedTime: number;
+  estimatedCostMin?: number;
+  estimatedCostMax?: number;
+  popularity?: number;
+  whyItsAwesome?: string;
+  tags?: string[];
   source: string;
 }
 
@@ -190,6 +195,36 @@ export const createShoppingList = async (
  */
 export const searchIdeas = async (query: string): Promise<{ ideas: DIYIdea[] }> => {
   const response = await api.get('/diy/ideas', { params: { query } });
+  return response.data;
+};
+
+/**
+ * Get featured/trending DIY ideas with filters
+ */
+export const getFeaturedIdeas = async (options?: {
+  category?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  timeAvailable?: number;
+  count?: number;
+}): Promise<{ ideas: DIYIdea[] }> => {
+  const response = await api.get('/diy/ideas/featured', { params: options });
+  return response.data;
+};
+
+/**
+ * Get a random inspiration project
+ */
+export const getInspiration = async (options?: {
+  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  excludeCategories?: string[];
+}): Promise<{ inspiration: DIYIdea }> => {
+  const response = await api.get('/diy/ideas/inspire', { 
+    params: {
+      ...options,
+      excludeCategories: options?.excludeCategories?.join(',')
+    }
+  });
   return response.data;
 };
 

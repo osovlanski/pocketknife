@@ -30,7 +30,9 @@ interface DIYAgentParams extends AgentParams {
     | 'search-ideas'
     | 'get-templates'
     | 'add-feedback'
-    | 'get-categories';
+    | 'get-categories'
+    | 'get-featured-ideas'
+    | 'get-inspiration';
   
   // Generate params
   description?: string;
@@ -66,6 +68,11 @@ interface DIYAgentParams extends AgentParams {
   
   // Filters
   limit?: number;
+  count?: number;
+  
+  // Featured ideas params
+  difficulty?: 'easy' | 'medium' | 'hard';
+  excludeCategories?: string[];
 }
 
 interface DIYAgentResult {
@@ -78,6 +85,7 @@ interface DIYAgentResult {
   categories?: string[];
   difficultyInfo?: Record<string, string>;
   success?: boolean;
+  inspiration?: any;
 }
 
 // =============================================================================
@@ -113,6 +121,10 @@ export class DIYAgent extends AbstractAgent {
         return this.createShoppingList(params);
       case 'search-ideas':
         return this.searchIdeas(params);
+      case 'get-featured-ideas':
+        return this.getFeaturedIdeas(params);
+      case 'get-inspiration':
+        return this.getInspiration(params);
       case 'get-templates':
         return this.getTemplates(params);
       case 'add-feedback':
@@ -441,6 +453,68 @@ export class DIYAgent extends AbstractAgent {
         difficultyInfo: diyService.getDifficultyInfo()
       }
     };
+  }
+
+  /**
+   * Get featured/trending DIY ideas with smart filtering
+   */
+  private async getFeaturedIdeas(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
+    const { category, difficulty, skillLevel, timeAvailable, count } = params;
+
+    this.emitLog('✨ Fetching featured DIY ideas...', 'info');
+    this.emitProgress(20);
+
+    try {
+      const ideas = await diyService.getFeaturedIdeas({
+        category,
+        difficulty,
+        skillLevel,
+        timeAvailable,
+        count
+      });
+
+      this.emitProgress(100);
+      this.emitLog(`✅ Found ${ideas.length} featured ideas`, 'success');
+
+      return {
+        success: true,
+        data: { ideas }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get a random inspiration project
+   */
+  private async getInspiration(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
+    const { skillLevel, excludeCategories } = params;
+
+    this.emitLog('🎲 Finding something inspiring for you...', 'info');
+    this.emitProgress(30);
+
+    try {
+      const inspiration = await diyService.getRandomInspiration({
+        skillLevel,
+        excludeCategories
+      });
+
+      this.emitProgress(100);
+
+      if (!inspiration) {
+        return { success: false, error: 'Could not generate inspiration' };
+      }
+
+      this.emitLog('💡 Found something awesome!', 'success');
+
+      return {
+        success: true,
+        data: { inspiration }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 }
 

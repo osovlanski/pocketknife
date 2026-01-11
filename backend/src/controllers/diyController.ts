@@ -317,4 +317,55 @@ export const getCategories = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get featured/trending DIY ideas
+ */
+export const getFeaturedIdeas = async (req: Request, res: Response) => {
+  try {
+    const { category, difficulty, skillLevel, timeAvailable, count } = req.query;
+
+    const result = await diyAgent.execute({
+      action: 'get-featured-ideas',
+      category: category as string,
+      difficulty: difficulty as 'easy' | 'medium' | 'hard',
+      skillLevel: skillLevel as 'beginner' | 'intermediate' | 'advanced',
+      timeAvailable: timeAvailable ? Number(timeAvailable) : undefined,
+      count: count ? Number(count) : undefined
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    console.error('Get featured ideas failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get a random inspiration
+ */
+export const getInspiration = async (req: Request, res: Response) => {
+  try {
+    const { skillLevel, excludeCategories } = req.query;
+
+    const result = await diyAgent.execute({
+      action: 'get-inspiration',
+      skillLevel: skillLevel as 'beginner' | 'intermediate' | 'advanced',
+      excludeCategories: excludeCategories ? (excludeCategories as string).split(',') : undefined
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    console.error('Get inspiration failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 
