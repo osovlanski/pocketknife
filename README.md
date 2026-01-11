@@ -282,6 +282,31 @@ VITE_SOCKET_URL=wss://your-api-domain.com
 3. Configure Google integrations
 4. Update preferences for each agent
 
+## 🗄️ Database Management
+
+### Prisma Studio (Visual Database Browser)
+Run this command to open a visual database browser in your browser:
+
+```bash
+cd backend && npx prisma studio
+```
+
+This opens at http://localhost:5555 and lets you:
+- Browse all database tables
+- View, edit, and delete records
+- Filter and search data
+- Export data
+
+### Useful Prisma Commands
+
+| Command | Description |
+|---------|-------------|
+| `npx prisma studio` | Open visual database browser |
+| `npx prisma migrate dev` | Apply pending migrations |
+| `npx prisma db push` | Push schema changes (no migration) |
+| `npx prisma generate` | Regenerate Prisma client |
+| `npx prisma db seed` | Run seed script |
+
 ## 📚 Documentation
 
 - **QUICKSTART.md** - Quick start guide

@@ -162,9 +162,7 @@ export async function generateTopicSummary(req: Request, res: Response) {
       return res.status(400).json({ error: 'Topic is required' });
     }
 
-    console.log(`📚 Generating topic summary for: "${topic}"`);
-
-    const summary = await learningService.generateTopicSummary(topic);
+    console.log(`📚 Generating topic summary for: "${topic}"`);    const summary = await learningService.generateTopicSummary(topic);
 
     // Log activity to database
     const user = await databaseService.getDefaultUser();
@@ -191,4 +189,3 @@ export async function generateTopicSummary(req: Request, res: Response) {
     });
   }
 }
-

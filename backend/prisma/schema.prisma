@@ -72,6 +72,11 @@ model User {
   userInterests  UserInterest[]
   priceAlerts    PriceAlert[]
   
+  // Groceries Agent relations
+  groceryItems    GroceryItem[]
+  recipes         SavedRecipe[]
+  groceryLists    GroceryList[]
+  
   // Admin relations
   adminActions   AdminAuditLog[] @relation("AdminActions")
   systemSettings SystemSetting[]
@@ -132,6 +137,9 @@ model UserPreferences {
   // Email preferences
   autoArchiveSpam     Boolean   @default(false)
   emailDigestTime     String?   // "09:00" - when to send daily digest
+  
+  // Notification preferences
+  notificationMethod  String    @default("email")  // "email", "discord", "telegram", "all"
   
   // ToDo preferences
   defaultTaskDuration  Int?      // Default duration in minutes
@@ -747,4 +755,189 @@ model EmailSenderPattern {
   @@index([senderEmail])
   @@index([senderDomain])
   @@index([category])
+}
+
+// =============================================================================
+// GROCERIES AGENT
+// =============================================================================
+
+model GroceryItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Item details
+  name          String
+  category      String?   // "produce", "dairy", "meat", "pantry", "frozen", "beverages", "snacks", "household"
+  quantity      Float     @default(1)
+  unit          String?   // "kg", "g", "L", "ml", "pcs", "pack"
+  
+  // Status tracking
+  status        String    @default("available") // "available", "low", "out_of_stock", "expired"
+  expiryDate    DateTime?
+  
+  // Purchase info
+  lastPurchasedAt   DateTime?
+  lastPurchasePrice Float?
+  currency          String    @default("USD")
+  purchaseSource    String?   // "manual", "invoice", "receipt", "auto_detected"
+  
+  // Metadata
+  brand         String?
+  notes         String?
+  barcode       String?
+  imageUrl      String?
+  
+  // Usage tracking for auto-restock suggestions
+  avgWeeklyUsage  Float?
+  restockThreshold Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  listItems     GroceryListItem[]
+
+  @@unique([userId, name, brand])
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([expiryDate])
+}
+
+model GroceryList {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // List details
+  name          String
+  description   String?
+  listType      String    @default("shopping") // "shopping", "inventory", "meal_plan"
+  
+  // Status
+  status        String    @default("active") // "active", "completed", "archived"
+  completedAt   DateTime?
+  
+  // Sharing (future feature)
+  isShared      Boolean   @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items         GroceryListItem[]
+
+  @@index([userId, status])
+  @@index([userId, listType])
+}
+
+model GroceryListItem {
+  id        String   @id @default(uuid())
+  listId    String
+  list      GroceryList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  groceryId String?
+  grocery   GroceryItem? @relation(fields: [groceryId], references: [id], onDelete: SetNull)
+  
+  // Item details (can be custom or linked to GroceryItem)
+  name          String
+  quantity      Float     @default(1)
+  unit          String?
+  category      String?
+  
+  // Status
+  isChecked     Boolean   @default(false)
+  checkedAt     DateTime?
+  
+  // Price estimate
+  estimatedPrice Float?
+  actualPrice    Float?
+  currency       String   @default("USD")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listId])
+  @@index([groceryId])
+}
+
+model SavedRecipe {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Recipe details
+  title         String
+  description   String?   @db.Text
+  instructions  String?   @db.Text
+  
+  // Source info
+  source        String    @default("manual") // "manual", "spoonacular", "edamam", "ai_generated", "url"
+  sourceUrl     String?
+  sourceId      String?   // External recipe ID
+  
+  // Categorization
+  cuisine       String?   // "italian", "mexican", "asian", etc.
+  mealType      String?   // "breakfast", "lunch", "dinner", "snack", "dessert"
+  dietaryInfo   String[]  // ["vegetarian", "gluten-free", "dairy-free"]
+  
+  // Ingredients (stored as JSON for flexibility)
+  ingredients   Json      // Array of {name, quantity, unit, optional}
+  
+  // Nutrition (optional, from API)
+  nutrition     Json?     // {calories, protein, carbs, fat, fiber, etc.}
+  
+  // Timing
+  prepTime      Int?      // Minutes
+  cookTime      Int?      // Minutes
+  servings      Int?
+  
+  // User interaction
+  rating        Int?      // 1-5 stars
+  notes         String?   @db.Text
+  isFavorite    Boolean   @default(false)
+  cookedCount   Int       @default(0)
+  lastCookedAt  DateTime?
+  
+  // Media
+  imageUrl      String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isFavorite])
+  @@index([userId, mealType])
+  @@index([cuisine])
+}
+
+model GroceryInvoiceItem {
+  id        String   @id @default(uuid())
+  
+  // Invoice reference
+  invoiceId     String?   // Reference to email/invoice ID
+  invoiceDate   DateTime?
+  merchant      String?   // Store name
+  
+  // Item details from invoice
+  itemName      String
+  quantity      Float     @default(1)
+  unit          String?
+  price         Float?
+  currency      String    @default("USD")
+  
+  // Processing status
+  isProcessed   Boolean   @default(false)
+  processedAt   DateTime?
+  
+  // Matched grocery item
+  matchedGroceryId String?
+  matchConfidence  Float?
+  
+  // Raw data for debugging
+  rawText       String?   @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([isProcessed])
+  @@index([merchant])
 }

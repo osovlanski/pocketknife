@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
-  CheckSquare, ShoppingCart, Mountain, Square
+  CheckSquare, ShoppingCart, Mountain, Square, Utensils
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -43,6 +43,7 @@ import LearningAgent from './components/LearningAgent';
 import ProblemSolvingAgent from './components/ProblemSolvingAgent';
 import ToDoAgent from './components/ToDoAgent';
 import ShoppingAgent from './components/ShoppingAgent';
+import CookingAgent from './components/CookingAgent';
 
 // Activity Log
 import ActivityLog from './components/ActivityLog';
@@ -79,7 +80,8 @@ const agentTabs: TabConfig[] = [
   { id: 'learning', label: 'Learning', icon: BookOpen, color: 'amber', path: '/agents/learning' },
   { id: 'problems', label: 'Problems', icon: Code, color: 'cyan', path: '/agents/problems' },
   { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
-  { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' }
+  { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
+  { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' }
 ];
 
 // =============================================================================
@@ -156,7 +158,7 @@ const App: React.FC = () => {
   // Agent enabled status (from admin settings)
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
     email: true, jobs: true, travel: true, learning: true,
-    problems: true, todo: true, shopping: true
+    problems: true, todo: true, shopping: true, cooking: true
   });
   
   // Jobs state
@@ -632,6 +634,9 @@ const App: React.FC = () => {
 
           {/* Shopping Agent */}
           <Route path="/agents/shopping" element={<ShoppingAgent />} />
+
+          {/* Cooking Agent */}
+          <Route path="/agents/cooking" element={<CookingAgent />} />
 
           {/* Catch-all redirect to home */}
           <Route path="*" element={

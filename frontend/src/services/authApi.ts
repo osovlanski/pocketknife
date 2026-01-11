@@ -48,6 +48,7 @@ export interface UserPreferences {
   preferredDifficulty?: string;
   autoArchiveSpam: boolean;
   emailDigestTime?: string;
+  notificationMethod: string; // "email", "discord", "telegram", "all"
   defaultTaskDuration?: number;
   workingHoursStart?: string;
   workingHoursEnd?: string;
@@ -326,5 +327,126 @@ export const testDiscordConnection = async (): Promise<{ success: boolean; messa
       message: error.response?.data?.message || 'Failed to test connection'
     };
   }
+};
+
+// =============================================================================
+// FACEBOOK INTEGRATION
+// =============================================================================
+
+export interface FacebookStatus {
+  configured: boolean;
+  connected: boolean;
+  appName?: string;
+  error?: string;
+}
+
+export const getFacebookStatus = async (): Promise<FacebookStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/facebook/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Facebook status'
+    };
+  }
+};
+
+export const testFacebookConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.post('/settings/integrations/facebook/test');
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to test connection'
+    };
+  }
+};
+
+// =============================================================================
+// NOTION INTEGRATION
+// =============================================================================
+
+export interface NotionStatus {
+  configured: boolean;
+  connected: boolean;
+  workspaceName?: string;
+  error?: string;
+}
+
+export const getNotionStatus = async (): Promise<NotionStatus> => {
+  try {
+    const api = createAuthApi();
+    const response = await api.get('/settings/integrations/notion/status');
+    return response.data;
+  } catch (error: any) {
+    return {
+      configured: false,
+      connected: false,
+      error: error.response?.data?.error || 'Failed to get Notion status'
+    };
+  }
+};
+
+// =============================================================================
+// SOCIAL SIGN-IN PROVIDERS
+// =============================================================================
+
+export interface SocialProvidersStatus {
+  facebook: boolean;
+  linkedin: boolean;
+  sso: boolean;
+}
+
+/**
+ * Check which social sign-in providers are configured
+ * Note: This endpoint doesn't require authentication, so we use axios directly
+ */
+export const getSocialProvidersStatus = async (): Promise<SocialProvidersStatus> => {
+  try {
+    // Use axios directly without auth headers - this is a public endpoint
+    const response = await axios.get(`${API_BASE_URL}/auth/social/status`);
+    return response.data;
+  } catch (error: any) {
+    // Silently fail - this is just for UI enhancement
+    console.debug('Social providers status check failed (this is OK if not configured)');
+    // Return all disabled if endpoint fails
+    return {
+      facebook: false,
+      linkedin: false,
+      sso: false
+    };
+  }
+};
+
+/**
+ * Get Facebook OAuth URL
+ */
+export const getFacebookAuthUrl = (): string => {
+  const email = getStoredEmail();
+  const baseUrl = `${API_BASE_URL}/auth/facebook`;
+  return email ? `${baseUrl}?userEmail=${encodeURIComponent(email)}` : baseUrl;
+};
+
+/**
+ * Get LinkedIn OAuth URL
+ */
+export const getLinkedInAuthUrl = (): string => {
+  const email = getStoredEmail();
+  const baseUrl = `${API_BASE_URL}/auth/linkedin`;
+  return email ? `${baseUrl}?userEmail=${encodeURIComponent(email)}` : baseUrl;
+};
+
+/**
+ * Get Enterprise SSO URL
+ */
+export const getSSOAuthUrl = (): string => {
+  const email = getStoredEmail();
+  const baseUrl = `${API_BASE_URL}/auth/sso`;
+  return email ? `${baseUrl}?userEmail=${encodeURIComponent(email)}` : baseUrl;
 };
 

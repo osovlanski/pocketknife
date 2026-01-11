@@ -573,18 +573,33 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 
     console.log(`📋 getCurrentUser: Fetching user ${req.user.email} (role: ${req.user.role})`);
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: {
-        preferences: true
-      }
-    });
+    // First try to get user with preferences
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        include: {
+          preferences: true
+        }
+      });
+    } catch (includeError: any) {
+      console.warn('⚠️ Failed to include preferences, fetching user without:', includeError.message);
+      // Fallback: get user without preferences
+      user = await prisma.user.findUnique({
+        where: { id: req.user.id }
+      });
+    }
 
     console.log(`📋 getCurrentUser: Returning user with role=${user?.role}, email=${user?.email}`);
     res.json({ user });
   } catch (error: any) {
-    console.error('Get current user error:', error);
-    res.status(500).json({ error: 'Failed to get current user' });
+    console.error('❌ Get current user error:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
+    res.status(500).json({ 
+      error: 'Failed to get current user',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+    });
   }
 };
 

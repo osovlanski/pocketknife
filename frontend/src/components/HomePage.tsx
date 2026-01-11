@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, ArrowRight, Sparkles,
-  Zap, Shield, Settings
+  Zap, Shield, Settings, Utensils
 } from 'lucide-react';
 import type { CurrentUser } from '../services/authApi';
 import type { AgentStatus } from '../services/configApi';
@@ -87,6 +87,15 @@ const agents: AgentCard[] = [
     path: '/agents/shopping',
     gradient: 'from-rose-500 to-red-600',
     features: ['Deal scoring', 'Price alerts', 'Multi-platform']
+  },
+  {
+    id: 'cooking',
+    name: 'Cooking Agent',
+    description: 'Manage your kitchen inventory, create shopping lists, discover recipes, and save dishes to your wishlist.',
+    icon: Utensils,
+    path: '/agents/cooking',
+    gradient: 'from-lime-500 to-green-600',
+    features: ['Inventory tracking', 'Recipe wishlist', 'Dish images']
   }
 ];
 
@@ -475,6 +484,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
 };
 
 export default HomePage;
+
 
 
 

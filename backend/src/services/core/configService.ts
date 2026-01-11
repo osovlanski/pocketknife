@@ -86,6 +86,42 @@ const DEFAULT_CONFIG = {
   'todo.ai.maxTokens': 2000,
   
   // ==========================================================================
+  // COOKING AGENT
+  // ==========================================================================
+  'cooking.search.maxResults': 20,
+  'cooking.recipe.maxResults': 10,
+  'cooking.expiryWarning.daysAhead': 3,  // Days before expiry to warn
+  'cooking.lowStock.threshold': 2,        // Quantity below this = low stock
+  'cooking.invoice.autoDetect': true,     // Auto-detect items from invoices
+  'cooking.invoice.confidenceThreshold': 0.7, // Min confidence for auto-matching
+  'cooking.ai.maxTokens': 2000,
+  'cooking.cache.itemsTtlSeconds': 300,   // 5 minutes for inventory items
+  'cooking.cache.recipesTtlSeconds': 3600, // 1 hour for recipes
+  'cooking.api.timeoutMs': 5000,          // API request timeout
+  
+  // ==========================================================================
+  // NOTION INTEGRATION
+  // ==========================================================================
+  'notion.search.maxResults': 20,
+  'notion.query.maxResults': 100,
+  'notion.databases.learning': '',      // Database ID for learning resources
+  'notion.databases.jobs': '',          // Database ID for job applications
+  'notion.databases.recipes': '',       // Database ID for saved recipes
+  'notion.databases.tasks': '',         // Database ID for tasks
+  
+  // ==========================================================================
+  // MEILISEARCH (Local Search)
+  // ==========================================================================
+  'meilisearch.defaultLimit': 20,
+  'meilisearch.timeout': 5000,
+  
+  // ==========================================================================
+  // SERPAPI (Web Search)
+  // ==========================================================================
+  'serpapi.defaultResults': 10,
+  'serpapi.cacheMinutes': 60,
+  
+  // ==========================================================================
   // GOOGLE SEARCH API
   // ==========================================================================
   'google.cse.dailyLimit': 100,

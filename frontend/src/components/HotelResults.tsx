@@ -62,14 +62,22 @@ const HotelResults: React.FC<HotelResultsProps> = ({ hotels }) => {
               {/* Hotel Image */}
               <div className="relative h-48 md:h-auto bg-slate-800">
                 {hotel.images && hotel.images.length > 0 ? (
-                  <img
-                    src={hotel.images[0]}
-                    alt={hotel.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = `https://via.placeholder.com/400x300/1e293b/64748b?text=${encodeURIComponent(hotel.name)}`;
-                    }}
-                  />
+                  <>
+                    <img
+                      src={hotel.images[0]}
+                      alt={hotel.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide broken image and show placeholder
+                        e.currentTarget.style.display = 'none';
+                        const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (placeholder) placeholder.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-full h-full items-center justify-center absolute inset-0 bg-slate-800" style={{ display: 'none' }}>
+                      <Hotel className="w-16 h-16 text-slate-600" />
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Hotel className="w-16 h-16 text-slate-600" />

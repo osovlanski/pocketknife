@@ -4,7 +4,7 @@
  * Defines the core contract for all agents in the Pocketknife platform.
  */
 
-export type AgentId = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'todo' | 'shopping';
+export type AgentId = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'todo' | 'shopping' | 'cooking';
 
 export type AgentStatus = 'idle' | 'running' | 'stopping' | 'completed' | 'error';
 

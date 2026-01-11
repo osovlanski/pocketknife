@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
+    "@notionhq/client": "^5.6.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "axios": "^1.7.7",
@@ -39,6 +40,7 @@
     "express": "^4.21.1",
     "googleapis": "^144.0.0",
     "ioredis": "^5.8.2",
+    "meilisearch": "^0.55.0",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",

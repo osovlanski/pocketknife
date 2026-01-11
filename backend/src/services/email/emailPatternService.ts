@@ -438,3 +438,4 @@ Respond ONLY with valid JSON:
 export const emailPatternService = new EmailPatternService();
 export default emailPatternService;
 
+

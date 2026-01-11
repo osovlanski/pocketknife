@@ -6,10 +6,33 @@ import emailProcessor from '../utils/emailProcessor';
 import emailSchedulerService from '../services/email/emailSchedulerService';
 import processControlService from '../services/core/processControlService';
 import emailPatternService from '../services/email/emailPatternService';
+import { getPrisma } from '../services/core/databaseService';
 // Import notification services only for test endpoint
 import emailNotificationService from '../services/email/emailNotificationService';
 import discordNotificationService from '../services/notifications/discordNotificationService';
 import telegramNotificationService from '../services/notifications/telegramNotificationService';
+
+/**
+ * Load user's notification method preference from database
+ */
+const loadUserNotificationPreference = async (userEmail: string | undefined): Promise<string | null> => {
+  if (!userEmail) return null;
+  
+  try {
+    const prisma = getPrisma();
+    if (!prisma) return null;
+    
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: { preferences: true }
+    });
+    
+    return user?.preferences?.notificationMethod || null;
+  } catch (error) {
+    console.error('Error loading user notification preference:', error);
+    return null;
+  }
+};
 
 // Helper for consistent logging
 const emitLog = (io: any, message: string, type: 'info' | 'success' | 'warning' | 'error') => {
@@ -75,6 +98,14 @@ export const getUnprocessedEmails = async (req: Request, res: Response) => {
 export const processAllEmails = async (req: Request, res: Response) => {
     try {
         const io = req.app.get('io');
+        const userEmail = req.headers['x-user-email'] as string;
+        
+        // Load user's notification preference
+        const notificationMethod = await loadUserNotificationPreference(userEmail);
+        if (notificationMethod) {
+          emailProcessor.setUserNotificationMethod(notificationMethod);
+          console.log(`📤 Using user notification preference: ${notificationMethod}`);
+        }
         
         // Start process and track it
         processControlService.startProcess('email');

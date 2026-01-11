@@ -17,14 +17,24 @@ This rule is triggered by:
 - "pre-push check"
 - Any push-related request
 
-## Quick Coverage Check Process
+## Quick Pre-Push Check Process
 
-### Step 1: Run Coverage Report (Backend)
+### Step 1: TypeScript Type Check (CRITICAL - Matches CI/CD)
+```bash
+# Backend - catches type errors that CI/CD will catch
+cd backend && npm run lint
+
+# Frontend - catches type errors that CI/CD will catch
+cd frontend && npx tsc --noEmit
+```
+> ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+
+### Step 2: Run Coverage Report (Backend)
 ```bash
 cd backend && npm test -- --run --coverage
 ```
 
-### Step 2: Analyze Results
+### Step 3: Analyze Results
 Check if coverage meets thresholds defined in `vitest.config.ts`:
 - Statements: Current threshold
 - Branches: Current threshold

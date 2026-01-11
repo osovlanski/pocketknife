@@ -9,6 +9,7 @@ import { getPrisma } from '../services/core/databaseService';
 import { authenticate } from '../middleware/adminMiddleware';
 import telegramService from '../services/notifications/telegramNotificationService';
 import discordService from '../services/notifications/discordNotificationService';
+import { notionService, facebookService } from '../services/integrations';
 
 const router = Router();
 
@@ -83,6 +84,58 @@ router.post('/integrations/discord/test', authenticate, async (_req: Request, re
     res.status(500).json({ 
       success: false, 
       message: 'Failed to test connection' 
+    });
+  }
+});
+
+/**
+ * Get Facebook integration status
+ */
+router.get('/integrations/facebook/status', async (_req: Request, res: Response) => {
+  try {
+    console.log('📘 Facebook status check');
+    const status = await facebookService.getStatus();
+    res.json(status);
+  } catch (error: any) {
+    console.error('Get Facebook status error:', error);
+    res.status(500).json({ 
+      configured: false, 
+      connected: false, 
+      error: 'Failed to get status' 
+    });
+  }
+});
+
+/**
+ * Test Facebook connection
+ */
+router.post('/integrations/facebook/test', authenticate, async (_req: Request, res: Response) => {
+  try {
+    const result = await facebookService.testConnection();
+    res.json(result);
+  } catch (error: any) {
+    console.error('Test Facebook connection error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to test connection' 
+    });
+  }
+});
+
+/**
+ * Get Notion integration status
+ */
+router.get('/integrations/notion/status', async (_req: Request, res: Response) => {
+  try {
+    console.log('📝 Notion status check');
+    const status = await notionService.getStatus();
+    res.json(status);
+  } catch (error: any) {
+    console.error('Get Notion status error:', error);
+    res.status(500).json({ 
+      configured: false, 
+      connected: false, 
+      error: 'Failed to get status' 
     });
   }
 });
@@ -197,6 +250,7 @@ router.put('/profile', authenticate, async (req: Request, res: Response) => {
 });
 
 export default router;
+
 
 
 

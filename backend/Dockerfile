@@ -73,3 +73,4 @@ CMD ["sh", "-c", "echo 'DATABASE_URL is set:' && echo $DATABASE_URL | head -c 50
 
 
 
+

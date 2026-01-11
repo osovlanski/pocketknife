@@ -2,8 +2,61 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Debug: Verify Anthropic API key is loaded
-console.log('🔑 ANTHROPIC_API_KEY loaded:', process.env.ANTHROPIC_API_KEY ? 'YES (length: ' + process.env.ANTHROPIC_API_KEY.length + ')' : '❌ MISSING');
+// =============================================================================
+// STARTUP ENV VAR DIAGNOSTICS
+// =============================================================================
+console.log('\n🔧 ═══════════════════════════════════════════════════════════════');
+console.log('   POCKETKNIFE STARTUP - Environment Variables Check');
+console.log('═══════════════════════════════════════════════════════════════\n');
+
+// Helper to check env vars with visual status
+const checkEnv = (name: string, required = false): string => {
+  const value = process.env[name];
+  if (value) {
+    return `✅ ${name}`;
+  }
+  return required ? `❌ ${name} (REQUIRED - MISSING!)` : `⚪ ${name} (optional)`;
+};
+
+// Core Services
+console.log('📦 Core Services:');
+console.log('   ' + checkEnv('DATABASE_URL', true));
+console.log('   ' + checkEnv('ANTHROPIC_API_KEY', true));
+console.log('   ' + checkEnv('FRONTEND_URL'));
+
+// Google OAuth
+console.log('\n🔐 Google OAuth:');
+console.log('   ' + checkEnv('GOOGLE_CLIENT_ID', true));
+console.log('   ' + checkEnv('GOOGLE_CLIENT_SECRET', true));
+
+// Social Auth Providers
+console.log('\n👥 Social Auth Providers:');
+console.log('   ' + checkEnv('FACEBOOK_APP_ID'));
+console.log('   ' + checkEnv('FACEBOOK_APP_SECRET'));
+console.log('   ' + checkEnv('LINKEDIN_CLIENT_ID'));
+console.log('   ' + checkEnv('LINKEDIN_CLIENT_SECRET'));
+console.log('   ' + checkEnv('SSO_ISSUER_URL'));
+console.log('   ' + checkEnv('SSO_CLIENT_ID'));
+
+// Notification Services
+console.log('\n📬 Notification Services:');
+console.log('   ' + checkEnv('TELEGRAM_BOT_TOKEN'));
+console.log('   ' + checkEnv('TELEGRAM_CHAT_ID'));
+console.log('   ' + checkEnv('DISCORD_WEBHOOK_URL'));
+
+// External APIs
+console.log('\n🌐 External APIs:');
+console.log('   ' + checkEnv('RAPIDAPI_KEY'));
+console.log('   ' + checkEnv('GOOGLE_CSE_API_KEY'));
+console.log('   ' + checkEnv('GOOGLE_CSE_ID'));
+console.log('   ' + checkEnv('AMADEUS_API_KEY'));
+console.log('   ' + checkEnv('AMADEUS_API_SECRET'));
+console.log('   ' + checkEnv('ADZUNA_APP_ID'));
+console.log('   ' + checkEnv('ADZUNA_API_KEY'));
+
+console.log('\n═══════════════════════════════════════════════════════════════');
+console.log('💡 TIP: After adding new env vars to .env, RESTART the server!');
+console.log('═══════════════════════════════════════════════════════════════\n');
 
 // Now import everything else
 import express from 'express';
@@ -36,6 +89,7 @@ export const io = new Server(server, {
 // Make io available to other modules
 app.set('io', io);
 
+// CORS configuration - allow all origins in development
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

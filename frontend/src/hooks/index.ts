@@ -16,6 +16,7 @@ export { default as useShopping } from './useShopping';
 export { default as useGmail } from './useGmail';
 export { default as useLearning } from './useLearning';
 export { default as useProblems } from './useProblems';
+export { default as useCooking } from './useCooking';
 
 // Re-export types
 export type { UseAuthReturn } from './useAuth';
@@ -27,4 +28,4 @@ export type { UseShoppingReturn } from './useShopping';
 export type { UseGmailReturn } from './useGmail';
 export type { UseLearningReturn } from './useLearning';
 export type { UseProblemsReturn } from './useProblems';
-
+export type { UseCookingReturn } from './useCooking';

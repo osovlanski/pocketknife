@@ -1,0 +1,653 @@
+---
+description: Step-by-step guide for adding a new agent to the Pocketknife platform. Triggered by 'add agent', 'new agent', 'create agent'.
+globs: **/*
+alwaysApply: false
+---
+
+# Adding a New Agent to Pocketknife
+
+This guide outlines the complete process for adding a new agent to the Pocketknife platform. Follow this checklist to ensure consistency across all agents.
+
+## Quick Checklist
+
+| Step | Backend | Frontend | Database |
+|:---:|:---|:---|:---|
+| 1 | ☐ Prisma Schema | ☐ Types | ☐ Models |
+| 2 | ☐ Service | ☐ API Service | - |
+| 3 | ☐ Agent Class | ☐ Hook | - |
+| 4 | ☐ Controller | ☐ Component | - |
+| 5 | ☐ Routes | ☐ App.tsx Tab | - |
+| 6 | ☐ Config Entries | ☐ Styles | - |
+| 7 | ☐ Register Agent | - | - |
+
+---
+
+## Step 1: Database Schema (Prisma)
+
+### File: `backend/prisma/schema.prisma`
+
+Add your models at the end of the file:
+
+```prisma
+// =============================================================================
+// YOUR_AGENT_NAME AGENT
+// =============================================================================
+
+model YourModel {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Your fields here
+  name      String
+  status    String   @default("active")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+```
+
+### Add User Relations
+
+In the `User` model, add your agent's relations:
+
+```prisma
+model User {
+  // ... existing relations ...
+  
+  // YourAgent relations
+  yourModels    YourModel[]
+}
+```
+
+### Run Migration
+
+```bash
+cd backend && npx prisma migrate dev --name add_your_agent
+```
+
+---
+
+## Step 2: Backend Service
+
+### File: `backend/src/services/yourAgent/yourAgentService.ts`
+
+```typescript
+/**
+ * YourAgent Service
+ * 
+ * Business logic for your agent.
+ */
+
+import { getPrisma } from '../core/databaseService';
+import { configService } from '../core/configService';
+import claudeService from '../core/claudeService';
+
+export interface YourDataType {
+  name: string;
+  // ... your fields
+}
+
+export const yourAgentService = {
+  /**
+   * Get all items for a user
+   */
+  getItems: async (userId: string): Promise<any[]> => {
+    const prisma = getPrisma();
+    if (!prisma) throw new Error('Database not available');
+
+    return prisma.yourModel.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+  },
+
+  /**
+   * Create a new item
+   */
+  createItem: async (userId: string, data: YourDataType): Promise<any> => {
+    const prisma = getPrisma();
+    if (!prisma) throw new Error('Database not available');
+
+    return prisma.yourModel.create({
+      data: {
+        userId,
+        ...data
+      }
+    });
+  },
+
+  // ... more methods
+};
+
+export default yourAgentService;
+```
+
+### File: `backend/src/services/yourAgent/index.ts`
+
+```typescript
+export { yourAgentService } from './yourAgentService';
+export type { YourDataType } from './yourAgentService';
+```
+
+### Update: `backend/src/services/index.ts`
+
+```typescript
+// YourAgent
+export * from './yourAgent';
+```
+
+---
+
+## Step 3: Agent Class
+
+### File: `backend/src/agents/YourAgent.ts`
+
+```typescript
+/**
+ * YourAgent
+ * 
+ * Description of what your agent does.
+ */
+
+import { AbstractAgent } from './AbstractAgent';
+import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { yourAgentService } from '../services/yourAgent';
+
+interface YourAgentParams extends AgentParams {
+  action: 'get-items' | 'create-item' | 'delete-item';
+  itemData?: any;
+  itemId?: string;
+}
+
+interface YourAgentResult {
+  items?: any[];
+  item?: any;
+}
+
+export class YourAgent extends AbstractAgent {
+  readonly metadata: AgentMetadata = {
+    id: 'your-agent',           // Unique ID (lowercase, hyphenated)
+    name: 'Your Agent',          // Display name
+    description: 'What your agent does',
+    icon: '🔮',                  // Emoji icon
+    color: '#8B5CF6'             // Hex color for UI
+  };
+
+  protected async run(params: YourAgentParams): Promise<AgentResult<YourAgentResult>> {
+    const { action } = params;
+
+    switch (action) {
+      case 'get-items':
+        return this.getItems(params);
+      case 'create-item':
+        return this.createItem(params);
+      case 'delete-item':
+        return this.deleteItem(params);
+      default:
+        return { success: false, error: `Unknown action: ${action}` };
+    }
+  }
+
+  private async getItems(params: YourAgentParams): Promise<AgentResult<YourAgentResult>> {
+    const { userId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    try {
+      const items = await yourAgentService.getItems(userId);
+      return { success: true, data: { items } };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  private async createItem(params: YourAgentParams): Promise<AgentResult<YourAgentResult>> {
+    const { userId, itemData } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!itemData) return { success: false, error: 'Item data is required' };
+
+    this.emitLog('📝 Creating item...', 'info');
+
+    try {
+      const item = await yourAgentService.createItem(userId, itemData);
+      this.emitLog('✅ Item created', 'success');
+      return { success: true, data: { item } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  private async deleteItem(params: YourAgentParams): Promise<AgentResult<YourAgentResult>> {
+    // Implementation
+    return { success: true };
+  }
+}
+
+// Export singleton instance
+export const yourAgent = new YourAgent();
+export default yourAgent;
+```
+
+### Update: `backend/src/agents/index.ts`
+
+```typescript
+// Add export
+export { yourAgent, YourAgent } from './YourAgent';
+
+// Add import
+import { yourAgent } from './YourAgent';
+
+// Register in initializeAgents()
+export const initializeAgents = () => {
+  // ... existing agents ...
+  agentRegistry.register(yourAgent);
+  
+  console.log('✅ All agents registered');
+};
+```
+
+---
+
+## Step 4: Controller
+
+### File: `backend/src/controllers/yourAgentController.ts`
+
+```typescript
+/**
+ * YourAgent Controller
+ * 
+ * HTTP request handlers. Thin controller - delegates to agent.
+ */
+
+import { Request, Response } from 'express';
+import { yourAgent } from '../agents';
+import { databaseService } from '../services/core/databaseService';
+
+const getUserId = async (req: Request): Promise<string | undefined> => {
+  const email = req.headers['x-user-email'] as string;
+  if (!email) return undefined;
+  const user = await databaseService.getOrCreateUser(email);
+  return user?.id;
+};
+
+export const getItems = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await yourAgent.execute({
+      action: 'get-items',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const createItem = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await yourAgent.execute({
+      action: 'create-item',
+      userId,
+      itemData: req.body
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ... more handlers
+```
+
+---
+
+## Step 5: Routes
+
+### File: `backend/src/routes/yourAgent.ts`
+
+```typescript
+/**
+ * YourAgent Routes
+ */
+
+import { Router } from 'express';
+import * as controller from '../controllers/yourAgentController';
+
+const router = Router();
+
+router.get('/items', controller.getItems);
+router.post('/items', controller.createItem);
+router.delete('/items/:id', controller.deleteItem);
+
+export default router;
+```
+
+### Update: `backend/src/routes/index.ts`
+
+```typescript
+import yourAgentRoutes from './yourAgent';
+
+// Add in the router
+router.use('/your-agent', yourAgentRoutes);
+```
+
+---
+
+## Step 6: Configuration
+
+### File: `backend/src/services/core/configService.ts`
+
+Add your agent's config entries in `DEFAULT_CONFIG`:
+
+```typescript
+const DEFAULT_CONFIG = {
+  // ... existing config ...
+
+  // ==========================================================================
+  // YOUR AGENT
+  // ==========================================================================
+  'yourAgent.maxResults': 20,
+  'yourAgent.cacheMinutes': 30,
+  'yourAgent.ai.maxTokens': 2000,
+  'yourAgent.feature.enabled': true,
+} as const;
+```
+
+---
+
+## Step 7: Frontend API Service
+
+### File: `frontend/src/services/yourAgentApi.ts`
+
+```typescript
+import axios from 'axios';
+import { getStoredEmail } from './authApi';
+import { API_BASE_URL } from '../config';
+
+const api = axios.create({ baseURL: API_BASE_URL });
+api.interceptors.request.use((config) => {
+  const email = getStoredEmail();
+  if (email) {
+    config.headers['X-User-Email'] = email;
+  }
+  return config;
+});
+
+// Types
+export interface YourItem {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+// API calls
+export const getItems = async (): Promise<{ items: YourItem[] }> => {
+  const response = await api.get('/your-agent/items');
+  return response.data;
+};
+
+export const createItem = async (data: Partial<YourItem>): Promise<{ item: YourItem }> => {
+  const response = await api.post('/your-agent/items', data);
+  return response.data;
+};
+
+export const deleteItem = async (id: string): Promise<void> => {
+  await api.delete(`/your-agent/items/${id}`);
+};
+```
+
+---
+
+## Step 8: Frontend Hook
+
+### File: `frontend/src/hooks/useYourAgent.ts`
+
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+import * as api from '../services/yourAgentApi';
+import type { YourItem } from '../services/yourAgentApi';
+
+export interface UseYourAgentReturn {
+  items: YourItem[];
+  loading: boolean;
+  handleCreate: (data: Partial<YourItem>) => Promise<void>;
+  handleDelete: (id: string) => Promise<void>;
+  refresh: () => Promise<void>;
+}
+
+export const useYourAgent = (): UseYourAgentReturn => {
+  const [items, setItems] = useState<YourItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const refresh = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await api.getItems();
+      setItems(result.items || []);
+    } catch (error) {
+      console.error('Failed to load items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleCreate = useCallback(async (data: Partial<YourItem>) => {
+    try {
+      setLoading(true);
+      await api.createItem(data);
+      await refresh();
+    } catch (error) {
+      console.error('Failed to create item:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [refresh]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await api.deleteItem(id);
+      await refresh();
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    }
+  }, [refresh]);
+
+  return { items, loading, handleCreate, handleDelete, refresh };
+};
+
+export default useYourAgent;
+```
+
+### Update: `frontend/src/hooks/index.ts`
+
+```typescript
+export { default as useYourAgent } from './useYourAgent';
+export type { UseYourAgentReturn } from './useYourAgent';
+```
+
+---
+
+## Step 9: Frontend Component
+
+### File: `frontend/src/components/YourAgent.tsx`
+
+```tsx
+import React from 'react';
+import { Plus, Loader2 } from 'lucide-react';
+import useYourAgent from '../hooks/useYourAgent';
+import styles from '../styles/yourAgent.module.css';
+
+const YourAgent: React.FC = () => {
+  const agent = useYourAgent();
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>🔮 Your Agent</h1>
+        <p className={styles.subtitle}>Description of your agent</p>
+      </div>
+
+      {agent.loading ? (
+        <div className={styles.loading}>
+          <Loader2 className="animate-spin" />
+        </div>
+      ) : (
+        <div className={styles.content}>
+          {/* Your content here */}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default YourAgent;
+```
+
+### File: `frontend/src/styles/yourAgent.module.css`
+
+Create appropriate CSS module following the existing patterns.
+
+---
+
+## Step 10: Add to App Navigation
+
+### File: `frontend/src/App.tsx`
+
+```tsx
+// Import
+import YourAgent from './components/YourAgent';
+import { YourIcon } from 'lucide-react';
+
+// Add to state type
+const [activeTab, setActiveTab] = useState<'...' | 'your-agent'>('...');
+
+// Add tab button
+<button
+  onClick={() => setActiveTab('your-agent')}
+  className={`... ${activeTab === 'your-agent' ? 'active' : ''}`}
+>
+  <YourIcon className="w-5 h-5" />
+  Your Agent
+</button>
+
+// Add tab content
+{activeTab === 'your-agent' && <YourAgent />}
+```
+
+---
+
+## External API Integration (Optional)
+
+If your agent uses external APIs:
+
+### 1. Add Environment Variable
+
+```bash
+# backend/.env
+YOUR_API_KEY=your_key_here
+```
+
+### 2. Register in External API Service
+
+File: `backend/src/services/core/externalApiService.ts`
+
+```typescript
+const DEFAULT_YOUR_APIS = [
+  {
+    name: 'your_api',
+    displayName: 'Your API',
+    category: 'your-agent',
+    baseUrl: 'https://api.example.com',
+    apiKeyEnvVar: 'YOUR_API_KEY',
+    isEnabled: true,
+    description: 'What this API does',
+    docsUrl: 'https://docs.example.com'
+  }
+];
+```
+
+---
+
+## Testing
+
+### File: `backend/tests/services/yourAgentService.test.ts`
+
+```typescript
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+describe('YourAgentService', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('getItems', () => {
+    it('should return items for valid user', async () => {
+      const { yourAgentService } = await import('../../src/services/yourAgent');
+      // Mock database
+      // Test implementation
+    });
+  });
+});
+```
+
+---
+
+## File Summary
+
+| Backend Files | Purpose |
+|:---|:---|
+| `prisma/schema.prisma` | Database models |
+| `src/services/yourAgent/yourAgentService.ts` | Business logic |
+| `src/services/yourAgent/index.ts` | Service exports |
+| `src/agents/YourAgent.ts` | Agent class |
+| `src/controllers/yourAgentController.ts` | HTTP handlers |
+| `src/routes/yourAgent.ts` | API routes |
+
+| Frontend Files | Purpose |
+|:---|:---|
+| `src/services/yourAgentApi.ts` | API client |
+| `src/hooks/useYourAgent.ts` | State management |
+| `src/components/YourAgent.tsx` | UI component |
+| `src/styles/yourAgent.module.css` | Styles |
+
+| Updates Required | File |
+|:---|:---|
+| Export service | `src/services/index.ts` |
+| Register agent | `src/agents/index.ts` |
+| Mount routes | `src/routes/index.ts` |
+| Config entries | `src/services/core/configService.ts` |
+| Export hook | `src/hooks/index.ts` |
+| Add tab | `src/App.tsx` |
