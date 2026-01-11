@@ -23,6 +23,8 @@ import autocompleteRoutes from './autocomplete';
 import todoRoutes from './todo';
 import shoppingRoutes from './shopping';
 import cookingRoutes from './cooking';
+import newsRoutes from './news';
+import diyRoutes from './diy';
 import adminRoutes from './admin';
 import settingsRoutes from './settings';
 
@@ -77,6 +79,12 @@ router.use('/shopping', shoppingRoutes);
 
 // Cooking agent routes
 router.use('/cooking', cookingRoutes);
+
+// News agent routes
+router.use('/news', newsRoutes);
+
+// DIY agent routes
+router.use('/diy', diyRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

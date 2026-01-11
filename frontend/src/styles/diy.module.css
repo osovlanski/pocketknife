@@ -1,0 +1,788 @@
+/* DIY Agent Styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.titleSection h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.25rem;
+}
+
+.titleSection p {
+  color: rgb(148, 163, 184);
+  font-size: 0.875rem;
+}
+
+/* Navigation Tabs */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  color: rgb(148, 163, 184);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  color: white;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+}
+
+/* Generate Container */
+.generateContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Input Form */
+.inputForm {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(203, 213, 225);
+}
+
+.descriptionInput {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.descriptionInput::placeholder {
+  color: rgb(100, 116, 139);
+}
+
+.descriptionInput:focus {
+  outline: none;
+  border-color: #F59E0B;
+}
+
+.optionsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.selectInput,
+.numberInput {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 0.875rem;
+}
+
+.selectInput:focus,
+.numberInput:focus {
+  outline: none;
+  border-color: #F59E0B;
+}
+
+.generateButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.generateButton:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.generateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Project Display */
+.projectDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.projectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.projectHeader h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.projectHeader p {
+  color: rgb(148, 163, 184);
+}
+
+.saveButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.saveButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Project Stats */
+.projectStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.75rem;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgb(203, 213, 225);
+  font-size: 0.875rem;
+}
+
+.difficultyBadge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: capitalize;
+}
+
+.categoryBadge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+/* Sections */
+.warningsSection,
+.materialsSection,
+.toolsSection,
+.stepsSection,
+.tipsSection {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.warningsSection h3,
+.materialsSection h3,
+.toolsSection h3,
+.stepsSection h3,
+.tipsSection h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.progressBadge {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Warnings */
+.warningsSection {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.warningsSection h3 {
+  color: #F87171;
+}
+
+.warningsSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.warningsSection li {
+  padding: 0.5rem 0;
+  color: #FCA5A5;
+  font-size: 0.875rem;
+}
+
+/* Materials */
+.materialsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.materialItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.materialName {
+  flex: 1;
+  color: rgb(203, 213, 225);
+}
+
+.materialPrice {
+  color: #10B981;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.purchaseLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(148, 163, 184);
+  transition: all 0.2s;
+}
+
+.purchaseLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Tools */
+.toolsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.375rem;
+  color: rgb(203, 213, 225);
+  font-size: 0.875rem;
+}
+
+.toolItem.required {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.optional {
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+}
+
+/* Steps */
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stepCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.stepCard.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.stepCard.completed .stepNumber {
+  background: #10B981;
+}
+
+.stepTitle {
+  flex: 1;
+}
+
+.stepTitle h4 {
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.stepDuration {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+}
+
+.stepContent {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5rem;
+}
+
+.stepContent p {
+  color: rgb(203, 213, 225);
+  line-height: 1.6;
+  margin: 1rem 0;
+}
+
+.stepTips,
+.stepWarnings {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.stepTips {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.stepWarnings {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.stepTips h5 {
+  color: #10B981;
+  margin-bottom: 0.5rem;
+}
+
+.stepWarnings h5 {
+  color: #F87171;
+  margin-bottom: 0.5rem;
+}
+
+.stepTips ul,
+.stepWarnings ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.stepTips li,
+.stepWarnings li {
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+  margin-top: 0.25rem;
+}
+
+.completeButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.completeButton:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+/* Tips Section */
+.tipsSection {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.tipsSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tipsSection li {
+  padding: 0.5rem 0;
+  color: rgb(203, 213, 225);
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tipsSection li:last-child {
+  border-bottom: none;
+}
+
+/* Projects Container */
+.projectsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.projectsContainer h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.projectsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.projectCard {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.projectCard:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-2px);
+}
+
+.projectCard h4 {
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.projectCardMeta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  text-transform: capitalize;
+}
+
+.projectCard p {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+}
+
+/* Ideas Container */
+.ideasContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+}
+
+.searchBox svg {
+  color: rgb(148, 163, 184);
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: rgb(100, 116, 139);
+}
+
+.searchButton {
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.searchButton:hover {
+  opacity: 0.9;
+}
+
+.ideasContainer h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 1rem;
+}
+
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.categoryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.categoryCard:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-2px);
+}
+
+.categoryIcon {
+  font-size: 2rem;
+}
+
+.categoryCard span:last-child {
+  font-size: 0.75rem;
+  color: rgb(203, 213, 225);
+  text-align: center;
+}
+
+.ideasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.ideaCard {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ideaCard:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.ideaCard h5 {
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.ideaCard p {
+  font-size: 0.875rem;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.75rem;
+}
+
+.ideaMeta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: rgb(100, 116, 139);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  color: rgb(148, 163, 184);
+  text-align: center;
+}
+
+.emptyState svg {
+  opacity: 0.5;
+}
+
+.emptyState h4 {
+  font-size: 1.25rem;
+  color: white;
+}
+
+/* Error Banner */
+.errorBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  color: #F87171;
+}
+
+.errorBanner button {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .optionsRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .projectsGrid,
+  .categoriesGrid,
+  .ideasGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectHeader {
+    flex-direction: column;
+  }
+
+  .saveButton {
+    width: 100%;
+  }
+}
+

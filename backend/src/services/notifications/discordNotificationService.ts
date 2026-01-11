@@ -286,6 +286,42 @@ class DiscordNotificationService {
       return null;
     }
   }
+
+  /**
+   * Send a custom embed notification
+   */
+  async sendEmbed(embedData: {
+    title?: string;
+    description?: string;
+    color?: number;
+    fields?: { name: string; value: string; inline?: boolean }[];
+    footer?: { text: string };
+    timestamp?: string;
+  }) {
+    if (!this.isConfigured()) {
+      console.warn('⚠️ Discord webhook URL not configured, skipping notification');
+      return null;
+    }
+
+    const embed = {
+      ...embedData,
+      color: embedData.color || 0x5865F2, // Discord blurple
+      timestamp: embedData.timestamp || new Date().toISOString(),
+      footer: embedData.footer || { text: 'Pocketknife AI' }
+    };
+
+    try {
+      await axios.post(this.webhookUrl, {
+        username: 'Pocketknife',
+        embeds: [embed],
+      });
+      console.log('✅ Discord embed sent');
+      return true;
+    } catch (error) {
+      console.error('❌ Error sending Discord embed:', error);
+      return null;
+    }
+  }
 }
 
 export default new DiscordNotificationService();

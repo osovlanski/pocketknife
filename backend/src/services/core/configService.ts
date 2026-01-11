@@ -100,6 +100,23 @@ const DEFAULT_CONFIG = {
   'cooking.api.timeoutMs': 5000,          // API request timeout
   
   // ==========================================================================
+  // NEWS AGENT
+  // ==========================================================================
+  'news.search.maxResults': 30,
+  'news.sources.default': ['hackernews', 'reddit', 'newsapi'],
+  'news.learning.rate': 0.1,              // Learning rate for topic weights
+  'news.digest.maxArticles': 10,
+  'news.cache.ttlSeconds': 900,           // 15 minutes
+  'news.ai.maxTokens': 500,
+  
+  // ==========================================================================
+  // DIY AGENT
+  // ==========================================================================
+  'diy.search.maxResults': 20,
+  'diy.ai.maxTokens': 3000,
+  'diy.cache.ttlSeconds': 86400,          // 24 hours for generated projects
+  
+  // ==========================================================================
   // NOTION INTEGRATION
   // ==========================================================================
   'notion.search.maxResults': 20,
