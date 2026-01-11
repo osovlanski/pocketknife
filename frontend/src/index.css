@@ -96,3 +96,23 @@ html, body {
 * {
   box-sizing: border-box;
 }
+
+/* Global fix for select dropdown options on dark backgrounds */
+select option {
+  background-color: rgb(30, 41, 59);
+  color: white;
+  padding: 0.5rem;
+}
+
+/* For light-themed selects (like Groceries agent) */
+select.light-select option,
+.light-theme select option {
+  background-color: white !important;
+  color: #374151 !important;
+}
+
+/* Ensure light-select has proper styling */
+select.light-select {
+  background-color: white;
+  color: #374151;
+}

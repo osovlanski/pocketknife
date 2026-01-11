@@ -74,7 +74,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Category</label>
             <select
-              className={styles.formSelect}
+              className={`${styles.formSelect} light-select`}
               value={item.category || 'other'}
               onChange={(e) => onItemChange({ ...item, category: e.target.value })}
             >
@@ -114,7 +114,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Unit</label>
             <select
-              className={styles.formSelect}
+              className={`${styles.formSelect} light-select`}
               value={item.unit || 'pcs'}
               onChange={(e) => onItemChange({ ...item, unit: e.target.value })}
             >
@@ -618,7 +618,7 @@ const GroceriesAgent: React.FC = () => {
           <div className={styles.actionsBar}>
             <div style={{ display: 'flex', gap: '0.5rem', flex: 1, maxWidth: '600px' }}>
               <select
-                className={styles.formSelect}
+                className={`${styles.formSelect} light-select`}
                 style={{ width: 'auto' }}
                 value={recipeSearchMode}
                 onChange={(e) => setRecipeSearchMode(e.target.value as 'available' | 'custom')}
