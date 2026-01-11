@@ -95,6 +95,9 @@ const DEFAULT_CONFIG = {
   'cooking.invoice.autoDetect': true,     // Auto-detect items from invoices
   'cooking.invoice.confidenceThreshold': 0.7, // Min confidence for auto-matching
   'cooking.ai.maxTokens': 2000,
+  'cooking.cache.itemsTtlSeconds': 300,   // 5 minutes for inventory items
+  'cooking.cache.recipesTtlSeconds': 3600, // 1 hour for recipes
+  'cooking.api.timeoutMs': 5000,          // API request timeout
   
   // ==========================================================================
   // NOTION INTEGRATION

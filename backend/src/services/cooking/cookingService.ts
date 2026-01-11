@@ -10,6 +10,7 @@ import { cacheService, cacheKeys } from '../core/cacheService';
 import { configService } from '../core/configService';
 import claudeService from '../core/claudeService';
 import axios from 'axios';
+import logger from '../../utils/logger';
 
 // =============================================================================
 // TYPES
@@ -241,8 +242,9 @@ export const cookingService = {
       ]
     });
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, items, { ttl: 300 });
+    // Cache items
+    const itemsCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, items, { ttl: itemsCacheTtl });
 
     return items;
   },
@@ -333,8 +335,9 @@ export const cookingService = {
       orderBy: { updatedAt: 'desc' }
     });
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, lists, { ttl: 300 });
+    // Cache lists
+    const listsCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, lists, { ttl: listsCacheTtl });
 
     return lists;
   },
@@ -528,20 +531,22 @@ export const cookingService = {
           sourceUrl: `https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-').toLowerCase()}-${recipe.id}`
         }));
 
-        // Cache for 1 hour
-        await cacheService.set(cacheKey, recipes, { ttl: 3600 });
+        // Cache recipes
+        const recipesCacheTtl = configService.get('cooking.cache.recipesTtlSeconds', 3600);
+        await cacheService.set(cacheKey, recipes, { ttl: recipesCacheTtl });
 
         return recipes;
       } catch (error) {
-        console.warn('Spoonacular API error, falling back to AI:', error);
+        logger.warn(`Spoonacular API error, falling back to AI: ${error}`);
       }
     }
 
     // Fallback: Use AI to generate recipe suggestions
     const recipes = await cookingService.generateRecipesWithAI(ingredients, params);
     
-    // Cache for 1 hour
-    await cacheService.set(cacheKey, recipes, { ttl: 3600 });
+    // Cache AI-generated recipes
+    const aiRecipesCacheTtl = configService.get('cooking.cache.recipesTtlSeconds', 3600);
+    await cacheService.set(cacheKey, recipes, { ttl: aiRecipesCacheTtl });
     
     return recipes;
   },
@@ -599,7 +604,7 @@ Respond ONLY with valid JSON:
         source: 'ai_generated'
       }));
     } catch (error) {
-      console.error('AI recipe generation failed:', error);
+      logger.error(`AI recipe generation failed: ${error}`);
       return [];
     }
   },
@@ -657,8 +662,9 @@ Respond ONLY with valid JSON:
       orderBy: { updatedAt: 'desc' }
     });
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, recipes, { ttl: 300 });
+    // Cache recipes from available ingredients
+    const availableRecipesCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, recipes, { ttl: availableRecipesCacheTtl });
 
     return recipes;
   },
@@ -725,8 +731,9 @@ Respond ONLY with valid JSON:
       orderBy: { createdAt: 'desc' }
     });
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, recipes, { ttl: 300 });
+    // Cache wishlist
+    const wishlistCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, recipes, { ttl: wishlistCacheTtl });
 
     return recipes;
   },
@@ -762,7 +769,7 @@ Respond ONLY with valid JSON:
             q: `${recipeTitle} recipe food dish`,
             num: 1
           },
-          timeout: 5000
+          timeout: configService.get('cooking.api.timeoutMs', 5000)
         });
 
         const images = response.data.images_results || [];
@@ -770,7 +777,7 @@ Respond ONLY with valid JSON:
           return images[0].original || images[0].thumbnail;
         }
       } catch (error) {
-        console.warn('SerpApi image search failed:', error);
+        logger.warn(`SerpApi image search failed: ${error}`);
       }
     }
 
@@ -931,7 +938,7 @@ Respond ONLY with valid JSON:
 
       return { matched, created };
     } catch (error) {
-      console.error('Invoice matching failed:', error);
+      logger.error(`Invoice matching failed: ${error}`);
       return { matched: 0, created: 0 };
     }
   },
@@ -1001,8 +1008,9 @@ Respond ONLY with valid JSON:
       totalValue
     };
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, summary, { ttl: 300 });
+    // Cache summary
+    const summaryCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, summary, { ttl: summaryCacheTtl });
 
     return summary;
   },
@@ -1034,8 +1042,9 @@ Respond ONLY with valid JSON:
 
     const suggestions = lowItems.map(i => i.name);
 
-    // Cache for 5 minutes
-    await cacheService.set(cacheKey, suggestions, { ttl: 300 });
+    // Cache suggestions
+    const suggestionsCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);
+    await cacheService.set(cacheKey, suggestions, { ttl: suggestionsCacheTtl });
 
     return suggestions;
   }

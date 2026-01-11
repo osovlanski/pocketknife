@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import logger from '../../utils/logger';
 
 export interface FacebookStatus {
   configured: boolean;
@@ -124,7 +125,7 @@ class FacebookService {
 
       return response.data?.access_token || null;
     } catch (error: any) {
-      console.error('Facebook token exchange error:', error.message);
+      logger.error(`Facebook token exchange error: ${error.message}`);
       return null;
     }
   }
@@ -148,7 +149,7 @@ class FacebookService {
         picture: response.data.picture?.data?.url
       };
     } catch (error: any) {
-      console.error('Facebook get user error:', error.message);
+      logger.error(`Facebook get user error: ${error.message}`);
       return null;
     }
   }

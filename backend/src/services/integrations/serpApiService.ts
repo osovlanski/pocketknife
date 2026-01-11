@@ -10,6 +10,7 @@
 import axios from 'axios';
 import { configService } from '../core/configService';
 import { cacheService, cacheKeys } from '../core/cacheService';
+import logger from '../../utils/logger';
 
 // Types
 export interface SerpSearchResult {
@@ -93,7 +94,7 @@ class SerpApiService {
     language?: string;
   }): Promise<SerpSearchResult[]> {
     if (!this.isConfigured()) {
-      console.warn('SerpApi not configured, skipping search');
+      logger.warn('SerpApi not configured, skipping search');
       return [];
     }
 
@@ -129,7 +130,7 @@ class SerpApiService {
       
       return results;
     } catch (error: any) {
-      console.error('SerpApi Google search error:', error.message);
+      logger.error(`SerpApi Google search error: ${error.message}`);
       return [];
     }
   }
@@ -143,7 +144,7 @@ class SerpApiService {
     location?: string;
   }): Promise<SerpShoppingResult[]> {
     if (!this.isConfigured()) {
-      console.warn('SerpApi not configured, skipping shopping search');
+      logger.warn('SerpApi not configured, skipping shopping search');
       return [];
     }
 
@@ -179,7 +180,7 @@ class SerpApiService {
       
       return results;
     } catch (error: any) {
-      console.error('SerpApi Shopping search error:', error.message);
+      logger.error(`SerpApi Shopping search error: ${error.message}`);
       return [];
     }
   }
