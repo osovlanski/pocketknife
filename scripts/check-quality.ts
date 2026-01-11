@@ -151,8 +151,71 @@ async function runReview(): Promise<void> {
       log(`\n... and ${diff.split('\n').length - 100} more lines`, colors.yellow);
     }
 
-    // Step 8: Run Tests
-    logSection('Step 6: Running Tests');
+    // Step 6: TypeScript Type Check (matches CI/CD)
+    logSection('Step 6: TypeScript Type Check');
+    
+    let typeCheckPass = true;
+    
+    log('🔍 Running TypeScript type check (tsc --noEmit)...', colors.blue);
+    
+    // Check backend TypeScript
+    try {
+      log('   Checking backend types...', colors.blue);
+      execSync('npx tsc --noEmit 2>&1', { 
+        cwd: path.join(process.cwd(), 'backend'), 
+        encoding: 'utf-8',
+        timeout: 120000 
+      });
+      log('   ✅ Backend type check passed', colors.green);
+    } catch (backendTscError: any) {
+      const output = backendTscError.stdout?.toString() || backendTscError.message || '';
+      // Extract TypeScript errors
+      const tsErrors = output.match(/error TS\d+:.*/g);
+      if (tsErrors && tsErrors.length > 0) {
+        log('   ❌ Backend type check failed', colors.red);
+        tsErrors.slice(0, 10).forEach((err: string) => log(`      ${err}`, colors.red));
+        if (tsErrors.length > 10) {
+          log(`      ... and ${tsErrors.length - 10} more errors`, colors.red);
+        }
+        typeCheckPass = false;
+      } else {
+        log('   ✅ Backend type check passed (with warnings)', colors.green);
+      }
+    }
+    
+    // Check frontend TypeScript
+    try {
+      log('   Checking frontend types...', colors.blue);
+      execSync('npx tsc --noEmit 2>&1', { 
+        cwd: path.join(process.cwd(), 'frontend'), 
+        encoding: 'utf-8',
+        timeout: 120000 
+      });
+      log('   ✅ Frontend type check passed', colors.green);
+    } catch (frontendTscError: any) {
+      const output = frontendTscError.stdout?.toString() || frontendTscError.message || '';
+      // Extract TypeScript errors
+      const tsErrors = output.match(/error TS\d+:.*/g);
+      if (tsErrors && tsErrors.length > 0) {
+        log('   ❌ Frontend type check failed', colors.red);
+        tsErrors.slice(0, 10).forEach((err: string) => log(`      ${err}`, colors.red));
+        if (tsErrors.length > 10) {
+          log(`      ... and ${tsErrors.length - 10} more errors`, colors.red);
+        }
+        typeCheckPass = false;
+      } else {
+        log('   ✅ Frontend type check passed (with warnings)', colors.green);
+      }
+    }
+    
+    if (typeCheckPass) {
+      log('✅ All type checks passed!', colors.green);
+    } else {
+      log('❌ TypeScript errors found. Fix them before pushing.', colors.red);
+    }
+
+    // Step 7: Run Tests
+    logSection('Step 7: Running Tests');
     
     let testsPass = true;
     let backendTestsRan = false;
@@ -279,12 +342,18 @@ async function runReview(): Promise<void> {
       log('❌ Some tests failed. Fix them before pushing.', colors.red);
     }
     
-    // Step 9: Automated Quality Checks
-    logSection('Step 7: Automated Quality Checks');
+    // Step 8: Automated Quality Checks
+    logSection('Step 8: Automated Quality Checks');
     
     let autoScore = 100;
     const issues: string[] = [];
     const warnings: string[] = [];
+    
+    // Deduct score if TypeScript type check failed
+    if (!typeCheckPass) {
+      issues.push('🔴 TypeScript errors - Fix type errors before pushing');
+      autoScore -= 30;
+    }
     
     // Deduct score if tests failed
     if (!testsPass) {
@@ -405,7 +474,7 @@ async function runReview(): Promise<void> {
     log(`\n📊 Automated Pre-Score: ${autoScore}/100`, autoScore >= 80 ? colors.green : colors.yellow);
 
     // Step 10: Manual review prompt
-    logSection('Step 8: Manual Review Required');
+    logSection('Step 9: Manual Review Required');
     
     log('', colors.reset);
     log('╔══════════════════════════════════════════════════════════════════╗', colors.cyan);
@@ -420,7 +489,7 @@ async function runReview(): Promise<void> {
     log('', colors.reset);
 
     // Step 11: Interactive confirmation
-    logSection('Step 9: Push Confirmation');
+    logSection('Step 10: Push Confirmation');
     
     const rl = readline.createInterface({
       input: process.stdin,
