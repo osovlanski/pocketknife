@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
+import MarkdownRenderer from './MarkdownRenderer';
 import { API_BASE_URL, SOCKET_URL } from '../config';
 
 interface LearningResource {
@@ -754,36 +755,9 @@ const LearningAgent = () => {
                         )}
                       </button>
                     </div>
-                    {/* Render formatted summary */}
+                    {/* Render formatted summary with Mermaid support */}
                     <div className="text-sm text-slate-200 space-y-2 summary-content">
-                      {resource.summary.split('\n').map((line, idx) => {
-                        // Style different sections
-                        if (line.startsWith('📋') || line.startsWith('🔑') || line.startsWith('📊') || 
-                            line.startsWith('⚠️') || line.startsWith('💡')) {
-                          return (
-                            <h4 key={idx} className="font-bold text-amber-300 mt-3 first:mt-0">
-                              {line}
-                            </h4>
-                          );
-                        }
-                        if (line.startsWith('•') || line.startsWith('-')) {
-                          return (
-                            <p key={idx} className="ml-4 text-slate-300">
-                              {line}
-                            </p>
-                          );
-                        }
-                        if (line.startsWith('```')) {
-                          return null; // Skip code block markers
-                        }
-                        if (line.trim() === '---') {
-                          return <hr key={idx} className="border-amber-500/30 my-2" />;
-                        }
-                        if (line.trim()) {
-                          return <p key={idx}>{line}</p>;
-                        }
-                        return null;
-                      })}
+                      <MarkdownRenderer content={resource.summary} />
                     </div>
                   </div>
                 )}

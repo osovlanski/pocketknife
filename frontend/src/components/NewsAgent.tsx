@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import useNews from '../hooks/useNews';
 import { NEWS_TOPICS, NEWS_SOURCES, NewsArticle } from '../services/newsApi';
+import MarkdownRenderer from './MarkdownRenderer';
 import styles from '../styles/news.module.css';
 
 // =============================================================================
@@ -485,7 +486,7 @@ const NewsAgent: React.FC = () => {
             <h3>AI Summary</h3>
             <h4>{summaryModal.article.title}</h4>
             <div className={styles.summaryText}>
-              {summaryModal.summary}
+              <MarkdownRenderer content={summaryModal.summary} />
             </div>
             <button onClick={() => setSummaryModal(null)} className={styles.closeButton}>
               Close

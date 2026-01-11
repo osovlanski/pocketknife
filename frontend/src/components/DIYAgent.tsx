@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import useDIY from '../hooks/useDIY';
 import { DIY_CATEGORIES, SKILL_LEVELS, DIFFICULTY_COLORS, DIYProject, DIYStep } from '../services/diyApi';
+import MarkdownRenderer from './MarkdownRenderer';
 import styles from '../styles/diy.module.css';
 
 // =============================================================================
@@ -56,7 +57,7 @@ const StepCard: React.FC<StepCardProps> = ({
     
     {isExpanded && (
       <div className={styles.stepContent}>
-        <p>{step.description}</p>
+        <MarkdownRenderer content={step.description} />
         
         {step.tips && step.tips.length > 0 && (
           <div className={styles.stepTips}>
