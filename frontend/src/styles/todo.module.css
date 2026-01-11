@@ -601,6 +601,11 @@
   color: white;
 }
 
+.formSelect option {
+  background: rgb(30, 41, 59);
+  color: white;
+}
+
 .formRow {
   display: flex;
   align-items: center;

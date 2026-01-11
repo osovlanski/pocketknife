@@ -1,14 +1,14 @@
 /**
- * Groceries Agent Tests
+ * Cooking Agent Tests
  * 
- * Tests for the GroceriesAgent class that handles all grocery-related actions.
+ * Tests for the CookingAgent class that handles all cooking-related actions.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the groceries service
-vi.mock('../../src/services/groceries', () => ({
-  groceriesService: {
+// Mock the cooking service
+vi.mock('../../src/services/cooking', () => ({
+  cookingService: {
     addItem: vi.fn(),
     updateItem: vi.fn(),
     deleteItem: vi.fn(),
@@ -24,13 +24,16 @@ vi.mock('../../src/services/groceries', () => ({
     findRecipes: vi.fn(),
     saveRecipe: vi.fn(),
     getSavedRecipes: vi.fn(),
+    addToWishlist: vi.fn(),
+    getWishlist: vi.fn(),
+    removeFromWishlist: vi.fn(),
     getInventorySummary: vi.fn(),
     getSuggestions: vi.fn()
   },
-  GROCERY_CATEGORIES: ['produce', 'dairy', 'meat', 'pantry']
+  COOKING_CATEGORIES: ['produce', 'dairy', 'meat', 'pantry']
 }));
 
-describe('GroceriesAgent', () => {
+describe('CookingAgent', () => {
   beforeEach(() => {
     vi.resetModules();
   });
@@ -41,21 +44,21 @@ describe('GroceriesAgent', () => {
 
   describe('metadata', () => {
     it('should have correct agent metadata', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      expect(groceriesAgent.metadata).toBeDefined();
-      expect(groceriesAgent.metadata.id).toBe('groceries');
-      expect(groceriesAgent.metadata.name).toBe('Groceries Agent');
-      expect(groceriesAgent.metadata.icon).toBe('🛒');
-      expect(groceriesAgent.metadata.color).toBe('#22C55E');
+      expect(cookingAgent.metadata).toBeDefined();
+      expect(cookingAgent.metadata.id).toBe('cooking');
+      expect(cookingAgent.metadata.name).toBe('Cooking Agent');
+      expect(cookingAgent.metadata.icon).toBe('🍳');
+      expect(cookingAgent.metadata.color).toBe('#22C55E');
     });
   });
 
   describe('execute - add-item action', () => {
     it('should require userId', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'add-item',
         itemData: { name: 'Milk' }
       });
@@ -65,9 +68,9 @@ describe('GroceriesAgent', () => {
     });
 
     it('should require itemData', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'add-item',
         userId: 'user-123'
       });
@@ -77,9 +80,9 @@ describe('GroceriesAgent', () => {
     });
 
     it('should require item name', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'add-item',
         userId: 'user-123',
         itemData: { category: 'dairy' }
@@ -90,13 +93,13 @@ describe('GroceriesAgent', () => {
     });
 
     it('should add item successfully', async () => {
-      const { groceriesService } = await import('../../src/services/groceries');
+      const { cookingService } = await import('../../src/services/cooking');
       const mockItem = { id: 'item-123', name: 'Milk' };
-      (groceriesService.addItem as any).mockResolvedValue(mockItem);
+      (cookingService.addItem as any).mockResolvedValue(mockItem);
       
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'add-item',
         userId: 'user-123',
         itemData: { name: 'Milk', category: 'dairy' }
@@ -109,9 +112,9 @@ describe('GroceriesAgent', () => {
 
   describe('execute - get-items action', () => {
     it('should require userId', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'get-items'
       });
 
@@ -120,13 +123,13 @@ describe('GroceriesAgent', () => {
     });
 
     it('should get items successfully', async () => {
-      const { groceriesService } = await import('../../src/services/groceries');
+      const { cookingService } = await import('../../src/services/cooking');
       const mockItems = [{ id: 'item-1', name: 'Milk' }];
-      (groceriesService.getItems as any).mockResolvedValue(mockItems);
+      (cookingService.getItems as any).mockResolvedValue(mockItems);
       
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'get-items',
         userId: 'user-123'
       });
@@ -138,9 +141,9 @@ describe('GroceriesAgent', () => {
 
   describe('execute - delete-item action', () => {
     it('should require userId', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'delete-item',
         itemId: 'item-123'
       });
@@ -150,9 +153,9 @@ describe('GroceriesAgent', () => {
     });
 
     it('should require itemId', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'delete-item',
         userId: 'user-123'
       });
@@ -164,9 +167,9 @@ describe('GroceriesAgent', () => {
 
   describe('execute - create-list action', () => {
     it('should require userId', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'create-list',
         listName: 'Shopping'
       });
@@ -176,9 +179,9 @@ describe('GroceriesAgent', () => {
     });
 
     it('should require list name', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'create-list',
         userId: 'user-123'
       });
@@ -188,13 +191,13 @@ describe('GroceriesAgent', () => {
     });
 
     it('should create list successfully', async () => {
-      const { groceriesService } = await import('../../src/services/groceries');
+      const { cookingService } = await import('../../src/services/cooking');
       const mockList = { id: 'list-123', name: 'Weekly Shopping' };
-      (groceriesService.createList as any).mockResolvedValue(mockList);
+      (cookingService.createList as any).mockResolvedValue(mockList);
       
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'create-list',
         userId: 'user-123',
         listName: 'Weekly Shopping'
@@ -205,15 +208,50 @@ describe('GroceriesAgent', () => {
     });
   });
 
+  describe('execute - wishlist actions', () => {
+    it('should add to wishlist successfully', async () => {
+      const { cookingService } = await import('../../src/services/cooking');
+      const mockRecipe = { id: 'recipe-123', title: 'Pasta Carbonara', imageUrl: 'https://example.com/pasta.jpg' };
+      (cookingService.addToWishlist as any).mockResolvedValue(mockRecipe);
+      
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
+      
+      const result = await cookingAgent.execute({
+        action: 'add-to-wishlist',
+        userId: 'user-123',
+        recipe: mockRecipe
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.recipe).toEqual(mockRecipe);
+    });
+
+    it('should get wishlist successfully', async () => {
+      const { cookingService } = await import('../../src/services/cooking');
+      const mockWishlist = [{ id: 'recipe-123', title: 'Pasta' }];
+      (cookingService.getWishlist as any).mockResolvedValue(mockWishlist);
+      
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
+      
+      const result = await cookingAgent.execute({
+        action: 'get-wishlist',
+        userId: 'user-123'
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.wishlist).toEqual(mockWishlist);
+    });
+  });
+
   describe('execute - get-summary action', () => {
     it('should get summary successfully', async () => {
-      const { groceriesService } = await import('../../src/services/groceries');
+      const { cookingService } = await import('../../src/services/cooking');
       const mockSummary = { totalItems: 10, lowStock: 2 };
-      (groceriesService.getInventorySummary as any).mockResolvedValue(mockSummary);
+      (cookingService.getInventorySummary as any).mockResolvedValue(mockSummary);
       
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'get-summary',
         userId: 'user-123'
       });
@@ -225,9 +263,9 @@ describe('GroceriesAgent', () => {
 
   describe('execute - unknown action', () => {
     it('should return error for unknown action', async () => {
-      const { groceriesAgent } = await import('../../src/agents/GroceriesAgent');
+      const { cookingAgent } = await import('../../src/agents/CookingAgent');
       
-      const result = await groceriesAgent.execute({
+      const result = await cookingAgent.execute({
         action: 'unknown-action' as any,
         userId: 'user-123'
       });
@@ -237,4 +275,3 @@ describe('GroceriesAgent', () => {
     });
   });
 });
-

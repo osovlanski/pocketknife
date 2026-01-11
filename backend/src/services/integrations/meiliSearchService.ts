@@ -2,7 +2,7 @@
  * MeiliSearch Integration Service
  * 
  * Local full-text search engine for instant search across cached data.
- * Used by: Jobs Agent, Learning Agent, Groceries Agent
+ * Used by: Jobs Agent, Learning Agent, Cooking Agent
  * 
  * Setup: docker run -d --name meilisearch -p 7700:7700 getmeili/meilisearch
  */

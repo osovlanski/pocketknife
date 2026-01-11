@@ -28,8 +28,8 @@ export * from './learning';
 // Problem Solving Agent
 export * from './problemSolving';
 
-// Groceries Agent
-export * from './groceries';
+// Cooking Agent
+export * from './cooking';
 
 // Notification Services
 export * from './notifications';

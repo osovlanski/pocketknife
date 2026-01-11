@@ -1,7 +1,7 @@
 /**
- * Groceries Service Tests
+ * Cooking Service Tests
  * 
- * Tests for grocery inventory management, shopping lists, and recipes.
+ * Tests for kitchen inventory management, shopping lists, and recipes.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -23,7 +23,7 @@ vi.mock('../../src/services/core/cacheService', () => ({
     delete: vi.fn(() => Promise.resolve())
   },
   cacheKeys: {
-    groceryItems: (userId: string) => `groceries:${userId}:items`
+    cookingItems: (userId: string) => `cooking:${userId}:items`
   }
 }));
 
@@ -41,7 +41,7 @@ vi.mock('../../src/services/core/claudeService', () => ({
   }
 }));
 
-describe('GroceriesService', () => {
+describe('CookingService', () => {
   beforeEach(() => {
     vi.resetModules();
   });
@@ -50,27 +50,27 @@ describe('GroceriesService', () => {
     vi.restoreAllMocks();
   });
 
-  describe('GROCERY_CATEGORIES', () => {
-    it('should export valid grocery categories', async () => {
-      const { GROCERY_CATEGORIES } = await import('../../src/services/groceries/groceriesService');
+  describe('COOKING_CATEGORIES', () => {
+    it('should export valid cooking categories', async () => {
+      const { COOKING_CATEGORIES } = await import('../../src/services/cooking/cookingService');
       
-      expect(GROCERY_CATEGORIES).toBeInstanceOf(Array);
-      expect(GROCERY_CATEGORIES.length).toBeGreaterThan(0);
-      expect(GROCERY_CATEGORIES).toContain('produce');
-      expect(GROCERY_CATEGORIES).toContain('dairy');
-      expect(GROCERY_CATEGORIES).toContain('meat');
-      expect(GROCERY_CATEGORIES).toContain('pantry');
+      expect(COOKING_CATEGORIES).toBeInstanceOf(Array);
+      expect(COOKING_CATEGORIES.length).toBeGreaterThan(0);
+      expect(COOKING_CATEGORIES).toContain('produce');
+      expect(COOKING_CATEGORIES).toContain('dairy');
+      expect(COOKING_CATEGORIES).toContain('meat');
+      expect(COOKING_CATEGORIES).toContain('pantry');
     });
   });
 
-  describe('groceriesService.addItem', () => {
+  describe('cookingService.addItem', () => {
     it('should throw error when database is not available', async () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(null);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      await expect(groceriesService.addItem('user-123', { name: 'Milk' }))
+      await expect(cookingService.addItem('user-123', { name: 'Milk' }))
         .rejects
         .toThrow('Database not available');
     });
@@ -95,9 +95,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.addItem('user-123', {
+      const result = await cookingService.addItem('user-123', {
         name: 'Milk',
         category: 'dairy',
         quantity: 1
@@ -133,9 +133,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.addItem('user-123', {
+      const result = await cookingService.addItem('user-123', {
         name: 'Milk',
         quantity: 1
       });
@@ -145,14 +145,14 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.getItems', () => {
+  describe('cookingService.getItems', () => {
     it('should throw error when database is not available', async () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(null);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      await expect(groceriesService.getItems('user-123'))
+      await expect(cookingService.getItems('user-123'))
         .rejects
         .toThrow('Database not available');
     });
@@ -172,9 +172,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.getItems('user-123');
+      const result = await cookingService.getItems('user-123');
 
       expect(result).toEqual(mockItems);
       expect(mockPrisma.groceryItem.findMany).toHaveBeenCalledWith(
@@ -194,9 +194,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      await groceriesService.getItems('user-123', { category: 'dairy' });
+      await cookingService.getItems('user-123', { category: 'dairy' });
 
       expect(mockPrisma.groceryItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -215,9 +215,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      await groceriesService.getItems('user-123', { status: 'low' });
+      await cookingService.getItems('user-123', { status: 'low' });
 
       expect(mockPrisma.groceryItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -227,7 +227,7 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.deleteItem', () => {
+  describe('cookingService.deleteItem', () => {
     it('should delete item successfully', async () => {
       const mockPrisma = {
         groceryItem: {
@@ -238,9 +238,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      await groceriesService.deleteItem('user-123', 'item-123');
+      await cookingService.deleteItem('user-123', 'item-123');
 
       expect(mockPrisma.groceryItem.delete).toHaveBeenCalledWith({
         where: { id: 'item-123', userId: 'user-123' }
@@ -248,7 +248,7 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.createList', () => {
+  describe('cookingService.createList', () => {
     it('should create a new shopping list', async () => {
       const mockList = {
         id: 'list-123',
@@ -267,9 +267,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.createList('user-123', 'Weekly Shopping');
+      const result = await cookingService.createList('user-123', 'Weekly Shopping');
 
       expect(result).toEqual(mockList);
       expect(mockPrisma.groceryList.create).toHaveBeenCalledWith(
@@ -284,7 +284,7 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.getLists', () => {
+  describe('cookingService.getLists', () => {
     it('should return active lists for user', async () => {
       const mockLists = [
         { id: 'list-1', name: 'Weekly Shopping', items: [] },
@@ -300,9 +300,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.getLists('user-123');
+      const result = await cookingService.getLists('user-123');
 
       expect(result).toEqual(mockLists);
       expect(mockPrisma.groceryList.findMany).toHaveBeenCalledWith(
@@ -316,7 +316,7 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.getInventorySummary', () => {
+  describe('cookingService.getInventorySummary', () => {
     it('should return correct inventory summary', async () => {
       const mockItems = [
         { id: 'item-1', category: 'dairy', quantity: 2, expiryDate: null, lastPurchasePrice: 5.99 },
@@ -333,9 +333,9 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.getInventorySummary('user-123');
+      const result = await cookingService.getInventorySummary('user-123');
 
       expect(result.totalItems).toBe(3);
       expect(result.byCategory).toEqual({ dairy: 2, produce: 1 });
@@ -343,7 +343,7 @@ describe('GroceriesService', () => {
     });
   });
 
-  describe('groceriesService.getSuggestions', () => {
+  describe('cookingService.getSuggestions', () => {
     it('should return low stock items as suggestions', async () => {
       const mockItems = [
         { name: 'Milk' },
@@ -359,12 +359,72 @@ describe('GroceriesService', () => {
       const { getPrisma } = await import('../../src/services/core/databaseService');
       (getPrisma as any).mockReturnValue(mockPrisma);
       
-      const { groceriesService } = await import('../../src/services/groceries/groceriesService');
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
       
-      const result = await groceriesService.getSuggestions('user-123');
+      const result = await cookingService.getSuggestions('user-123');
 
       expect(result).toEqual(['Milk', 'Eggs']);
     });
   });
-});
 
+  describe('cookingService.wishlist', () => {
+    it('should add to wishlist', async () => {
+      const mockRecipe = {
+        id: 'recipe-123',
+        title: 'Pasta Carbonara',
+        isFavorite: true
+      };
+
+      const mockPrisma = {
+        savedRecipe: {
+          create: vi.fn(() => Promise.resolve(mockRecipe))
+        }
+      };
+
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(mockPrisma);
+      
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
+      
+      const result = await cookingService.addToWishlist('user-123', {
+        id: 'search-123',
+        title: 'Pasta Carbonara',
+        source: 'ai_generated',
+        ingredients: []
+      });
+
+      expect(result).toEqual(mockRecipe);
+      expect(mockPrisma.savedRecipe.create).toHaveBeenCalled();
+    });
+
+    it('should get wishlist', async () => {
+      const mockRecipes = [
+        { id: 'recipe-1', title: 'Pasta', isFavorite: true },
+        { id: 'recipe-2', title: 'Pizza', isFavorite: true }
+      ];
+
+      const mockPrisma = {
+        savedRecipe: {
+          findMany: vi.fn(() => Promise.resolve(mockRecipes))
+        }
+      };
+
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(mockPrisma);
+      
+      const { cookingService } = await import('../../src/services/cooking/cookingService');
+      
+      const result = await cookingService.getWishlist('user-123');
+
+      expect(result).toEqual(mockRecipes);
+      expect(mockPrisma.savedRecipe.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-123',
+            isFavorite: true
+          })
+        })
+      );
+    });
+  });
+});

@@ -215,7 +215,7 @@ If no products found, return: {"products": []}`;
       'Appliances': ['refrigerator', 'washing', 'microwave', 'oven', 'מקרר', 'מכונת כביסה', 'מיקרוגל'],
       'Fashion': ['shirt', 'dress', 'shoes', 'bag', 'watch', 'חולצה', 'שמלה', 'נעליים'],
       'Home': ['furniture', 'sofa', 'table', 'chair', 'bed', 'רהיט', 'ספה', 'כיסא', 'מיטה'],
-      'Groceries': ['food', 'grocery', 'אוכל', 'מזון', 'שופרסל', 'רמי לוי'],
+      'Cooking': ['food', 'grocery', 'אוכל', 'מזון', 'שופרסל', 'רמי לוי'],
     };
 
     for (const [category, keywords] of Object.entries(categories)) {

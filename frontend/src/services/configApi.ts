@@ -33,7 +33,7 @@ export interface AgentStatus {
   problems: boolean;
   todo: boolean;
   shopping: boolean;
-  groceries: boolean;
+  cooking: boolean;
 }
 
 export interface ConfigResponse {
@@ -146,7 +146,7 @@ export const getDefaultConfig = (): ConfigResponse => ({
     problems: true,
     todo: true,
     shopping: true,
-    groceries: true
+    cooking: true
   }
 });
 

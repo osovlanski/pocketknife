@@ -89,13 +89,13 @@ const agents: AgentCard[] = [
     features: ['Deal scoring', 'Price alerts', 'Multi-platform']
   },
   {
-    id: 'groceries',
-    name: 'Groceries Agent',
-    description: 'Track your grocery inventory, manage shopping lists, and discover recipes based on what you have.',
+    id: 'cooking',
+    name: 'Cooking Agent',
+    description: 'Manage your kitchen inventory, create shopping lists, discover recipes, and save dishes to your wishlist.',
     icon: Utensils,
-    path: '/agents/groceries',
+    path: '/agents/cooking',
     gradient: 'from-lime-500 to-green-600',
-    features: ['Inventory tracking', 'Shopping lists', 'Recipe suggestions']
+    features: ['Inventory tracking', 'Recipe wishlist', 'Dish images']
   }
 ];
 

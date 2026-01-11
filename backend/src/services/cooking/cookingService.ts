@@ -1,7 +1,7 @@
 /**
- * Groceries Service
+ * Cooking Service
  * 
- * Manages grocery inventory, shopping lists, and recipe finding.
+ * Manages kitchen inventory, shopping lists, and recipe finding.
  * Supports manual entry and automatic detection from invoices.
  */
 
@@ -15,7 +15,7 @@ import axios from 'axios';
 // TYPES
 // =============================================================================
 
-export interface GroceryItemData {
+export interface CookingItemData {
   name: string;
   category?: string;
   quantity?: number;
@@ -28,7 +28,7 @@ export interface GroceryItemData {
   currency?: string;
 }
 
-export interface GroceryFilters {
+export interface CookingFilters {
   status?: string;
   category?: string;
   expiringWithinDays?: number;
@@ -67,10 +67,10 @@ interface RecipeIngredient {
 }
 
 // =============================================================================
-// GROCERY CATEGORIES
+// COOKING CATEGORIES
 // =============================================================================
 
-export const GROCERY_CATEGORIES = [
+export const COOKING_CATEGORIES = [
   'produce',
   'dairy',
   'meat',
@@ -91,17 +91,47 @@ export const GROCERY_CATEGORIES = [
 // SERVICE
 // =============================================================================
 
-export const groceriesService = {
+export const cookingService = {
   // ===========================================================================
-  // GROCERY ITEM MANAGEMENT
+  // INVENTORY ITEM MANAGEMENT
   // ===========================================================================
 
   /**
-   * Add a new grocery item
+   * Add a new item to inventory
    */
-  addItem: async (userId: string, itemData: GroceryItemData): Promise<any> => {
+  addItem: async (userId: string, itemData: CookingItemData): Promise<any> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
+
+    // Normalize brand to null if empty or undefined
+    const brand = itemData.brand?.trim() || null;
+
+    // Check if item with same name and brand already exists
+    const existingItem = await prisma.groceryItem.findFirst({
+      where: {
+        userId,
+        name: itemData.name,
+        brand
+      }
+    });
+
+    if (existingItem) {
+      // Update existing item instead of creating duplicate
+      const updatedItem = await prisma.groceryItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: existingItem.quantity + (itemData.quantity || 1),
+          lastPurchasedAt: new Date(),
+          lastPurchasePrice: itemData.lastPurchasePrice ?? existingItem.lastPurchasePrice,
+          ...(itemData.expiryDate && { expiryDate: new Date(itemData.expiryDate) }),
+          ...(itemData.notes && { notes: itemData.notes }),
+          status: 'available'
+        }
+      });
+
+      await cacheService.delete(`cooking:${userId}:items`);
+      return updatedItem;
+    }
 
     const item = await prisma.groceryItem.create({
       data: {
@@ -111,7 +141,7 @@ export const groceriesService = {
         quantity: itemData.quantity || 1,
         unit: itemData.unit,
         expiryDate: itemData.expiryDate ? new Date(itemData.expiryDate) : null,
-        brand: itemData.brand,
+        brand,
         notes: itemData.notes,
         barcode: itemData.barcode,
         lastPurchasePrice: itemData.lastPurchasePrice,
@@ -122,15 +152,15 @@ export const groceriesService = {
     });
 
     // Invalidate cache
-    await cacheService.delete(`groceries:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:items`);
 
     return item;
   },
 
   /**
-   * Update an existing grocery item
+   * Update an existing item
    */
-  updateItem: async (userId: string, itemId: string, updates: Partial<GroceryItemData>): Promise<any> => {
+  updateItem: async (userId: string, itemId: string, updates: Partial<CookingItemData>): Promise<any> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
 
@@ -148,13 +178,13 @@ export const groceriesService = {
       }
     });
 
-    await cacheService.delete(`groceries:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:items`);
 
     return item;
   },
 
   /**
-   * Delete a grocery item
+   * Delete an item
    */
   deleteItem: async (userId: string, itemId: string): Promise<void> => {
     const prisma = getPrisma();
@@ -164,15 +194,20 @@ export const groceriesService = {
       where: { id: itemId, userId }
     });
 
-    await cacheService.delete(`groceries:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:items`);
   },
 
   /**
-   * Get all grocery items with optional filters
+   * Get all items with optional filters
    */
-  getItems: async (userId: string, filters?: GroceryFilters): Promise<any[]> => {
+  getItems: async (userId: string, filters?: CookingFilters): Promise<any[]> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
+
+    // Check cache first
+    const cacheKey = `cooking:${userId}:items:${JSON.stringify(filters || {})}`;
+    const cached = await cacheService.get<any[]>(cacheKey);
+    if (cached) return cached;
 
     const where: any = { userId };
 
@@ -194,7 +229,7 @@ export const groceriesService = {
     }
 
     if (filters?.lowStock) {
-      const threshold = configService.get('groceries.lowStock.threshold', 2);
+      const threshold = configService.get('cooking.lowStock.threshold', 2);
       where.quantity = { lte: threshold };
     }
 
@@ -205,6 +240,9 @@ export const groceriesService = {
         { name: 'asc' }
       ]
     });
+
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, items, { ttl: 300 });
 
     return items;
   },
@@ -221,7 +259,7 @@ export const groceriesService = {
       data: { status }
     });
 
-    await cacheService.delete(`groceries:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:items`);
 
     return item;
   },
@@ -230,15 +268,15 @@ export const groceriesService = {
    * Get expiring items (within configured days)
    */
   getExpiringItems: async (userId: string): Promise<any[]> => {
-    const daysAhead = configService.get('groceries.expiryWarning.daysAhead', 3);
-    return groceriesService.getItems(userId, { expiringWithinDays: daysAhead });
+    const daysAhead = configService.get('cooking.expiryWarning.daysAhead', 3);
+    return cookingService.getItems(userId, { expiringWithinDays: daysAhead });
   },
 
   /**
    * Get low stock items
    */
   getLowStockItems: async (userId: string): Promise<any[]> => {
-    return groceriesService.getItems(userId, { lowStock: true });
+    return cookingService.getItems(userId, { lowStock: true });
   },
 
   // ===========================================================================
@@ -262,6 +300,9 @@ export const groceriesService = {
       include: { items: true }
     });
 
+    // Invalidate lists cache
+    await cacheService.delete(`cooking:${userId}:lists`);
+
     return list;
   },
 
@@ -271,6 +312,11 @@ export const groceriesService = {
   getLists: async (userId: string, includeCompleted = false): Promise<any[]> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
+
+    // Check cache first
+    const cacheKey = `cooking:${userId}:lists:${includeCompleted}`;
+    const cached = await cacheService.get<any[]>(cacheKey);
+    if (cached) return cached;
 
     const where: any = { userId };
     if (!includeCompleted) {
@@ -286,6 +332,9 @@ export const groceriesService = {
       },
       orderBy: { updatedAt: 'desc' }
     });
+
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, lists, { ttl: 300 });
 
     return lists;
   },
@@ -310,6 +359,12 @@ export const groceriesService = {
         groceryId: itemData.groceryId
       }
     });
+
+    // Get the list to invalidate its cache
+    const list = await prisma.groceryList.findUnique({ where: { id: listId }, select: { userId: true } });
+    if (list) {
+      await cacheService.delete(`cooking:${list.userId}:lists`);
+    }
 
     return item;
   },
@@ -362,31 +417,41 @@ export const groceriesService = {
         });
       } else {
         // Create new grocery item from list item
-        await prisma.groceryItem.upsert({
+        // First check if item exists by name (brand is nullable)
+        const existingItem = await prisma.groceryItem.findFirst({
           where: {
-            userId_name_brand: {
-              userId,
-              name: item.name,
-              brand: null
-            }
-          },
-          update: {
-            quantity: { increment: item.quantity },
-            status: 'available',
-            lastPurchasedAt: new Date(),
-            lastPurchasePrice: item.actualPrice
-          },
-          create: {
             userId,
             name: item.name,
-            quantity: item.quantity,
-            unit: item.unit,
-            category: item.category || 'other',
-            purchaseSource: 'shopping_list',
-            lastPurchasedAt: new Date(),
-            lastPurchasePrice: item.actualPrice
+            brand: null
           }
         });
+
+        if (existingItem) {
+          // Update existing item
+          await prisma.groceryItem.update({
+            where: { id: existingItem.id },
+            data: {
+              quantity: { increment: item.quantity },
+              status: 'available',
+              lastPurchasedAt: new Date(),
+              lastPurchasePrice: item.actualPrice
+            }
+          });
+        } else {
+          // Create new grocery item
+          await prisma.groceryItem.create({
+            data: {
+              userId,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              category: item.category || 'other',
+              purchaseSource: 'shopping_list',
+              lastPurchasedAt: new Date(),
+              lastPurchasePrice: item.actualPrice
+            }
+          });
+        }
       }
     }
 
@@ -400,7 +465,8 @@ export const groceriesService = {
       include: { items: true }
     });
 
-    await cacheService.delete(`groceries:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:items`);
+    await cacheService.delete(`cooking:${userId}:lists`);
 
     return updatedList;
   },
@@ -413,18 +479,23 @@ export const groceriesService = {
    * Find recipes based on available ingredients
    */
   findRecipes: async (userId: string, params: RecipeSearchParams): Promise<RecipeResult[]> => {
-    const maxResults = configService.get('groceries.recipe.maxResults', 10);
+    const maxResults = configService.get('cooking.recipe.maxResults', 10);
     let ingredients = params.ingredients || [];
 
     // If using available ingredients, get from inventory
     if (params.useAvailableOnly && ingredients.length === 0) {
-      const items = await groceriesService.getItems(userId, { status: 'available' });
+      const items = await cookingService.getItems(userId, { status: 'available' });
       ingredients = items.map(item => item.name);
     }
 
     if (ingredients.length === 0) {
       return [];
     }
+
+    // Check cache first
+    const cacheKey = `cooking:recipes:${JSON.stringify({ ingredients, ...params })}`;
+    const cached = await cacheService.get<RecipeResult[]>(cacheKey);
+    if (cached) return cached;
 
     // Try external API first (Spoonacular has free tier)
     const apiKey = process.env.SPOONACULAR_API_KEY;
@@ -440,7 +511,7 @@ export const groceriesService = {
           }
         });
 
-        return response.data.map((recipe: any) => ({
+        const recipes = response.data.map((recipe: any) => ({
           id: `spoonacular-${recipe.id}`,
           title: recipe.title,
           imageUrl: recipe.image,
@@ -456,20 +527,30 @@ export const groceriesService = {
           source: 'spoonacular',
           sourceUrl: `https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-').toLowerCase()}-${recipe.id}`
         }));
+
+        // Cache for 1 hour
+        await cacheService.set(cacheKey, recipes, { ttl: 3600 });
+
+        return recipes;
       } catch (error) {
         console.warn('Spoonacular API error, falling back to AI:', error);
       }
     }
 
     // Fallback: Use AI to generate recipe suggestions
-    return groceriesService.generateRecipesWithAI(ingredients, params);
+    const recipes = await cookingService.generateRecipesWithAI(ingredients, params);
+    
+    // Cache for 1 hour
+    await cacheService.set(cacheKey, recipes, { ttl: 3600 });
+    
+    return recipes;
   },
 
   /**
    * Generate recipe suggestions using AI
    */
   generateRecipesWithAI: async (ingredients: string[], params: RecipeSearchParams): Promise<RecipeResult[]> => {
-    const maxTokens = configService.get('groceries.ai.maxTokens', 2000);
+    const maxTokens = configService.get('cooking.ai.maxTokens', 2000);
 
     const prompt = `Based on these available ingredients: ${ingredients.join(', ')}
 
@@ -508,6 +589,7 @@ Respond ONLY with valid JSON:
         id: `ai-${Date.now()}-${index}`,
         title: recipe.title,
         description: recipe.description,
+        imageUrl: recipe.imageUrl || undefined,
         prepTime: recipe.prepTime,
         cookTime: recipe.cookTime,
         servings: recipe.servings,
@@ -540,11 +622,14 @@ Respond ONLY with valid JSON:
         prepTime: recipe.prepTime,
         cookTime: recipe.cookTime,
         servings: recipe.servings,
-        ingredients: recipe.ingredients,
+        ingredients: JSON.parse(JSON.stringify(recipe.ingredients || [])),
         imageUrl: recipe.imageUrl,
         notes
       }
     });
+
+    // Invalidate recipes cache
+    await cacheService.delete(`cooking:${userId}:recipes`);
 
     return saved;
   },
@@ -555,6 +640,11 @@ Respond ONLY with valid JSON:
   getSavedRecipes: async (userId: string, filters?: { mealType?: string; cuisine?: string; favoritesOnly?: boolean }): Promise<any[]> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
+
+    // Check cache first
+    const cacheKey = `cooking:${userId}:recipes:${JSON.stringify(filters || {})}`;
+    const cached = await cacheService.get<any[]>(cacheKey);
+    if (cached) return cached;
 
     const where: any = { userId };
 
@@ -567,7 +657,125 @@ Respond ONLY with valid JSON:
       orderBy: { updatedAt: 'desc' }
     });
 
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, recipes, { ttl: 300 });
+
     return recipes;
+  },
+
+  // ===========================================================================
+  // RECIPE WISHLIST
+  // ===========================================================================
+
+  /**
+   * Add a recipe to user's wishlist
+   */
+  addToWishlist: async (userId: string, recipe: RecipeResult): Promise<any> => {
+    const prisma = getPrisma();
+    if (!prisma) throw new Error('Database not available');
+
+    // Fetch image URL if not provided
+    let imageUrl = recipe.imageUrl;
+    if (!imageUrl) {
+      imageUrl = await cookingService.fetchRecipeImage(recipe.title);
+    }
+
+    const saved = await prisma.savedRecipe.create({
+      data: {
+        userId,
+        title: recipe.title,
+        description: recipe.description,
+        source: recipe.source || 'wishlist',
+        sourceUrl: recipe.sourceUrl,
+        sourceId: recipe.id,
+        prepTime: recipe.prepTime,
+        cookTime: recipe.cookTime,
+        servings: recipe.servings,
+        ingredients: JSON.parse(JSON.stringify(recipe.ingredients || [])),
+        imageUrl,
+        isFavorite: true, // Wishlist items are marked as favorites
+        notes: 'Added to wishlist'
+      }
+    });
+
+    // Invalidate caches
+    await cacheService.delete(`cooking:${userId}:recipes`);
+    await cacheService.delete(`cooking:${userId}:wishlist`);
+
+    return saved;
+  },
+
+  /**
+   * Get user's recipe wishlist
+   */
+  getWishlist: async (userId: string): Promise<any[]> => {
+    const prisma = getPrisma();
+    if (!prisma) throw new Error('Database not available');
+
+    // Check cache first
+    const cacheKey = `cooking:${userId}:wishlist`;
+    const cached = await cacheService.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const recipes = await prisma.savedRecipe.findMany({
+      where: {
+        userId,
+        isFavorite: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, recipes, { ttl: 300 });
+
+    return recipes;
+  },
+
+  /**
+   * Remove a recipe from wishlist
+   */
+  removeFromWishlist: async (userId: string, recipeId: string): Promise<void> => {
+    const prisma = getPrisma();
+    if (!prisma) throw new Error('Database not available');
+
+    await prisma.savedRecipe.delete({
+      where: { id: recipeId, userId }
+    });
+
+    // Invalidate caches
+    await cacheService.delete(`cooking:${userId}:recipes`);
+    await cacheService.delete(`cooking:${userId}:wishlist`);
+  },
+
+  /**
+   * Fetch a recipe image using web search or placeholder
+   */
+  fetchRecipeImage: async (recipeTitle: string): Promise<string> => {
+    // Try using SerpApi for image search
+    const serpApiKey = process.env.SERPAPI_KEY;
+    if (serpApiKey) {
+      try {
+        const response = await axios.get('https://serpapi.com/search', {
+          params: {
+            api_key: serpApiKey,
+            engine: 'google_images',
+            q: `${recipeTitle} recipe food dish`,
+            num: 1
+          },
+          timeout: 5000
+        });
+
+        const images = response.data.images_results || [];
+        if (images.length > 0) {
+          return images[0].original || images[0].thumbnail;
+        }
+      } catch (error) {
+        console.warn('SerpApi image search failed:', error);
+      }
+    }
+
+    // No image found - let frontend handle with placeholder
+    return undefined;
   },
 
   // ===========================================================================
@@ -587,7 +795,7 @@ Respond ONLY with valid JSON:
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
 
-    const autoDetect = configService.get('groceries.invoice.autoDetect', true);
+    const autoDetect = configService.get('cooking.invoice.autoDetect', true);
     if (!autoDetect) {
       return { processed: 0, matched: 0 };
     }
@@ -617,13 +825,13 @@ Respond ONLY with valid JSON:
   },
 
   /**
-   * Use AI to categorize and match invoice items to grocery inventory
+   * Use AI to categorize and match invoice items to inventory
    */
   matchInvoiceItems: async (userId: string, invoiceId: string): Promise<{ matched: number; created: number }> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
 
-    const confidenceThreshold = configService.get('groceries.invoice.confidenceThreshold', 0.7);
+    const confidenceThreshold = configService.get('cooking.invoice.confidenceThreshold', 0.7);
 
     // Get unprocessed items from this invoice
     const invoiceItems = await prisma.groceryInvoiceItem.findMany({
@@ -719,7 +927,7 @@ Respond ONLY with valid JSON:
         });
       }
 
-      await cacheService.delete(`groceries:${userId}:items`);
+      await cacheService.delete(`cooking:${userId}:items`);
 
       return { matched, created };
     } catch (error) {
@@ -733,7 +941,7 @@ Respond ONLY with valid JSON:
   // ===========================================================================
 
   /**
-   * Get grocery inventory summary
+   * Get inventory summary
    */
   getInventorySummary: async (userId: string): Promise<{
     totalItems: number;
@@ -745,12 +953,17 @@ Respond ONLY with valid JSON:
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
 
+    // Check cache first
+    const cacheKey = `cooking:${userId}:summary`;
+    const cached = await cacheService.get<any>(cacheKey);
+    if (cached) return cached;
+
     const items = await prisma.groceryItem.findMany({
       where: { userId }
     });
 
-    const daysAhead = configService.get('groceries.expiryWarning.daysAhead', 3);
-    const lowStockThreshold = configService.get('groceries.lowStock.threshold', 2);
+    const daysAhead = configService.get('cooking.expiryWarning.daysAhead', 3);
+    const lowStockThreshold = configService.get('cooking.lowStock.threshold', 2);
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
@@ -780,13 +993,18 @@ Respond ONLY with valid JSON:
       }
     }
 
-    return {
+    const summary = {
       totalItems: items.length,
       byCategory,
       expiringSoon,
       lowStock,
       totalValue
     };
+
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, summary, { ttl: 300 });
+
+    return summary;
   },
 
   /**
@@ -795,6 +1013,11 @@ Respond ONLY with valid JSON:
   getSuggestions: async (userId: string): Promise<string[]> => {
     const prisma = getPrisma();
     if (!prisma) throw new Error('Database not available');
+
+    // Check cache first
+    const cacheKey = `cooking:${userId}:suggestions`;
+    const cached = await cacheService.get<string[]>(cacheKey);
+    if (cached) return cached;
 
     // Get items that are low or out of stock
     const lowItems = await prisma.groceryItem.findMany({
@@ -809,8 +1032,13 @@ Respond ONLY with valid JSON:
       select: { name: true }
     });
 
-    return lowItems.map(i => i.name);
+    const suggestions = lowItems.map(i => i.name);
+
+    // Cache for 5 minutes
+    await cacheService.set(cacheKey, suggestions, { ttl: 300 });
+
+    return suggestions;
   }
 };
 
-export default groceriesService;
+export default cookingService;

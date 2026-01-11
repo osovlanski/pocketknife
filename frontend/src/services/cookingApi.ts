@@ -1,7 +1,7 @@
 /**
- * Groceries API Service
+ * Cooking API Service
  * 
- * API client for grocery management, shopping lists, and recipes.
+ * API client for kitchen inventory, shopping lists, recipes, and wishlist.
  */
 
 import axios from 'axios';
@@ -9,8 +9,8 @@ import { getStoredEmail } from './authApi';
 import { API_BASE_URL } from '../config';
 
 // Create axios instance with dynamic auth
-const groceriesAxios = axios.create({ baseURL: API_BASE_URL });
-groceriesAxios.interceptors.request.use((config) => {
+const cookingAxios = axios.create({ baseURL: API_BASE_URL });
+cookingAxios.interceptors.request.use((config) => {
   const email = getStoredEmail();
   if (email) {
     config.headers['X-User-Email'] = email;
@@ -22,7 +22,7 @@ groceriesAxios.interceptors.request.use((config) => {
 // TYPES
 // =============================================================================
 
-export interface GroceryItem {
+export interface InventoryItem {
   id: string;
   name: string;
   category?: string;
@@ -39,7 +39,7 @@ export interface GroceryItem {
   updatedAt: string;
 }
 
-export interface GroceryItemData {
+export interface InventoryItemData {
   name: string;
   category?: string;
   quantity?: number;
@@ -52,25 +52,25 @@ export interface GroceryItemData {
   currency?: string;
 }
 
-export interface GroceryFilters {
+export interface CookingFilters {
   status?: string;
   category?: string;
   expiringWithinDays?: number;
   lowStock?: boolean;
 }
 
-export interface GroceryList {
+export interface ShoppingList {
   id: string;
   name: string;
   description?: string;
   listType: string;
   status: string;
-  items: GroceryListItem[];
+  items: ShoppingListItem[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface GroceryListItem {
+export interface ShoppingListItem {
   id: string;
   name: string;
   quantity: number;
@@ -134,40 +134,40 @@ export interface InventorySummary {
 }
 
 // =============================================================================
-// GROCERY ITEMS
+// INVENTORY ITEMS
 // =============================================================================
 
-export const addItem = async (itemData: GroceryItemData): Promise<{ item: GroceryItem }> => {
-  const response = await groceriesAxios.post('/groceries/items', itemData);
+export const addItem = async (itemData: InventoryItemData): Promise<{ item: InventoryItem }> => {
+  const response = await cookingAxios.post('/cooking/items', itemData);
   return response.data;
 };
 
-export const updateItem = async (id: string, itemData: Partial<GroceryItemData>): Promise<{ item: GroceryItem }> => {
-  const response = await groceriesAxios.put(`/groceries/items/${id}`, itemData);
+export const updateItem = async (id: string, itemData: Partial<InventoryItemData>): Promise<{ item: InventoryItem }> => {
+  const response = await cookingAxios.put(`/cooking/items/${id}`, itemData);
   return response.data;
 };
 
 export const deleteItem = async (id: string): Promise<void> => {
-  await groceriesAxios.delete(`/groceries/items/${id}`);
+  await cookingAxios.delete(`/cooking/items/${id}`);
 };
 
-export const getItems = async (filters?: GroceryFilters): Promise<{ items: GroceryItem[] }> => {
-  const response = await groceriesAxios.get('/groceries/items', { params: filters });
+export const getItems = async (filters?: CookingFilters): Promise<{ items: InventoryItem[] }> => {
+  const response = await cookingAxios.get('/cooking/items', { params: filters });
   return response.data;
 };
 
-export const updateItemStatus = async (id: string, status: string): Promise<{ item: GroceryItem }> => {
-  const response = await groceriesAxios.put(`/groceries/items/${id}/status`, { status });
+export const updateItemStatus = async (id: string, status: string): Promise<{ item: InventoryItem }> => {
+  const response = await cookingAxios.put(`/cooking/items/${id}/status`, { status });
   return response.data;
 };
 
-export const getExpiringItems = async (): Promise<{ items: GroceryItem[] }> => {
-  const response = await groceriesAxios.get('/groceries/items/expiring');
+export const getExpiringItems = async (): Promise<{ items: InventoryItem[] }> => {
+  const response = await cookingAxios.get('/cooking/items/expiring');
   return response.data;
 };
 
-export const getLowStockItems = async (): Promise<{ items: GroceryItem[] }> => {
-  const response = await groceriesAxios.get('/groceries/items/low-stock');
+export const getLowStockItems = async (): Promise<{ items: InventoryItem[] }> => {
+  const response = await cookingAxios.get('/cooking/items/low-stock');
   return response.data;
 };
 
@@ -175,31 +175,31 @@ export const getLowStockItems = async (): Promise<{ items: GroceryItem[] }> => {
 // SHOPPING LISTS
 // =============================================================================
 
-export const createList = async (name: string, description?: string): Promise<{ list: GroceryList }> => {
-  const response = await groceriesAxios.post('/groceries/lists', { name, description });
+export const createList = async (name: string, description?: string): Promise<{ list: ShoppingList }> => {
+  const response = await cookingAxios.post('/cooking/lists', { name, description });
   return response.data;
 };
 
-export const getLists = async (): Promise<{ lists: GroceryList[] }> => {
-  const response = await groceriesAxios.get('/groceries/lists');
+export const getLists = async (): Promise<{ lists: ShoppingList[] }> => {
+  const response = await cookingAxios.get('/cooking/lists');
   return response.data;
 };
 
 export const addListItem = async (
   listId: string,
   item: { name: string; quantity?: number; unit?: string; category?: string }
-): Promise<{ item: GroceryListItem }> => {
-  const response = await groceriesAxios.post(`/groceries/lists/${listId}/items`, item);
+): Promise<{ item: ShoppingListItem }> => {
+  const response = await cookingAxios.post(`/cooking/lists/${listId}/items`, item);
   return response.data;
 };
 
-export const toggleListItem = async (itemId: string, isChecked: boolean): Promise<{ item: GroceryListItem }> => {
-  const response = await groceriesAxios.put(`/groceries/lists/items/${itemId}/toggle`, { isChecked });
+export const toggleListItem = async (itemId: string, isChecked: boolean): Promise<{ item: ShoppingListItem }> => {
+  const response = await cookingAxios.put(`/cooking/lists/items/${itemId}/toggle`, { isChecked });
   return response.data;
 };
 
-export const completeList = async (listId: string): Promise<{ list: GroceryList }> => {
-  const response = await groceriesAxios.post(`/groceries/lists/${listId}/complete`);
+export const completeList = async (listId: string): Promise<{ list: ShoppingList }> => {
+  const response = await cookingAxios.post(`/cooking/lists/${listId}/complete`);
   return response.data;
 };
 
@@ -208,12 +208,12 @@ export const completeList = async (listId: string): Promise<{ list: GroceryList 
 // =============================================================================
 
 export const findRecipes = async (params: RecipeSearchParams): Promise<{ recipes: Recipe[] }> => {
-  const response = await groceriesAxios.post('/groceries/recipes/search', params);
+  const response = await cookingAxios.post('/cooking/recipes/search', params);
   return response.data;
 };
 
 export const saveRecipe = async (recipe: Recipe, notes?: string): Promise<{ recipe: SavedRecipe }> => {
-  const response = await groceriesAxios.post('/groceries/recipes', { recipe, notes });
+  const response = await cookingAxios.post('/cooking/recipes', { recipe, notes });
   return response.data;
 };
 
@@ -222,8 +222,26 @@ export const getSavedRecipes = async (filters?: {
   cuisine?: string;
   favoritesOnly?: boolean;
 }): Promise<{ recipes: SavedRecipe[] }> => {
-  const response = await groceriesAxios.get('/groceries/recipes', { params: filters });
+  const response = await cookingAxios.get('/cooking/recipes', { params: filters });
   return response.data;
+};
+
+// =============================================================================
+// RECIPE WISHLIST
+// =============================================================================
+
+export const addToWishlist = async (recipe: Recipe): Promise<{ recipe: SavedRecipe }> => {
+  const response = await cookingAxios.post('/cooking/wishlist', { recipe });
+  return response.data;
+};
+
+export const getWishlist = async (): Promise<{ wishlist: SavedRecipe[] }> => {
+  const response = await cookingAxios.get('/cooking/wishlist');
+  return response.data;
+};
+
+export const removeFromWishlist = async (id: string): Promise<void> => {
+  await cookingAxios.delete(`/cooking/wishlist/${id}`);
 };
 
 // =============================================================================
@@ -231,12 +249,12 @@ export const getSavedRecipes = async (filters?: {
 // =============================================================================
 
 export const getSummary = async (): Promise<{ summary: InventorySummary }> => {
-  const response = await groceriesAxios.get('/groceries/summary');
+  const response = await cookingAxios.get('/cooking/summary');
   return response.data;
 };
 
 export const getSuggestions = async (): Promise<{ suggestions: string[] }> => {
-  const response = await groceriesAxios.get('/groceries/suggestions');
+  const response = await cookingAxios.get('/cooking/suggestions');
   return response.data;
 };
 
@@ -244,7 +262,7 @@ export const getSuggestions = async (): Promise<{ suggestions: string[] }> => {
 // CONSTANTS
 // =============================================================================
 
-export const GROCERY_CATEGORIES = [
+export const COOKING_CATEGORIES = [
   { value: 'produce', label: '🥬 Produce', color: '#22C55E' },
   { value: 'dairy', label: '🥛 Dairy', color: '#60A5FA' },
   { value: 'meat', label: '🥩 Meat', color: '#EF4444' },

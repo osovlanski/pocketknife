@@ -104,7 +104,7 @@ select option {
   padding: 0.5rem;
 }
 
-/* For light-themed selects (like Groceries agent) */
+/* For light-themed selects (like Cooking agent) */
 select.light-select option,
 .light-theme select option {
   background-color: white !important;

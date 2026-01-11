@@ -6005,3 +6005,584 @@ diff --git a/CLOUD_SETUP.md b/CLOUD_SETUP.md
 [2026-01-10T11:31:42.785Z] ═══════════════════════════════════════════════════════
 [2026-01-10T11:31:42.786Z] 
 [2026-01-10T13:31:43+02:00] Push APPROVED
+[2026-01-11T10:23:39+02:00] Pre-push hook triggered
+[2026-01-11T08:23:40.820Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-11T08:23:40.831Z] 📋 Minimum passing score: 80/100
+[2026-01-11T08:23:40.833Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-11T08:23:40.837Z] 
+[2026-01-11T08:23:40.839Z] ════════════════════════════════════════════════════════════
+[2026-01-11T08:23:40.841Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-11T08:23:40.842Z] ════════════════════════════════════════════════════════════
+[2026-01-11T08:23:40.844Z] 
+[2026-01-11T08:23:40.874Z] 📅 Review started at: 1/11/2026, 10:23:40 AM
+[2026-01-11T08:23:40.875Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-11T08:23:40.876Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-11T08:23:40.877Z] ────────────────────────────────────────
+[2026-01-11T08:23:41.237Z] ✅ Git repository detected
+[2026-01-11T08:23:41.238Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-11T08:23:41.240Z] ────────────────────────────────────────
+[2026-01-11T08:23:41.609Z] 📍 Current branch: feature/groceries-agent
+[2026-01-11T08:23:41.610Z] 🎯 Comparing against: main
+[2026-01-11T08:23:42.025Z] ✅ Base branch 'main' exists
+[2026-01-11T08:23:42.027Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-11T08:23:42.028Z] ────────────────────────────────────────
+[2026-01-11T08:23:43.475Z] 
+▶ Step 4: Change Summary
+[2026-01-11T08:23:43.477Z] ────────────────────────────────────────
+[2026-01-11T08:23:43.478Z]  .cursor/rules/add-new-agent.mdc                    | 653 +++++++++++++++++
+ .github/workflows/deploy.yml                       |   1 +
+ .github/workflows/pr-check.yml                     |   1 +
+ CLOUD_SETUP.md                                     |   1 +
+ DATABASE_MIGRATIONS.md                             |   1 +
+ GOOGLE_SETUP.md                                    |   1 +
+ README.md                                          |  25 +
+ backend/.dockerignore                              |   1 +
+ backend/.gitignore                                 |   1 +
+ backend/Dockerfile                                 |   1 +
+ backend/env.example                                |  18 +
+ backend/package-lock.json                          |  10 +
+ backend/package.json                               |   2 +
+ backend/prisma/schema.prisma                       | 193 +++++
+ backend/railway.json                               |   1 +
+ backend/src/agents/GroceriesAgent.ts               | 457 ++++++++++++
+ backend/src/agents/index.ts                        |   3 +
+ backend/src/controllers/adminController.ts         |  31 +-
+ backend/src/controllers/agentController.ts         |  31 +
+ backend/src/controllers/groceriesController.ts     | 508 +++++++++++++
+ backend/src/controllers/learningController.ts      |   5 +-
+ backend/src/data/companyMappings.ts                |   1 +
+ backend/src/data/curatedProblems.ts                |   1 +
+ backend/src/index.ts                               |  58 +-
+ backend/src/routes/admin.ts                        |   1 +
+ backend/src/routes/agents.ts                       |   1 +
+ backend/src/routes/auth.ts                         |  75 +-
+ backend/src/routes/groceries.ts                    |  52 ++
+ backend/src/routes/index.ts                        |   4 +
+ backend/src/routes/settings.ts                     |  54 ++
+ backend/src/routes/shopping.ts                     |   1 +
+ backend/src/services/core/configService.ts         |  33 +
+ backend/src/services/core/externalApiService.ts    |  47 ++
+ backend/src/services/core/googleSearchService.ts   |   1 +
+ backend/src/services/email/emailPatternService.ts  |   1 +
+ backend/src/services/groceries/groceriesService.ts | 816 +++++++++++++++++++++
+ backend/src/services/groceries/index.ts            |  13 +
+ backend/src/services/index.ts                      |   4 +
+ .../src/services/integrations/facebookService.ts   | 184 +++++
+ backend/src/services/integrations/index.ts         |  20 +
+ .../services/integrations/meiliSearchService.ts    | 277 +++++++
+ backend/src/services/integrations/notionService.ts | 329 +++++++++
+ .../src/services/integrations/serpApiService.ts    | 239 ++++++
+ backend/src/services/jobs/index.ts                 |   1 +
+ backend/src/services/learning/index.ts             |   1 +
+ .../notifications/discordNotificationService.ts    |  34 +-
+ backend/src/services/notifications/index.ts        |   1 +
+ backend/src/services/problemSolving/index.ts       |   1 +
+ backend/src/services/shopping/zapScraperService.ts |   1 +
+ backend/src/services/travel/index.ts               |   1 +
+ backend/src/utils/anthropicClient.ts               |   1 +
+ backend/src/utils/emailProcessor.ts                |  92 ++-
+ frontend/public/favicon.svg                        |   1 +
+ frontend/src/App.tsx                               |  11 +-
+ frontend/src/components/AISummaryModal.tsx         |   1 +
+ frontend/src/components/GroceriesAgent.tsx         | 738 +++++++++++++++++++
+ frontend/src/components/HomePage.tsx               |  12 +-
+ frontend/src/components/SearchButton.tsx           |   1 +
+ frontend/src/components/SettingsPage.tsx           | 202 ++++-
+ frontend/src/components/common/Button.tsx          |   1 +
+ frontend/src/components/common/Header.tsx          |   3 +-
+ frontend/src/components/common/Modal.tsx           |   1 +
+ frontend/src/components/common/SignInModal.tsx     | 117 ++-
+ frontend/src/components/common/Toast.tsx           |   1 +
+ frontend/src/components/common/UserMenu.tsx        |   1 +
+ frontend/src/components/common/index.ts            |   1 +
+ frontend/src/hooks/index.ts                        |   2 +
+ frontend/src/hooks/useAutocomplete.ts              |   1 +
+ frontend/src/hooks/useGroceries.ts                 | 365 +++++++++
+ frontend/src/hooks/useLearning.ts                  |   1 +
+ frontend/src/hooks/useNotification.ts              |   1 +
+ frontend/src/hooks/useProblems.ts                  |   1 +
+ frontend/src/hooks/useSettings.ts                  |   1 +
+ frontend/src/hooks/useTodo.ts                      |   1 +
+ frontend/src/services/api.ts                       |   3 +-
+ frontend/src/services/authApi.ts                   | 122 +++
+ frontend/src/services/configApi.ts                 |   4 +-
+ frontend/src/services/groceriesApi.ts              | 266 +++++++
+ frontend/src/styles/admin.module.css               |   1 +
+ frontend/src/styles/common.module.css              |   1 +
+ frontend/src/styles/gmail.module.css               |   1 +
+ frontend/src/styles/groceries.module.css           | 805 ++++++++++++++++++++
+ frontend/src/styles/learning.module.css            |   1 +
+ frontend/src/styles/modal.module.css               |  71 ++
+ frontend/src/styles/problems.module.css            |   1 +
+ frontend/src/styles/settings.module.css            |   1 +
+ frontend/src/types/css.d.ts                        |   1 +
+ frontend/vercel.json                               |   1 +
+ 88 files changed, 6975 insertions(+), 58 deletions(-)
+
+[2026-01-11T08:23:43.479Z] 📊 Files changed: 88
+[2026-01-11T08:23:43.481Z] ➕ Lines added: 6975
+[2026-01-11T08:23:43.482Z] ➖ Lines removed: 58
+[2026-01-11T08:23:43.483Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-11T08:23:43.484Z] ────────────────────────────────────────
+[2026-01-11T08:23:43.486Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T08:23:43.489Z] new file mode 100644
+[2026-01-11T08:23:43.490Z] index 0000000..f4d90a8
+[2026-01-11T08:23:43.492Z] --- /dev/null
+[2026-01-11T08:23:43.493Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T08:23:43.494Z] @@ -0,0 +1,653 @@
+[2026-01-11T08:23:43.496Z] +---
+[2026-01-11T08:23:43.497Z] +description: Step-by-step guide for adding a new agent to the Pocketknife platform. Triggered by 'add agent', 'new agent', 'create agent'.
+[2026-01-11T08:23:43.498Z] +globs: **/*
+[2026-01-11T08:23:43.500Z] +alwaysApply: false
+[2026-01-11T08:23:43.502Z] +---
+[2026-01-11T08:23:43.503Z] +
+[2026-01-11T08:23:43.505Z] +# Adding a New Agent to Pocketknife
+[2026-01-11T08:23:43.506Z] +
+[2026-01-11T08:23:43.507Z] +This guide outlines the complete process for adding a new agent to the Pocketknife platform. Follow this checklist to ensure consistency across all agents.
+[2026-01-11T08:23:43.509Z] +
+[2026-01-11T08:23:43.510Z] +## Quick Checklist
+[2026-01-11T08:23:43.511Z] +
+[2026-01-11T08:23:43.513Z] +| Step | Backend | Frontend | Database |
+[2026-01-11T08:23:43.514Z] +|:---:|:---|:---|:---|
+[2026-01-11T08:23:43.516Z] +| 1 | ☐ Prisma Schema | ☐ Types | ☐ Models |
+[2026-01-11T08:23:43.518Z] +| 2 | ☐ Service | ☐ API Service | - |
+[2026-01-11T08:23:43.519Z] +| 3 | ☐ Agent Class | ☐ Hook | - |
+[2026-01-11T08:23:43.520Z] +| 4 | ☐ Controller | ☐ Component | - |
+[2026-01-11T08:23:43.523Z] +| 5 | ☐ Routes | ☐ App.tsx Tab | - |
+[2026-01-11T08:23:43.524Z] +| 6 | ☐ Config Entries | ☐ Styles | - |
+[2026-01-11T08:23:43.526Z] +| 7 | ☐ Register Agent | - | - |
+[2026-01-11T08:23:43.527Z] +
+[2026-01-11T08:23:43.528Z] +---
+[2026-01-11T08:23:43.529Z] +
+[2026-01-11T08:23:43.530Z] +## Step 1: Database Schema (Prisma)
+[2026-01-11T08:23:43.531Z] +
+[2026-01-11T08:23:43.533Z] +### File: `backend/prisma/schema.prisma`
+[2026-01-11T08:23:43.535Z] +
+[2026-01-11T08:23:43.537Z] +Add your models at the end of the file:
+[2026-01-11T08:23:43.539Z] +
+[2026-01-11T08:23:43.541Z] +```prisma
+[2026-01-11T08:23:43.542Z] +// =============================================================================
+[2026-01-11T08:23:43.543Z] +// YOUR_AGENT_NAME AGENT
+[2026-01-11T08:23:43.544Z] +// =============================================================================
+[2026-01-11T08:23:43.545Z] +
+[2026-01-11T08:23:43.546Z] +model YourModel {
+[2026-01-11T08:23:43.547Z] +  id        String   @id @default(uuid())
+[2026-01-11T08:23:43.549Z] +  userId    String
+[2026-01-11T08:23:43.550Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-11T08:23:43.553Z] +  
+[2026-01-11T08:23:43.554Z] +  // Your fields here
+[2026-01-11T08:23:43.555Z] +  name      String
+[2026-01-11T08:23:43.556Z] +  status    String   @default("active")
+[2026-01-11T08:23:43.558Z] +  
+[2026-01-11T08:23:43.560Z] +  createdAt DateTime @default(now())
+[2026-01-11T08:23:43.562Z] +  updatedAt DateTime @updatedAt
+[2026-01-11T08:23:43.564Z] +
+[2026-01-11T08:23:43.566Z] +  @@index([userId])
+[2026-01-11T08:23:43.569Z] +}
+[2026-01-11T08:23:43.571Z] +```
+[2026-01-11T08:23:43.573Z] +
+[2026-01-11T08:23:43.574Z] +### Add User Relations
+[2026-01-11T08:23:43.576Z] +
+[2026-01-11T08:23:43.578Z] +In the `User` model, add your agent's relations:
+[2026-01-11T08:23:43.579Z] +
+[2026-01-11T08:23:43.581Z] +```prisma
+[2026-01-11T08:23:43.582Z] +model User {
+[2026-01-11T08:23:43.584Z] +  // ... existing relations ...
+[2026-01-11T08:23:43.586Z] +  
+[2026-01-11T08:23:43.587Z] +  // YourAgent relations
+[2026-01-11T08:23:43.589Z] +  yourModels    YourModel[]
+[2026-01-11T08:23:43.591Z] +}
+[2026-01-11T08:23:43.593Z] +```
+[2026-01-11T08:23:43.594Z] +
+[2026-01-11T08:23:43.595Z] +### Run Migration
+[2026-01-11T08:23:43.597Z] +
+[2026-01-11T08:23:43.599Z] +```bash
+[2026-01-11T08:23:43.600Z] +cd backend && npx prisma migrate dev --name add_your_agent
+[2026-01-11T08:23:43.602Z] +```
+[2026-01-11T08:23:43.604Z] +
+[2026-01-11T08:23:43.606Z] +---
+[2026-01-11T08:23:43.607Z] +
+[2026-01-11T08:23:43.609Z] +## Step 2: Backend Service
+[2026-01-11T08:23:43.610Z] +
+[2026-01-11T08:23:43.611Z] +### File: `backend/src/services/yourAgent/yourAgentService.ts`
+[2026-01-11T08:23:43.612Z] +
+[2026-01-11T08:23:43.613Z] +```typescript
+[2026-01-11T08:23:43.615Z] +/**
+[2026-01-11T08:23:43.617Z] + * YourAgent Service
+[2026-01-11T08:23:43.618Z] + * 
+[2026-01-11T08:23:43.619Z] + * Business logic for your agent.
+[2026-01-11T08:23:43.620Z] + */
+[2026-01-11T08:23:43.622Z] +
+[2026-01-11T08:23:43.624Z] +import { getPrisma } from '../core/databaseService';
+[2026-01-11T08:23:43.625Z] +import { configService } from '../core/configService';
+[2026-01-11T08:23:43.626Z] +import claudeService from '../core/claudeService';
+[2026-01-11T08:23:43.628Z] +
+[2026-01-11T08:23:43.628Z] +export interface YourDataType {
+[2026-01-11T08:23:43.630Z] +  name: string;
+[2026-01-11T08:23:43.631Z] +  // ... your fields
+[2026-01-11T08:23:43.632Z] +}
+[2026-01-11T08:23:43.634Z] +
+[2026-01-11T08:23:43.636Z] +export const yourAgentService = {
+[2026-01-11T08:23:43.637Z] +  /**
+[2026-01-11T08:23:43.643Z] 
+... and 8003 more lines
+[2026-01-11T08:23:43.644Z] 
+▶ Step 6: Running Tests
+[2026-01-11T08:23:43.645Z] ────────────────────────────────────────
+[2026-01-11T08:23:43.646Z] 🧪 Running test suites...
+[2026-01-11T08:23:43.648Z]    Running backend tests...
+[2026-01-11T08:24:16.020Z]    ✅ Backend tests passed
+[2026-01-11T08:24:16.024Z]    Running frontend tests...
+[2026-01-11T08:25:02.230Z]    ✅ Frontend tests passed
+[2026-01-11T08:25:02.236Z] ✅ All tests passed!
+[2026-01-11T08:25:02.238Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-11T08:25:02.240Z] ────────────────────────────────────────
+[2026-01-11T08:25:02.292Z] 
+🔴 Critical Issues Found:
+[2026-01-11T08:25:02.294Z]    🔴 Hardcoded port number: Found 4 instance(s)
+[2026-01-11T08:25:02.295Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T08:25:02.298Z]    🔴 Hardcoded external URL: Found 12 instance(s)
+[2026-01-11T08:25:02.299Z] 
+🟡 Warnings:
+[2026-01-11T08:25:02.301Z]    🟡 console.log usage: 80 instance(s) - Consider using proper logger
+[2026-01-11T08:25:02.303Z]    🟡 'any' type usage: 80 instance(s) - Prefer explicit types
+[2026-01-11T08:25:02.305Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-11T08:25:02.306Z] 
+▶ Step 8: Manual Review Required
+[2026-01-11T08:25:02.307Z] ────────────────────────────────────────
+[2026-01-11T08:25:02.308Z] 
+[2026-01-11T08:25:02.309Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T08:25:02.311Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-11T08:25:02.312Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-11T08:25:02.318Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-11T08:25:02.320Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T08:25:02.322Z] 
+[2026-01-11T08:25:02.324Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-11T08:25:02.328Z] 
+[2026-01-11T08:25:02.329Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-11T08:25:02.332Z] 
+[2026-01-11T08:25:02.334Z] 
+▶ Step 9: Push Confirmation
+[2026-01-11T08:25:02.336Z] ────────────────────────────────────────
+[2026-01-11T08:25:02.341Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-11T08:25:02.343Z] 📝 Pre-push automated score: 0
+[2026-01-11T08:25:02.346Z] 
+[2026-01-11T08:25:02.348Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T08:25:02.350Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-11T08:25:02.352Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T08:25:02.354Z] 
+[2026-01-11T08:25:02.356Z]    Score: 0/100 (Minimum required: 80)
+[2026-01-11T08:25:02.357Z] 
+[2026-01-11T08:25:02.360Z]    Fix the following issues before pushing:
+[2026-01-11T08:25:02.362Z]    🔴 Hardcoded port number: Found 4 instance(s)
+[2026-01-11T08:25:02.364Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T08:25:02.367Z]    🔴 Hardcoded external URL: Found 12 instance(s)
+[2026-01-11T08:25:02.369Z] 
+[2026-01-11T08:25:02.371Z]    Also consider fixing these warnings:
+[2026-01-11T08:25:02.373Z]    🟡 console.log usage: 80 instance(s) - Consider using proper logger
+[2026-01-11T08:25:02.375Z]    🟡 'any' type usage: 80 instance(s) - Prefer explicit types
+[2026-01-11T08:25:02.377Z] 
+[2026-01-11T08:25:02.378Z]    After fixing, run: git push
+[2026-01-11T08:25:02.380Z] 
+[2026-01-11T08:25:02.382Z] BLOCKED - Automated score: 0/100 (min: 80)
+[2026-01-11T10:25:03+02:00] Push BLOCKED - Exit code: 1
+[2026-01-11T13:37:19+02:00] Pre-push hook triggered
+[2026-01-11T11:37:20.971Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-11T11:37:20.985Z] 📋 Minimum passing score: 80/100
+[2026-01-11T11:37:20.986Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-11T11:37:20.989Z] 
+[2026-01-11T11:37:20.991Z] ════════════════════════════════════════════════════════════
+[2026-01-11T11:37:20.993Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-11T11:37:20.994Z] ════════════════════════════════════════════════════════════
+[2026-01-11T11:37:20.995Z] 
+[2026-01-11T11:37:21.028Z] 📅 Review started at: 1/11/2026, 1:37:20 PM
+[2026-01-11T11:37:21.029Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-11T11:37:21.030Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-11T11:37:21.031Z] ────────────────────────────────────────
+[2026-01-11T11:37:21.485Z] ✅ Git repository detected
+[2026-01-11T11:37:21.486Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-11T11:37:21.487Z] ────────────────────────────────────────
+[2026-01-11T11:37:21.868Z] 📍 Current branch: feature/groceries-agent
+[2026-01-11T11:37:21.870Z] 🎯 Comparing against: main
+[2026-01-11T11:37:22.258Z] ✅ Base branch 'main' exists
+[2026-01-11T11:37:22.260Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-11T11:37:22.261Z] ────────────────────────────────────────
+[2026-01-11T11:37:24.093Z] 
+▶ Step 4: Change Summary
+[2026-01-11T11:37:24.094Z] ────────────────────────────────────────
+[2026-01-11T11:37:24.097Z]  .cursor/rules/add-new-agent.mdc                    | 653 +++++++++++++++++
+ .github/workflows/deploy.yml                       |   1 +
+ .github/workflows/pr-check.yml                     |   1 +
+ CLOUD_SETUP.md                                     |   1 +
+ DATABASE_MIGRATIONS.md                             |   1 +
+ GOOGLE_SETUP.md                                    |   1 +
+ README.md                                          |  25 +
+ backend/.dockerignore                              |   1 +
+ backend/.gitignore                                 |   1 +
+ backend/Dockerfile                                 |   1 +
+ backend/env.example                                |  18 +
+ backend/package-lock.json                          |  10 +
+ backend/package.json                               |   2 +
+ backend/prisma/schema.prisma                       | 193 +++++
+ backend/railway.json                               |   1 +
+ backend/src/agents/GroceriesAgent.ts               | 457 ++++++++++++
+ backend/src/agents/index.ts                        |   3 +
+ backend/src/controllers/adminController.ts         |  31 +-
+ backend/src/controllers/agentController.ts         |  31 +
+ backend/src/controllers/groceriesController.ts     | 508 +++++++++++++
+ backend/src/controllers/learningController.ts      |   5 +-
+ backend/src/data/companyMappings.ts                |   1 +
+ backend/src/data/curatedProblems.ts                |   1 +
+ backend/src/index.ts                               |  58 +-
+ backend/src/routes/admin.ts                        |   1 +
+ backend/src/routes/agents.ts                       |   1 +
+ backend/src/routes/auth.ts                         |  75 +-
+ backend/src/routes/groceries.ts                    |  52 ++
+ backend/src/routes/index.ts                        |   4 +
+ backend/src/routes/settings.ts                     |  54 ++
+ backend/src/routes/shopping.ts                     |   1 +
+ backend/src/services/core/configService.ts         |  33 +
+ backend/src/services/core/externalApiService.ts    |  47 ++
+ backend/src/services/core/googleSearchService.ts   |   1 +
+ backend/src/services/email/emailPatternService.ts  |   1 +
+ backend/src/services/groceries/groceriesService.ts | 816 +++++++++++++++++++++
+ backend/src/services/groceries/index.ts            |  13 +
+ backend/src/services/index.ts                      |   4 +
+ .../src/services/integrations/facebookService.ts   | 184 +++++
+ backend/src/services/integrations/index.ts         |  20 +
+ .../services/integrations/meiliSearchService.ts    | 277 +++++++
+ backend/src/services/integrations/notionService.ts | 329 +++++++++
+ .../src/services/integrations/serpApiService.ts    | 239 ++++++
+ backend/src/services/jobs/index.ts                 |   1 +
+ backend/src/services/learning/index.ts             |   1 +
+ .../notifications/discordNotificationService.ts    |  34 +-
+ backend/src/services/notifications/index.ts        |   1 +
+ backend/src/services/problemSolving/index.ts       |   1 +
+ backend/src/services/shopping/zapScraperService.ts |   1 +
+ backend/src/services/travel/index.ts               |   1 +
+ backend/src/utils/anthropicClient.ts               |   1 +
+ backend/src/utils/emailProcessor.ts                |  92 ++-
+ backend/tests/agents/groceriesAgent.test.ts        | 240 ++++++
+ backend/tests/services/groceriesService.test.ts    | 370 ++++++++++
+ frontend/public/favicon.svg                        |   1 +
+ frontend/src/App.tsx                               |  11 +-
+ frontend/src/components/AISummaryModal.tsx         |   1 +
+ frontend/src/components/GroceriesAgent.tsx         | 738 +++++++++++++++++++
+ frontend/src/components/HomePage.tsx               |  12 +-
+ frontend/src/components/SearchButton.tsx           |   1 +
+ frontend/src/components/SettingsPage.tsx           | 202 ++++-
+ frontend/src/components/common/Button.tsx          |   1 +
+ frontend/src/components/common/Header.tsx          |   3 +-
+ frontend/src/components/common/Modal.tsx           |   1 +
+ frontend/src/components/common/SignInModal.tsx     | 117 ++-
+ frontend/src/components/common/Toast.tsx           |   1 +
+ frontend/src/components/common/UserMenu.tsx        |   1 +
+ frontend/src/components/common/index.ts            |   1 +
+ frontend/src/hooks/index.ts                        |   2 +
+ frontend/src/hooks/useAutocomplete.ts              |   1 +
+ frontend/src/hooks/useGroceries.ts                 | 365 +++++++++
+ frontend/src/hooks/useLearning.ts                  |   1 +
+ frontend/src/hooks/useNotification.ts              |   1 +
+ frontend/src/hooks/useProblems.ts                  |   1 +
+ frontend/src/hooks/useSettings.ts                  |   1 +
+ frontend/src/hooks/useTodo.ts                      |   1 +
+ frontend/src/index.css                             |  20 +
+ frontend/src/services/api.ts                       |   3 +-
+ frontend/src/services/authApi.ts                   | 122 +++
+ frontend/src/services/configApi.ts                 |   4 +-
+ frontend/src/services/groceriesApi.ts              | 266 +++++++
+ frontend/src/styles/admin.module.css               |   1 +
+ frontend/src/styles/common.module.css              |   1 +
+ frontend/src/styles/gmail.module.css               |   1 +
+ frontend/src/styles/groceries.module.css           | 805 ++++++++++++++++++++
+ frontend/src/styles/learning.module.css            |   1 +
+ frontend/src/styles/modal.module.css               |  71 ++
+ frontend/src/styles/problems.module.css            |   1 +
+ frontend/src/styles/settings.module.css            |   1 +
+ frontend/src/types/css.d.ts                        |   1 +
+ frontend/vercel.json                               |   1 +
+ 91 files changed, 7605 insertions(+), 58 deletions(-)
+
+[2026-01-11T11:37:24.099Z] 📊 Files changed: 91
+[2026-01-11T11:37:24.100Z] ➕ Lines added: 7605
+[2026-01-11T11:37:24.101Z] ➖ Lines removed: 58
+[2026-01-11T11:37:24.102Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-11T11:37:24.103Z] ────────────────────────────────────────
+[2026-01-11T11:37:24.107Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T11:37:24.108Z] new file mode 100644
+[2026-01-11T11:37:24.109Z] index 0000000..f4d90a8
+[2026-01-11T11:37:24.110Z] --- /dev/null
+[2026-01-11T11:37:24.111Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-11T11:37:24.113Z] @@ -0,0 +1,653 @@
+[2026-01-11T11:37:24.114Z] +---
+[2026-01-11T11:37:24.114Z] +description: Step-by-step guide for adding a new agent to the Pocketknife platform. Triggered by 'add agent', 'new agent', 'create agent'.
+[2026-01-11T11:37:24.116Z] +globs: **/*
+[2026-01-11T11:37:24.117Z] +alwaysApply: false
+[2026-01-11T11:37:24.119Z] +---
+[2026-01-11T11:37:24.120Z] +
+[2026-01-11T11:37:24.122Z] +# Adding a New Agent to Pocketknife
+[2026-01-11T11:37:24.124Z] +
+[2026-01-11T11:37:24.126Z] +This guide outlines the complete process for adding a new agent to the Pocketknife platform. Follow this checklist to ensure consistency across all agents.
+[2026-01-11T11:37:24.127Z] +
+[2026-01-11T11:37:24.128Z] +## Quick Checklist
+[2026-01-11T11:37:24.129Z] +
+[2026-01-11T11:37:24.130Z] +| Step | Backend | Frontend | Database |
+[2026-01-11T11:37:24.131Z] +|:---:|:---|:---|:---|
+[2026-01-11T11:37:24.132Z] +| 1 | ☐ Prisma Schema | ☐ Types | ☐ Models |
+[2026-01-11T11:37:24.133Z] +| 2 | ☐ Service | ☐ API Service | - |
+[2026-01-11T11:37:24.135Z] +| 3 | ☐ Agent Class | ☐ Hook | - |
+[2026-01-11T11:37:24.136Z] +| 4 | ☐ Controller | ☐ Component | - |
+[2026-01-11T11:37:24.137Z] +| 5 | ☐ Routes | ☐ App.tsx Tab | - |
+[2026-01-11T11:37:24.139Z] +| 6 | ☐ Config Entries | ☐ Styles | - |
+[2026-01-11T11:37:24.140Z] +| 7 | ☐ Register Agent | - | - |
+[2026-01-11T11:37:24.142Z] +
+[2026-01-11T11:37:24.144Z] +---
+[2026-01-11T11:37:24.145Z] +
+[2026-01-11T11:37:24.147Z] +## Step 1: Database Schema (Prisma)
+[2026-01-11T11:37:24.148Z] +
+[2026-01-11T11:37:24.149Z] +### File: `backend/prisma/schema.prisma`
+[2026-01-11T11:37:24.150Z] +
+[2026-01-11T11:37:24.151Z] +Add your models at the end of the file:
+[2026-01-11T11:37:24.152Z] +
+[2026-01-11T11:37:24.153Z] +```prisma
+[2026-01-11T11:37:24.154Z] +// =============================================================================
+[2026-01-11T11:37:24.156Z] +// YOUR_AGENT_NAME AGENT
+[2026-01-11T11:37:24.158Z] +// =============================================================================
+[2026-01-11T11:37:24.159Z] +
+[2026-01-11T11:37:24.160Z] +model YourModel {
+[2026-01-11T11:37:24.162Z] +  id        String   @id @default(uuid())
+[2026-01-11T11:37:24.163Z] +  userId    String
+[2026-01-11T11:37:24.165Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-11T11:37:24.166Z] +  
+[2026-01-11T11:37:24.167Z] +  // Your fields here
+[2026-01-11T11:37:24.168Z] +  name      String
+[2026-01-11T11:37:24.169Z] +  status    String   @default("active")
+[2026-01-11T11:37:24.170Z] +  
+[2026-01-11T11:37:24.172Z] +  createdAt DateTime @default(now())
+[2026-01-11T11:37:24.174Z] +  updatedAt DateTime @updatedAt
+[2026-01-11T11:37:24.175Z] +
+[2026-01-11T11:37:24.176Z] +  @@index([userId])
+[2026-01-11T11:37:24.178Z] +}
+[2026-01-11T11:37:24.180Z] +```
+[2026-01-11T11:37:24.181Z] +
+[2026-01-11T11:37:24.182Z] +### Add User Relations
+[2026-01-11T11:37:24.183Z] +
+[2026-01-11T11:37:24.185Z] +In the `User` model, add your agent's relations:
+[2026-01-11T11:37:24.186Z] +
+[2026-01-11T11:37:24.187Z] +```prisma
+[2026-01-11T11:37:24.189Z] +model User {
+[2026-01-11T11:37:24.190Z] +  // ... existing relations ...
+[2026-01-11T11:37:24.192Z] +  
+[2026-01-11T11:37:24.193Z] +  // YourAgent relations
+[2026-01-11T11:37:24.194Z] +  yourModels    YourModel[]
+[2026-01-11T11:37:24.196Z] +}
+[2026-01-11T11:37:24.197Z] +```
+[2026-01-11T11:37:24.199Z] +
+[2026-01-11T11:37:24.200Z] +### Run Migration
+[2026-01-11T11:37:24.201Z] +
+[2026-01-11T11:37:24.202Z] +```bash
+[2026-01-11T11:37:24.203Z] +cd backend && npx prisma migrate dev --name add_your_agent
+[2026-01-11T11:37:24.204Z] +```
+[2026-01-11T11:37:24.205Z] +
+[2026-01-11T11:37:24.206Z] +---
+[2026-01-11T11:37:24.207Z] +
+[2026-01-11T11:37:24.208Z] +## Step 2: Backend Service
+[2026-01-11T11:37:24.209Z] +
+[2026-01-11T11:37:24.210Z] +### File: `backend/src/services/yourAgent/yourAgentService.ts`
+[2026-01-11T11:37:24.212Z] +
+[2026-01-11T11:37:24.213Z] +```typescript
+[2026-01-11T11:37:24.215Z] +/**
+[2026-01-11T11:37:24.216Z] + * YourAgent Service
+[2026-01-11T11:37:24.217Z] + * 
+[2026-01-11T11:37:24.218Z] + * Business logic for your agent.
+[2026-01-11T11:37:24.220Z] + */
+[2026-01-11T11:37:24.221Z] +
+[2026-01-11T11:37:24.224Z] +import { getPrisma } from '../core/databaseService';
+[2026-01-11T11:37:24.225Z] +import { configService } from '../core/configService';
+[2026-01-11T11:37:24.226Z] +import claudeService from '../core/claudeService';
+[2026-01-11T11:37:24.228Z] +
+[2026-01-11T11:37:24.229Z] +export interface YourDataType {
+[2026-01-11T11:37:24.231Z] +  name: string;
+[2026-01-11T11:37:24.233Z] +  // ... your fields
+[2026-01-11T11:37:24.234Z] +}
+[2026-01-11T11:37:24.235Z] +
+[2026-01-11T11:37:24.236Z] +export const yourAgentService = {
+[2026-01-11T11:37:24.238Z] +  /**
+[2026-01-11T11:37:24.243Z] 
+... and 8653 more lines
+[2026-01-11T11:37:24.245Z] 
+▶ Step 6: Running Tests
+[2026-01-11T11:37:24.247Z] ────────────────────────────────────────
+[2026-01-11T11:37:24.248Z] 🧪 Running test suites...
+[2026-01-11T11:37:24.249Z]    Running backend tests...
+[2026-01-11T11:38:06.055Z]    ✅ Backend tests passed
+[2026-01-11T11:38:06.057Z]    Running frontend tests...
+[2026-01-11T11:39:00.690Z]    ✅ Frontend tests passed
+[2026-01-11T11:39:00.694Z] ✅ All tests passed!
+[2026-01-11T11:39:00.695Z] 
+▶ Step 7: Automated Quality Checks
+[2026-01-11T11:39:00.697Z] ────────────────────────────────────────
+[2026-01-11T11:39:00.748Z] 
+🔴 Critical Issues Found:
+[2026-01-11T11:39:00.751Z]    🔴 Hardcoded port number: Found 4 instance(s)
+[2026-01-11T11:39:00.752Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T11:39:00.755Z]    🔴 Hardcoded external URL: Found 12 instance(s)
+[2026-01-11T11:39:00.757Z] 
+🟡 Warnings:
+[2026-01-11T11:39:00.758Z]    🟡 console.log usage: 80 instance(s) - Consider using proper logger
+[2026-01-11T11:39:00.759Z]    🟡 'any' type usage: 80 instance(s) - Prefer explicit types
+[2026-01-11T11:39:00.760Z] 
+📊 Automated Pre-Score: 0/100
+[2026-01-11T11:39:00.761Z] 
+▶ Step 8: Manual Review Required
+[2026-01-11T11:39:00.762Z] ────────────────────────────────────────
+[2026-01-11T11:39:00.764Z] 
+[2026-01-11T11:39:00.765Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T11:39:00.766Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-11T11:39:00.767Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-11T11:39:00.768Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-11T11:39:00.772Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T11:39:00.775Z] 
+[2026-01-11T11:39:00.776Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-11T11:39:00.777Z] 
+[2026-01-11T11:39:00.779Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-11T11:39:00.780Z] 
+[2026-01-11T11:39:00.782Z] 
+▶ Step 9: Push Confirmation
+[2026-01-11T11:39:00.784Z] ────────────────────────────────────────
+[2026-01-11T11:39:00.788Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-11T11:39:00.790Z] 📝 Pre-push automated score: 0
+[2026-01-11T11:39:00.791Z] 
+[2026-01-11T11:39:00.792Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-11T11:39:00.793Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-11T11:39:00.794Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-11T11:39:00.795Z] 
+[2026-01-11T11:39:00.796Z]    Score: 0/100 (Minimum required: 80)
+[2026-01-11T11:39:00.798Z] 
+[2026-01-11T11:39:00.799Z]    Fix the following issues before pushing:
+[2026-01-11T11:39:00.801Z]    🔴 Hardcoded port number: Found 4 instance(s)
+[2026-01-11T11:39:00.802Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-11T11:39:00.803Z]    🔴 Hardcoded external URL: Found 12 instance(s)
+[2026-01-11T11:39:00.804Z] 
+[2026-01-11T11:39:00.806Z]    Also consider fixing these warnings:
+[2026-01-11T11:39:00.807Z]    🟡 console.log usage: 80 instance(s) - Consider using proper logger
+[2026-01-11T11:39:00.808Z]    🟡 'any' type usage: 80 instance(s) - Prefer explicit types
+[2026-01-11T11:39:00.809Z] 
+[2026-01-11T11:39:00.809Z]    After fixing, run: git push
+[2026-01-11T11:39:00.810Z] 
+[2026-01-11T11:39:00.811Z] BLOCKED - Automated score: 0/100 (min: 80)
+[2026-01-11T13:39:01+02:00] Push BLOCKED - Exit code: 1

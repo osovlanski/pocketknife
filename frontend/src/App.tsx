@@ -43,7 +43,7 @@ import LearningAgent from './components/LearningAgent';
 import ProblemSolvingAgent from './components/ProblemSolvingAgent';
 import ToDoAgent from './components/ToDoAgent';
 import ShoppingAgent from './components/ShoppingAgent';
-import GroceriesAgent from './components/GroceriesAgent';
+import CookingAgent from './components/CookingAgent';
 
 // Activity Log
 import ActivityLog from './components/ActivityLog';
@@ -81,7 +81,7 @@ const agentTabs: TabConfig[] = [
   { id: 'problems', label: 'Problems', icon: Code, color: 'cyan', path: '/agents/problems' },
   { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
-  { id: 'groceries', label: 'Groceries', icon: Utensils, color: 'lime', path: '/agents/groceries' }
+  { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' }
 ];
 
 // =============================================================================
@@ -158,7 +158,7 @@ const App: React.FC = () => {
   // Agent enabled status (from admin settings)
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
     email: true, jobs: true, travel: true, learning: true,
-    problems: true, todo: true, shopping: true, groceries: true
+    problems: true, todo: true, shopping: true, cooking: true
   });
   
   // Jobs state
@@ -635,8 +635,8 @@ const App: React.FC = () => {
           {/* Shopping Agent */}
           <Route path="/agents/shopping" element={<ShoppingAgent />} />
 
-          {/* Groceries Agent */}
-          <Route path="/agents/groceries" element={<GroceriesAgent />} />
+          {/* Cooking Agent */}
+          <Route path="/agents/cooking" element={<CookingAgent />} />
 
           {/* Catch-all redirect to home */}
           <Route path="*" element={

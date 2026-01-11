@@ -2,7 +2,7 @@
  * Notion Integration Service
  * 
  * Integrates with Notion API for universal knowledge management.
- * Used by: ToDo Agent, Learning Agent, Jobs Agent, Groceries Agent
+ * Used by: ToDo Agent, Learning Agent, Jobs Agent, Cooking Agent
  */
 
 import { Client } from '@notionhq/client';

@@ -1,8 +1,8 @@
 /**
- * GroceriesAgent Component
+ * CookingAgent Component
  * 
- * Grocery inventory management, shopping lists, and recipe discovery.
- * Uses useGroceries hook for business logic.
+ * Kitchen inventory management, shopping lists, recipe discovery, and wishlist.
+ * Uses useCooking hook for business logic.
  */
 
 import React, { useState } from 'react';
@@ -15,9 +15,7 @@ import {
   Clock,
   DollarSign,
   Trash2,
-  Edit,
   Check,
-  X,
   Search,
   ChefHat,
   Loader2,
@@ -25,12 +23,13 @@ import {
   ExternalLink,
   Heart,
   List,
-  RefreshCw
+  RefreshCw,
+  Star
 } from 'lucide-react';
-import useGroceries from '../hooks/useGroceries';
-import { GROCERY_CATEGORIES, UNITS } from '../services/groceriesApi';
-import type { GroceryItem, Recipe, GroceryList, GroceryItemData } from '../services/groceriesApi';
-import styles from '../styles/groceries.module.css';
+import useCooking from '../hooks/useCooking';
+import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
+import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe } from '../services/cookingApi';
+import styles from '../styles/cooking.module.css';
 
 // =============================================================================
 // SUB-COMPONENTS
@@ -38,8 +37,8 @@ import styles from '../styles/groceries.module.css';
 
 interface AddItemModalProps {
   isOpen: boolean;
-  item: GroceryItemData;
-  onItemChange: (item: GroceryItemData) => void;
+  item: InventoryItemData;
+  onItemChange: (item: InventoryItemData) => void;
   onSave: () => void;
   onClose: () => void;
 }
@@ -56,7 +55,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
-        <h3 className={styles.modalTitle}>Add Grocery Item</h3>
+        <h3 className={styles.modalTitle}>Add Inventory Item</h3>
 
         <div className={styles.formGroup}>
           <label className={styles.formLabel}>Item Name *</label>
@@ -78,7 +77,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
               value={item.category || 'other'}
               onChange={(e) => onItemChange({ ...item, category: e.target.value })}
             >
-              {GROCERY_CATEGORIES.map((cat) => (
+              {COOKING_CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label}
                 </option>
@@ -177,7 +176,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 };
 
 interface ItemCardProps {
-  item: GroceryItem;
+  item: InventoryItem;
   onDelete: (id: string) => void;
   onUpdateStatus: (id: string, status: string) => void;
 }
@@ -186,7 +185,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onDelete, onUpdateStatus }) =
   const isExpiring = item.expiryDate && new Date(item.expiryDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   const isLowStock = item.quantity <= 2;
 
-  const category = GROCERY_CATEGORIES.find((c) => c.value === item.category);
+  const category = COOKING_CATEGORIES.find((c) => c.value === item.category);
 
   const cardClass = [
     styles.itemCard,
@@ -257,17 +256,35 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onDelete, onUpdateStatus }) =
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onSave: (recipe: Recipe) => void;
+  onSave?: (recipe: Recipe) => void;
+  onAddToWishlist?: (recipe: Recipe) => void;
+  isWishlist?: boolean;
+  onRemoveFromWishlist?: (id: string) => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave, onAddToWishlist, isWishlist, onRemoveFromWishlist }) => {
+  const [imageError, setImageError] = React.useState(false);
+  
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const showPlaceholder = !recipe.imageUrl || imageError;
+
   return (
     <div className={styles.recipeCard}>
       <div className={styles.recipeImage}>
-        {recipe.imageUrl ? (
-          <img src={recipe.imageUrl} alt={recipe.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {!showPlaceholder ? (
+          <img 
+            src={recipe.imageUrl} 
+            alt={recipe.title} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0.5rem' }}
+            onError={handleImageError}
+          />
         ) : (
-          '🍽️'
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '3rem', background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', borderRadius: '0.5rem' }}>
+            🍽️
+          </div>
         )}
       </div>
 
@@ -314,10 +331,30 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave }) => {
         )}
 
         <div className={styles.recipeActions}>
-          <button className={`${styles.actionButton} ${styles.actionButtonSecondary}`} onClick={() => onSave(recipe)}>
-            <Heart className={styles.iconSmall} />
-            Save
-          </button>
+          {isWishlist ? (
+            <button 
+              className={`${styles.actionButton} ${styles.actionButtonDanger}`} 
+              onClick={() => onRemoveFromWishlist?.(recipe.id)}
+            >
+              <Trash2 className={styles.iconSmall} />
+              Remove
+            </button>
+          ) : (
+            <>
+              {onSave && (
+                <button className={`${styles.actionButton} ${styles.actionButtonSecondary}`} onClick={() => onSave(recipe)}>
+                  <Heart className={styles.iconSmall} />
+                  Save
+                </button>
+              )}
+              {onAddToWishlist && (
+                <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={() => onAddToWishlist(recipe)}>
+                  <Star className={styles.iconSmall} />
+                  Wishlist
+                </button>
+              )}
+            </>
+          )}
           {recipe.sourceUrl && (
             <a
               href={recipe.sourceUrl}
@@ -336,7 +373,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave }) => {
 };
 
 interface ShoppingListCardProps {
-  list: GroceryList;
+  list: ShoppingList;
   onToggleItem: (itemId: string, isChecked: boolean) => void;
   onComplete: (listId: string) => void;
 }
@@ -399,20 +436,20 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onToggleItem,
 // MAIN COMPONENT
 // =============================================================================
 
-const GroceriesAgent: React.FC = () => {
-  const groceries = useGroceries();
+const CookingAgent: React.FC = () => {
+  const cooking = useCooking();
   const [recipeSearchMode, setRecipeSearchMode] = useState<'available' | 'custom'>('available');
   const [customIngredients, setCustomIngredients] = useState('');
 
   const handleRecipeSearch = () => {
     if (recipeSearchMode === 'available') {
-      groceries.handleFindRecipes({ useAvailableOnly: true });
+      cooking.handleFindRecipes({ useAvailableOnly: true });
     } else {
       const ingredients = customIngredients
         .split(',')
         .map((i) => i.trim())
         .filter(Boolean);
-      groceries.handleFindRecipes({ ingredients });
+      cooking.handleFindRecipes({ ingredients });
     }
   };
 
@@ -420,19 +457,19 @@ const GroceriesAgent: React.FC = () => {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>🛒 Groceries Agent</h1>
+        <h1 className={styles.title}>🍳 Cooking Agent</h1>
         <p className={styles.subtitle}>Manage your inventory, create shopping lists, and discover recipes</p>
       </div>
 
       {/* Summary Cards */}
-      {groceries.summary && (
+      {cooking.summary && (
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>
             <div className={`${styles.summaryIcon} ${styles.summaryIconGreen}`}>
               <Package />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{groceries.summary.totalItems}</div>
+              <div className={styles.summaryValue}>{cooking.summary.totalItems}</div>
               <div className={styles.summaryLabel}>Total Items</div>
             </div>
           </div>
@@ -442,7 +479,7 @@ const GroceriesAgent: React.FC = () => {
               <Clock />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{groceries.summary.expiringSoon}</div>
+              <div className={styles.summaryValue}>{cooking.summary.expiringSoon}</div>
               <div className={styles.summaryLabel}>Expiring Soon</div>
             </div>
           </div>
@@ -452,7 +489,7 @@ const GroceriesAgent: React.FC = () => {
               <AlertTriangle />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{groceries.summary.lowStock}</div>
+              <div className={styles.summaryValue}>{cooking.summary.lowStock}</div>
               <div className={styles.summaryLabel}>Low Stock</div>
             </div>
           </div>
@@ -462,7 +499,7 @@ const GroceriesAgent: React.FC = () => {
               <DollarSign />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>${groceries.summary.totalValue.toFixed(0)}</div>
+              <div className={styles.summaryValue}>${cooking.summary.totalValue.toFixed(0)}</div>
               <div className={styles.summaryLabel}>Total Value</div>
             </div>
           </div>
@@ -470,23 +507,23 @@ const GroceriesAgent: React.FC = () => {
       )}
 
       {/* Alerts */}
-      {(groceries.expiringItems.length > 0 || groceries.lowStockItems.length > 0) && (
+      {(cooking.expiringItems.length > 0 || cooking.lowStockItems.length > 0) && (
         <div className={styles.alertsContainer}>
-          {groceries.expiringItems.length > 0 && (
+          {cooking.expiringItems.length > 0 && (
             <div className={`${styles.alert} ${styles.alertWarning}`}>
               <Clock className={styles.icon} />
-              {groceries.expiringItems.length} items expiring soon:{' '}
-              {groceries.expiringItems
+              {cooking.expiringItems.length} items expiring soon:{' '}
+              {cooking.expiringItems
                 .slice(0, 3)
                 .map((i) => i.name)
                 .join(', ')}
             </div>
           )}
-          {groceries.lowStockItems.length > 0 && (
+          {cooking.lowStockItems.length > 0 && (
             <div className={`${styles.alert} ${styles.alertDanger}`}>
               <AlertTriangle className={styles.icon} />
-              {groceries.lowStockItems.length} items low in stock:{' '}
-              {groceries.lowStockItems
+              {cooking.lowStockItems.length} items low in stock:{' '}
+              {cooking.lowStockItems
                 .slice(0, 3)
                 .map((i) => i.name)
                 .join(', ')}
@@ -498,40 +535,50 @@ const GroceriesAgent: React.FC = () => {
       {/* Tabs */}
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${groceries.activeTab === 'inventory' ? styles.tabActive : ''}`}
-          onClick={() => groceries.setActiveTab('inventory')}
+          className={`${styles.tab} ${cooking.activeTab === 'inventory' ? styles.tabActive : ''}`}
+          onClick={() => cooking.setActiveTab('inventory')}
         >
           <Package className={styles.icon} />
           Inventory
         </button>
         <button
-          className={`${styles.tab} ${groceries.activeTab === 'lists' ? styles.tabActive : ''}`}
-          onClick={() => groceries.setActiveTab('lists')}
+          className={`${styles.tab} ${cooking.activeTab === 'lists' ? styles.tabActive : ''}`}
+          onClick={() => cooking.setActiveTab('lists')}
         >
           <List className={styles.icon} />
           Shopping Lists
         </button>
         <button
-          className={`${styles.tab} ${groceries.activeTab === 'recipes' ? styles.tabActive : ''}`}
-          onClick={() => groceries.setActiveTab('recipes')}
+          className={`${styles.tab} ${cooking.activeTab === 'recipes' ? styles.tabActive : ''}`}
+          onClick={() => cooking.setActiveTab('recipes')}
         >
           <BookOpen className={styles.icon} />
           Recipes
         </button>
+        <button
+          className={`${styles.tab} ${cooking.activeTab === 'wishlist' ? styles.tabActive : ''}`}
+          onClick={() => cooking.setActiveTab('wishlist')}
+        >
+          <Star className={styles.icon} />
+          Wishlist
+          {cooking.wishlist.length > 0 && (
+            <span className={styles.tabBadge}>{cooking.wishlist.length}</span>
+          )}
+        </button>
       </div>
 
       {/* Tab Content */}
-      {groceries.activeTab === 'inventory' && (
+      {cooking.activeTab === 'inventory' && (
         <>
           <div className={styles.actionsBar}>
             <button
               className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
-              onClick={() => groceries.setShowAddItem(true)}
+              onClick={() => cooking.setShowAddItem(true)}
             >
               <Plus className={styles.icon} />
               Add Item
             </button>
-            <button className={`${styles.actionButton} ${styles.actionButtonSecondary}`} onClick={groceries.refresh}>
+            <button className={`${styles.actionButton} ${styles.actionButtonSecondary}`} onClick={cooking.refresh}>
               <RefreshCw className={styles.icon} />
               Refresh
             </button>
@@ -539,40 +586,40 @@ const GroceriesAgent: React.FC = () => {
 
           <div className={styles.categoryFilters}>
             <button
-              className={`${styles.categoryChip} ${!groceries.selectedCategory ? styles.categoryChipActive : ''}`}
-              onClick={() => groceries.setSelectedCategory(null)}
+              className={`${styles.categoryChip} ${!cooking.selectedCategory ? styles.categoryChipActive : ''}`}
+              onClick={() => cooking.setSelectedCategory(null)}
             >
               All
             </button>
-            {GROCERY_CATEGORIES.slice(0, 8).map((cat) => (
+            {COOKING_CATEGORIES.slice(0, 8).map((cat) => (
               <button
                 key={cat.value}
-                className={`${styles.categoryChip} ${groceries.selectedCategory === cat.value ? styles.categoryChipActive : ''}`}
-                onClick={() => groceries.setSelectedCategory(cat.value)}
+                className={`${styles.categoryChip} ${cooking.selectedCategory === cat.value ? styles.categoryChipActive : ''}`}
+                onClick={() => cooking.setSelectedCategory(cat.value)}
               >
                 {cat.label}
               </button>
             ))}
           </div>
 
-          {groceries.loading ? (
+          {cooking.loading ? (
             <div className={styles.loadingContainer}>
               <Loader2 className={`${styles.icon} ${styles.spinner}`} style={{ width: '2rem', height: '2rem' }} />
             </div>
-          ) : groceries.items.length === 0 ? (
+          ) : cooking.items.length === 0 ? (
             <div className={styles.emptyState}>
               <ShoppingCart className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No items in inventory</p>
-              <p className={styles.emptyHint}>Add your first grocery item to get started!</p>
+              <p className={styles.emptyHint}>Add your first item to get started!</p>
             </div>
           ) : (
             <div className={styles.itemGrid}>
-              {groceries.items.map((item) => (
+              {cooking.items.map((item) => (
                 <ItemCard
                   key={item.id}
                   item={item}
-                  onDelete={groceries.handleDeleteItem}
-                  onUpdateStatus={groceries.handleUpdateStatus}
+                  onDelete={cooking.handleDeleteItem}
+                  onUpdateStatus={cooking.handleUpdateStatus}
                 />
               ))}
             </div>
@@ -580,19 +627,19 @@ const GroceriesAgent: React.FC = () => {
         </>
       )}
 
-      {groceries.activeTab === 'lists' && (
+      {cooking.activeTab === 'lists' && (
         <>
           <div className={styles.actionsBar}>
             <button
               className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
-              onClick={() => groceries.setShowAddList(true)}
+              onClick={() => cooking.setShowAddList(true)}
             >
               <Plus className={styles.icon} />
               New List
             </button>
           </div>
 
-          {groceries.lists.length === 0 ? (
+          {cooking.lists.length === 0 ? (
             <div className={styles.emptyState}>
               <List className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No shopping lists</p>
@@ -600,12 +647,12 @@ const GroceriesAgent: React.FC = () => {
             </div>
           ) : (
             <div className={styles.listsContainer}>
-              {groceries.lists.map((list) => (
+              {cooking.lists.map((list) => (
                 <ShoppingListCard
                   key={list.id}
                   list={list}
-                  onToggleItem={groceries.handleToggleListItem}
-                  onComplete={groceries.handleCompleteList}
+                  onToggleItem={cooking.handleToggleListItem}
+                  onComplete={cooking.handleCompleteList}
                 />
               ))}
             </div>
@@ -613,7 +660,7 @@ const GroceriesAgent: React.FC = () => {
         </>
       )}
 
-      {groceries.activeTab === 'recipes' && (
+      {cooking.activeTab === 'recipes' && (
         <>
           <div className={styles.actionsBar}>
             <div style={{ display: 'flex', gap: '0.5rem', flex: 1, maxWidth: '600px' }}>
@@ -641,9 +688,9 @@ const GroceriesAgent: React.FC = () => {
               <button
                 className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
                 onClick={handleRecipeSearch}
-                disabled={groceries.searchingRecipes}
+                disabled={cooking.searchingRecipes}
               >
-                {groceries.searchingRecipes ? (
+                {cooking.searchingRecipes ? (
                   <Loader2 className={`${styles.icon} ${styles.spinner}`} />
                 ) : (
                   <Search className={styles.icon} />
@@ -653,7 +700,7 @@ const GroceriesAgent: React.FC = () => {
             </div>
           </div>
 
-          {groceries.recipes.length === 0 && groceries.savedRecipes.length === 0 ? (
+          {cooking.recipes.length === 0 && cooking.savedRecipes.length === 0 ? (
             <div className={styles.emptyState}>
               <ChefHat className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No recipes yet</p>
@@ -661,23 +708,28 @@ const GroceriesAgent: React.FC = () => {
             </div>
           ) : (
             <>
-              {groceries.recipes.length > 0 && (
+              {cooking.recipes.length > 0 && (
                 <>
                   <h3 style={{ margin: '1rem 0', color: '#374151' }}>🔍 Search Results</h3>
                   <div className={styles.recipeGrid}>
-                    {groceries.recipes.map((recipe) => (
-                      <RecipeCard key={recipe.id} recipe={recipe} onSave={groceries.handleSaveRecipe} />
+                    {cooking.recipes.map((recipe) => (
+                      <RecipeCard 
+                        key={recipe.id} 
+                        recipe={recipe} 
+                        onSave={cooking.handleSaveRecipe}
+                        onAddToWishlist={cooking.handleAddToWishlist}
+                      />
                     ))}
                   </div>
                 </>
               )}
 
-              {groceries.savedRecipes.length > 0 && (
+              {cooking.savedRecipes.length > 0 && (
                 <>
                   <h3 style={{ margin: '2rem 0 1rem', color: '#374151' }}>❤️ Saved Recipes</h3>
                   <div className={styles.recipeGrid}>
-                    {groceries.savedRecipes.map((recipe) => (
-                      <RecipeCard key={recipe.id} recipe={recipe} onSave={() => {}} />
+                    {cooking.savedRecipes.map((recipe) => (
+                      <RecipeCard key={recipe.id} recipe={recipe} />
                     ))}
                   </div>
                 </>
@@ -687,17 +739,43 @@ const GroceriesAgent: React.FC = () => {
         </>
       )}
 
+      {cooking.activeTab === 'wishlist' && (
+        <>
+          {cooking.wishlist.length === 0 ? (
+            <div className={styles.emptyState}>
+              <Star className={styles.emptyIcon} />
+              <p className={styles.emptyTitle}>No recipes in wishlist</p>
+              <p className={styles.emptyHint}>Add recipes you want to try later to your wishlist!</p>
+            </div>
+          ) : (
+            <>
+              <h3 style={{ margin: '1rem 0', color: '#374151' }}>⭐ My Recipe Wishlist</h3>
+              <div className={styles.recipeGrid}>
+                {cooking.wishlist.map((recipe) => (
+                  <RecipeCard 
+                    key={recipe.id} 
+                    recipe={recipe}
+                    isWishlist
+                    onRemoveFromWishlist={cooking.handleRemoveFromWishlist}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
       {/* Add Item Modal */}
       <AddItemModal
-        isOpen={groceries.showAddItem}
-        item={groceries.newItem}
-        onItemChange={groceries.setNewItem}
-        onSave={groceries.handleAddItem}
-        onClose={() => groceries.setShowAddItem(false)}
+        isOpen={cooking.showAddItem}
+        item={cooking.newItem}
+        onItemChange={cooking.setNewItem}
+        onSave={cooking.handleAddItem}
+        onClose={() => cooking.setShowAddItem(false)}
       />
 
       {/* Add List Modal */}
-      {groceries.showAddList && (
+      {cooking.showAddList && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>Create Shopping List</h3>
@@ -708,21 +786,21 @@ const GroceriesAgent: React.FC = () => {
                 type="text"
                 className={styles.formInput}
                 placeholder="e.g., Weekly Groceries, Party Supplies"
-                value={groceries.newListName}
-                onChange={(e) => groceries.setNewListName(e.target.value)}
+                value={cooking.newListName}
+                onChange={(e) => cooking.setNewListName(e.target.value)}
                 autoFocus
               />
             </div>
 
             <div className={styles.modalActions}>
               <button
-                onClick={() => groceries.setShowAddList(false)}
+                onClick={() => cooking.setShowAddList(false)}
                 className={`${styles.modalButton} ${styles.modalButtonSecondary}`}
               >
                 Cancel
               </button>
               <button
-                onClick={groceries.handleCreateList}
+                onClick={cooking.handleCreateList}
                 className={`${styles.modalButton} ${styles.modalButtonPrimary}`}
               >
                 Create List
@@ -735,4 +813,4 @@ const GroceriesAgent: React.FC = () => {
   );
 };
 
-export default GroceriesAgent;
+export default CookingAgent;

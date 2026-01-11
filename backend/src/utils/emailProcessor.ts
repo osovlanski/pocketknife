@@ -3,7 +3,7 @@ import driveService from '../services/email/driveService';
 import emailNotificationService from '../services/email/emailNotificationService';
 import discordNotificationService from '../services/notifications/discordNotificationService';
 import telegramNotificationService from '../services/notifications/telegramNotificationService';
-import { groceriesService } from '../services/groceries';
+import { cookingService } from '../services/cooking';
 import claudeService from '../services/core/claudeService';
 import { configService } from '../services/core/configService';
 import { getPrisma } from '../services/core/databaseService';
@@ -124,7 +124,7 @@ ${email.body}`;
    * Only processes invoices from grocery stores/supermarkets
    */
   private async tryExtractGroceryItems(email: any, classification: any) {
-    const autoDetect = configService.get('groceries.invoice.autoDetect', true);
+    const autoDetect = configService.get('cooking.invoice.autoDetect', true);
     if (!autoDetect) {
       return;
     }
@@ -165,7 +165,7 @@ Respond ONLY with valid JSON.`;
       console.log(`🛒 Detected grocery invoice from ${data.merchant}, found ${data.items.length} items`);
 
       // Process the grocery items
-      const result = await groceriesService.processInvoiceItems(
+      const result = await cookingService.processInvoiceItems(
         email.id,
         new Date(email.date),
         data.merchant,

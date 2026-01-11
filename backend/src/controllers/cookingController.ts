@@ -1,12 +1,12 @@
 /**
- * Groceries Controller
+ * Cooking Controller
  * 
- * HTTP request handlers for grocery management, shopping lists, and recipes.
- * Thin controller - delegates to groceriesAgent for business logic.
+ * HTTP request handlers for kitchen inventory, shopping lists, and recipes.
+ * Thin controller - delegates to cookingAgent for business logic.
  */
 
 import { Request, Response } from 'express';
-import { groceriesAgent } from '../agents';
+import { cookingAgent } from '../agents';
 import { databaseService } from '../services/core/databaseService';
 
 /**
@@ -21,11 +21,11 @@ const getUserId = async (req: Request): Promise<string | undefined> => {
 };
 
 // =============================================================================
-// GROCERY ITEMS
+// INVENTORY ITEMS
 // =============================================================================
 
 /**
- * Add a new grocery item
+ * Add a new item to inventory
  */
 export const addItem = async (req: Request, res: Response) => {
   try {
@@ -34,7 +34,7 @@ export const addItem = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'add-item',
       userId,
       itemData: req.body
@@ -51,7 +51,7 @@ export const addItem = async (req: Request, res: Response) => {
 };
 
 /**
- * Update an existing grocery item
+ * Update an existing item
  */
 export const updateItem = async (req: Request, res: Response) => {
   try {
@@ -62,7 +62,7 @@ export const updateItem = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'update-item',
       userId,
       itemId: id,
@@ -80,7 +80,7 @@ export const updateItem = async (req: Request, res: Response) => {
 };
 
 /**
- * Delete a grocery item
+ * Delete an item
  */
 export const deleteItem = async (req: Request, res: Response) => {
   try {
@@ -91,7 +91,7 @@ export const deleteItem = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'delete-item',
       userId,
       itemId: id
@@ -108,7 +108,7 @@ export const deleteItem = async (req: Request, res: Response) => {
 };
 
 /**
- * Get all grocery items with optional filters
+ * Get all items with optional filters
  */
 export const getItems = async (req: Request, res: Response) => {
   try {
@@ -119,7 +119,7 @@ export const getItems = async (req: Request, res: Response) => {
 
     const { status, category, expiringWithinDays, lowStock } = req.query;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-items',
       userId,
       filters: {
@@ -153,7 +153,7 @@ export const updateItemStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'update-status',
       userId,
       itemId: id,
@@ -180,7 +180,7 @@ export const getExpiringItems = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-expiring',
       userId
     });
@@ -205,7 +205,7 @@ export const getLowStockItems = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-low-stock',
       userId
     });
@@ -236,7 +236,7 @@ export const createList = async (req: Request, res: Response) => {
 
     const { name, description } = req.body;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'create-list',
       userId,
       listName: name,
@@ -263,7 +263,7 @@ export const getLists = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-lists',
       userId
     });
@@ -285,7 +285,7 @@ export const addListItem = async (req: Request, res: Response) => {
   try {
     const { listId } = req.params;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'add-list-item',
       listId,
       listItemData: req.body
@@ -309,7 +309,7 @@ export const toggleListItem = async (req: Request, res: Response) => {
     const { itemId } = req.params;
     const { isChecked } = req.body;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'toggle-list-item',
       listItemId: itemId,
       isChecked
@@ -337,7 +337,7 @@ export const completeList = async (req: Request, res: Response) => {
 
     const { listId } = req.params;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'complete-list',
       userId,
       listId
@@ -369,7 +369,7 @@ export const findRecipes = async (req: Request, res: Response) => {
 
     const { ingredients, cuisine, mealType, dietaryRestrictions, maxPrepTime, useAvailableOnly } = req.body;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'find-recipes',
       userId,
       recipeParams: {
@@ -404,7 +404,7 @@ export const saveRecipe = async (req: Request, res: Response) => {
 
     const { recipe, notes } = req.body;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'save-recipe',
       userId,
       recipe,
@@ -433,7 +433,7 @@ export const getSavedRecipes = async (req: Request, res: Response) => {
 
     const { mealType, cuisine, favoritesOnly } = req.query;
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-saved-recipes',
       userId,
       filters: {
@@ -454,6 +454,91 @@ export const getSavedRecipes = async (req: Request, res: Response) => {
 };
 
 // =============================================================================
+// RECIPE WISHLIST
+// =============================================================================
+
+/**
+ * Add recipe to wishlist
+ */
+export const addToWishlist = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { recipe } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'add-to-wishlist',
+      userId,
+      recipe
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get recipe wishlist
+ */
+export const getWishlist = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'get-wishlist',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Remove recipe from wishlist
+ */
+export const removeFromWishlist = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+
+    const result = await cookingAgent.execute({
+      action: 'remove-from-wishlist',
+      userId,
+      recipeId: id
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// =============================================================================
 // ANALYTICS
 // =============================================================================
 
@@ -467,7 +552,7 @@ export const getSummary = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-summary',
       userId
     });
@@ -492,7 +577,7 @@ export const getSuggestions = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const result = await groceriesAgent.execute({
+    const result = await cookingAgent.execute({
       action: 'get-suggestions',
       userId
     });

@@ -207,6 +207,53 @@ export const databaseService = {
   },
 
   /**
+   * Get or create user by email
+   * Creates user with default preferences if not found
+   */
+  getOrCreateUser: async (email: string) => {
+    const client = getPrisma();
+    if (!client) return null;
+    
+    const normalizedEmail = email.toLowerCase();
+    
+    // Try to find existing user
+    let user = await client.user.findUnique({
+      where: { email: normalizedEmail },
+      include: { preferences: true }
+    });
+    
+    if (!user) {
+      // Create new user with default preferences
+      user = await client.user.create({
+        data: {
+          email: normalizedEmail,
+          name: normalizedEmail.split('@')[0],
+          role: 'USER',
+          status: 'ACTIVE',
+          isVerified: true,
+          verifiedAt: new Date(),
+          preferences: {
+            create: {
+              preferredLanguage: 'javascript',
+              preferredJobTypes: ['Remote', 'Hybrid'],
+              preferredLocations: [],
+              preferredCompanies: [],
+              preferredAirlines: [],
+              completedLists: [],
+              favoriteCategories: [],
+              favoriteBrands: []
+            }
+          }
+        },
+        include: { preferences: true }
+      });
+      console.log('✅ Created new user:', normalizedEmail);
+    }
+    
+    return user;
+  },
+
+  /**
    * Check if user is admin
    */
   isAdmin: async (userId: string): Promise<boolean> => {

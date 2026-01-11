@@ -1,52 +1,53 @@
 /**
- * useGroceries Hook
+ * useCooking Hook
  * 
- * Custom hook for managing Groceries Agent state and logic.
+ * Custom hook for managing Cooking Agent state and logic.
  * Separates business logic from presentation.
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import * as groceriesApi from '../services/groceriesApi';
+import * as cookingApi from '../services/cookingApi';
 import type {
-  GroceryItem,
-  GroceryItemData,
-  GroceryList,
+  InventoryItem,
+  InventoryItemData,
+  ShoppingList,
   Recipe,
   SavedRecipe,
   InventorySummary,
   RecipeSearchParams
-} from '../services/groceriesApi';
+} from '../services/cookingApi';
 
-export interface UseGroceriesReturn {
+export interface UseCookingReturn {
   // State
-  items: GroceryItem[];
-  lists: GroceryList[];
+  items: InventoryItem[];
+  lists: ShoppingList[];
   recipes: Recipe[];
   savedRecipes: SavedRecipe[];
+  wishlist: SavedRecipe[];
   summary: InventorySummary | null;
   suggestions: string[];
-  expiringItems: GroceryItem[];
-  lowStockItems: GroceryItem[];
+  expiringItems: InventoryItem[];
+  lowStockItems: InventoryItem[];
   loading: boolean;
   searchingRecipes: boolean;
-  activeTab: 'inventory' | 'lists' | 'recipes';
+  activeTab: 'inventory' | 'lists' | 'recipes' | 'wishlist';
   selectedCategory: string | null;
   showAddItem: boolean;
   showAddList: boolean;
-  newItem: GroceryItemData;
+  newItem: InventoryItemData;
   newListName: string;
 
   // Actions
-  setActiveTab: (tab: 'inventory' | 'lists' | 'recipes') => void;
+  setActiveTab: (tab: 'inventory' | 'lists' | 'recipes' | 'wishlist') => void;
   setSelectedCategory: (category: string | null) => void;
   setShowAddItem: (show: boolean) => void;
   setShowAddList: (show: boolean) => void;
-  setNewItem: (item: GroceryItemData) => void;
+  setNewItem: (item: InventoryItemData) => void;
   setNewListName: (name: string) => void;
 
   // Item actions
   handleAddItem: () => Promise<void>;
-  handleUpdateItem: (id: string, data: Partial<GroceryItemData>) => Promise<void>;
+  handleUpdateItem: (id: string, data: Partial<InventoryItemData>) => Promise<void>;
   handleDeleteItem: (id: string) => Promise<void>;
   handleUpdateStatus: (id: string, status: string) => Promise<void>;
 
@@ -60,38 +61,43 @@ export interface UseGroceriesReturn {
   handleFindRecipes: (params?: RecipeSearchParams) => Promise<void>;
   handleSaveRecipe: (recipe: Recipe, notes?: string) => Promise<void>;
 
+  // Wishlist actions
+  handleAddToWishlist: (recipe: Recipe) => Promise<void>;
+  handleRemoveFromWishlist: (recipeId: string) => Promise<void>;
+
   // Refresh
   refresh: () => Promise<void>;
 }
 
-const DEFAULT_NEW_ITEM: GroceryItemData = {
+const DEFAULT_NEW_ITEM: InventoryItemData = {
   name: '',
   category: 'other',
   quantity: 1,
   unit: 'pcs'
 };
 
-export const useGroceries = (): UseGroceriesReturn => {
+export const useCooking = (): UseCookingReturn => {
   // Core state
-  const [items, setItems] = useState<GroceryItem[]>([]);
-  const [lists, setLists] = useState<GroceryList[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [lists, setLists] = useState<ShoppingList[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
+  const [wishlist, setWishlist] = useState<SavedRecipe[]>([]);
   const [summary, setSummary] = useState<InventorySummary | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [expiringItems, setExpiringItems] = useState<GroceryItem[]>([]);
-  const [lowStockItems, setLowStockItems] = useState<GroceryItem[]>([]);
+  const [expiringItems, setExpiringItems] = useState<InventoryItem[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [searchingRecipes, setSearchingRecipes] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inventory' | 'lists' | 'recipes'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'lists' | 'recipes' | 'wishlist'>('inventory');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showAddList, setShowAddList] = useState(false);
 
   // Form state
-  const [newItem, setNewItem] = useState<GroceryItemData>(DEFAULT_NEW_ITEM);
+  const [newItem, setNewItem] = useState<InventoryItemData>(DEFAULT_NEW_ITEM);
   const [newListName, setNewListName] = useState('');
 
   // Load data on mount
@@ -112,7 +118,8 @@ export const useGroceries = (): UseGroceriesReturn => {
         loadSummary(),
         loadAlerts(),
         loadSuggestions(),
-        loadSavedRecipes()
+        loadSavedRecipes(),
+        loadWishlist()
       ]);
     } finally {
       setLoading(false);
@@ -121,18 +128,18 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const loadItems = async () => {
     try {
-      const result = await groceriesApi.getItems(
+      const result = await cookingApi.getItems(
         selectedCategory ? { category: selectedCategory } : undefined
       );
       setItems(result.items || []);
     } catch (error) {
-      console.error('Failed to load grocery items:', error);
+      console.error('Failed to load inventory items:', error);
     }
   };
 
   const loadLists = async () => {
     try {
-      const result = await groceriesApi.getLists();
+      const result = await cookingApi.getLists();
       setLists(result.lists || []);
     } catch (error) {
       console.error('Failed to load shopping lists:', error);
@@ -141,7 +148,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const loadSummary = async () => {
     try {
-      const result = await groceriesApi.getSummary();
+      const result = await cookingApi.getSummary();
       setSummary(result.summary);
     } catch (error) {
       console.error('Failed to load summary:', error);
@@ -151,8 +158,8 @@ export const useGroceries = (): UseGroceriesReturn => {
   const loadAlerts = async () => {
     try {
       const [expiringResult, lowStockResult] = await Promise.all([
-        groceriesApi.getExpiringItems(),
-        groceriesApi.getLowStockItems()
+        cookingApi.getExpiringItems(),
+        cookingApi.getLowStockItems()
       ]);
       setExpiringItems(expiringResult.items || []);
       setLowStockItems(lowStockResult.items || []);
@@ -163,7 +170,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const loadSuggestions = async () => {
     try {
-      const result = await groceriesApi.getSuggestions();
+      const result = await cookingApi.getSuggestions();
       setSuggestions(result.suggestions || []);
     } catch (error) {
       console.error('Failed to load suggestions:', error);
@@ -172,10 +179,19 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const loadSavedRecipes = async () => {
     try {
-      const result = await groceriesApi.getSavedRecipes();
+      const result = await cookingApi.getSavedRecipes();
       setSavedRecipes(result.recipes || []);
     } catch (error) {
       console.error('Failed to load saved recipes:', error);
+    }
+  };
+
+  const loadWishlist = async () => {
+    try {
+      const result = await cookingApi.getWishlist();
+      setWishlist(result.wishlist || []);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
     }
   };
 
@@ -193,7 +209,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
     try {
       setLoading(true);
-      await groceriesApi.addItem(newItem);
+      await cookingApi.addItem(newItem);
       setNewItem(DEFAULT_NEW_ITEM);
       setShowAddItem(false);
       await Promise.all([loadItems(), loadSummary()]);
@@ -205,9 +221,9 @@ export const useGroceries = (): UseGroceriesReturn => {
     }
   }, [newItem]);
 
-  const handleUpdateItem = useCallback(async (id: string, data: Partial<GroceryItemData>) => {
+  const handleUpdateItem = useCallback(async (id: string, data: Partial<InventoryItemData>) => {
     try {
-      await groceriesApi.updateItem(id, data);
+      await cookingApi.updateItem(id, data);
       await loadItems();
     } catch (error) {
       console.error('Failed to update item:', error);
@@ -216,7 +232,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const handleDeleteItem = useCallback(async (id: string) => {
     try {
-      await groceriesApi.deleteItem(id);
+      await cookingApi.deleteItem(id);
       await Promise.all([loadItems(), loadSummary()]);
     } catch (error) {
       console.error('Failed to delete item:', error);
@@ -225,7 +241,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const handleUpdateStatus = useCallback(async (id: string, status: string) => {
     try {
-      await groceriesApi.updateItemStatus(id, status);
+      await cookingApi.updateItemStatus(id, status);
       await Promise.all([loadItems(), loadAlerts()]);
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -241,7 +257,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
     try {
       setLoading(true);
-      await groceriesApi.createList(newListName);
+      await cookingApi.createList(newListName);
       setNewListName('');
       setShowAddList(false);
       await loadLists();
@@ -258,7 +274,7 @@ export const useGroceries = (): UseGroceriesReturn => {
     item: { name: string; quantity?: number; unit?: string }
   ) => {
     try {
-      await groceriesApi.addListItem(listId, item);
+      await cookingApi.addListItem(listId, item);
       await loadLists();
     } catch (error) {
       console.error('Failed to add list item:', error);
@@ -267,7 +283,7 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const handleToggleListItem = useCallback(async (itemId: string, isChecked: boolean) => {
     try {
-      await groceriesApi.toggleListItem(itemId, isChecked);
+      await cookingApi.toggleListItem(itemId, isChecked);
       await loadLists();
     } catch (error) {
       console.error('Failed to toggle item:', error);
@@ -277,7 +293,7 @@ export const useGroceries = (): UseGroceriesReturn => {
   const handleCompleteList = useCallback(async (listId: string) => {
     try {
       setLoading(true);
-      await groceriesApi.completeList(listId);
+      await cookingApi.completeList(listId);
       await Promise.all([loadLists(), loadItems(), loadSummary()]);
     } catch (error) {
       console.error('Failed to complete list:', error);
@@ -294,7 +310,7 @@ export const useGroceries = (): UseGroceriesReturn => {
   const handleFindRecipes = useCallback(async (params?: RecipeSearchParams) => {
     try {
       setSearchingRecipes(true);
-      const result = await groceriesApi.findRecipes(params || { useAvailableOnly: true });
+      const result = await cookingApi.findRecipes(params || { useAvailableOnly: true });
       setRecipes(result.recipes || []);
     } catch (error) {
       console.error('Failed to find recipes:', error);
@@ -306,11 +322,35 @@ export const useGroceries = (): UseGroceriesReturn => {
 
   const handleSaveRecipe = useCallback(async (recipe: Recipe, notes?: string) => {
     try {
-      await groceriesApi.saveRecipe(recipe, notes);
+      await cookingApi.saveRecipe(recipe, notes);
       await loadSavedRecipes();
     } catch (error) {
       console.error('Failed to save recipe:', error);
       alert('Failed to save recipe. Please try again.');
+    }
+  }, []);
+
+  // ==========================================================================
+  // WISHLIST ACTIONS
+  // ==========================================================================
+
+  const handleAddToWishlist = useCallback(async (recipe: Recipe) => {
+    try {
+      await cookingApi.addToWishlist(recipe);
+      await loadWishlist();
+    } catch (error) {
+      console.error('Failed to add to wishlist:', error);
+      alert('Failed to add recipe to wishlist. Please try again.');
+    }
+  }, []);
+
+  const handleRemoveFromWishlist = useCallback(async (recipeId: string) => {
+    try {
+      await cookingApi.removeFromWishlist(recipeId);
+      await loadWishlist();
+    } catch (error) {
+      console.error('Failed to remove from wishlist:', error);
+      alert('Failed to remove recipe from wishlist. Please try again.');
     }
   }, []);
 
@@ -320,6 +360,7 @@ export const useGroceries = (): UseGroceriesReturn => {
     lists,
     recipes,
     savedRecipes,
+    wishlist,
     summary,
     suggestions,
     expiringItems,
@@ -357,9 +398,13 @@ export const useGroceries = (): UseGroceriesReturn => {
     handleFindRecipes,
     handleSaveRecipe,
 
+    // Wishlist actions
+    handleAddToWishlist,
+    handleRemoveFromWishlist,
+
     // Refresh
     refresh
   };
 };
 
-export default useGroceries;
+export default useCooking;
