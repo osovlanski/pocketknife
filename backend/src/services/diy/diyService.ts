@@ -213,8 +213,9 @@ Be thorough, practical, and prioritize safety. Include specific measurements and
       throw new Error('Failed to generate project instructions');
     }
 
-    // Cache the result for 24 hours
-    await cacheService.set(cacheKey, project, { ttl: 86400 });
+    // Cache the result
+    const cacheTtl = configService.get('diy.cache.ttlSeconds', 86400);
+    await cacheService.set(cacheKey, project, { ttl: cacheTtl });
 
     return project;
   },
@@ -436,7 +437,8 @@ Return as JSON array with this format:
 ]`;
 
     try {
-      const result = await claudeService.generateText(prompt, 800);
+      const ideaTokens = configService.get('diy.ideas.aiTokens', 800);
+      const result = await claudeService.generateText(prompt, ideaTokens);
       const jsonMatch = result.match(/\[[\s\S]*\]/);
       if (!jsonMatch) return [];
       

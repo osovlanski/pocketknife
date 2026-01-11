@@ -183,8 +183,9 @@ export const newsService = {
     // Limit results
     const finalArticles = uniqueArticles.slice(0, maxResults);
 
-    // Cache for 15 minutes
-    await cacheService.set(cacheKey, finalArticles, { ttl: 900 });
+    // Cache results
+    const cacheTtl = configService.get('news.cache.ttlSeconds', 900);
+    await cacheService.set(cacheKey, finalArticles, { ttl: cacheTtl });
 
     return finalArticles;
   },
@@ -197,18 +198,21 @@ export const newsService = {
     topics?: string[],
     maxResults: number = 20
   ): Promise<NewsArticle[]> => {
+    const apiTimeout = configService.get('news.api.timeoutMs', 5000);
+    const hnFetchLimit = configService.get('news.hackernews.fetchLimit', 50);
+    
     try {
       // Get top stories
       const topStoriesResponse = await axios.get(
         `${NEWS_SOURCES.hackernews.baseUrl}/topstories.json`,
-        { timeout: 5000 }
+        { timeout: apiTimeout }
       );
       
-      const storyIds = topStoriesResponse.data.slice(0, 50);
+      const storyIds = topStoriesResponse.data.slice(0, hnFetchLimit);
       
       // Fetch story details in parallel
       const storyPromises = storyIds.map((id: number) =>
-        axios.get(`${NEWS_SOURCES.hackernews.baseUrl}/item/${id}.json`, { timeout: 3000 })
+        axios.get(`${NEWS_SOURCES.hackernews.baseUrl}/item/${id}.json`, { timeout: apiTimeout })
           .catch(() => null)
       );
       
@@ -256,6 +260,8 @@ export const newsService = {
     topics?: string[],
     maxResults: number = 20
   ): Promise<NewsArticle[]> => {
+    const apiTimeout = configService.get('news.api.timeoutMs', 5000);
+    
     try {
       const subreddits = topics?.length 
         ? topics.flatMap(t => TOPIC_MAPPINGS[t] || [t])
@@ -270,7 +276,7 @@ export const newsService = {
             : `${NEWS_SOURCES.reddit.baseUrl}/r/${subreddit}/hot.json?limit=10`;
           
           const response = await axios.get(url, {
-            timeout: 5000,
+            timeout: apiTimeout,
             headers: { 'User-Agent': 'Pocketknife/1.0' }
           });
           
@@ -340,9 +346,10 @@ export const newsService = {
         params.country = countryCode.toLowerCase();
       }
 
+      const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
       const response = await axios.get(`${NEWS_SOURCES.newsapi.baseUrl}${endpoint}`, {
         params,
-        timeout: 10000
+        timeout: longTimeout
       });
 
       const articles: NewsArticle[] = (response.data.articles || []).map((article: any) => ({
@@ -399,9 +406,10 @@ export const newsService = {
         params.country = countryCode.toLowerCase();
       }
 
+      const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
       const response = await axios.get(`${NEWS_SOURCES.gnews.baseUrl}${endpoint}`, {
         params,
-        timeout: 10000
+        timeout: longTimeout
       });
 
       const articles: NewsArticle[] = (response.data.articles || []).map((article: any) => ({
@@ -457,9 +465,10 @@ export const newsService = {
         params.countries = countryCode.toLowerCase();
       }
 
+      const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
       const response = await axios.get(`${NEWS_SOURCES.mediastack.baseUrl}/news`, {
         params,
-        timeout: 10000
+        timeout: longTimeout
       });
 
       const articles: NewsArticle[] = (response.data.data || []).map((article: any) => ({
@@ -750,13 +759,16 @@ export const newsService = {
    * Generate AI summary of an article
    */
   generateSummary: async (articleUrl: string, articleContent?: string): Promise<string> => {
+    const maxChars = configService.get('news.ai.summaryMaxChars', 3000);
+    const maxTokens = configService.get('news.ai.maxTokens', 500);
+    
     const prompt = `Summarize this news article in 2-3 bullet points. Focus on the key facts and takeaways.
     
-${articleContent ? `Content: ${articleContent.slice(0, 3000)}` : `URL: ${articleUrl}`}
+${articleContent ? `Content: ${articleContent.slice(0, maxChars)}` : `URL: ${articleUrl}`}
 
 Format your response as bullet points.`;
 
-    const result = await claudeService.generateText(prompt, configService.get('news.ai.maxTokens', 500));
+    const result = await claudeService.generateText(prompt, maxTokens);
 
     return result;
   },

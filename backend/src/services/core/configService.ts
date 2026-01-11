@@ -108,6 +108,10 @@ const DEFAULT_CONFIG = {
   'news.digest.maxArticles': 10,
   'news.cache.ttlSeconds': 900,           // 15 minutes
   'news.ai.maxTokens': 500,
+  'news.ai.summaryMaxChars': 3000,        // Max chars to send for summarization
+  'news.api.timeoutMs': 5000,             // Default API request timeout
+  'news.api.longTimeoutMs': 10000,        // Longer timeout for slower APIs
+  'news.hackernews.fetchLimit': 50,       // How many HN stories to fetch
   
   // ==========================================================================
   // DIY AGENT
@@ -115,6 +119,7 @@ const DEFAULT_CONFIG = {
   'diy.search.maxResults': 20,
   'diy.ai.maxTokens': 3000,
   'diy.cache.ttlSeconds': 86400,          // 24 hours for generated projects
+  'diy.ideas.aiTokens': 800,              // Tokens for idea suggestions
   
   // ==========================================================================
   // NOTION INTEGRATION

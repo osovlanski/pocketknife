@@ -246,3 +246,4 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
   expert: '#7C3AED'
 };
 
+

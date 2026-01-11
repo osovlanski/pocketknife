@@ -28,3 +28,4 @@ router.get('/categories', controller.getCategories);
 
 export default router;
 
+
