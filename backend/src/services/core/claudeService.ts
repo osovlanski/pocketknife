@@ -1,34 +1,32 @@
 import Anthropic from '@anthropic-ai/sdk';
 import https from 'https';
+import logger from '../../utils/logger';
 
 class ClaudeService {
   private client: Anthropic | null = null;
 
   private initializeClient() {
     if (this.client) {
-      return; // Already initialized
+      return;
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
     
     if (!apiKey) {
-      console.error('❌ ANTHROPIC_API_KEY is not set in environment variables');
-      console.error('❌ Available env keys:', Object.keys(process.env).filter(k => k.includes('ANTHROPIC')));
+      logger.fail('ANTHROPIC_API_KEY is not set in environment variables');
       throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
     }
     
-    console.log('🔑 Initializing Claude with API key (length:', apiKey.length, ')');
+    logger.init('Initializing Claude client', { apiKeyLength: apiKey.length });
     
     this.client = new Anthropic({
       apiKey: apiKey,
-      // Disable SSL verification for corporate proxies
       httpAgent: new https.Agent({ rejectUnauthorized: false })
     });
   }
 
   async classifyEmail(email: any) {
     try {
-      // Lazy initialization - only create client when first needed
       this.initializeClient();
       
       if (!this.client) {
@@ -96,15 +94,11 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
       return classification;
     } catch (error) {
-      console.error('Error with Claude API:', error);
+      logger.fail('Error with Claude API', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
-  /**
-   * Analyze email patterns to suggest new rules
-   * Looks for repetitive senders/subjects that don't have existing rules
-   */
   async analyzeEmailPatterns(emails: any[], existingRules: string[] = []): Promise<{
     suggestedRules: Array<{
       pattern: string;
@@ -122,7 +116,6 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         throw new Error('Failed to initialize Anthropic client');
       }
 
-      // Group emails by sender domain and subject patterns
       const emailSummary = emails.slice(0, 50).map(e => ({
         from: e.from,
         subject: e.subject,
@@ -170,7 +163,7 @@ Respond ONLY with valid JSON:
 
       return result;
     } catch (error) {
-      console.error('Error analyzing email patterns:', error);
+      logger.fail('Error analyzing email patterns', { error: error instanceof Error ? error.message : String(error) });
       return {
         suggestedRules: [],
         summary: 'Failed to analyze patterns'
@@ -178,9 +171,6 @@ Respond ONLY with valid JSON:
     }
   }
 
-  /**
-   * General purpose text generation
-   */
   async generateText(prompt: string, maxTokens: number = 4096): Promise<string> {
     try {
       this.initializeClient();
@@ -203,7 +193,7 @@ Respond ONLY with valid JSON:
       const textBlock = message.content.find(block => block.type === 'text');
       return textBlock?.type === 'text' ? textBlock.text : '';
     } catch (error) {
-      console.error('Error generating text:', error);
+      logger.fail('Error generating text', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

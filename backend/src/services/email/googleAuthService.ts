@@ -1,5 +1,6 @@
 import { google, Auth } from 'googleapis';
 import { getPrisma } from '../core/databaseService';
+import logger from '../../utils/logger';
 
 const PROVIDER = 'google';
 const DEFAULT_USER_EMAIL = process.env.GMAIL_USER_EMAIL || 'default';
@@ -27,12 +28,12 @@ class GoogleAuthService {
 
     // Set up automatic token refresh callback
     this.oauth2Client.on('tokens', async (tokens) => {
-      console.log('🔄 Token refresh event received');
+      logger.retry('Token refresh event received');
       if (tokens.refresh_token) {
-        console.log('✅ New refresh token received');
+        logger.success(' New refresh token received');
       }
       if (tokens.access_token) {
-        console.log('✅ New access token received, updating saved tokens');
+        logger.success(' New access token received, updating saved tokens');
         await this.saveTokensToDatabase(tokens);
       }
     });
@@ -40,9 +41,9 @@ class GoogleAuthService {
     // Try to load existing tokens from database (silent mode for startup)
     const hasTokens = await this.loadTokensFromDatabase(true);
     if (hasTokens) {
-      console.log('✅ Google OAuth tokens loaded from database');
+      logger.success(' Google OAuth tokens loaded from database');
     } else {
-      console.log('ℹ️ No Google OAuth tokens yet - user will need to authenticate via Settings');
+      logger.info('No Google OAuth tokens yet - user will need to authenticate via Settings');
     }
   }
 
@@ -61,13 +62,13 @@ class GoogleAuthService {
     try {
       const prisma = getPrisma();
       if (!prisma) {
-        if (!silent) console.warn('⚠️ Database not available for token loading');
+        if (!silent) logger.warn('Database not available for token loading');
         return false;
       }
 
       // Check if OAuthToken table exists
       if (!(prisma as any).oAuthToken) {
-        if (!silent) console.warn('⚠️ OAuthToken table not found. Run migrations.');
+        if (!silent) logger.warn('OAuthToken table not found. Run migrations.');
         return false;
       }
 
@@ -93,7 +94,7 @@ class GoogleAuthService {
         
         // Update currentUserEmail if we found a token under different email
         if (tokenRecord && tokenRecord.userEmail) {
-          if (!silent) console.log(`✅ Found Google OAuth token for user: ${tokenRecord.userEmail}`);
+          if (!silent) logger.success('Found Google OAuth token for user', { userEmail: tokenRecord.userEmail });
           this.currentUserEmail = tokenRecord.userEmail as string;
         }
       }
@@ -115,7 +116,7 @@ class GoogleAuthService {
         if (tokenRecord.expiryDate && tokenRecord.refreshToken) {
           const isExpired = tokenRecord.expiryDate.getTime() < Date.now();
           if (isExpired && !silent) {
-            console.log('ℹ️ Access token expired, will refresh on next API call');
+            logger.info('Access token expired, will refresh on next API call');
           }
         }
         return true;
@@ -128,9 +129,9 @@ class GoogleAuthService {
     } catch (error: any) {
       // Handle table not existing gracefully
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-        console.warn('⚠️ OAuthToken table not found. Run migrations first.');
+        logger.warn('OAuthToken table not found. Run migrations first.');
       } else {
-        console.warn('⚠️ Failed to load Google tokens from database:', error.message);
+        logger.warn('Failed to load Google tokens from database', { error: error.message });
       }
       this.hasValidTokens = false;
       this.storedScopes = '';
@@ -145,12 +146,12 @@ class GoogleAuthService {
     try {
       const prisma = getPrisma();
       if (!prisma) {
-        console.warn('⚠️ Database not available for token saving');
+        logger.warn('Database not available for token saving');
         return false;
       }
 
       if (!(prisma as any).oAuthToken) {
-        console.warn('⚠️ OAuthToken table not found. Run migrations.');
+        logger.warn('OAuthToken table not found. Run migrations.');
         return false;
       }
 
@@ -198,10 +199,10 @@ class GoogleAuthService {
       });
 
       this.storedScopes = tokens.scope || this.storedScopes;
-      console.log('✅ Tokens saved to database');
+      logger.success(' Tokens saved to database');
       return true;
     } catch (error: any) {
-      console.error('❌ Failed to save tokens to database:', error.message);
+      logger.fail('Failed to save tokens to database', { error: error.message });
       return false;
     }
   }
@@ -224,12 +225,12 @@ class GoogleAuthService {
           }
         }
       });
-      console.log('✅ Tokens deleted from database');
+      logger.success(' Tokens deleted from database');
       return true;
     } catch (error: any) {
       // P2025 = record not found, which is fine
       if (error.code !== 'P2025') {
-        console.error('❌ Failed to delete tokens from database:', error.message);
+        logger.fail('Failed to delete tokens from database', { error: error.message });
       }
       return false;
     }
@@ -253,14 +254,14 @@ class GoogleAuthService {
       const isExpired = credentials.expiry_date ? credentials.expiry_date < Date.now() : true;
       
       if (isExpired || !credentials.access_token) {
-        console.log('🔄 Access token expired or missing, refreshing...');
+        logger.retry('Access token expired or missing, refreshing...');
         try {
           const { credentials: newCredentials } = await this.oauth2Client.refreshAccessToken();
           this.oauth2Client.setCredentials(newCredentials);
           await this.saveTokensToDatabase(newCredentials);
-          console.log('✅ Access token refreshed successfully');
+          logger.success(' Access token refreshed successfully');
         } catch (refreshError: any) {
-          console.error('❌ Failed to refresh access token:', refreshError.message);
+          logger.fail('Failed to refresh access token', { error: refreshError.message });
           throw new Error('Failed to refresh access token. Please reconnect your Google account.');
         }
       }
@@ -339,15 +340,15 @@ class GoogleAuthService {
         return { success: false, error: 'Failed to initialize OAuth client' };
       }
       
-      console.log('🔄 Exchanging authorization code for tokens...');
+      logger.processing('Exchanging authorization code for tokens...');
       const { tokens } = await this.oauth2Client.getToken(code);
       
       if (!tokens.access_token) {
-        console.error('❌ No access token received');
+        logger.fail('No access token received');
         return { success: false, error: 'No access token received from Google. Please try again.' };
       }
       
-      console.log('✅ Received tokens:', {
+      logger.success(' Received tokens:', {
         hasAccessToken: !!tokens.access_token,
         hasRefreshToken: !!tokens.refresh_token,
         expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : 'none',
@@ -365,7 +366,7 @@ class GoogleAuthService {
             if (payload.email && typeof payload.email === 'string') {
               userEmail = payload.email;
               this.currentUserEmail = payload.email;
-              console.log('✅ Got email from id_token:', userEmail);
+              logger.success('Got email from id_token', { email: userEmail });
             }
           } catch {
             // id_token decode failed
@@ -380,10 +381,10 @@ class GoogleAuthService {
           if (userEmail) {
             this.currentUserEmail = userEmail;
           }
-          console.log('✅ Got email from API:', userEmail);
+          logger.success('Got email from API', { email: userEmail });
         }
       } catch (verifyError: any) {
-        console.warn('⚠️ Could not fetch user info (tokens may still work):', verifyError.message);
+        logger.warn('Could not fetch user info (tokens may still work)', { error: verifyError.message });
       }
       
       // Save tokens to database
@@ -394,8 +395,8 @@ class GoogleAuthService {
       this.hasValidTokens = true;
       this.storedScopes = tokens.scope || '';
       
-      console.log('✅ Google OAuth tokens saved successfully to database');
-      console.log('📋 Token scopes:', this.storedScopes.substring(0, 100) + '...');
+      logger.success(' Google OAuth tokens saved successfully to database');
+      logger.info('Token scopes', { scopes: this.storedScopes.substring(0, 100) + '...' });
       
       return { success: true, email: userEmail };
     } catch (error: any) {
@@ -429,7 +430,7 @@ class GoogleAuthService {
       this.storedScopes = '';
       this.oauth2Client?.setCredentials({});
       
-      console.log('✅ Google account disconnected');
+      logger.success(' Google account disconnected');
       return { success: true };
     } catch (error: any) {
       console.error('❌ Error disconnecting Google:', error);

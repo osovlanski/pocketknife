@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { getPrisma } from '../services/core/databaseService';
 import { logAdminAction } from '../middleware/adminMiddleware';
 import externalApiService from '../services/core/externalApiService';
+import logger from '../utils/logger';
 
 // =============================================================================
 // USER MANAGEMENT
@@ -83,7 +84,7 @@ export const getUsers = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Get users error:', error);
+    logger.fail('Get users error', { error: error.message });
     res.status(500).json({ error: 'Failed to get users' });
   }
 };
@@ -124,7 +125,7 @@ export const getUser = async (req: Request, res: Response) => {
 
     res.json({ user });
   } catch (error: any) {
-    console.error('Get user error:', error);
+    logger.fail('Get user error', { error: error.message });
     res.status(500).json({ error: 'Failed to get user' });
   }
 };
@@ -193,7 +194,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     res.status(201).json({ user });
   } catch (error: any) {
-    console.error('Create user error:', error);
+    logger.fail('Create user error', { error: error.message });
     res.status(500).json({ error: 'Failed to create user' });
   }
 };
@@ -269,7 +270,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     res.json({ user });
   } catch (error: any) {
-    console.error('Update user error:', error);
+    logger.fail('Update user error', { error: error.message });
     res.status(500).json({ error: 'Failed to update user' });
   }
 };
@@ -323,7 +324,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error: any) {
-    console.error('Delete user error:', error);
+    logger.fail('Delete user error', { error: error.message });
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
@@ -368,7 +369,7 @@ export const getSettings = async (req: Request, res: Response) => {
 
     res.json({ settings: grouped });
   } catch (error: any) {
-    console.error('Get settings error:', error);
+    logger.fail('Get settings error', { error: error.message });
     res.status(500).json({ error: 'Failed to get settings' });
   }
 };
@@ -418,7 +419,7 @@ export const updateSetting = async (req: Request, res: Response) => {
 
     res.json({ setting });
   } catch (error: any) {
-    console.error('Update setting error:', error);
+    logger.fail('Update setting error', { error: error.message });
     res.status(500).json({ error: 'Failed to update setting' });
   }
 };
@@ -473,7 +474,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Get audit logs error:', error);
+    logger.fail('Get audit logs error', { error: error.message });
     res.status(500).json({ error: 'Failed to get audit logs' });
   }
 };
@@ -551,7 +552,7 @@ export const getStats = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Get stats error:', error);
+    logger.fail('Get stats error', { error: error.message });
     res.status(500).json({ error: 'Failed to get stats' });
   }
 };
@@ -567,11 +568,11 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
 
     if (!req.user) {
-      console.log('❌ getCurrentUser: No user in request');
+      logger.warn('getCurrentUser: No user in request');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    console.log(`📋 getCurrentUser: Fetching user ${req.user.email} (role: ${req.user.role})`);
+    logger.info('getCurrentUser: Fetching user', { email: req.user.email, role: req.user.role });
 
     // First try to get user with preferences
     let user;
@@ -583,19 +584,17 @@ export const getCurrentUser = async (req: Request, res: Response) => {
         }
       });
     } catch (includeError: any) {
-      console.warn('⚠️ Failed to include preferences, fetching user without:', includeError.message);
+      logger.warn('Failed to include preferences, fetching user without', { error: includeError.message });
       // Fallback: get user without preferences
       user = await prisma.user.findUnique({
         where: { id: req.user.id }
       });
     }
 
-    console.log(`📋 getCurrentUser: Returning user with role=${user?.role}, email=${user?.email}`);
+    logger.info('getCurrentUser: Returning user', { role: user?.role, email: user?.email });
     res.json({ user });
   } catch (error: any) {
-    console.error('❌ Get current user error:', error.message);
-    console.error('❌ Error stack:', error.stack);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
+    logger.fail('Get current user error', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       error: 'Failed to get current user',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined
@@ -614,7 +613,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
     }
 
     const adminEmail = (process.env.ADMIN_EMAIL || 'itayosov@gmail.com').toLowerCase();
-    console.log(`🔧 initializeAdmin: Looking for ${adminEmail}`);
+    logger.init('initializeAdmin: Looking for admin', { adminEmail });
 
     // Check if this user already exists
     let user = await prisma.user.findUnique({
@@ -622,11 +621,11 @@ export const initializeAdmin = async (req: Request, res: Response) => {
     });
 
     if (user) {
-      console.log(`🔧 initializeAdmin: Found user with role=${user.role}, status=${user.status}`);
+      logger.info('initializeAdmin: Found user', { role: user.role, status: user.status });
       
       // User exists - upgrade to super admin if not already
       if (user.role !== 'SUPER_ADMIN') {
-        console.log(`🔧 initializeAdmin: Upgrading ${adminEmail} from ${user.role} to SUPER_ADMIN`);
+        logger.info('initializeAdmin: Upgrading user to SUPER_ADMIN', { email: adminEmail, currentRole: user.role });
         user = await prisma.user.update({
           where: { email: adminEmail },
           data: {
@@ -636,7 +635,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
             verifiedAt: new Date()
           }
         });
-        console.log(`✅ initializeAdmin: User upgraded to SUPER_ADMIN`);
+        logger.success('initializeAdmin: User upgraded to SUPER_ADMIN');
       }
       
       // Initialize external API configs
@@ -680,7 +679,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
         }
       });
     } catch (prefError) {
-      console.log('Preferences creation skipped:', prefError);
+      logger.debug('Preferences creation skipped', { error: (prefError as Error).message });
     }
 
     // Initialize default system settings
@@ -725,8 +724,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Initialize admin error:', error);
-    console.error('Stack:', error.stack);
+    logger.fail('Initialize admin error', { error: error.message, stack: error.stack });
     
     // Provide more specific error messages
     let errorMessage = 'Failed to initialize admin';
@@ -758,10 +756,10 @@ export const initializeAdmin = async (req: Request, res: Response) => {
 export const getExternalApis = async (req: Request, res: Response) => {
   try {
     const category = req.query.category as string | undefined;
-    console.log(`📡 getExternalApis: Fetching APIs (category: ${category || 'all'})`);
+    logger.api('getExternalApis: Fetching APIs', { category: category || 'all' });
     
     const apis = await externalApiService.getAll(category);
-    console.log(`📦 getExternalApis: Got ${apis.length} APIs`);
+    logger.found('getExternalApis: Got APIs', { count: apis.length });
 
     // Group by category
     const grouped = apis.reduce((acc, api) => {
@@ -772,10 +770,10 @@ export const getExternalApis = async (req: Request, res: Response) => {
       return acc;
     }, {} as Record<string, typeof apis>);
 
-    console.log(`📊 getExternalApis: Grouped into ${Object.keys(grouped).length} categories`);
+    logger.info('getExternalApis: Grouped into categories', { categoryCount: Object.keys(grouped).length });
     res.json({ apis: grouped, flat: apis });
   } catch (error: any) {
-    console.error('❌ Get external APIs error:', error);
+    logger.fail('Get external APIs error', { error: error.message });
     res.status(500).json({ error: 'Failed to get external APIs' });
   }
 };
@@ -794,7 +792,7 @@ export const getExternalApi = async (req: Request, res: Response) => {
 
     res.json({ api });
   } catch (error: any) {
-    console.error('Get external API error:', error);
+    logger.fail('Get external API error', { error: error.message });
     res.status(500).json({ error: 'Failed to get external API' });
   }
 };
@@ -833,7 +831,7 @@ export const updateExternalApi = async (req: Request, res: Response) => {
 
     res.json({ api: updated });
   } catch (error: any) {
-    console.error('Update external API error:', error);
+    logger.fail('Update external API error', { error: error.message });
     res.status(500).json({ error: 'Failed to update external API' });
   }
 };
@@ -870,7 +868,7 @@ export const toggleExternalApi = async (req: Request, res: Response) => {
       message: `${current.displayName} is now ${updated?.isEnabled ? 'enabled' : 'disabled'}`
     });
   } catch (error: any) {
-    console.error('Toggle external API error:', error);
+    logger.fail('Toggle external API error', { error: error.message });
     res.status(500).json({ error: 'Failed to toggle external API' });
   }
 };
@@ -1141,7 +1139,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
       requiresAuth: api.requiresAuth
     });
   } catch (error: any) {
-    console.error('Test external API error:', error);
+    logger.fail('Test external API error', { error: error.message });
     res.status(500).json({ error: 'Failed to test external API' });
   }
 };
@@ -1151,7 +1149,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
  */
 export const testAllExternalApis = async (req: Request, res: Response) => {
   try {
-    console.log('🧪 Starting test of all external APIs...');
+    logger.start('Starting test of all external APIs...');
     
     // If category provided, test only that category; otherwise test all
     const category = req.query.category as string | undefined;
@@ -1160,7 +1158,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
     try {
       apis = await externalApiService.getAll(category);
     } catch (fetchError: any) {
-      console.error('❌ Error fetching API configs:', fetchError);
+      logger.fail('Error fetching API configs', { error: fetchError.message });
       return res.status(500).json({ 
         error: 'Failed to fetch API configurations', 
         details: fetchError.message 

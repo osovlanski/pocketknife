@@ -3,13 +3,11 @@
  * 
  * Provides Google Custom Search capabilities to all agents.
  * Manages a shared quota of 100 free queries/day across all agents.
- * 
- * Each agent can configure its own search domains or use agent-specific
- * search engine IDs for optimized results.
  */
 
 import axios from 'axios';
 import claudeService from './claudeService';
+import logger from '../../utils/logger';
 
 // =============================================================================
 // TYPES
@@ -68,7 +66,6 @@ interface QuotaState {
 
 import { configService } from './configService';
 
-// Get daily limit from config (defaults to 100)
 const getDailyLimit = () => configService.get('google.cse.dailyLimit', 100);
 
 class QuotaManager {
@@ -89,7 +86,7 @@ class QuotaManager {
   private checkAndReset(): void {
     const today = this.getTodayDate();
     if (this.state.resetDate !== today) {
-      console.log('📊 [QuotaManager] New day detected, resetting quota counter');
+      logger.info('New day detected, resetting quota counter', { context: 'QuotaManager' });
       this.state = {
         count: 0,
         resetDate: today,
@@ -106,7 +103,12 @@ class QuotaManager {
   increment(agent: AgentType): void {
     this.state.count++;
     this.state.usageByAgent[agent] = (this.state.usageByAgent[agent] || 0) + 1;
-    console.log(`📊 [QuotaManager] Google CSE usage: ${this.state.count}/${getDailyLimit()} (${agent}: ${this.state.usageByAgent[agent]})`);
+    logger.info('Google CSE usage updated', { 
+      used: this.state.count, 
+      limit: getDailyLimit(), 
+      agent, 
+      agentUsage: this.state.usageByAgent[agent] 
+    });
   }
 
   getStatus(): { 
@@ -137,7 +139,6 @@ class QuotaManager {
   }
 }
 
-// Singleton quota manager shared across all agents
 const quotaManager = new QuotaManager();
 
 // =============================================================================
@@ -212,9 +213,6 @@ class GoogleSearchService {
   private isConfigured: boolean | null = null;
   private initialized = false;
 
-  /**
-   * Lazy initialization - reads env vars when first needed (after dotenv.config() has run)
-   */
   private ensureInitialized(): void {
     if (this.initialized) return;
     
@@ -224,41 +222,25 @@ class GoogleSearchService {
     this.initialized = true;
 
     if (this.isConfigured) {
-      console.log('✅ [GoogleSearch] Configured with', quotaManager.getStatus().remaining, 'daily quota');
+      logger.success('GoogleSearch configured', { remaining: quotaManager.getStatus().remaining });
     } else {
-      console.log('⚠️ [GoogleSearch] Not configured. Set GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID in .env');
+      logger.warn('GoogleSearch not configured. Set GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID in .env');
     }
   }
 
-  /**
-   * Check if the service is configured
-   */
   isAvailable(): boolean {
     this.ensureInitialized();
     return this.isConfigured!;
   }
 
-  /**
-   * Check if quota is available
-   */
   hasQuota(): boolean {
     return quotaManager.canUse();
   }
 
-  /**
-   * Get current quota status
-   */
   getQuotaStatus() {
     return quotaManager.getStatus();
   }
 
-  /**
-   * Search using Google Custom Search API
-   * 
-   * @param query - Search query
-   * @param agent - Agent type for quota tracking and site filtering
-   * @param options - Additional search options
-   */
   async search(
     query: string,
     agent: AgentType,
@@ -272,23 +254,21 @@ class GoogleSearchService {
     this.ensureInitialized();
     
     if (!this.isConfigured) {
-      console.log('⚠️ [GoogleSearch] Service not configured');
+      logger.warn('GoogleSearch service not configured');
       return [];
     }
 
     if (!quotaManager.canUse()) {
-      console.log('⚠️ [GoogleSearch] Daily quota exhausted');
+      logger.warn('GoogleSearch daily quota exhausted');
       throw new Error('QUOTA_EXHAUSTED');
     }
 
     const { maxResults = 10, siteRestrict, geolocation, language } = options;
     const config = AGENT_SEARCH_CONFIGS[agent];
 
-    // Build site restriction query
     let siteQuery = '';
     const sites = siteRestrict || config.sites;
     if (sites.length > 0) {
-      // Google CSE supports up to 10 sites per query with site: operator
       const sitesToUse = sites.slice(0, 10);
       siteQuery = ` (${sitesToUse.map(s => `site:${s}`).join(' OR ')})`;
     }
@@ -296,7 +276,7 @@ class GoogleSearchService {
     const fullQuery = `${query}${siteQuery}`;
 
     try {
-      console.log(`🔍 [GoogleSearch] Searching (${agent}): "${query}"`);
+      logger.search(`GoogleSearch (${agent}): "${query}"`);
 
       const response = await axios.get<GoogleCSEResponse>(
         'https://www.googleapis.com/customsearch/v1',
@@ -313,16 +293,15 @@ class GoogleSearchService {
         }
       );
 
-      // Increment quota after successful call
       quotaManager.increment(agent);
 
       if (response.data.error) {
-        console.error('❌ [GoogleSearch] API error:', response.data.error.message);
+        logger.fail('GoogleSearch API error', { message: response.data.error.message });
         throw new Error(response.data.error.message);
       }
 
       const items = response.data.items || [];
-      console.log(`📦 [GoogleSearch] Got ${items.length} results for ${agent}`);
+      logger.found(`GoogleSearch results for ${agent}`, { count: items.length });
 
       return items.map(item => ({
         title: item.title,
@@ -333,26 +312,19 @@ class GoogleSearchService {
       }));
     } catch (error: any) {
       if (error.response?.status === 429) {
-        console.error('❌ [GoogleSearch] Rate limit exceeded');
+        logger.fail('GoogleSearch rate limit exceeded');
         throw new Error('RATE_LIMIT');
       }
       if (error.response?.status === 403) {
-        console.error('❌ [GoogleSearch] API key invalid or quota exceeded');
+        logger.fail('GoogleSearch API key invalid or quota exceeded');
         throw new Error('QUOTA_EXCEEDED');
       }
       
-      console.error('❌ [GoogleSearch] Search failed:', error.message);
+      logger.fail('GoogleSearch failed', { error: error.message });
       throw error;
     }
   }
 
-  /**
-   * Search and parse results using Claude
-   * 
-   * @param query - Search query
-   * @param agent - Agent type
-   * @param options - Search options
-   */
   async searchAndParse(
     query: string,
     agent: AgentType,
@@ -411,9 +383,8 @@ Respond ONLY with valid JSON (no markdown):
         metadata: r.metadata || {}
       }));
     } catch (error: any) {
-      console.error('❌ [GoogleSearch] Parse failed, returning raw results:', error.message);
+      logger.fail('GoogleSearch parse failed, returning raw results', { error: error.message });
       
-      // Return unparsed results as fallback
       return results.map(r => ({
         title: r.title,
         description: r.snippet,
@@ -424,9 +395,6 @@ Respond ONLY with valid JSON (no markdown):
     }
   }
 
-  /**
-   * Get the search configuration for an agent
-   */
   getAgentConfig(agent: AgentType) {
     return AGENT_SEARCH_CONFIGS[agent];
   }
@@ -440,6 +408,3 @@ export const googleSearchService = new GoogleSearchService();
 export { quotaManager };
 export type { SearchResult, ParsedSearchResult, AgentType };
 export default googleSearchService;
-
-
-

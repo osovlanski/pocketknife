@@ -38,6 +38,7 @@ import { shoppingAgent } from './ShoppingAgent';
 import { cookingAgent } from './CookingAgent';
 import { newsAgent } from './NewsAgent';
 import { diyAgent } from './DIYAgent';
+import logger from '../utils/logger';
 
 /**
  * Initialize all agents and register them
@@ -54,6 +55,7 @@ export const initializeAgents = () => {
   agentRegistry.register(newsAgent);
   agentRegistry.register(diyAgent);
   
-  console.log('✅ All agents registered');
-  console.log(`   📦 Registered: ${agentRegistry.getAll().map(a => a.metadata.name).join(', ')}`);
+  logger.success('All agents registered', { 
+    agents: agentRegistry.getAll().map(a => a.metadata.name) 
+  });
 };

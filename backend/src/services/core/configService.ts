@@ -11,6 +11,7 @@
 
 import { databaseService, getPrisma } from './databaseService';
 import { cacheService } from './cacheService';
+import logger from '../../utils/logger';
 
 // Default configuration values - organized by category
 const DEFAULT_CONFIG = {
@@ -25,10 +26,10 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   // SHOPPING AGENT
   // ==========================================================================
-  'shopping.dealScore.excellent': 80,      // Green - Excellent deal
-  'shopping.dealScore.good': 60,           // Yellow - Good deal
-  'shopping.dealScore.fair': 40,           // Orange - Fair deal
-  'shopping.dealScore.notifyThreshold': 70, // Default threshold for notifications
+  'shopping.dealScore.excellent': 80,
+  'shopping.dealScore.good': 60,
+  'shopping.dealScore.fair': 40,
+  'shopping.dealScore.notifyThreshold': 70,
   'shopping.search.maxResults': 30,
   'shopping.search.maxIsraeliResults': 10,
   'shopping.ai.maxTokens': 1500,
@@ -36,33 +37,27 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   // JOB AGENT
   // ==========================================================================
-  'job.match.excellent': 80,               // Excellent match threshold
-  'job.match.good': 60,                    // Good match threshold
-  'job.match.streamThreshold': 75,         // Minimum score to stream to frontend
+  'job.match.excellent': 80,
+  'job.match.good': 60,
+  'job.match.streamThreshold': 75,
   'job.search.maxResults': 50,
   'job.search.cacheMinutes': 30,
   'job.enrichment.enabled': true,
   'job.enrichment.batchSize': 10,
-  
-  // Comeet ATS Integration (Israeli startups)
-  'job.comeet.enabled': true,              // Enable Comeet ATS job fetching
-  'job.comeet.timeoutMs': 10000,           // Request timeout per company
-  'job.comeet.maxConcurrentRequests': 5,   // Max parallel requests to Comeet
-  
-  // Israeli Tech Community Sources
-  'job.community.enabled': true,           // Enable community job sources
-  'job.community.timeoutMs': 10000,        // Timeout for community API calls
-  'job.community.telegramEnabled': true,   // Fetch from Telegram channels
-  'job.community.startupNationEnabled': true, // Fetch from Startup Nation Central
-  
-  // Israeli Startup Job Scrapers
-  'job.startups.enabled': true,            // Enable startup job scrapers
-  'job.startups.geektimeEnabled': true,    // Scrape Geektime jobs
-  'job.startups.allJobsEnabled': true,     // Scrape AllJobs
-  'job.startups.goozaliEnabled': true,     // Scrape Goozali
-  'job.startups.drushimEnabled': true,     // Scrape Drushim
-  'job.startups.f6sEnabled': true,         // Scrape F6S
-  'job.startups.maxResultsPerSource': 50,  // Max jobs per source
+  'job.comeet.enabled': true,
+  'job.comeet.timeoutMs': 10000,
+  'job.comeet.maxConcurrentRequests': 5,
+  'job.community.enabled': true,
+  'job.community.timeoutMs': 10000,
+  'job.community.telegramEnabled': true,
+  'job.community.startupNationEnabled': true,
+  'job.startups.enabled': true,
+  'job.startups.geektimeEnabled': true,
+  'job.startups.allJobsEnabled': true,
+  'job.startups.goozaliEnabled': true,
+  'job.startups.drushimEnabled': true,
+  'job.startups.f6sEnabled': true,
+  'job.startups.maxResultsPerSource': 50,
   
   // ==========================================================================
   // EMAIL AGENT
@@ -70,7 +65,7 @@ const DEFAULT_CONFIG = {
   'email.batch.size': 50,
   'email.classification.confidenceThreshold': 0.75,
   'email.scheduler.enabled': false,
-  'email.scheduler.interval': '0 */4 * * *', // Every 4 hours
+  'email.scheduler.interval': '0 */4 * * *',
   'email.ai.maxTokens': 1500,
   
   // ==========================================================================
@@ -97,17 +92,15 @@ const DEFAULT_CONFIG = {
   'travel.search.cacheMinutes': 60,
   'travel.trip.defaultDays': 7,
   'travel.ai.maxTokens': 2000,
-  
-  // Israel Domestic Travel
   'travel.israel.maxResults': 10,
-  'travel.israel.cacheTTL': 3600,            // 1 hour cache for AI suggestions
+  'travel.israel.cacheTTL': 3600,
   'travel.israel.aiEnabled': true,
   'travel.israel.defaultRegions': ['center', 'north', 'jerusalem'],
   
   // ==========================================================================
   // TODO AGENT
   // ==========================================================================
-  'todo.task.defaultDuration': 30,         // Default task duration in minutes
+  'todo.task.defaultDuration': 30,
   'todo.calendar.syncEnabled': true,
   'todo.ai.maxTokens': 2000,
   
@@ -116,36 +109,34 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   'cooking.search.maxResults': 20,
   'cooking.recipe.maxResults': 10,
-  'cooking.expiryWarning.daysAhead': 3,  // Days before expiry to warn
-  'cooking.lowStock.threshold': 2,        // Quantity below this = low stock
-  'cooking.invoice.autoDetect': true,     // Auto-detect items from invoices
-  'cooking.invoice.confidenceThreshold': 0.7, // Min confidence for auto-matching
+  'cooking.expiryWarning.daysAhead': 3,
+  'cooking.lowStock.threshold': 2,
+  'cooking.invoice.autoDetect': true,
+  'cooking.invoice.confidenceThreshold': 0.7,
   'cooking.ai.maxTokens': 2000,
-  'cooking.cache.itemsTtlSeconds': 300,   // 5 minutes for inventory items
-  'cooking.cache.recipesTtlSeconds': 3600, // 1 hour for recipes
-  'cooking.api.timeoutMs': 5000,          // API request timeout
+  'cooking.cache.itemsTtlSeconds': 300,
+  'cooking.cache.recipesTtlSeconds': 3600,
+  'cooking.api.timeoutMs': 5000,
   
   // ==========================================================================
   // NEWS AGENT
   // ==========================================================================
   'news.search.maxResults': 30,
   'news.sources.default': ['hackernews', 'reddit', 'newsapi'],
-  'news.topics.default': ['tech', 'business', 'science'], // Default topics when no preferences
-  'news.learning.rate': 0.1,              // Learning rate for topic weights
+  'news.topics.default': ['tech', 'business', 'science'],
+  'news.learning.rate': 0.1,
   'news.digest.maxArticles': 10,
-  'news.cache.ttlSeconds': 900,           // 15 minutes
+  'news.cache.ttlSeconds': 900,
   'news.ai.maxTokens': 500,
-  'news.ai.summaryMaxChars': 3000,        // Max chars to send for summarization
-  'news.api.timeoutMs': 5000,             // Default API request timeout
-  'news.api.longTimeoutMs': 10000,        // Longer timeout for slower APIs
-  'news.hackernews.fetchLimit': 50,       // How many HN stories to fetch
-  // News API base URLs (fallback values - primary source is externalApiService)
+  'news.ai.summaryMaxChars': 3000,
+  'news.api.timeoutMs': 5000,
+  'news.api.longTimeoutMs': 10000,
+  'news.hackernews.fetchLimit': 50,
   'news.api.newsapi.baseUrl': 'https://newsapi.org/v2',
   'news.api.gnews.baseUrl': 'https://gnews.io/api/v4',
   'news.api.hackernews.baseUrl': 'https://hacker-news.firebaseio.com/v0',
   'news.api.reddit.baseUrl': 'https://www.reddit.com',
   'news.api.mediastack.baseUrl': 'http://api.mediastack.com/v1',
-  // Reddit subreddits to search
   'news.reddit.subreddits': ['technology', 'worldnews', 'science', 'programming', 'business', 'sports'],
   
   // ==========================================================================
@@ -153,22 +144,22 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   'diy.search.maxResults': 20,
   'diy.ai.maxTokens': 3000,
-  'diy.cache.ttlSeconds': 86400,          // 24 hours for generated projects
-  'diy.cache.featuredTtlSeconds': 3600,   // 1 hour for featured ideas
-  'diy.ideas.aiTokens': 800,              // Tokens for idea suggestions
-  'diy.ideas.featuredTokens': 1500,       // Tokens for featured ideas
-  'diy.ideas.inspirationTokens': 500,     // Tokens for inspire me
-  'diy.ideas.featuredCount': 8,           // Number of featured ideas
+  'diy.cache.ttlSeconds': 86400,
+  'diy.cache.featuredTtlSeconds': 3600,
+  'diy.ideas.aiTokens': 800,
+  'diy.ideas.featuredTokens': 1500,
+  'diy.ideas.inspirationTokens': 500,
+  'diy.ideas.featuredCount': 8,
   
   // ==========================================================================
   // NOTION INTEGRATION
   // ==========================================================================
   'notion.search.maxResults': 20,
   'notion.query.maxResults': 100,
-  'notion.databases.learning': '',      // Database ID for learning resources
-  'notion.databases.jobs': '',          // Database ID for job applications
-  'notion.databases.recipes': '',       // Database ID for saved recipes
-  'notion.databases.tasks': '',         // Database ID for tasks
+  'notion.databases.learning': '',
+  'notion.databases.jobs': '',
+  'notion.databases.recipes': '',
+  'notion.databases.tasks': '',
   
   // ==========================================================================
   // MEILISEARCH (Local Search)
@@ -223,21 +214,19 @@ const REFRESH_INTERVAL = 60000; // 1 minute
 export const configService = {
   /**
    * Initialize configuration service
-   * Loads all config from database into cache
    */
   init: async (): Promise<void> => {
     await configService.refresh();
-    console.log('✅ Config service initialized');
+    logger.success('Config service initialized');
   },
 
   /**
    * Refresh configuration from database
    */
   refresh: async (): Promise<void> => {
-    // Skip if database is not configured
     const prisma = getPrisma();
     if (!prisma) {
-      console.log('ℹ️ Database not configured, using default/env config only');
+      logger.skip('Database not configured, using default/env config only');
       lastRefresh = Date.now();
       return;
     }
@@ -252,52 +241,44 @@ export const configService = {
       
       lastRefresh = Date.now();
     } catch (error) {
-      console.warn('⚠️ Failed to refresh config from database:', error);
+      logger.warn('Failed to refresh config from database', { error: error instanceof Error ? error.message : String(error) });
     }
   },
 
   /**
    * Get configuration value
-   * Priority: Environment > Database > Default
    */
   get: <T extends ConfigValue>(key: ConfigKey, defaultValue?: T): T => {
-    // Check environment variable first (convert key to ENV format)
     const envKey = key.toUpperCase().replace(/\./g, '_');
     const envValue = process.env[envKey];
     if (envValue !== undefined) {
       return configService.parseValue(envValue, defaultValue) as T;
     }
 
-    // Check database cache
     const dbValue = configCache.get(key);
     if (dbValue !== undefined) {
       return dbValue as T;
     }
 
-    // Return default
     return (defaultValue ?? DEFAULT_CONFIG[key]) as T;
   },
 
   /**
-   * Get configuration value (async - checks database)
+   * Get configuration value (async)
    */
   getAsync: async <T extends ConfigValue>(key: ConfigKey, defaultValue?: T): Promise<T> => {
-    // Refresh cache if stale
     if (Date.now() - lastRefresh > REFRESH_INTERVAL) {
       await configService.refresh();
     }
-
     return configService.get(key, defaultValue);
   },
 
   /**
-   * Set configuration value (persists to database)
+   * Set configuration value
    */
   set: async <T>(key: string, value: T, category?: string): Promise<void> => {
     await databaseService.setConfig(key, value, category);
     configCache.set(key, value);
-    
-    // Invalidate any cached data that depends on this config
     await cacheService.invalidateByTag(`config:${key}`);
   },
 
@@ -306,39 +287,25 @@ export const configService = {
    */
   getAll: (): Record<string, unknown> => {
     const result: Record<string, unknown> = {};
-    
-    // Start with defaults
     for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
       result[key] = value;
     }
-    
-    // Override with database values
     for (const [key, value] of configCache.entries()) {
       result[key] = value;
     }
-    
     return result;
   },
 
-  /**
-   * Check if a feature is enabled
-   */
   isFeatureEnabled: (feature: string): boolean => {
     const key = `feature.${feature}` as ConfigKey;
     return configService.get(key, false) as boolean;
   },
 
-  /**
-   * Get API limit configuration
-   */
   getApiLimits: () => ({
     requests: configService.get('api.rateLimit.requests', 100),
     windowMs: configService.get('api.rateLimit.windowMs', 60000)
   }),
 
-  /**
-   * Get shopping deal score thresholds
-   */
   getShoppingThresholds: () => ({
     excellent: configService.get('shopping.dealScore.excellent', 80),
     good: configService.get('shopping.dealScore.good', 60),
@@ -346,62 +313,39 @@ export const configService = {
     notifyThreshold: configService.get('shopping.dealScore.notifyThreshold', 70)
   }),
 
-  /**
-   * Get job match thresholds
-   */
   getJobThresholds: () => ({
     excellent: configService.get('job.match.excellent', 80),
     good: configService.get('job.match.good', 60),
     streamThreshold: configService.get('job.match.streamThreshold', 75)
   }),
 
-  /**
-   * Get email classification settings
-   */
   getEmailSettings: () => ({
     batchSize: configService.get('email.batch.size', 50),
     confidenceThreshold: configService.get('email.classification.confidenceThreshold', 0.75)
   }),
 
-  /**
-   * Get Google CSE limits
-   */
   getGoogleCseLimits: () => ({
     dailyLimit: configService.get('google.cse.dailyLimit', 100),
     maxResultsPerQuery: configService.get('google.cse.maxResultsPerQuery', 10)
   }),
 
-  /**
-   * Get AI/Claude settings
-   */
   getAiSettings: () => ({
     defaultModel: configService.get('ai.claude.defaultModel', 'claude-sonnet-4-20250514'),
     defaultMaxTokens: configService.get('ai.claude.defaultMaxTokens', 1500),
     maxTokensLimit: configService.get('ai.claude.maxTokensLimit', 4000)
   }),
 
-  /**
-   * Get agent-specific max tokens
-   */
   getAgentMaxTokens: (agent: 'shopping' | 'job' | 'email' | 'problem' | 'learning' | 'travel' | 'todo'): number => {
     const key = `${agent}.ai.maxTokens` as ConfigKey;
     return configService.get(key, 1500);
   },
 
-  /**
-   * Parse string value to appropriate type
-   */
   parseValue: (value: string, reference?: unknown): unknown => {
-    // Boolean
     if (value === 'true') return true;
     if (value === 'false') return false;
-    
-    // Number
     if (!isNaN(Number(value)) && typeof reference === 'number') {
       return Number(value);
     }
-    
-    // JSON
     if ((value.startsWith('{') || value.startsWith('['))) {
       try {
         return JSON.parse(value);
@@ -409,46 +353,28 @@ export const configService = {
         return value;
       }
     }
-    
     return value;
   },
 
-  /**
-   * Validate configuration (check required values)
-   */
   validate: (): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
-    // Check required environment variables
-    const requiredEnv = [
-      'ANTHROPIC_API_KEY'
-    ];
-    
+    const requiredEnv = ['ANTHROPIC_API_KEY'];
     for (const envVar of requiredEnv) {
       if (!process.env[envVar]) {
         errors.push(`Missing required environment variable: ${envVar}`);
       }
     }
     
-    // Check optional but recommended
-    const recommendedEnv = [
-      'DATABASE_URL',
-      'GOOGLE_CLIENT_ID',
-      'GOOGLE_CLIENT_SECRET'
-    ];
-    
+    const recommendedEnv = ['DATABASE_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
     for (const envVar of recommendedEnv) {
       if (!process.env[envVar]) {
-        console.warn(`⚠️ Recommended environment variable not set: ${envVar}`);
+        logger.warn('Recommended environment variable not set', { envVar });
       }
     }
     
-    return {
-      valid: errors.length === 0,
-      errors
-    };
+    return { valid: errors.length === 0, errors };
   }
 };
 
 export default configService;
-

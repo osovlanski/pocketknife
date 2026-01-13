@@ -11,6 +11,7 @@
 import { Server as SocketServer } from 'socket.io';
 import { AbstractAgent } from './AbstractAgent';
 import { AgentId, AgentMetadata, AgentState } from './types';
+import logger from '../utils/logger';
 
 class AgentRegistry {
   private agents: Map<AgentId, AbstractAgent> = new Map();
@@ -38,7 +39,7 @@ class AgentRegistry {
       });
     });
 
-    console.log('✅ Agent Registry initialized');
+    logger.success('Agent Registry initialized');
   }
 
   /**
@@ -48,7 +49,7 @@ class AgentRegistry {
     const id = agent.metadata.id;
     
     if (this.agents.has(id)) {
-      console.warn(`⚠️ Agent ${id} already registered, replacing...`);
+      logger.warn('Agent already registered, replacing...', { agentId: id });
     }
     
     this.agents.set(id, agent);
@@ -57,7 +58,7 @@ class AgentRegistry {
       agent.setSocketServer(this.io);
     }
     
-    console.log(`📦 Registered agent: ${agent.metadata.name}`);
+    logger.found('Registered agent', { name: agent.metadata.name });
   }
 
   /**

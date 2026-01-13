@@ -10,6 +10,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import logger from '../../utils/logger';
 
 // Lazy initialization variables
 let pool: pg.Pool | null = null;
@@ -33,7 +34,7 @@ const initializePrisma = (): PrismaClient | null => {
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    console.log('ℹ️ DATABASE_URL not set, database features disabled');
+    logger.skip('DATABASE_URL not set, database features disabled');
     return null;
   }
 
@@ -56,10 +57,10 @@ const initializePrisma = (): PrismaClient | null => {
       globalThis.prisma = prismaInstance;
     }
 
-    console.log('✅ Prisma client initialized with pg adapter');
+    logger.success('Prisma client initialized with pg adapter');
     return prismaInstance;
   } catch (error) {
-    console.error('❌ Failed to initialize Prisma client:', error);
+    logger.fail('Failed to initialize Prisma client', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 };
@@ -110,7 +111,7 @@ export const databaseService = {
       await client.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      console.error('❌ Database health check failed:', error);
+      logger.fail('Database health check failed', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   },
@@ -122,14 +123,14 @@ export const databaseService = {
     // Initialize prisma lazily
     const client = initializePrisma();
     if (!client) {
-      console.log('ℹ️ Database not configured, skipping connection');
+      logger.skip('Database not configured, skipping connection');
       return;
     }
     try {
       await client.$connect();
-      console.log('✅ Database connected successfully');
+      logger.connect('Database connected successfully');
     } catch (error) {
-      console.error('❌ Failed to connect to database:', error);
+      logger.fail('Failed to connect to database', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   },
@@ -142,9 +143,9 @@ export const databaseService = {
     try {
       await prismaInstance.$disconnect();
       if (pool) await pool.end();
-      console.log('✅ Database disconnected gracefully');
+      logger.disconnect('Database disconnected gracefully');
     } catch (error) {
-      console.error('❌ Error disconnecting from database:', error);
+      logger.fail('Error disconnecting from database', { error: error instanceof Error ? error.message : String(error) });
     }
   },
 
@@ -187,7 +188,7 @@ export const databaseService = {
         },
         include: { preferences: true }
       });
-      console.log('✅ Created admin user:', defaultEmail);
+      logger.success('Created admin user', { email: defaultEmail });
     }
 
     return user;
@@ -247,7 +248,7 @@ export const databaseService = {
         },
         include: { preferences: true }
       });
-      console.log('✅ Created new user:', normalizedEmail);
+      logger.success('Created new user', { email: normalizedEmail });
     }
     
     return user;
@@ -296,7 +297,7 @@ export const databaseService = {
         }
       });
     } catch (error) {
-      console.error('Failed to log activity:', error);
+      logger.fail('Failed to log activity', { error: error instanceof Error ? error.message : String(error) });
     }
   },
 
@@ -329,4 +330,3 @@ export const databaseService = {
 };
 
 export default databaseService;
-

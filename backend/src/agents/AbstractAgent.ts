@@ -20,6 +20,7 @@ import {
   LogType 
 } from './types';
 import { databaseService, getPrisma } from '../services/core/databaseService';
+import logger from '../utils/logger';
 
 export abstract class AbstractAgent implements IPersistentAgent {
   abstract readonly metadata: AgentMetadata;
@@ -150,7 +151,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
    * Emit a log message via Socket.io
    */
   emitLog(message: string, type: LogType = 'info'): void {
-    console.log(`[${this.metadata.id}] ${message}`);
+    logger.agent(message, { agent: this.metadata.id });
     
     this.io?.emit('log', {
       message,
@@ -197,7 +198,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
       }
 
       if (!effectiveUserId) {
-        console.warn(`Skipping activity log - no userId available for ${this.metadata.id}`);
+        logger.debug('Skipping activity log - no userId available', { agent: this.metadata.id });
         return;
       }
 
@@ -210,7 +211,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
         status: 'success'
       });
     } catch (error) {
-      console.warn(`Failed to save activity for ${this.metadata.id}:`, error);
+      logger.warn('Failed to save activity', { agent: this.metadata.id, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -232,7 +233,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
       });
       return activities;
     } catch (error) {
-      console.warn(`Failed to get history for ${this.metadata.id}:`, error);
+      logger.warn('Failed to get history', { agent: this.metadata.id, error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
