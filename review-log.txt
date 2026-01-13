@@ -9218,3 +9218,270 @@ diff --git a/backend/prisma/schema.prisma b/backend/prisma/schema.prisma
 [2026-01-11T19:18:13.611Z] 
 [2026-01-11T19:18:13.614Z] BLOCKED - Automated score: 59/100 (min: 80)
 [2026-01-11T21:18:16+02:00] Push BLOCKED - Exit code: 1
+[2026-01-13T12:38:15+02:00] Pre-push hook triggered
+[2026-01-13T10:38:16.064Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-13T10:38:16.075Z] 📋 Minimum passing score: 80/100
+[2026-01-13T10:38:16.076Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-13T10:38:16.078Z] 
+[2026-01-13T10:38:16.079Z] ════════════════════════════════════════════════════════════
+[2026-01-13T10:38:16.080Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-13T10:38:16.081Z] ════════════════════════════════════════════════════════════
+[2026-01-13T10:38:16.082Z] 
+[2026-01-13T10:38:16.109Z] 📅 Review started at: 1/13/2026, 12:38:16 PM
+[2026-01-13T10:38:16.111Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-13T10:38:16.112Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-13T10:38:16.113Z] ────────────────────────────────────────
+[2026-01-13T10:38:16.444Z] ✅ Git repository detected
+[2026-01-13T10:38:16.445Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-13T10:38:16.446Z] ────────────────────────────────────────
+[2026-01-13T10:38:16.760Z] 📍 Current branch: feature/news-diy-agents
+[2026-01-13T10:38:16.761Z] 🎯 Comparing against: main
+[2026-01-13T10:38:17.050Z] ✅ Base branch 'main' exists
+[2026-01-13T10:38:17.052Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-13T10:38:17.054Z] ────────────────────────────────────────
+[2026-01-13T10:38:18.668Z] 
+▶ Step 4: Change Summary
+[2026-01-13T10:38:18.669Z] ────────────────────────────────────────
+[2026-01-13T10:38:18.670Z]  backend/prisma/schema.prisma                       |  262 +++
+ backend/src/agents/DIYAgent.ts                     |  525 +++++
+ backend/src/agents/NewsAgent.ts                    |  492 +++++
+ backend/src/agents/TravelAgent.ts                  |  216 +-
+ backend/src/agents/index.ts                        |    6 +
+ backend/src/agents/types.ts                        |    2 +-
+ backend/src/controllers/cookingController.ts       |   14 +-
+ backend/src/controllers/diyController.ts           |  364 +++
+ backend/src/controllers/jobController.ts           |   86 +-
+ backend/src/controllers/newsController.ts          |  298 +++
+ backend/src/controllers/travelController.ts        |  195 ++
+ backend/src/routes/diy.ts                          |   33 +
+ backend/src/routes/index.ts                        |    8 +
+ backend/src/routes/news.ts                         |   35 +
+ backend/src/routes/travel.ts                       |   66 +
+ backend/src/services/core/configService.ts         |   53 +
+ backend/src/services/core/externalApiService.ts    |   24 +
+ backend/src/services/diy/diyService.ts             |  702 ++++++
+ backend/src/services/diy/index.ts                  |   16 +
+ backend/src/services/index.ts                      |    6 +
+ backend/src/services/jobs/comeetCareersService.ts  |  338 +++
+ backend/src/services/jobs/index.ts                 |    2 +
+ .../src/services/jobs/israelTechScraperService.ts  |  429 +++-
+ .../services/jobs/israeliTechCommunityService.ts   |  424 ++++
+ backend/src/services/jobs/jobSourceService.ts      |   24 +-
+ backend/src/services/news/index.ts                 |   14 +
+ backend/src/services/news/newsService.ts           |  880 ++++++++
+ .../notifications/discordNotificationService.ts    |   36 +
+ backend/src/services/travel/index.ts               |    1 +
+ backend/src/services/travel/israelTravelService.ts |  910 ++++++++
+ backend/src/types/israelTravel.ts                  |  231 ++
+ backend/src/utils/controllerHelpers.ts             |   38 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ frontend/package-lock.json                         |  966 ++++++++
+ frontend/package.json                              |    1 +
+ frontend/src/App.tsx                               |   18 +-
+ frontend/src/components/DIYAgent.tsx               |  735 ++++++
+ frontend/src/components/HomePage.tsx               |   20 +-
+ frontend/src/components/JobSearchPanel.tsx         |  105 +-
+ frontend/src/components/LearningAgent.tsx          |   32 +-
+ frontend/src/components/MarkdownRenderer.tsx       |  329 +++
+ frontend/src/components/NewsAgent.tsx              |  522 +++++
+ frontend/src/components/SettingsPage.tsx           |  618 +++---
+ frontend/src/components/common/IntegrationCard.tsx |  346 +++
+ frontend/src/hooks/index.ts                        |    4 +
+ frontend/src/hooks/useDIY.ts                       |  316 +++
+ frontend/src/hooks/useNews.ts                      |  226 ++
+ frontend/src/main.tsx                              |    2 +-
+ frontend/src/services/configApi.ts                 |    6 +-
+ frontend/src/services/diyApi.ts                    |  284 +++
+ frontend/src/services/newsApi.ts                   |  212 ++
+ frontend/src/styles/diy.module.css                 | 1194 ++++++++++
+ frontend/src/styles/news.module.css                |  643 ++++++
+ frontend/src/styles/settings.module.css            |  203 ++
+ frontend/src/types/index.ts                        |    5 +-
+ review-log.txt                                     | 2328 ++++++++++++++++++++
+ scripts/check-quality.js                           |  166 +-
+ scripts/check-quality.ts                           |  100 +-
+ 59 files changed, 15611 insertions(+), 504 deletions(-)
+
+[2026-01-13T10:38:18.671Z] 📊 Files changed: 59
+[2026-01-13T10:38:18.671Z] ➕ Lines added: 15611
+[2026-01-13T10:38:18.672Z] ➖ Lines removed: 504
+[2026-01-13T10:38:18.672Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-13T10:38:18.673Z] ────────────────────────────────────────
+[2026-01-13T10:38:18.676Z] 
+diff --git a/backend/prisma/schema.prisma b/backend/prisma/schema.prisma
+[2026-01-13T10:38:18.677Z] index 3fdcffb..64fc57c 100644
+[2026-01-13T10:38:18.677Z] --- a/backend/prisma/schema.prisma
+[2026-01-13T10:38:18.678Z] +++ b/backend/prisma/schema.prisma
+[2026-01-13T10:38:18.679Z] @@ -77,6 +77,14 @@ model User {
+[2026-01-13T10:38:18.680Z]    recipes         SavedRecipe[]
+[2026-01-13T10:38:18.680Z]    groceryLists    GroceryList[]
+[2026-01-13T10:38:18.681Z]    
+[2026-01-13T10:38:18.683Z] +  // News Agent relations
+[2026-01-13T10:38:18.684Z] +  newsPreferences  NewsPreference?
+[2026-01-13T10:38:18.685Z] +  newsInteractions NewsInteraction[]
+[2026-01-13T10:38:18.686Z] +  savedArticles    SavedNewsArticle[]
+[2026-01-13T10:38:18.688Z] +  
+[2026-01-13T10:38:18.688Z] +  // DIY Agent relations
+[2026-01-13T10:38:18.689Z] +  diyProjects      DIYProject[]
+[2026-01-13T10:38:18.690Z] +  
+[2026-01-13T10:38:18.691Z]    // Admin relations
+[2026-01-13T10:38:18.691Z]    adminActions   AdminAuditLog[] @relation("AdminActions")
+[2026-01-13T10:38:18.692Z]    systemSettings SystemSetting[]
+[2026-01-13T10:38:18.693Z] @@ -941,3 +949,257 @@ model GroceryInvoiceItem {
+[2026-01-13T10:38:18.694Z]    @@index([isProcessed])
+[2026-01-13T10:38:18.695Z]    @@index([merchant])
+[2026-01-13T10:38:18.695Z]  }
+[2026-01-13T10:38:18.696Z] +
+[2026-01-13T10:38:18.697Z] +// =============================================================================
+[2026-01-13T10:38:18.699Z] +// NEWS AGENT
+[2026-01-13T10:38:18.701Z] +// =============================================================================
+[2026-01-13T10:38:18.701Z] +
+[2026-01-13T10:38:18.702Z] +model NewsPreference {
+[2026-01-13T10:38:18.703Z] +  id        String   @id @default(uuid())
+[2026-01-13T10:38:18.704Z] +  userId    String   @unique
+[2026-01-13T10:38:18.705Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-13T10:38:18.706Z] +  
+[2026-01-13T10:38:18.706Z] +  // Topic preferences with weights (learned from interactions)
+[2026-01-13T10:38:18.707Z] +  topicWeights      Json      @default("{}") // { "tech": 0.8, "politics": 0.3, "sports": 0.5 }
+[2026-01-13T10:38:18.708Z] +  
+[2026-01-13T10:38:18.709Z] +  // Source preferences
+[2026-01-13T10:38:18.709Z] +  preferredSources  String[]  // ["bbc", "hackernews", "reddit"]
+[2026-01-13T10:38:18.710Z] +  blockedSources    String[]  // Sources user doesn't want
+[2026-01-13T10:38:18.711Z] +  
+[2026-01-13T10:38:18.712Z] +  // Location-based news
+[2026-01-13T10:38:18.713Z] +  geoLocation       String?   // "Tel Aviv, Israel" or "New York, USA"
+[2026-01-13T10:38:18.714Z] +  countryCode       String?   // "IL", "US", etc.
+[2026-01-13T10:38:18.715Z] +  includeLocalNews  Boolean   @default(true)
+[2026-01-13T10:38:18.717Z] +  includeGlobalNews Boolean   @default(true)
+[2026-01-13T10:38:18.718Z] +  
+[2026-01-13T10:38:18.719Z] +  // Digest preferences
+[2026-01-13T10:38:18.720Z] +  digestFrequency   String    @default("daily") // "daily", "weekly", "realtime"
+[2026-01-13T10:38:18.721Z] +  digestTime        String?   // "09:00" - when to send digest
+[2026-01-13T10:38:18.722Z] +  digestDays        String[]  @default(["monday", "tuesday", "wednesday", "thursday", "friday"])
+[2026-01-13T10:38:18.723Z] +  
+[2026-01-13T10:38:18.724Z] +  // Notification channels
+[2026-01-13T10:38:18.725Z] +  notifyVia         String[]  @default(["app"]) // "app", "email", "telegram", "discord"
+[2026-01-13T10:38:18.725Z] +  
+[2026-01-13T10:38:18.726Z] +  // Content preferences
+[2026-01-13T10:38:18.727Z] +  preferredLanguage String    @default("en")
+[2026-01-13T10:38:18.728Z] +  readingTimeMin    Int?      // Minimum reading time in minutes
+[2026-01-13T10:38:18.728Z] +  readingTimeMax    Int?      // Maximum reading time in minutes
+[2026-01-13T10:38:18.729Z] +  
+[2026-01-13T10:38:18.730Z] +  createdAt DateTime @default(now())
+[2026-01-13T10:38:18.731Z] +  updatedAt DateTime @updatedAt
+[2026-01-13T10:38:18.732Z] +}
+[2026-01-13T10:38:18.733Z] +
+[2026-01-13T10:38:18.734Z] +model NewsInteraction {
+[2026-01-13T10:38:18.735Z] +  id        String   @id @default(uuid())
+[2026-01-13T10:38:18.736Z] +  userId    String
+[2026-01-13T10:38:18.737Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-13T10:38:18.738Z] +  
+[2026-01-13T10:38:18.738Z] +  // Article reference
+[2026-01-13T10:38:18.739Z] +  articleId     String    // External article ID or URL hash
+[2026-01-13T10:38:18.740Z] +  articleUrl    String
+[2026-01-13T10:38:18.741Z] +  articleTitle  String
+[2026-01-13T10:38:18.742Z] +  source        String    // "bbc", "hackernews", etc.
+[2026-01-13T10:38:18.743Z] +  
+[2026-01-13T10:38:18.744Z] +  // Interaction type
+[2026-01-13T10:38:18.744Z] +  interactionType String   // "view", "read", "like", "save", "share", "dismiss"
+[2026-01-13T10:38:18.745Z] +  
+[2026-01-13T10:38:18.746Z] +  // Reading metrics (for learning)
+[2026-01-13T10:38:18.747Z] +  readDuration    Int?      // Seconds spent reading
+[2026-01-13T10:38:18.749Z] +  scrollDepth     Float?    // 0-1, how far user scrolled
+[2026-01-13T10:38:18.750Z] +  
+[2026-01-13T10:38:18.751Z] +  // Article metadata for learning
+[2026-01-13T10:38:18.752Z] +  topics          String[]  // ["tech", "ai", "startups"]
+[2026-01-13T10:38:18.753Z] +  sentiment       String?   // "positive", "negative", "neutral"
+[2026-01-13T10:38:18.753Z] +  
+[2026-01-13T10:38:18.754Z] +  // Feedback
+[2026-01-13T10:38:18.755Z] +  isPositive      Boolean?  // User explicitly liked/disliked
+[2026-01-13T10:38:18.756Z] +  
+[2026-01-13T10:38:18.756Z] +  createdAt DateTime @default(now())
+[2026-01-13T10:38:18.757Z] +
+[2026-01-13T10:38:18.758Z] +  @@index([userId, createdAt])
+[2026-01-13T10:38:18.759Z] +  @@index([userId, interactionType])
+[2026-01-13T10:38:18.759Z] +  @@index([articleId])
+[2026-01-13T10:38:18.760Z] +}
+[2026-01-13T10:38:18.761Z] +
+[2026-01-13T10:38:18.762Z] +model SavedNewsArticle {
+[2026-01-13T10:38:18.762Z] +  id        String   @id @default(uuid())
+[2026-01-13T10:38:18.763Z] +  userId    String
+[2026-01-13T10:38:18.764Z] +  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+[2026-01-13T10:38:18.766Z] +  
+[2026-01-13T10:38:18.771Z] 
+... and 17227 more lines
+[2026-01-13T10:38:18.772Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-13T10:38:18.773Z] ────────────────────────────────────────
+[2026-01-13T10:38:18.774Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-13T10:38:18.774Z]    Checking backend types...
+[2026-01-13T10:39:09.322Z]    ✅ Backend type check passed
+[2026-01-13T10:39:09.326Z]    Checking frontend types...
+[2026-01-13T10:39:33.376Z]    ✅ Frontend type check passed
+[2026-01-13T10:39:33.380Z] ✅ All type checks passed!
+[2026-01-13T10:39:33.382Z] 
+▶ Step 7: Running Tests
+[2026-01-13T10:39:33.383Z] ────────────────────────────────────────
+[2026-01-13T10:39:33.384Z] 🧪 Running test suites...
+[2026-01-13T10:39:33.385Z]    Running backend tests...
+[2026-01-13T10:40:07.819Z]    ✅ Backend tests passed
+[2026-01-13T10:40:07.822Z]    Running frontend tests...
+[2026-01-13T10:40:50.448Z]    ✅ Frontend tests passed
+[2026-01-13T10:40:50.451Z] ✅ All tests passed!
+[2026-01-13T10:40:50.452Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-13T10:40:50.453Z] ────────────────────────────────────────
+[2026-01-13T10:40:50.559Z] 
+🔴 Critical Issues Found:
+[2026-01-13T10:40:50.561Z]    🔴 Hardcoded external URL: Found 8 instance(s)
+[2026-01-13T10:40:50.564Z] 
+🟡 Warnings:
+[2026-01-13T10:40:50.565Z]    🟡 console.log usage: 100 instance(s) - Consider using proper logger
+[2026-01-13T10:40:50.566Z]    🟡 'any' type usage: 116 instance(s) - Prefer explicit types
+[2026-01-13T10:40:50.567Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-13T10:40:50.568Z] 
+📊 Automated Pre-Score: 49/100
+[2026-01-13T10:40:50.569Z] 
+▶ Step 9: Manual Review Required
+[2026-01-13T10:40:50.570Z] ────────────────────────────────────────
+[2026-01-13T10:40:50.572Z] 
+[2026-01-13T10:40:50.573Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T10:40:50.574Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-13T10:40:50.576Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-13T10:40:50.579Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-13T10:40:50.581Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T10:40:50.582Z] 
+[2026-01-13T10:40:50.584Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-13T10:40:50.585Z] 
+[2026-01-13T10:40:50.587Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-13T10:40:50.588Z] 
+[2026-01-13T10:40:50.590Z] 
+▶ Step 10: Push Confirmation
+[2026-01-13T10:40:50.592Z] ────────────────────────────────────────
+[2026-01-13T10:40:50.599Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-13T10:40:50.601Z] 📝 Pre-push automated score: 49
+[2026-01-13T10:40:50.602Z] 
+[2026-01-13T10:40:50.604Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T10:40:50.605Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-13T10:40:50.607Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T10:40:50.608Z] 
+[2026-01-13T10:40:50.610Z]    Score: 49/100 (Minimum required: 80)
+[2026-01-13T10:40:50.613Z] 
+[2026-01-13T10:40:50.616Z]    Fix the following issues before pushing:
+[2026-01-13T10:40:50.618Z]    🔴 Hardcoded external URL: Found 8 instance(s)
+[2026-01-13T10:40:50.619Z] 
+[2026-01-13T10:40:50.621Z]    Also consider fixing these warnings:
+[2026-01-13T10:40:50.622Z]    🟡 console.log usage: 100 instance(s) - Consider using proper logger
+[2026-01-13T10:40:50.624Z]    🟡 'any' type usage: 116 instance(s) - Prefer explicit types
+[2026-01-13T10:40:50.626Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-13T10:40:50.628Z] 
+[2026-01-13T10:40:50.630Z]    After fixing, run: git push
+[2026-01-13T10:40:50.632Z] 
+[2026-01-13T10:40:50.633Z] BLOCKED - Automated score: 49/100 (min: 80)
+[2026-01-13T12:40:50+02:00] Push BLOCKED - Exit code: 1

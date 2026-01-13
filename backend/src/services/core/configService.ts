@@ -139,6 +139,14 @@ const DEFAULT_CONFIG = {
   'news.api.timeoutMs': 5000,             // Default API request timeout
   'news.api.longTimeoutMs': 10000,        // Longer timeout for slower APIs
   'news.hackernews.fetchLimit': 50,       // How many HN stories to fetch
+  // News API base URLs (fallback values - primary source is externalApiService)
+  'news.api.newsapi.baseUrl': 'https://newsapi.org/v2',
+  'news.api.gnews.baseUrl': 'https://gnews.io/api/v4',
+  'news.api.hackernews.baseUrl': 'https://hacker-news.firebaseio.com/v0',
+  'news.api.reddit.baseUrl': 'https://www.reddit.com',
+  'news.api.mediastack.baseUrl': 'http://api.mediastack.com/v1',
+  // Reddit subreddits to search
+  'news.reddit.subreddits': ['technology', 'worldnews', 'science', 'programming', 'business', 'sports'],
   
   // ==========================================================================
   // DIY AGENT

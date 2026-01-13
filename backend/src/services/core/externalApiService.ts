@@ -431,6 +431,87 @@ const DEFAULT_EMAIL_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedA
   }
 ];
 
+// News APIs
+const DEFAULT_NEWS_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'newsapi',
+    displayName: 'NewsAPI',
+    category: 'news',
+    baseUrl: 'https://newsapi.org/v2',
+    apiKeyEnvVar: 'NEWSAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 100,
+    rateLimitPeriod: 'day',
+    description: 'Top headlines and news articles from 80,000+ sources',
+    docsUrl: 'https://newsapi.org/docs',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'gnews',
+    displayName: 'GNews',
+    category: 'news',
+    baseUrl: 'https://gnews.io/api/v4',
+    apiKeyEnvVar: 'GNEWS_API_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 100,
+    rateLimitPeriod: 'day',
+    description: 'News articles from Google News (10 requests/day free)',
+    docsUrl: 'https://gnews.io/docs/v4',
+    priority: 2,
+    currentUsage: 0
+  },
+  {
+    name: 'hackernews',
+    displayName: 'Hacker News',
+    category: 'news',
+    baseUrl: 'https://hacker-news.firebaseio.com/v0',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Tech-focused news and discussions (no API key required)',
+    docsUrl: 'https://github.com/HackerNews/API',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'reddit',
+    displayName: 'Reddit',
+    category: 'news',
+    baseUrl: 'https://www.reddit.com',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Reddit front page and subreddits (no auth for public API)',
+    docsUrl: 'https://www.reddit.com/dev/api',
+    priority: 2,
+    currentUsage: 0
+  },
+  {
+    name: 'mediastack',
+    displayName: 'MediaStack',
+    category: 'news',
+    baseUrl: 'http://api.mediastack.com/v1',
+    apiKeyEnvVar: 'MEDIASTACK_API_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 500,
+    rateLimitPeriod: 'month',
+    description: 'Real-time news API with 7500+ sources',
+    docsUrl: 'https://mediastack.com/documentation',
+    priority: 3,
+    currentUsage: 0
+  }
+];
+
 // Combine all default APIs
 const ALL_DEFAULT_APIS = [
   ...DEFAULT_JOB_APIS,
@@ -440,7 +521,8 @@ const ALL_DEFAULT_APIS = [
   ...DEFAULT_PROBLEM_APIS,
   ...DEFAULT_AI_APIS,
   ...DEFAULT_NOTIFICATION_APIS,
-  ...DEFAULT_EMAIL_APIS
+  ...DEFAULT_EMAIL_APIS,
+  ...DEFAULT_NEWS_APIS
 ];
 
 export const externalApiService = {

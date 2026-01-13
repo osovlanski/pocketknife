@@ -66,35 +66,38 @@ export interface NewsTrend {
 // NEWS SOURCES CONFIGURATION
 // =============================================================================
 
-const NEWS_SOURCES = {
+// Base URLs are registered in externalApiService.ts for centralized management
+// These are used as fallback defaults when DB config is not available
+const NEWS_SOURCE_DEFAULTS = {
   newsapi: {
     name: 'NewsAPI',
-    baseUrl: 'https://newsapi.org/v2',
-    apiKeyEnv: 'NEWSAPI_KEY',
     categories: ['technology', 'business', 'science', 'sports', 'entertainment', 'health', 'general']
   },
   gnews: {
     name: 'GNews',
-    baseUrl: 'https://gnews.io/api/v4',
-    apiKeyEnv: 'GNEWS_API_KEY',
     categories: ['technology', 'business', 'science', 'sports', 'entertainment', 'health', 'world', 'nation']
   },
   hackernews: {
     name: 'Hacker News',
-    baseUrl: 'https://hacker-news.firebaseio.com/v0',
     categories: ['tech', 'startups', 'programming']
   },
   reddit: {
     name: 'Reddit',
-    baseUrl: 'https://www.reddit.com',
-    subreddits: ['technology', 'worldnews', 'science', 'programming', 'business', 'sports']
+    subreddits: configService.get('news.reddit.subreddits', ['technology', 'worldnews', 'science', 'programming', 'business', 'sports'])
   },
   mediastack: {
     name: 'MediaStack',
-    baseUrl: 'http://api.mediastack.com/v1',
-    apiKeyEnv: 'MEDIASTACK_API_KEY',
     categories: ['general', 'business', 'entertainment', 'health', 'science', 'sports', 'technology']
   }
+};
+
+// Fallback base URLs (used when externalApiService is not available)
+const NEWS_BASE_URLS = {
+  newsapi: configService.get('news.api.newsapi.baseUrl', 'https://newsapi.org/v2'),
+  gnews: configService.get('news.api.gnews.baseUrl', 'https://gnews.io/api/v4'),
+  hackernews: configService.get('news.api.hackernews.baseUrl', 'https://hacker-news.firebaseio.com/v0'),
+  reddit: configService.get('news.api.reddit.baseUrl', 'https://www.reddit.com'),
+  mediastack: configService.get('news.api.mediastack.baseUrl', 'http://api.mediastack.com/v1')
 };
 
 // Topic to category mapping
@@ -204,7 +207,7 @@ export const newsService = {
     try {
       // Get top stories
       const topStoriesResponse = await axios.get(
-        `${NEWS_SOURCES.hackernews.baseUrl}/topstories.json`,
+        `${NEWS_BASE_URLS.hackernews}/topstories.json`,
         { timeout: apiTimeout }
       );
       
@@ -212,7 +215,7 @@ export const newsService = {
       
       // Fetch story details in parallel
       const storyPromises = storyIds.map((id: number) =>
-        axios.get(`${NEWS_SOURCES.hackernews.baseUrl}/item/${id}.json`, { timeout: apiTimeout })
+        axios.get(`${NEWS_BASE_URLS.hackernews}/item/${id}.json`, { timeout: apiTimeout })
           .catch(() => null)
       );
       
@@ -265,15 +268,15 @@ export const newsService = {
     try {
       const subreddits = topics?.length 
         ? topics.flatMap(t => TOPIC_MAPPINGS[t] || [t])
-        : NEWS_SOURCES.reddit.subreddits;
+        : NEWS_SOURCE_DEFAULTS.reddit.subreddits;
       
       const articles: NewsArticle[] = [];
       
       for (const subreddit of subreddits.slice(0, 3)) {
         try {
           const url = query
-            ? `${NEWS_SOURCES.reddit.baseUrl}/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=hot&t=day&limit=10`
-            : `${NEWS_SOURCES.reddit.baseUrl}/r/${subreddit}/hot.json?limit=10`;
+            ? `${NEWS_BASE_URLS.reddit}/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=hot&t=day&limit=10`
+            : `${NEWS_BASE_URLS.reddit}/r/${subreddit}/hot.json?limit=10`;
           
           const response = await axios.get(url, {
             timeout: apiTimeout,
@@ -347,7 +350,7 @@ export const newsService = {
       }
 
       const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
-      const response = await axios.get(`${NEWS_SOURCES.newsapi.baseUrl}${endpoint}`, {
+      const response = await axios.get(`${NEWS_BASE_URLS.newsapi}${endpoint}`, {
         params,
         timeout: longTimeout
       });
@@ -407,7 +410,7 @@ export const newsService = {
       }
 
       const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
-      const response = await axios.get(`${NEWS_SOURCES.gnews.baseUrl}${endpoint}`, {
+      const response = await axios.get(`${NEWS_BASE_URLS.gnews}${endpoint}`, {
         params,
         timeout: longTimeout
       });
@@ -466,7 +469,7 @@ export const newsService = {
       }
 
       const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
-      const response = await axios.get(`${NEWS_SOURCES.mediastack.baseUrl}/news`, {
+      const response = await axios.get(`${NEWS_BASE_URLS.mediastack}/news`, {
         params,
         timeout: longTimeout
       });
