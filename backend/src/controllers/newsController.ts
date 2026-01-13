@@ -7,17 +7,10 @@
 
 import { Request, Response } from 'express';
 import { newsAgent } from '../agents';
-import { databaseService } from '../services/core/databaseService';
+import { getUserIdFromRequest } from '../utils/controllerHelpers';
 
-/**
- * Get user ID from request headers
- */
-const getUserId = async (req: Request): Promise<string | undefined> => {
-  const email = req.headers['x-user-email'] as string;
-  if (!email) return undefined;
-  const user = await databaseService.getOrCreateUser(email);
-  return user?.id;
-};
+// Alias for backward compatibility with local code
+const getUserId = getUserIdFromRequest;
 
 /**
  * Search news articles
@@ -300,5 +293,6 @@ export const summarizeArticle = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 

@@ -1,6 +1,9 @@
 import axios from 'axios';
 import additionalJobAPIs from './additionalJobAPIs';
 import israeliJobsService from './israeliJobsService';
+import comeetCareersService from './comeetCareersService';
+import israeliTechCommunityService from './israeliTechCommunityService';
+import israelTechScraperService from './israelTechScraperService';
 
 interface JobListing {
   id: string;
@@ -900,14 +903,33 @@ ${[...new Set(jobs.map(j => j.location))].slice(0, 10).map(loc => {
     // Add Israeli tech companies if location is Israel
     if (searchOptions.location?.toLowerCase().includes('israel') || 
         searchOptions.location?.toLowerCase().includes('tel aviv')) {
+      // Large companies career pages
       apiList.push('Israeli Tech');
       promises.push(
         israeliJobsService.getIsraeliTechJobs(finalQuery).then(jobs => ({ source: 'Israeli Tech', jobs }))
       );
       
+      // Comeet ATS jobs (many Israeli startups use Comeet)
+      apiList.push('Comeet ATS');
+      promises.push(
+        comeetCareersService.searchAllCompanies(finalQuery).then(jobs => ({ source: 'Comeet ATS', jobs }))
+      );
+      
+      // Israeli tech community sources (Telegram, Startup Nation, etc.)
+      apiList.push('Israeli Communities');
+      promises.push(
+        israeliTechCommunityService.searchAllCommunities(finalQuery).then(jobs => ({ source: 'Israeli Communities', jobs }))
+      );
+      
+      // **STARTUP-FOCUSED SOURCES** - Geektime, AllJobs, Goozali, F6S
+      apiList.push('Israeli Startups');
+      promises.push(
+        israelTechScraperService.getAllIsraeliJobs(finalQuery).then(jobs => ({ source: 'Israeli Startups', jobs }))
+      );
+      
       if (socketIo) {
         socketIo.emit('log', { 
-          message: '🇮🇱 Including top Israeli tech companies...', 
+          message: '🇮🇱 Including Israeli sources: Top Companies, Comeet ATS, Communities, Startups (Geektime/AllJobs)...', 
           type: 'info' 
         });
       }

@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
+import israelTravelService from '../services/travel/israelTravelService';
 import processControlService from '../services/core/processControlService';
 import { databaseService } from '../services/core/databaseService';
 import type { TripSearchRequest } from '../types/travel';
+import type { IsraelTravelSearchRequest, IsraelRegion, IsraelActivityType } from '../types/israelTravel';
 
 /**
  * Helper to emit logs to both travel-specific and general activity log
@@ -293,6 +295,199 @@ export const searchBeachDeals = async (req: Request, res: Response) => {
     console.error('❌ Error searching beach deals:', error);
     res.status(500).json({
       error: error.message || 'Failed to search beach deals'
+    });
+  }
+};
+
+// =============================================================================
+// ISRAEL TRAVEL ENDPOINTS
+// =============================================================================
+
+/**
+ * Search Israel destinations with filters
+ */
+export const searchIsrael = async (req: Request, res: Response) => {
+  try {
+    const io = req.app.get('io');
+    const searchRequest: IsraelTravelSearchRequest = req.body;
+
+    console.log('🇮🇱 Starting Israel travel search...');
+    emitLog(io, '🇮🇱 Searching Israel travel destinations...', 'info');
+
+    const results = await israelTravelService.searchDestinations(searchRequest);
+
+    emitLog(io, `✅ Found ${results.suggestions.length} Israel destinations`, 'success');
+
+    // Log activity
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'travel',
+        action: 'search-israel',
+        details: `Israel search: ${searchRequest.regions?.join(', ') || 'all regions'}`,
+        metadata: {
+          regions: searchRequest.regions,
+          activities: searchRequest.activityTypes,
+          duration: searchRequest.duration,
+          suggestionsFound: results.suggestions.length
+        },
+        status: 'success'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error: any) {
+    const io = req.app.get('io');
+    emitLog(io, `❌ Israel search error: ${error.message}`, 'error');
+    
+    console.error('❌ Error searching Israel destinations:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to search Israel destinations'
+    });
+  }
+};
+
+/**
+ * Get AI-powered Israel travel suggestions from natural language prompt
+ */
+export const searchIsraelAI = async (req: Request, res: Response) => {
+  try {
+    const io = req.app.get('io');
+    const { prompt, filters } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'A travel prompt is required' });
+    }
+
+    console.log('🤖 Generating AI-powered Israel suggestions...');
+    emitLog(io, '🤖 Generating AI-powered Israel travel suggestions...', 'info');
+    emitLog(io, `📝 Processing: "${prompt}"`, 'info');
+
+    const results = await israelTravelService.getAISuggestions(prompt, filters);
+
+    if (results.aiSummary) {
+      emitLog(io, `💡 ${results.aiSummary}`, 'info');
+    }
+    emitLog(io, `✅ Generated ${results.suggestions.length} personalized suggestions`, 'success');
+
+    // Log activity
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'travel',
+        action: 'search-israel-ai',
+        details: `AI Israel search: "${prompt.substring(0, 50)}..."`,
+        metadata: {
+          prompt,
+          filters,
+          suggestionsFound: results.suggestions.length
+        },
+        status: 'success'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error: any) {
+    const io = req.app.get('io');
+    emitLog(io, `❌ AI suggestions error: ${error.message}`, 'error');
+    
+    console.error('❌ Error generating AI Israel suggestions:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to generate AI suggestions'
+    });
+  }
+};
+
+/**
+ * Get Israel destinations
+ */
+export const getIsraelDestinations = async (req: Request, res: Response) => {
+  try {
+    const { region, activity, duration, budget } = req.query;
+
+    let destinations;
+
+    if (region) {
+      destinations = israelTravelService.getDestinationsByRegion(region as IsraelRegion);
+    } else if (activity) {
+      destinations = israelTravelService.getDestinationsByActivity(activity as IsraelActivityType);
+    } else if (duration === 'day_trip') {
+      destinations = israelTravelService.getDayTripSuggestions();
+    } else if (duration === 'weekend' || duration === 'extended') {
+      destinations = israelTravelService.getWeekendGetaways(budget as any);
+    } else {
+      destinations = israelTravelService.getAllDestinations();
+    }
+
+    res.json({
+      success: true,
+      count: destinations.length,
+      destinations
+    });
+  } catch (error: any) {
+    console.error('❌ Error getting Israel destinations:', error);
+    res.status(500).json({
+      error: 'Failed to get Israel destinations'
+    });
+  }
+};
+
+/**
+ * Get Israel hiking trails
+ */
+export const getIsraelTrails = async (req: Request, res: Response) => {
+  try {
+    const { region, difficulty, maxLength } = req.query;
+
+    const trails = israelTravelService.getHikingTrails({
+      region: region as IsraelRegion,
+      difficulty: difficulty as any,
+      maxLength: maxLength ? parseInt(maxLength as string) : undefined
+    });
+
+    res.json({
+      success: true,
+      count: trails.length,
+      trails
+    });
+  } catch (error: any) {
+    console.error('❌ Error getting Israel trails:', error);
+    res.status(500).json({
+      error: 'Failed to get Israel trails'
+    });
+  }
+};
+
+/**
+ * Get Israel beaches
+ */
+export const getIsraelBeaches = async (req: Request, res: Response) => {
+  try {
+    const { region, type, freeOnly } = req.query;
+
+    const beaches = israelTravelService.getBeaches({
+      region: region as IsraelRegion,
+      type: type as any,
+      freeOnly: freeOnly === 'true'
+    });
+
+    res.json({
+      success: true,
+      count: beaches.length,
+      beaches
+    });
+  } catch (error: any) {
+    console.error('❌ Error getting Israel beaches:', error);
+    res.status(500).json({
+      error: 'Failed to get Israel beaches'
     });
   }
 };

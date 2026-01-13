@@ -95,7 +95,7 @@ export const getCVData = async (req: Request, res: Response) => {
 
 export const searchJobs = async (req: Request, res: Response) => {
   try {
-    const { query, location, remoteOnly, companySize, industry, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
+    const { query, location, remoteOnly, companySize, industry, industries, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
     const io = req.app.get('io');
 
     // Start process and track it
@@ -116,10 +116,37 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Debug: Log CV skills for verification
     console.log(`📋 CV loaded: ${cvData.name || 'Unknown'}, ${cvData.skills?.length || 0} skills, ${cvData.experience?.length || 0} experience entries`);
     
-    // Use CV-based query or user-provided query
-    const searchQuery = query || cvData.jobSearchQuery || `${cvData.seniorityLevel || ''} ${cvData.currentRole || 'developer'}`.trim();
+    // =========================================================================
+    // MULTI-QUERY EXPANSION: Generate multiple search queries for better results
+    // =========================================================================
+    const baseQuery = query || cvData.jobSearchQuery || `${cvData.seniorityLevel || ''} ${cvData.currentRole || 'developer'}`.trim();
     
-    emitLog(io, `🎯 Search Query: "${searchQuery}"`, 'info');
+    // Build array of search queries to maximize results
+    const searchQueries: string[] = [baseQuery];
+    
+    // Add industry-specific queries if industries selected
+    const selectedIndustries = industries || (industry && industry !== 'any' ? [industry] : []);
+    if (selectedIndustries.length > 0) {
+      selectedIndustries.forEach((ind: string) => {
+        // Add "role + industry" query (e.g., "backend developer fintech")
+        const industryQuery = `${baseQuery} ${ind}`;
+        if (!searchQueries.includes(industryQuery)) {
+          searchQueries.push(industryQuery);
+        }
+      });
+      emitLog(io, `🏢 Industries selected: ${selectedIndustries.join(', ')}`, 'info');
+    }
+    
+    // Add skill-based queries from CV top skills
+    const topSkills = cvData.skills?.slice(0, 3) || [];
+    if (topSkills.length > 0) {
+      const skillQuery = `${cvData.seniorityLevel || ''} ${topSkills.join(' ')} developer`.trim();
+      if (!searchQueries.includes(skillQuery) && skillQuery !== baseQuery) {
+        searchQueries.push(skillQuery);
+      }
+    }
+    
+    emitLog(io, `🎯 Search Queries (${searchQueries.length}): ${searchQueries.map(q => `"${q}"`).join(', ')}`, 'info');
     
     // Extract location preferences from CV
     const preferredLocations = cvData.preferredLocations || [];
@@ -147,20 +174,39 @@ export const searchJobs = async (req: Request, res: Response) => {
       emitLog(io, '💡 Tip: Add ADZUNA credentials for more job sources', 'info');
     }
 
-    emitLog(io, '📡 Fetching jobs from all sources...', 'info');
+    emitLog(io, '📡 Fetching jobs from all sources with multiple queries...', 'info');
 
-    // Search all job sources with CV-based query and location + advanced filters
-    const jobs = await jobSourceService.searchAllSources(searchQuery, {
-      location: preferredLocations[0] || location,
-      remoteOnly: remoteOnly,
-      radius: 50,
-      companySize,
-      industry,
-      salaryMin,
-      salaryMax,
-      experienceLevel,
-      jobType
-    }, io);
+    // =========================================================================
+    // MULTI-QUERY SEARCH: Search with all queries and combine results
+    // =========================================================================
+    const allJobsMap = new Map<string, any>(); // Use map to dedupe by job ID
+    
+    for (const searchQuery of searchQueries) {
+      emitLog(io, `🔍 Searching: "${searchQuery}"...`, 'info');
+      
+      const queryJobs = await jobSourceService.searchAllSources(searchQuery, {
+        location: preferredLocations[0] || location,
+        remoteOnly: remoteOnly,
+        radius: 50,
+        companySize,
+        industry: selectedIndustries.length === 1 ? selectedIndustries[0] : undefined, // Only filter if single industry
+        salaryMin,
+        salaryMax,
+        experienceLevel,
+        jobType
+      }, io);
+      
+      // Add to map (dedupes by ID)
+      queryJobs.forEach(job => {
+        if (!allJobsMap.has(job.id)) {
+          allJobsMap.set(job.id, job);
+        }
+      });
+      
+      emitLog(io, `  ↳ Found ${queryJobs.length} jobs, total unique: ${allJobsMap.size}`, 'info');
+    }
+    
+    const jobs = Array.from(allJobsMap.values());
     
     if (jobs.length === 0) {
       emitLog(io, '❌ No jobs found matching your criteria', 'error');
@@ -233,9 +279,9 @@ export const searchJobs = async (req: Request, res: Response) => {
         userId: user.id,
         agent: 'jobs',
         action: 'search',
-        details: `Job search: ${searchQuery}`,
+        details: `Job search: ${searchQueries.join(', ')}`,
         metadata: {
-          query: searchQuery,
+          queries: searchQueries,
           location: location || preferredLocations.join(', '),
           totalJobs: jobs.length,
           matchedJobs: goodMatches.length,

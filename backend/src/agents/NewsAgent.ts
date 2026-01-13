@@ -206,7 +206,9 @@ export class NewsAgent extends AbstractAgent {
         .map(([topic]) => topic);
 
       if (preferredTopics.length === 0) {
-        preferredTopics.push('tech', 'business', 'science'); // Defaults
+        // Use configurable default topics
+        const defaultTopics = configService.get('news.topics.default', ['tech', 'business', 'science']);
+        preferredTopics.push(...defaultTopics);
       }
 
       const articles = await newsService.searchNews({
@@ -485,5 +487,6 @@ export class NewsAgent extends AbstractAgent {
 // Export singleton instance
 export const newsAgent = new NewsAgent();
 export default newsAgent;
+
 
 

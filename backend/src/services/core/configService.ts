@@ -44,6 +44,26 @@ const DEFAULT_CONFIG = {
   'job.enrichment.enabled': true,
   'job.enrichment.batchSize': 10,
   
+  // Comeet ATS Integration (Israeli startups)
+  'job.comeet.enabled': true,              // Enable Comeet ATS job fetching
+  'job.comeet.timeoutMs': 10000,           // Request timeout per company
+  'job.comeet.maxConcurrentRequests': 5,   // Max parallel requests to Comeet
+  
+  // Israeli Tech Community Sources
+  'job.community.enabled': true,           // Enable community job sources
+  'job.community.timeoutMs': 10000,        // Timeout for community API calls
+  'job.community.telegramEnabled': true,   // Fetch from Telegram channels
+  'job.community.startupNationEnabled': true, // Fetch from Startup Nation Central
+  
+  // Israeli Startup Job Scrapers
+  'job.startups.enabled': true,            // Enable startup job scrapers
+  'job.startups.geektimeEnabled': true,    // Scrape Geektime jobs
+  'job.startups.allJobsEnabled': true,     // Scrape AllJobs
+  'job.startups.goozaliEnabled': true,     // Scrape Goozali
+  'job.startups.drushimEnabled': true,     // Scrape Drushim
+  'job.startups.f6sEnabled': true,         // Scrape F6S
+  'job.startups.maxResultsPerSource': 50,  // Max jobs per source
+  
   // ==========================================================================
   // EMAIL AGENT
   // ==========================================================================
@@ -78,6 +98,12 @@ const DEFAULT_CONFIG = {
   'travel.trip.defaultDays': 7,
   'travel.ai.maxTokens': 2000,
   
+  // Israel Domestic Travel
+  'travel.israel.maxResults': 10,
+  'travel.israel.cacheTTL': 3600,            // 1 hour cache for AI suggestions
+  'travel.israel.aiEnabled': true,
+  'travel.israel.defaultRegions': ['center', 'north', 'jerusalem'],
+  
   // ==========================================================================
   // TODO AGENT
   // ==========================================================================
@@ -104,6 +130,7 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   'news.search.maxResults': 30,
   'news.sources.default': ['hackernews', 'reddit', 'newsapi'],
+  'news.topics.default': ['tech', 'business', 'science'], // Default topics when no preferences
   'news.learning.rate': 0.1,              // Learning rate for topic weights
   'news.digest.maxArticles': 10,
   'news.cache.ttlSeconds': 900,           // 15 minutes

@@ -7,18 +7,10 @@
 
 import { Request, Response } from 'express';
 import { cookingAgent } from '../agents';
-import { databaseService } from '../services/core/databaseService';
+import { getUserIdFromRequest } from '../utils/controllerHelpers';
 
-/**
- * Get user ID from request
- */
-const getUserId = async (req: Request): Promise<string | undefined> => {
-  const email = req.headers['x-user-email'] as string;
-  if (!email) return undefined;
-
-  const user = await databaseService.getOrCreateUser(email);
-  return user?.id;
-};
+// Alias for backward compatibility with local code
+const getUserId = getUserIdFromRequest;
 
 // =============================================================================
 // INVENTORY ITEMS

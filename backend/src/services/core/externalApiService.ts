@@ -148,6 +148,30 @@ const DEFAULT_JOB_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'
     description: 'Curated list of top Israeli tech company career pages',
     priority: 9,
     currentUsage: 0
+  },
+  {
+    name: 'comeet_ats',
+    displayName: 'Comeet ATS',
+    category: 'jobs',
+    baseUrl: 'https://www.comeet.com/careers-api/2.0',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Job listings from companies using Comeet ATS (many Israeli startups)',
+    docsUrl: 'https://developers.comeet.com/reference',
+    priority: 10,
+    currentUsage: 0
+  },
+  {
+    name: 'israeli_communities',
+    displayName: 'Israeli Tech Communities',
+    category: 'jobs',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Jobs from Israeli tech communities (Telegram, Startup Nation Central)',
+    priority: 11,
+    currentUsage: 0
   }
 ];
 

@@ -3,6 +3,7 @@
  * 
  * Searches for flights, hotels, and ski deals using Amadeus API.
  * Generates AI-powered trip plans and persists trip history to database.
+ * Includes domestic Israel travel recommendations.
  */
 
 import { AbstractAgent } from './AbstractAgent';
@@ -10,12 +11,19 @@ import { AgentMetadata, AgentResult, AgentParams } from './types';
 import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
+import israelTravelService from '../services/travel/israelTravelService';
 import { getPrisma } from '../services/core/databaseService';
 import { googleSearchService } from '../services/core/googleSearchService';
 import { TripSearchRequest } from '../types/travel';
+import type { 
+  IsraelTravelSearchRequest, 
+  IsraelRegion, 
+  IsraelActivityType,
+  IsraelTravelResponse
+} from '../types/israelTravel';
 
 interface TravelParams extends AgentParams {
-  action: 'search' | 'search-ski' | 'search-local' | 'generate-plan' | 'save-trip' | 'get-trips' | 'update-preferences';
+  action: 'search' | 'search-ski' | 'search-local' | 'search-israel' | 'search-israel-ai' | 'get-israel-destinations' | 'get-israel-trails' | 'get-israel-beaches' | 'generate-plan' | 'save-trip' | 'get-trips' | 'update-preferences';
   searchRequest?: TripSearchRequest;
   generatePlan?: boolean;
   skiPreferences?: {
@@ -27,6 +35,24 @@ interface TravelParams extends AgentParams {
     destination: string;
     type: 'attractions' | 'restaurants' | 'activities' | 'hotels' | 'all';
     query?: string;
+  };
+  // Israel travel params
+  israelSearchRequest?: IsraelTravelSearchRequest;
+  israelFilters?: {
+    regions?: IsraelRegion[];
+    activityTypes?: IsraelActivityType[];
+    duration?: 'day_trip' | 'weekend' | 'extended';
+    budget?: 'budget' | 'moderate' | 'luxury';
+  };
+  israelTrailsFilter?: {
+    region?: IsraelRegion;
+    difficulty?: 'easy' | 'moderate' | 'challenging' | 'expert';
+    maxLength?: number;
+  };
+  israelBeachesFilter?: {
+    region?: IsraelRegion;
+    type?: 'mediterranean' | 'red_sea' | 'dead_sea' | 'kineret';
+    freeOnly?: boolean;
   };
   tripData?: any;
   preferences?: {
@@ -45,6 +71,11 @@ interface TravelResult {
   savedTrip?: any;
   trips?: any[];
   preferences?: any;
+  // Israel travel results
+  israelSuggestions?: IsraelTravelResponse;
+  israelDestinations?: any[];
+  israelTrails?: any[];
+  israelBeaches?: any[];
 }
 
 interface LocalSearchResult {
@@ -77,6 +108,17 @@ export class TravelAgent extends AbstractAgent {
         return this.searchSkiDeals(params);
       case 'search-local':
         return this.searchLocal(params);
+      // Israel travel actions
+      case 'search-israel':
+        return this.searchIsrael(params);
+      case 'search-israel-ai':
+        return this.searchIsraelAI(params);
+      case 'get-israel-destinations':
+        return this.getIsraelDestinations(params);
+      case 'get-israel-trails':
+        return this.getIsraelTrails(params);
+      case 'get-israel-beaches':
+        return this.getIsraelBeaches(params);
       case 'generate-plan':
         return this.generateTripPlan(params);
       case 'save-trip':
@@ -497,6 +539,178 @@ export class TravelAgent extends AbstractAgent {
       return {
         success: true,
         data: { preferences: updatedPrefs }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ===========================================================================
+  // ISRAEL TRAVEL METHODS
+  // ===========================================================================
+
+  /**
+   * Search Israel destinations with filters
+   */
+  private async searchIsrael(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { israelSearchRequest, israelFilters } = params;
+
+    this.emitLog('🇮🇱 Searching Israel travel destinations...', 'info');
+    this.emitProgress(10);
+
+    try {
+      const searchRequest: IsraelTravelSearchRequest = {
+        ...israelSearchRequest,
+        ...israelFilters
+      };
+
+      this.emitProgress(30);
+
+      const results = await israelTravelService.searchDestinations(searchRequest);
+
+      this.emitProgress(80);
+      this.emitLog(`✅ Found ${results.suggestions.length} Israel travel suggestions`, 'success');
+      this.emitProgress(100);
+
+      // Log activity
+      await this.saveUserActivity(params.userId, 'search-israel', {
+        filters: israelFilters,
+        resultsCount: results.suggestions.length
+      });
+
+      return {
+        success: true,
+        data: { israelSuggestions: results }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Israel search failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get AI-powered Israel travel suggestions from natural language prompt
+   */
+  private async searchIsraelAI(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { israelSearchRequest, israelFilters } = params;
+
+    if (!israelSearchRequest?.prompt) {
+      return { success: false, error: 'A travel prompt is required for AI suggestions' };
+    }
+
+    this.emitLog('🤖 Generating AI-powered Israel travel suggestions...', 'info');
+    this.emitProgress(10);
+
+    try {
+      this.emitProgress(20);
+      this.emitLog(`📝 Processing: "${israelSearchRequest.prompt}"`, 'info');
+
+      const results = await israelTravelService.getAISuggestions(
+        israelSearchRequest.prompt,
+        israelFilters
+      );
+
+      this.emitProgress(90);
+
+      if (results.aiSummary) {
+        this.emitLog(`💡 ${results.aiSummary}`, 'info');
+      }
+
+      this.emitLog(`✅ Generated ${results.suggestions.length} personalized suggestions`, 'success');
+      this.emitProgress(100);
+
+      // Log activity
+      await this.saveUserActivity(params.userId, 'search-israel-ai', {
+        prompt: israelSearchRequest.prompt,
+        filters: israelFilters,
+        resultsCount: results.suggestions.length
+      });
+
+      return {
+        success: true,
+        data: { israelSuggestions: results }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ AI suggestions failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get Israel destinations by region or activity
+   */
+  private async getIsraelDestinations(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { israelFilters } = params;
+
+    this.emitLog('🇮🇱 Fetching Israel destinations...', 'info');
+
+    try {
+      let destinations;
+
+      if (israelFilters?.regions && israelFilters.regions.length === 1) {
+        destinations = israelTravelService.getDestinationsByRegion(israelFilters.regions[0]);
+        this.emitLog(`📍 Found ${destinations.length} destinations in ${israelFilters.regions[0]}`, 'info');
+      } else if (israelFilters?.activityTypes && israelFilters.activityTypes.length === 1) {
+        destinations = israelTravelService.getDestinationsByActivity(israelFilters.activityTypes[0]);
+        this.emitLog(`🎯 Found ${destinations.length} destinations for ${israelFilters.activityTypes[0]}`, 'info');
+      } else if (israelFilters?.duration === 'day_trip') {
+        destinations = israelTravelService.getDayTripSuggestions();
+        this.emitLog(`🚗 Found ${destinations.length} day trip options`, 'info');
+      } else if (israelFilters?.duration === 'weekend' || israelFilters?.duration === 'extended') {
+        destinations = israelTravelService.getWeekendGetaways(israelFilters.budget);
+        this.emitLog(`🏕️ Found ${destinations.length} weekend getaway options`, 'info');
+      } else {
+        destinations = israelTravelService.getAllDestinations();
+        this.emitLog(`📋 Retrieved ${destinations.length} total Israel destinations`, 'info');
+      }
+
+      return {
+        success: true,
+        data: { israelDestinations: destinations }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get Israel hiking trails
+   */
+  private async getIsraelTrails(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { israelTrailsFilter } = params;
+
+    this.emitLog('🥾 Fetching Israel hiking trails...', 'info');
+
+    try {
+      const trails = israelTravelService.getHikingTrails(israelTrailsFilter);
+
+      this.emitLog(`✅ Found ${trails.length} hiking trails`, 'success');
+
+      return {
+        success: true,
+        data: { israelTrails: trails }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get Israel beaches
+   */
+  private async getIsraelBeaches(params: TravelParams): Promise<AgentResult<TravelResult>> {
+    const { israelBeachesFilter } = params;
+
+    this.emitLog('🏖️ Fetching Israel beaches...', 'info');
+
+    try {
+      const beaches = israelTravelService.getBeaches(israelBeachesFilter);
+
+      this.emitLog(`✅ Found ${beaches.length} beaches`, 'success');
+
+      return {
+        success: true,
+        data: { israelBeaches: beaches }
       };
     } catch (error: any) {
       return { success: false, error: error.message };

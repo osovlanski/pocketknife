@@ -18,14 +18,14 @@ import {
   Bell,
   ShoppingCart,
   CheckSquare,
-  Globe,
   Save,
   Loader2,
-  Check,
   Link2,
-  Unlink,
-  Mail
+  Check
 } from 'lucide-react';
+
+// Components
+import IntegrationCard, { IntegrationStatus, IntegrationDetail } from './common/IntegrationCard';
 
 // Hooks
 import useSettings from '../hooks/useSettings';
@@ -206,8 +206,10 @@ interface IntegrationsSectionProps {
   googleStatus: AuthStatus | null;
   isLoading: boolean;
   loadError: string | null;
+  isTestingGoogle: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
+  onTestGoogle: () => void;
   onRetry: () => void;
   // Telegram
   telegramStatus: TelegramStatus | null;
@@ -229,12 +231,144 @@ interface IntegrationsSectionProps {
   onRetryFacebook: () => void;
 }
 
+// =============================================================================
+// BRAND ICONS (SVG Components)
+// =============================================================================
+
+const GoogleIcon: React.FC = () => (
+  <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
+
+const TelegramIcon: React.FC = () => (
+  <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="#0088CC">
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+  </svg>
+);
+
+const DiscordIcon: React.FC = () => (
+  <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="#5865F2">
+    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+  </svg>
+);
+
+const FacebookIcon: React.FC = () => (
+  <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="#1877F2">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+const getGoogleStatus = (googleStatus: AuthStatus | null, isLoading: boolean): IntegrationStatus => {
+  if (isLoading) return 'loading';
+  if (googleStatus?.authenticated) return 'connected';
+  return 'not_configured';
+};
+
+const getGoogleStatusText = (googleStatus: AuthStatus | null, isLoading: boolean): string => {
+  if (isLoading) return 'Checking connection status...';
+  if (googleStatus?.authenticated) return `Connected as ${googleStatus.email}`;
+  return 'Connect for Gmail, Calendar, and Drive access';
+};
+
+const getGoogleDetails = (googleStatus: AuthStatus | null): IntegrationDetail[] => {
+  if (!googleStatus?.authenticated) return [];
+  return [
+    { label: 'Permission', value: 'Gmail', color: 'blue' },
+    { label: 'Permission', value: 'Calendar', color: 'green' },
+    { label: 'Permission', value: 'Drive', color: 'amber' },
+  ];
+};
+
+const getTelegramIntegrationStatus = (status: TelegramStatus | null, isLoading: boolean): IntegrationStatus => {
+  if (isLoading) return 'loading';
+  if (status?.connected) return 'connected';
+  if (status?.configured && status?.error) return 'error';
+  if (status?.configured) return 'configured';
+  return 'not_configured';
+};
+
+const getTelegramStatusText = (status: TelegramStatus | null, isLoading: boolean): string => {
+  if (isLoading) return 'Checking connection status...';
+  if (status?.connected) return `Connected to @${status.botUsername || 'bot'}`;
+  if (status?.error) return `Error: ${status.error}`;
+  if (status?.configured) return 'Configured - Click Test to verify';
+  return 'Not configured';
+};
+
+const getTelegramDetails = (status: TelegramStatus | null): IntegrationDetail[] => {
+  if (!status?.connected) return [];
+  return [
+    { label: 'Bot', value: `@${status.botUsername}`, color: 'blue' },
+    { label: 'Chat ID', value: status.chatId || 'N/A', color: 'green' },
+  ];
+};
+
+const getDiscordIntegrationStatus = (status: DiscordStatus | null, isLoading: boolean): IntegrationStatus => {
+  if (isLoading) return 'loading';
+  if (status?.connected) return 'connected';
+  if (status?.error) return 'error';
+  if (status?.configured) return 'configured';
+  return 'not_configured';
+};
+
+const getDiscordStatusText = (status: DiscordStatus | null, isLoading: boolean): string => {
+  if (isLoading) return 'Checking connection status...';
+  if (status?.connected) return `Connected to ${status.webhookUrl || 'webhook'}`;
+  if (status?.error) return `Error: ${status.error}`;
+  if (status?.configured) return 'Configured - Click Test to verify';
+  return 'Not configured';
+};
+
+const getDiscordDetails = (status: DiscordStatus | null): IntegrationDetail[] => {
+  if (!status?.connected) return [];
+  return [
+    { label: 'Channel', value: status.webhookUrl || 'Webhook', color: 'primary' },
+  ];
+};
+
+const getFacebookIntegrationStatus = (status: FacebookStatus | null, isLoading: boolean): IntegrationStatus => {
+  if (isLoading) return 'loading';
+  if (status?.connected) return 'connected';
+  if (status?.error) return 'error';
+  if (status?.configured) return 'configured';
+  return 'not_configured';
+};
+
+const getFacebookStatusText = (status: FacebookStatus | null, isLoading: boolean): string => {
+  if (isLoading) return 'Checking connection status...';
+  if (status?.connected) return `Connected to ${status.appName || 'Facebook App'}`;
+  if (status?.error) return `Error: ${status.error}`;
+  if (status?.configured) return 'Configured - Click Test to verify';
+  return 'Not configured';
+};
+
+const getFacebookDetails = (status: FacebookStatus | null): IntegrationDetail[] => {
+  if (!status?.connected) return [];
+  return [
+    { label: 'App', value: status.appName || 'Facebook App', color: 'blue' },
+  ];
+};
+
+// =============================================================================
+// INTEGRATIONS SECTION COMPONENT
+// =============================================================================
+
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
   googleStatus,
   isLoading,
   loadError,
+  isTestingGoogle,
   onConnect,
   onDisconnect,
+  onTestGoogle,
   onRetry,
   telegramStatus,
   isLoadingTelegram,
@@ -257,376 +391,114 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
     
     {/* Error Banner */}
     {loadError && (
-      <div style={{
-        padding: '1rem',
-        marginBottom: '1rem',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        borderRadius: '0.5rem',
-        color: 'rgb(239, 68, 68)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem'
+      <div className={styles.integrationSetupBox} style={{ 
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+        background: 'rgba(239, 68, 68, 0.1)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-          <span>{loadError}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgb(248, 113, 113)' }}>
+            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+            <span>{loadError}</span>
+          </div>
+          <button
+            onClick={onRetry}
+            className={`${styles.integrationBtn} ${styles.integrationBtnRetry}`}
+            style={{ minWidth: 'auto' }}
+          >
+            Retry
+          </button>
         </div>
-        <button
-          onClick={onRetry}
-          style={{
-            padding: '0.25rem 0.75rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-            border: '1px solid rgba(239, 68, 68, 0.5)',
-            borderRadius: '0.25rem',
-            color: 'rgb(239, 68, 68)',
-            cursor: 'pointer',
-            fontSize: '0.875rem'
-          }}
-        >
-          Retry
-        </button>
       </div>
     )}
     
     {/* Google Integration */}
-    <div className={styles.integrationCard}>
-      <div className={styles.integrationHeader}>
-        <div className={styles.integrationInfo}>
-          <div className={`${styles.integrationIcon} ${styles.integrationIconGoogle}`}>
-            <Globe style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(59, 130, 246)' }} />
-          </div>
-          <div>
-            <h3 className={styles.integrationTitle}>Google Account</h3>
-            <p className={styles.integrationDescription}>
-              {isLoading 
-                ? 'Checking connection status...'
-                : googleStatus?.authenticated
-                  ? `Connected as ${googleStatus.email}`
-                  : 'Connect for Gmail, Calendar, and Drive access'}
-            </p>
-          </div>
-        </div>
-        
-        {isLoading ? (
-          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
-        ) : googleStatus?.authenticated ? (
-          <button
-            onClick={onDisconnect}
-            disabled={isLoading}
-            className={`${commonStyles.btn} ${commonStyles.btnDanger}`}
-          >
-            <Unlink style={{ width: '1rem', height: '1rem' }} />
-            Disconnect
-          </button>
-        ) : (
-          <button onClick={onConnect} className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}>
-            <Link2 style={{ width: '1rem', height: '1rem' }} />
-            Connect Google
-          </button>
-        )}
-      </div>
-      
-      {googleStatus?.authenticated && (
-        <div className={styles.integrationPermissions}>
-          <h4 className={styles.integrationPermissionsTitle}>Permissions granted:</h4>
-          <div className={styles.integrationTags}>
-            <span className={`${styles.integrationTag} ${styles.integrationTagGmail}`}>Gmail</span>
-            <span className={`${styles.integrationTag} ${styles.integrationTagCalendar}`}>Calendar</span>
-            <span className={`${styles.integrationTag} ${styles.integrationTagDrive}`}>Drive</span>
-          </div>
-        </div>
-      )}
-    </div>
+    <IntegrationCard
+      name="Google Account"
+      icon={<GoogleIcon />}
+      brandColor="Google"
+      status={getGoogleStatus(googleStatus, isLoading)}
+      statusText={getGoogleStatusText(googleStatus, isLoading)}
+      isLoading={isLoading}
+      isActionInProgress={isTestingGoogle}
+      actionInProgressLabel="Testing..."
+      details={getGoogleDetails(googleStatus)}
+      detailsTitle="Permissions granted:"
+      onConnect={onConnect}
+      onTest={googleStatus?.authenticated ? onTestGoogle : undefined}
+      onDisconnect={googleStatus?.authenticated ? onDisconnect : undefined}
+    />
 
     {/* Telegram Integration */}
-    <div className={`${styles.integrationCard} ${telegramStatus?.connected ? '' : styles.integrationCardDisabled}`}>
-      <div className={styles.integrationHeader}>
-        <div className={styles.integrationInfo}>
-          <div className={`${styles.integrationIcon} ${styles.integrationIconTelegram}`}>
-            <Mail style={{ width: '1.5rem', height: '1.5rem', color: 'white' }} />
-          </div>
-          <div>
-            <h3 className={styles.integrationTitle}>Telegram</h3>
-            <p className={styles.integrationDescription}>
-              {isLoadingTelegram 
-                ? 'Checking connection status...'
-                : telegramStatus?.connected
-                  ? `Connected to @${telegramStatus.botUsername || 'bot'}`
-                  : telegramStatus?.configured
-                    ? `Configuration error: ${telegramStatus.error || 'Unknown'}`
-                    : 'Not configured - Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env'}
-            </p>
-          </div>
-        </div>
-
-        {isLoadingTelegram ? (
-          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
-        ) : telegramStatus?.connected ? (
-          <button
-            onClick={onTestTelegram}
-            disabled={isTestingTelegram}
-            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
-            style={{ minWidth: '140px' }}
-          >
-            {isTestingTelegram ? (
-              <>
-                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Check style={{ width: '1rem', height: '1rem' }} />
-                Test Connection
-              </>
-            )}
-          </button>
-        ) : telegramStatus?.error ? (
-          <button
-            onClick={onRetryTelegram}
-            className={`${commonStyles.btn}`}
-            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'rgb(239, 68, 68)' }}
-          >
-            Retry
-          </button>
-        ) : null}
-      </div>
-
-      {telegramStatus?.connected && (
-        <div className={styles.integrationPermissions}>
-          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
-          <div className={styles.integrationTags}>
-            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: 'rgb(59, 130, 246)' }}>
-              Bot: @{telegramStatus.botUsername}
-            </span>
-            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: 'rgb(16, 185, 129)' }}>
-              Chat ID: {telegramStatus.chatId}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {!telegramStatus?.configured && (
-        <div style={{ 
-          marginTop: '0.75rem', 
-          padding: '0.75rem', 
-          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          color: 'rgb(251, 191, 36)'
-        }}>
-          <strong>Setup Instructions:</strong>
-          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-            <li>Create a bot with <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>@BotFather</a> on Telegram</li>
-            <li>Copy the bot token to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>TELEGRAM_BOT_TOKEN</code> in .env</li>
-            <li>Send any message to your bot, then get your chat ID from the API</li>
-            <li>Add the chat ID to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>TELEGRAM_CHAT_ID</code> in .env</li>
-            <li>Restart the backend server</li>
-          </ol>
-        </div>
-      )}
-    </div>
+    <IntegrationCard
+      name="Telegram"
+      icon={<TelegramIcon />}
+      brandColor="Telegram"
+      status={getTelegramIntegrationStatus(telegramStatus, isLoadingTelegram)}
+      statusText={getTelegramStatusText(telegramStatus, isLoadingTelegram)}
+      isLoading={isLoadingTelegram}
+      isActionInProgress={isTestingTelegram}
+      actionInProgressLabel="Sending..."
+      details={getTelegramDetails(telegramStatus)}
+      onTest={telegramStatus?.connected || telegramStatus?.configured ? onTestTelegram : undefined}
+      onRetry={telegramStatus?.error ? onRetryTelegram : undefined}
+      setupInstructions={
+        <ol className={styles.integrationSetupList}>
+          <li>Create a bot with <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer">@BotFather</a> on Telegram</li>
+          <li>Copy the bot token to <code>TELEGRAM_BOT_TOKEN</code> in .env</li>
+          <li>Send any message to your bot, then get your chat ID from the API</li>
+          <li>Add the chat ID to <code>TELEGRAM_CHAT_ID</code> in .env</li>
+          <li>Restart the backend server</li>
+        </ol>
+      }
+    />
 
     {/* Discord Integration */}
-    <div className={`${styles.integrationCard} ${discordStatus?.connected ? '' : styles.integrationCardDisabled}`}>
-      <div className={styles.integrationHeader}>
-        <div className={styles.integrationInfo}>
-          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(88, 101, 242, 0.2)' }}>
-            <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="rgb(88, 101, 242)">
-              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 className={styles.integrationTitle}>Discord</h3>
-            <p className={styles.integrationDescription}>
-              {isLoadingDiscord 
-                ? 'Checking connection status...'
-                : discordStatus?.connected
-                  ? `Connected to ${discordStatus.webhookUrl || 'webhook'}`
-                  : discordStatus?.error
-                    ? `Connection error: ${discordStatus.error}`
-                    : discordStatus?.configured
-                      ? 'Configured - Click Test to verify webhook'
-                      : 'Not configured - Add DISCORD_WEBHOOK_URL to .env'}
-            </p>
-          </div>
-        </div>
-
-        {isLoadingDiscord ? (
-          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
-        ) : discordStatus?.connected ? (
-          <button
-            onClick={onTestDiscord}
-            disabled={isTestingDiscord}
-            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
-            style={{ minWidth: '140px' }}
-          >
-            {isTestingDiscord ? (
-              <>
-                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Check style={{ width: '1rem', height: '1rem' }} />
-                Test Connection
-              </>
-            )}
-          </button>
-        ) : discordStatus?.configured ? (
-          <button
-            onClick={onTestDiscord}
-            disabled={isTestingDiscord}
-            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
-            style={{ minWidth: '140px' }}
-          >
-            {isTestingDiscord ? (
-              <>
-                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
-                Testing...
-              </>
-            ) : (
-              <>
-                <Check style={{ width: '1rem', height: '1rem' }} />
-                Test Connection
-              </>
-            )}
-          </button>
-        ) : null}
-      </div>
-
-      {discordStatus?.connected && (
-        <div className={styles.integrationPermissions}>
-          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
-          <div className={styles.integrationTags}>
-            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(88, 101, 242, 0.2)', color: 'rgb(129, 140, 248)' }}>
-              Channel: {discordStatus.webhookUrl}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {!discordStatus?.configured && (
-        <div style={{ 
-          marginTop: '0.75rem', 
-          padding: '0.75rem', 
-          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          color: 'rgb(251, 191, 36)'
-        }}>
-          <strong>Setup Instructions:</strong>
-          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-            <li>Open Discord and go to Server Settings → Integrations → Webhooks</li>
-            <li>Click "New Webhook" and choose a channel</li>
-            <li>Copy the Webhook URL</li>
-            <li>Add it to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>DISCORD_WEBHOOK_URL</code> in .env</li>
-            <li>Restart the backend server</li>
-          </ol>
-        </div>
-      )}
-    </div>
+    <IntegrationCard
+      name="Discord"
+      icon={<DiscordIcon />}
+      brandColor="Discord"
+      status={getDiscordIntegrationStatus(discordStatus, isLoadingDiscord)}
+      statusText={getDiscordStatusText(discordStatus, isLoadingDiscord)}
+      isLoading={isLoadingDiscord}
+      isActionInProgress={isTestingDiscord}
+      actionInProgressLabel="Sending..."
+      details={getDiscordDetails(discordStatus)}
+      onTest={discordStatus?.connected || discordStatus?.configured ? onTestDiscord : undefined}
+      onRetry={discordStatus?.error ? onRetryDiscord : undefined}
+      setupInstructions={
+        <ol className={styles.integrationSetupList}>
+          <li>Open Discord and go to Server Settings → Integrations → Webhooks</li>
+          <li>Click "New Webhook" and choose a channel</li>
+          <li>Copy the Webhook URL</li>
+          <li>Add it to <code>DISCORD_WEBHOOK_URL</code> in .env</li>
+          <li>Restart the backend server</li>
+        </ol>
+      }
+    />
 
     {/* Facebook Integration */}
-    <div className={`${styles.integrationCard} ${facebookStatus?.connected ? '' : styles.integrationCardDisabled}`}>
-      <div className={styles.integrationHeader}>
-        <div className={styles.integrationInfo}>
-          <div className={`${styles.integrationIcon}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)' }}>
-            <svg style={{ width: '1.5rem', height: '1.5rem' }} viewBox="0 0 24 24" fill="rgb(24, 119, 242)">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 className={styles.integrationTitle}>Facebook</h3>
-            <p className={styles.integrationDescription}>
-              {isLoadingFacebook 
-                ? 'Checking connection status...'
-                : facebookStatus?.connected
-                  ? `Connected to ${facebookStatus.appName || 'Facebook App'}`
-                  : facebookStatus?.error
-                    ? `Connection error: ${facebookStatus.error}`
-                    : facebookStatus?.configured
-                      ? 'Configured - Click Test to verify connection'
-                      : 'Not configured - Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to .env'}
-            </p>
-          </div>
-        </div>
-
-        {isLoadingFacebook ? (
-          <Loader2 className={commonStyles.spinner} style={{ width: '1.5rem', height: '1.5rem', color: 'rgb(148, 163, 184)' }} />
-        ) : facebookStatus?.connected ? (
-          <button
-            onClick={onTestFacebook}
-            disabled={isTestingFacebook}
-            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
-            style={{ minWidth: '140px' }}
-          >
-            {isTestingFacebook ? (
-              <>
-                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Check style={{ width: '1rem', height: '1rem' }} />
-                Test Connection
-              </>
-            )}
-          </button>
-        ) : facebookStatus?.configured ? (
-          <button
-            onClick={onTestFacebook}
-            disabled={isTestingFacebook}
-            className={`${commonStyles.btn} ${commonStyles.btnPrimary}`}
-            style={{ minWidth: '140px' }}
-          >
-            {isTestingFacebook ? (
-              <>
-                <Loader2 className={commonStyles.spinner} style={{ width: '1rem', height: '1rem' }} />
-                Testing...
-              </>
-            ) : (
-              <>
-                <Check style={{ width: '1rem', height: '1rem' }} />
-                Test Connection
-              </>
-            )}
-          </button>
-        ) : null}
-      </div>
-
-      {facebookStatus?.connected && (
-        <div className={styles.integrationPermissions}>
-          <h4 className={styles.integrationPermissionsTitle}>Connection details:</h4>
-          <div className={styles.integrationTags}>
-            <span className={`${styles.integrationTag}`} style={{ backgroundColor: 'rgba(24, 119, 242, 0.2)', color: 'rgb(66, 133, 244)' }}>
-              App: {facebookStatus.appName}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {!facebookStatus?.configured && (
-        <div style={{ 
-          marginTop: '0.75rem', 
-          padding: '0.75rem', 
-          backgroundColor: 'rgba(251, 191, 36, 0.1)', 
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          color: 'rgb(251, 191, 36)'
-        }}>
-          <strong>Setup Instructions:</strong>
-          <ol style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-            <li>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'rgb(96, 165, 250)' }}>Facebook Developers</a></li>
-            <li>Create a new app or select an existing one</li>
-            <li>Copy the App ID to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>FACEBOOK_APP_ID</code> in .env</li>
-            <li>Copy the App Secret to <code style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>FACEBOOK_APP_SECRET</code> in .env</li>
-            <li>Restart the backend server</li>
-          </ol>
-        </div>
-      )}
-    </div>
+    <IntegrationCard
+      name="Facebook"
+      icon={<FacebookIcon />}
+      brandColor="Facebook"
+      status={getFacebookIntegrationStatus(facebookStatus, isLoadingFacebook)}
+      statusText={getFacebookStatusText(facebookStatus, isLoadingFacebook)}
+      isLoading={isLoadingFacebook}
+      isActionInProgress={isTestingFacebook}
+      actionInProgressLabel="Sending..."
+      details={getFacebookDetails(facebookStatus)}
+      onTest={facebookStatus?.connected || facebookStatus?.configured ? onTestFacebook : undefined}
+      onRetry={facebookStatus?.error ? onRetryFacebook : undefined}
+      setupInstructions={
+        <ol className={styles.integrationSetupList}>
+          <li>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer">Facebook Developers</a></li>
+          <li>Create a new app or select an existing one</li>
+          <li>Copy the App ID to <code>FACEBOOK_APP_ID</code> in .env</li>
+          <li>Copy the App Secret to <code>FACEBOOK_APP_SECRET</code> in .env</li>
+          <li>Restart the backend server</li>
+        </ol>
+      }
+    />
   </div>
 );
 
@@ -925,6 +797,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
   const [googleStatus, setGoogleStatus] = useState<AuthStatus | null>(null);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(true);
   const [googleLoadError, setGoogleLoadError] = useState<string | null>(null);
+  const [isTestingGoogle, setIsTestingGoogle] = useState(false);
   
   // Telegram state
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
@@ -967,6 +840,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       setIsLoadingGoogle(false);
     }
   }, []);
+
+  const handleTestGoogle = async () => {
+    try {
+      setIsTestingGoogle(true);
+      // Re-check auth status to verify connection is still valid
+      const status = await authApi.getGoogleAuthStatus();
+      if (status.authenticated) {
+        alert('✅ Google connection is working! Connected as ' + status.email);
+        setGoogleStatus(status);
+      } else {
+        alert('❌ Google connection failed: ' + (status.error || 'Not authenticated'));
+        setGoogleStatus(status);
+      }
+    } catch (error: any) {
+      alert('❌ Failed to test connection: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsTestingGoogle(false);
+    }
+  };
 
   const loadTelegramStatus = useCallback(async () => {
     try {
@@ -1137,8 +1029,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
             googleStatus={googleStatus}
             isLoading={isLoadingGoogle}
             loadError={googleLoadError}
+            isTestingGoogle={isTestingGoogle}
             onConnect={handleGoogleConnect}
             onDisconnect={handleGoogleDisconnect}
+            onTestGoogle={handleTestGoogle}
             onRetry={loadGoogleStatus}
             telegramStatus={telegramStatus}
             isLoadingTelegram={isLoadingTelegram}

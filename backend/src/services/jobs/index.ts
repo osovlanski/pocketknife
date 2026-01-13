@@ -13,6 +13,8 @@ export { default as companyEnrichmentService } from './companyEnrichmentService'
 export { default as israeliJobsService } from './israeliJobsService';
 export { default as israelTechScraperService } from './israelTechScraperService';
 export { default as additionalJobAPIs } from './additionalJobAPIs';
+export { default as comeetCareersService } from './comeetCareersService';
+export { default as israeliTechCommunityService } from './israeliTechCommunityService';
 
 
 

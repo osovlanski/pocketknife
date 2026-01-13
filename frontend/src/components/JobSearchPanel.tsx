@@ -1,8 +1,25 @@
 import React, { useState } from 'react';
 import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
 import { extractTextFromFile } from '../utils/fileParser';
-import { JobSearchFilters } from '../types';
+import { JobSearchFilters, IndustryType } from '../types';
 import { API_BASE_URL } from '../config';
+
+// Available industries for selection
+const AVAILABLE_INDUSTRIES: { value: IndustryType; label: string; emoji: string }[] = [
+  { value: 'fintech', label: 'FinTech', emoji: '💰' },
+  { value: 'cybersecurity', label: 'Cyber Security', emoji: '🔒' },
+  { value: 'healthtech', label: 'HealthTech', emoji: '🏥' },
+  { value: 'ecommerce', label: 'E-Commerce', emoji: '🛒' },
+  { value: 'saas', label: 'SaaS', emoji: '☁️' },
+  { value: 'ai', label: 'AI/ML', emoji: '🤖' },
+  { value: 'gaming', label: 'Gaming', emoji: '🎮' },
+  { value: 'devtools', label: 'DevTools', emoji: '🛠️' },
+  { value: 'edtech', label: 'EdTech', emoji: '📚' },
+  { value: 'proptech', label: 'PropTech', emoji: '🏠' },
+  { value: 'insurtech', label: 'InsurTech', emoji: '📋' },
+  { value: 'cleantech', label: 'CleanTech', emoji: '🌱' },
+  { value: 'automotive', label: 'Automotive', emoji: '🚗' },
+];
 
 interface JobSearchPanelProps {
   onCVUploaded: (cvData: any) => void;
@@ -30,11 +47,35 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
   const [filters, setFilters] = useState<JobSearchFilters>({
     companySize: 'any',
     industry: 'any',
+    industries: [],  // NEW: Multiple industries
     salaryMin: undefined,
     salaryMax: undefined,
     experienceLevel: 'any',
     jobType: 'any'
   });
+  
+  // Toggle industry selection
+  const handleIndustryToggle = (industry: IndustryType) => {
+    const currentIndustries = filters.industries || [];
+    const isSelected = currentIndustries.includes(industry);
+    
+    if (isSelected) {
+      setFilters({ 
+        ...filters, 
+        industries: currentIndustries.filter(i => i !== industry) 
+      });
+    } else {
+      setFilters({ 
+        ...filters, 
+        industries: [...currentIndustries, industry] 
+      });
+    }
+  };
+  
+  // Clear all industries
+  const handleClearIndustries = () => {
+    setFilters({ ...filters, industries: [] });
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -381,23 +422,51 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
                 </select>
               </div>
 
-              {/* Industry */}
-              <div>
-                <label className="text-sm text-slate-300 mb-1 block">Industry</label>
-                <select
-                  value={filters.industry}
-                  onChange={(e) => setFilters({ ...filters, industry: e.target.value as any })}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-                >
-                  <option value="any">Any Industry</option>
-                  <option value="fintech">FinTech</option>
-                  <option value="cybersecurity">Cyber Security</option>
-                  <option value="healthtech">HealthTech</option>
-                  <option value="ecommerce">E-Commerce</option>
-                  <option value="saas">SaaS</option>
-                  <option value="ai">AI/ML</option>
-                  <option value="gaming">Gaming</option>
-                </select>
+              {/* Industry - Multi-select */}
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-slate-300">Industries (select multiple)</label>
+                  {(filters.industries?.length || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearIndustries}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Clear all ({filters.industries?.length})
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_INDUSTRIES.map((ind) => {
+                    const isSelected = filters.industries?.includes(ind.value);
+                    return (
+                      <button
+                        key={ind.value}
+                        type="button"
+                        onClick={() => handleIndustryToggle(ind.value)}
+                        className={`
+                          flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                          ${isSelected 
+                            ? 'bg-blue-500 text-white border-blue-400' 
+                            : 'bg-white/5 text-slate-300 border-white/20 hover:bg-white/10'
+                          }
+                          border
+                        `}
+                        aria-pressed={isSelected}
+                        tabIndex={0}
+                      >
+                        <span>{ind.emoji}</span>
+                        <span>{ind.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {(filters.industries?.length || 0) === 0 
+                    ? '💡 Select industries to search with multiple targeted queries' 
+                    : `Searching ${filters.industries?.length} industries`
+                  }
+                </p>
               </div>
 
               {/* Experience Level */}
