@@ -7,6 +7,7 @@
 
 import { getPrisma } from './databaseService';
 import { cacheService, cacheKeys } from './cacheService';
+import logger from '../../utils/logger';
 
 // Cache TTL for API configs (5 minutes)
 const API_CONFIG_CACHE_TTL = 300;
@@ -33,7 +34,6 @@ export interface ExternalApiConfig {
   priority: number;
   createdAt: Date;
   updatedAt: Date;
-  // Computed fields for frontend
   hasApiKey?: boolean;
 }
 
@@ -148,6 +148,30 @@ const DEFAULT_JOB_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'
     description: 'Curated list of top Israeli tech company career pages',
     priority: 9,
     currentUsage: 0
+  },
+  {
+    name: 'comeet_ats',
+    displayName: 'Comeet ATS',
+    category: 'jobs',
+    baseUrl: 'https://www.comeet.com/careers-api/2.0',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Job listings from companies using Comeet ATS (many Israeli startups)',
+    docsUrl: 'https://developers.comeet.com/reference',
+    priority: 10,
+    currentUsage: 0
+  },
+  {
+    name: 'israeli_communities',
+    displayName: 'Israeli Tech Communities',
+    category: 'jobs',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Jobs from Israeli tech communities (Telegram, Startup Nation Central)',
+    priority: 11,
+    currentUsage: 0
   }
 ];
 
@@ -260,7 +284,7 @@ const DEFAULT_SHOPPING_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updat
     category: 'shopping',
     baseUrl: 'https://www.ksp.co.il',
     isEnabled: true,
-    isHealthy: false, // Often blocked
+    isHealthy: false,
     requiresAuth: false,
     authType: 'scraper',
     description: 'Israeli electronics retailer (may be blocked - 403)',
@@ -280,7 +304,7 @@ const DEFAULT_PROBLEM_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'update
     isEnabled: true,
     isHealthy: true,
     requiresAuth: false,
-    authType: 'graphql', // Requires POST request
+    authType: 'graphql',
     description: 'Fetch coding problems (GraphQL - POST only)',
     docsUrl: 'https://leetcode.com',
     priority: 1,
@@ -407,6 +431,87 @@ const DEFAULT_EMAIL_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedA
   }
 ];
 
+// News APIs
+const DEFAULT_NEWS_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'newsapi',
+    displayName: 'NewsAPI',
+    category: 'news',
+    baseUrl: 'https://newsapi.org/v2',
+    apiKeyEnvVar: 'NEWSAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 100,
+    rateLimitPeriod: 'day',
+    description: 'Top headlines and news articles from 80,000+ sources',
+    docsUrl: 'https://newsapi.org/docs',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'gnews',
+    displayName: 'GNews',
+    category: 'news',
+    baseUrl: 'https://gnews.io/api/v4',
+    apiKeyEnvVar: 'GNEWS_API_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 100,
+    rateLimitPeriod: 'day',
+    description: 'News articles from Google News (10 requests/day free)',
+    docsUrl: 'https://gnews.io/docs/v4',
+    priority: 2,
+    currentUsage: 0
+  },
+  {
+    name: 'hackernews',
+    displayName: 'Hacker News',
+    category: 'news',
+    baseUrl: 'https://hacker-news.firebaseio.com/v0',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Tech-focused news and discussions (no API key required)',
+    docsUrl: 'https://github.com/HackerNews/API',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'reddit',
+    displayName: 'Reddit',
+    category: 'news',
+    baseUrl: 'https://www.reddit.com',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Reddit front page and subreddits (no auth for public API)',
+    docsUrl: 'https://www.reddit.com/dev/api',
+    priority: 2,
+    currentUsage: 0
+  },
+  {
+    name: 'mediastack',
+    displayName: 'MediaStack',
+    category: 'news',
+    baseUrl: 'http://api.mediastack.com/v1',
+    apiKeyEnvVar: 'MEDIASTACK_API_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 500,
+    rateLimitPeriod: 'month',
+    description: 'Real-time news API with 7500+ sources',
+    docsUrl: 'https://mediastack.com/documentation',
+    priority: 3,
+    currentUsage: 0
+  }
+];
+
 // Combine all default APIs
 const ALL_DEFAULT_APIS = [
   ...DEFAULT_JOB_APIS,
@@ -416,27 +521,22 @@ const ALL_DEFAULT_APIS = [
   ...DEFAULT_PROBLEM_APIS,
   ...DEFAULT_AI_APIS,
   ...DEFAULT_NOTIFICATION_APIS,
-  ...DEFAULT_EMAIL_APIS
+  ...DEFAULT_EMAIL_APIS,
+  ...DEFAULT_NEWS_APIS
 ];
 
 export const externalApiService = {
-  /**
-   * Check if the ExternalApiConfig table exists
-   */
   isTableReady: async (): Promise<boolean> => {
     const prisma = getPrisma();
     if (!prisma) return false;
     
     try {
-      // Try to access the model - if table doesn't exist, this will fail
       await (prisma as any).externalApiConfig?.findFirst();
       return true;
     } catch (error: any) {
-      // Table doesn't exist yet - migration not run
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
         return false;
       }
-      // Model might not be generated yet
       if (!(prisma as any).externalApiConfig) {
         return false;
       }
@@ -444,23 +544,19 @@ export const externalApiService = {
     }
   },
 
-  /**
-   * Initialize default API configurations
-   */
   initializeDefaults: async (): Promise<void> => {
     const prisma = getPrisma();
     if (!prisma) {
-      console.log('⚠️ Database not available, skipping API config initialization');
+      logger.warn('Database not available, skipping API config initialization');
       return;
     }
 
-    // Check if the model exists in Prisma client
     if (!(prisma as any).externalApiConfig) {
-      console.log('⚠️ ExternalApiConfig model not found. Run: npx prisma migrate dev --name add_external_api_config');
+      logger.warn('ExternalApiConfig model not found. Run: npx prisma migrate dev --name add_external_api_config');
       return;
     }
 
-    console.log('🔧 Initializing external API configurations for all agents...');
+    logger.init('Initializing external API configurations for all agents...');
 
     let successCount = 0;
     let skipCount = 0;
@@ -470,7 +566,6 @@ export const externalApiService = {
         await (prisma as any).externalApiConfig.upsert({
           where: { name: api.name },
           update: {
-            // Always update these fields to ensure correct values
             apiKeyEnvVar: api.apiKeyEnvVar,
             displayName: api.displayName,
             baseUrl: api.baseUrl,
@@ -486,37 +581,31 @@ export const externalApiService = {
         });
         successCount++;
       } catch (error: any) {
-        // Handle table not existing gracefully
         if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-          console.log('⚠️ ExternalApiConfig table not found. Run migration first.');
+          logger.warn('ExternalApiConfig table not found. Run migration first.');
           return;
         }
-        console.warn(`Failed to create API config for ${api.name}:`, error.message);
+        logger.warn('Failed to create API config', { api: api.name, error: error.message });
         skipCount++;
       }
     }
 
     if (successCount > 0) {
-      console.log(`✅ Initialized/updated ${successCount} external API configurations`);
-      // Clear cache to ensure fresh data is loaded
+      logger.success('Initialized/updated external API configurations', { count: successCount });
       await cacheService.delete(cacheKeys.allExternalApis());
       await cacheService.invalidateByPattern('api:config');
     }
     if (skipCount > 0) {
-      console.log(`⚠️ Skipped ${skipCount} API configurations due to errors`);
+      logger.warn('Skipped API configurations due to errors', { count: skipCount });
     }
   },
 
-  /**
-   * Get all API configurations
-   */
   getAll: async (category?: string): Promise<ExternalApiConfig[]> => {
     const prisma = getPrisma();
     
-    // Helper to filter defaults by category
     const getDefaultApis = (cat?: string) => {
       const apis = cat ? ALL_DEFAULT_APIS.filter(a => a.category === cat) : ALL_DEFAULT_APIS;
-      return apis.map((api, index) => ({
+      return apis.map((api) => ({
         ...api,
         id: `default-${api.name}`,
         hasApiKey: api.apiKeyEnvVar ? !!process.env[api.apiKeyEnvVar] : true,
@@ -525,19 +614,16 @@ export const externalApiService = {
       })) as ExternalApiConfig[];
     };
 
-    // If database not available, return defaults
     if (!prisma) {
-      console.log('📦 getAll: Prisma not available, returning defaults');
+      logger.debug('getAll: Prisma not available, returning defaults');
       return getDefaultApis(category);
     }
     
-    // If model not generated yet, return defaults
     if (!(prisma as any).externalApiConfig) {
-      console.log('📦 getAll: ExternalApiConfig model not found, returning defaults');
+      logger.debug('getAll: ExternalApiConfig model not found, returning defaults');
       return getDefaultApis(category);
     }
 
-    // Try cache first
     const cacheKey = category ? `api:config:category:${category}` : cacheKeys.allExternalApis();
     const cached = await cacheService.get<ExternalApiConfig[]>(cacheKey);
     if (cached) return cached;
@@ -549,7 +635,6 @@ export const externalApiService = {
         orderBy: [{ category: 'asc' }, { priority: 'asc' }]
       });
 
-      // Add computed field for whether API key is configured
       const enrichedConfigs = configs.map((config: any) => ({
         ...config,
         hasApiKey: config.apiKeyEnvVar ? !!process.env[config.apiKeyEnvVar] : true
@@ -558,7 +643,6 @@ export const externalApiService = {
       await cacheService.set(cacheKey, enrichedConfigs, { ttl: API_CONFIG_CACHE_TTL });
       return enrichedConfigs;
     } catch (error: any) {
-      // Table doesn't exist - return defaults
       if (error.code === 'P2021') {
         return getDefaultApis(category);
       }
@@ -566,18 +650,13 @@ export const externalApiService = {
     }
   },
 
-  /**
-   * Get a single API configuration by name
-   */
   getByName: async (name: string): Promise<ExternalApiConfig | null> => {
     const prisma = getPrisma();
     
-    // Check cache first
     const cacheKey = cacheKeys.externalApiConfig(name);
     const cached = await cacheService.get<ExternalApiConfig>(cacheKey);
     if (cached) return cached;
     
-    // If database not ready, return from defaults
     if (!prisma || !(prisma as any).externalApiConfig) {
       const defaultApi = ALL_DEFAULT_APIS.find(api => api.name === name);
       if (defaultApi) {
@@ -606,7 +685,6 @@ export const externalApiService = {
         return enriched;
       }
     } catch (error: any) {
-      // Table doesn't exist - return from defaults
       if (error.code === 'P2021') {
         const defaultApi = ALL_DEFAULT_APIS.find(api => api.name === name);
         if (defaultApi) {
@@ -624,27 +702,16 @@ export const externalApiService = {
     return null;
   },
 
-  /**
-   * Check if an API is enabled and ready to use
-   */
   isApiEnabled: async (name: string): Promise<boolean> => {
     const config = await externalApiService.getByName(name);
     if (!config) return false;
-    
-    // Check if enabled
     if (!config.isEnabled) return false;
-    
-    // Check if auth is required and API key is available
     if (config.requiresAuth && config.apiKeyEnvVar) {
       return !!process.env[config.apiKeyEnvVar];
     }
-    
     return true;
   },
 
-  /**
-   * Get all enabled APIs for a category
-   */
   getEnabledApis: async (category: string): Promise<ExternalApiConfig[]> => {
     const allConfigs = await externalApiService.getAll(category);
     return allConfigs.filter(config => {
@@ -656,16 +723,13 @@ export const externalApiService = {
     });
   },
 
-  /**
-   * Update API configuration
-   */
   update: async (
     name: string,
     updates: Partial<Pick<ExternalApiConfig, 'isEnabled' | 'priority' | 'description'>>
   ): Promise<ExternalApiConfig | null> => {
     const prisma = getPrisma();
     if (!prisma || !(prisma as any).externalApiConfig) {
-      console.warn('Database not ready for API config updates');
+      logger.warn('Database not ready for API config updates');
       return null;
     }
 
@@ -675,7 +739,6 @@ export const externalApiService = {
         data: updates
       });
 
-      // Invalidate cache
       await cacheService.delete(cacheKeys.externalApiConfig(name));
       await cacheService.delete(cacheKeys.allExternalApis());
       await cacheService.invalidateByPattern('api:config:category');
@@ -683,20 +746,17 @@ export const externalApiService = {
       return config as ExternalApiConfig;
     } catch (error: any) {
       if (error.code === 'P2021') {
-        console.warn('ExternalApiConfig table not found');
+        logger.warn('ExternalApiConfig table not found');
         return null;
       }
       throw error;
     }
   },
 
-  /**
-   * Toggle API enabled status
-   */
   toggle: async (name: string): Promise<ExternalApiConfig | null> => {
     const prisma = getPrisma();
     if (!prisma || !(prisma as any).externalApiConfig) {
-      console.warn('Database not ready for API config toggle');
+      logger.warn('Database not ready for API config toggle');
       return null;
     }
 
@@ -710,16 +770,13 @@ export const externalApiService = {
       return externalApiService.update(name, { isEnabled: !current.isEnabled });
     } catch (error: any) {
       if (error.code === 'P2021') {
-        console.warn('ExternalApiConfig table not found');
+        logger.warn('ExternalApiConfig table not found');
         return null;
       }
       throw error;
     }
   },
 
-  /**
-   * Update API health status after a check
-   */
   updateHealth: async (
     name: string,
     isHealthy: boolean,
@@ -738,20 +795,15 @@ export const externalApiService = {
         }
       });
 
-      // Invalidate cache
       await cacheService.delete(cacheKeys.externalApiConfig(name));
       await cacheService.delete(cacheKeys.allExternalApis());
     } catch (error: any) {
-      // Silently fail if table doesn't exist
       if (error.code !== 'P2021') {
-        console.warn('Failed to update API health:', error.message);
+        logger.warn('Failed to update API health', { error: error.message });
       }
     }
   },
 
-  /**
-   * Increment usage counter for an API
-   */
   incrementUsage: async (name: string): Promise<void> => {
     const prisma = getPrisma();
     if (!prisma || !(prisma as any).externalApiConfig) return;
@@ -768,9 +820,6 @@ export const externalApiService = {
     }
   },
 
-  /**
-   * Reset usage counter for an API
-   */
   resetUsage: async (name: string): Promise<void> => {
     const prisma = getPrisma();
     if (!prisma || !(prisma as any).externalApiConfig) return;
@@ -788,9 +837,6 @@ export const externalApiService = {
     }
   },
 
-  /**
-   * Check if API is within rate limits
-   */
   isWithinRateLimit: async (name: string): Promise<boolean> => {
     const config = await externalApiService.getByName(name);
     if (!config || !config.rateLimit) return true;
@@ -799,4 +845,3 @@ export const externalApiService = {
 };
 
 export default externalApiService;
-

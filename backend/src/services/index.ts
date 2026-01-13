@@ -31,6 +31,12 @@ export * from './problemSolving';
 // Cooking Agent
 export * from './cooking';
 
+// News Agent
+export * from './news';
+
+// DIY Agent
+export * from './diy';
+
 // Notification Services
 export * from './notifications';
 

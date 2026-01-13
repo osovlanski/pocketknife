@@ -77,6 +77,14 @@ model User {
   recipes         SavedRecipe[]
   groceryLists    GroceryList[]
   
+  // News Agent relations
+  newsPreferences  NewsPreference?
+  newsInteractions NewsInteraction[]
+  savedArticles    SavedNewsArticle[]
+  
+  // DIY Agent relations
+  diyProjects      DIYProject[]
+  
   // Admin relations
   adminActions   AdminAuditLog[] @relation("AdminActions")
   systemSettings SystemSetting[]
@@ -940,4 +948,258 @@ model GroceryInvoiceItem {
   @@index([invoiceId])
   @@index([isProcessed])
   @@index([merchant])
+}
+
+// =============================================================================
+// NEWS AGENT
+// =============================================================================
+
+model NewsPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Topic preferences with weights (learned from interactions)
+  topicWeights      Json      @default("{}") // { "tech": 0.8, "politics": 0.3, "sports": 0.5 }
+  
+  // Source preferences
+  preferredSources  String[]  // ["bbc", "hackernews", "reddit"]
+  blockedSources    String[]  // Sources user doesn't want
+  
+  // Location-based news
+  geoLocation       String?   // "Tel Aviv, Israel" or "New York, USA"
+  countryCode       String?   // "IL", "US", etc.
+  includeLocalNews  Boolean   @default(true)
+  includeGlobalNews Boolean   @default(true)
+  
+  // Digest preferences
+  digestFrequency   String    @default("daily") // "daily", "weekly", "realtime"
+  digestTime        String?   // "09:00" - when to send digest
+  digestDays        String[]  @default(["monday", "tuesday", "wednesday", "thursday", "friday"])
+  
+  // Notification channels
+  notifyVia         String[]  @default(["app"]) // "app", "email", "telegram", "discord"
+  
+  // Content preferences
+  preferredLanguage String    @default("en")
+  readingTimeMin    Int?      // Minimum reading time in minutes
+  readingTimeMax    Int?      // Maximum reading time in minutes
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NewsInteraction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Article reference
+  articleId     String    // External article ID or URL hash
+  articleUrl    String
+  articleTitle  String
+  source        String    // "bbc", "hackernews", etc.
+  
+  // Interaction type
+  interactionType String   // "view", "read", "like", "save", "share", "dismiss"
+  
+  // Reading metrics (for learning)
+  readDuration    Int?      // Seconds spent reading
+  scrollDepth     Float?    // 0-1, how far user scrolled
+  
+  // Article metadata for learning
+  topics          String[]  // ["tech", "ai", "startups"]
+  sentiment       String?   // "positive", "negative", "neutral"
+  
+  // Feedback
+  isPositive      Boolean?  // User explicitly liked/disliked
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, interactionType])
+  @@index([articleId])
+}
+
+model SavedNewsArticle {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Article details
+  externalId    String    // External article ID
+  url           String
+  title         String
+  description   String?   @db.Text
+  content       String?   @db.Text
+  author        String?
+  source        String    // "bbc", "hackernews", etc.
+  sourceName    String?   // "BBC News", "Hacker News"
+  imageUrl      String?
+  publishedAt   DateTime?
+  
+  // Categorization
+  topics        String[]  // ["tech", "ai", "business"]
+  sentiment     String?   // "positive", "negative", "neutral"
+  readingTime   Int?      // Estimated reading time in minutes
+  
+  // AI-generated summary
+  summary       String?   @db.Text
+  keyPoints     String[]  // Key takeaways
+  
+  // User interaction
+  isRead        Boolean   @default(false)
+  readAt        DateTime?
+  notes         String?   @db.Text
+  
+  // For sharing
+  sharedTo      String[]  // ["telegram", "discord", "notion"]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, externalId])
+  @@index([userId, isRead])
+  @@index([userId, source])
+  @@index([publishedAt])
+}
+
+model NewsTrend {
+  id        String   @id @default(uuid())
+  
+  // Trend identification
+  topic         String    // Main topic/keyword
+  relatedTopics String[]  // Related topics
+  
+  // Trend metrics
+  trendScore    Float     // 0-100, how trending
+  articleCount  Int       @default(0)
+  mentionCount  Int       @default(0)
+  
+  // Geographic scope
+  geoScope      String    @default("global") // "global", "domestic", "local"
+  countryCode   String?   // For domestic/local trends
+  region        String?   // For local trends
+  
+  // Time tracking
+  startedAt     DateTime  @default(now())
+  peakAt        DateTime?
+  
+  // Status
+  isActive      Boolean   @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([topic])
+  @@index([geoScope, countryCode])
+  @@index([isActive, trendScore])
+}
+
+// =============================================================================
+// DIY AGENT
+// =============================================================================
+
+model DIYProject {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Project details
+  title         String
+  description   String?   @db.Text
+  category      String    // "home_improvement", "electronics", "crafts", "automotive", "gardening"
+  difficulty    String    @default("medium") // "easy", "medium", "hard", "expert"
+  
+  // Time estimates
+  estimatedTime     Int?      // Minutes
+  actualTime        Int?      // Minutes spent
+  
+  // Cost estimates
+  estimatedCost     Float?
+  actualCost        Float?
+  currency          String    @default("USD")
+  
+  // Instructions (AI-generated or user-edited)
+  instructions      Json?     // Array of { step: number, title: string, description: string, imageUrl?: string, tips?: string[] }
+  
+  // Materials/Tools needed
+  materials         Json?     // Array of { name: string, quantity: number, unit: string, estimatedPrice?: number, purchaseUrl?: string }
+  tools             Json?     // Array of { name: string, required: boolean, alternatives?: string[] }
+  
+  // Shopping integration
+  shoppingListId    String?   // Reference to shopping list if created
+  purchasedItems    String[]  // IDs of purchased materials
+  
+  // Media
+  imageUrls         String[]
+  videoUrl          String?
+  sourceUrl         String?   // If based on external tutorial
+  
+  // Status tracking
+  status            String    @default("planning") // "planning", "shopping", "in_progress", "completed", "paused", "abandoned"
+  startedAt         DateTime?
+  completedAt       DateTime?
+  
+  // User feedback
+  rating            Int?      // 1-5 stars after completion
+  notes             String?   @db.Text
+  lessonsLearned    String[]  // Tips for future reference
+  
+  // Sharing
+  isPublic          Boolean   @default(false)
+  sharedTo          String[]  // ["notion", "discord"]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([difficulty])
+}
+
+model DIYTemplate {
+  id        String   @id @default(uuid())
+  
+  // Template details
+  title         String
+  description   String?   @db.Text
+  category      String    // "home_improvement", "electronics", etc.
+  difficulty    String    @default("medium")
+  
+  // Time and cost
+  estimatedTime     Int?      // Minutes
+  estimatedCostMin  Float?
+  estimatedCostMax  Float?
+  currency          String    @default("USD")
+  
+  // Template content
+  instructions      Json      // Array of step objects
+  materials         Json      // Array of material objects
+  tools             Json      // Array of tool objects
+  
+  // Tips and warnings
+  tips              String[]
+  warnings          String[]
+  
+  // Media
+  imageUrls         String[]
+  videoUrl          String?
+  sourceUrl         String?
+  
+  // Metadata
+  tags              String[]
+  popularity        Int       @default(0) // Times used
+  avgRating         Float?    // Average user rating
+  
+  // Source
+  isAiGenerated     Boolean   @default(false)
+  isVerified        Boolean   @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([tags])
 }

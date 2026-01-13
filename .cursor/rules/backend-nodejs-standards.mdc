@@ -103,6 +103,8 @@ export const getUser = async (userId: string): Promise<User> => {
 
 ```typescript
 // controllers/jobController.ts
+import logger from '../utils/logger';
+
 export const searchJobs = async (req: Request, res: Response) => {
   try {
     // 1. Extract and validate input
@@ -113,13 +115,18 @@ export const searchJobs = async (req: Request, res: Response) => {
     }
 
     // 2. Call service (business logic)
+    logger.search('Job search started', { query, location });
     const results = await jobService.search(query, location);
+    logger.success('Job search completed', { count: results.length });
 
     // 3. Return response
     res.json({ success: true, data: results });
   } catch (error: any) {
-    // 4. Handle errors
-    console.error('Job search failed:', error);
+    // 4. Handle errors with structured logging
+    logger.fail('Job search failed', { 
+      error: error.message, 
+      query: req.body.query 
+    });
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Internal server error' 
@@ -222,16 +229,76 @@ if (!cached) {
 
 ### Logging
 
+**NEVER use `console.log` in production code. Use the structured logger with semantic methods.**
+
 ```typescript
-// Use structured logging with context
 import logger from '../utils/logger';
 
-logger.info('Job search started', { query, location, userId });
-logger.error('Job search failed', { error: error.message, stack: error.stack });
+// ❌ BAD - console.log
+logger.success(' Database connected');
+console.error('❌ Failed:', error);
 
-// Avoid console.log in production code
-// console.log('debug'); // Bad
+// ✅ GOOD - Semantic logger methods with icons
+logger.success('Database connected');           // ✅
+logger.fail('Operation failed', { error });     // ❌
+logger.start('Processing emails...');           // 🚀
+logger.stop('User cancelled operation');        // 🛑
+logger.complete('All tasks finished');          // ✅
+logger.found('Found records', { count: 50 });   // 📦
+logger.search('Searching for jobs');            // 🔍
+logger.connect('Redis connected');              // 🔗
+logger.disconnect('Database disconnected');     // 🔌
+logger.init('Initializing service');            // 🔧
+logger.skip('Skipping - not configured');       // ⏭️
+logger.retry('Retrying request', { attempt });  // 🔄
+logger.processing('Working on batch');          // ⚙️
+
+// Service-specific methods
+logger.db('Query executed');                    // 🗄️
+logger.cache('Cache hit');                      // 💨
+logger.api('External API call');                // 🌐
+logger.auth('User authenticated');              // 🔐
+logger.email('Email sent');                     // 📧
+logger.agent('Agent processing');               // 🤖
+
+// Flexible icon method
+logger.withIcon('calendar', 'Event created');   // 📅
+logger.withIcon('🎉', 'Custom emoji!');         // 🎉
+
+// Standard levels (when semantic doesn't fit)
+logger.info('General info', { metadata });
+logger.warn('Warning message', { details });
+logger.error('Error occurred', { error: error.message });
+logger.debug('Debug info', { data });
+
+// Timed operations
+const start = Date.now();
+await someOperation();
+logger.timed('Operation', start, { records: 100 }); // ⏱️
+
+// Always include relevant context
+logger.success('Job search completed', { 
+  query, 
+  location, 
+  resultsCount: jobs.length,
+  durationMs: Date.now() - startTime 
+});
 ```
+
+| Semantic Method | Icon | Use Case |
+| :--- | :---: | :--- |
+| `success()` | ✅ | Successful operations |
+| `fail()` | ❌ | Failed operations |
+| `start()` | 🚀 | Starting a process |
+| `stop()` | 🛑 | Stopping/halting |
+| `complete()` | ✅ | Process completed |
+| `found()` | 📦 | Found resources |
+| `search()` | 🔍 | Search operations |
+| `connect()` | 🔗 | Connection established |
+| `disconnect()` | 🔌 | Disconnection |
+| `init()` | 🔧 | Initialization |
+| `skip()` | ⏭️ | Skipped operations |
+| `retry()` | 🔄 | Retry attempts |
 
 ### Security
 

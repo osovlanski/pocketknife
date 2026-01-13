@@ -10,6 +10,7 @@
 
 import NodeCache from 'node-cache';
 import Redis from 'ioredis';
+import logger from '../../utils/logger';
 
 // Cache configuration
 const MEMORY_TTL_SECONDS = 300; // 5 minutes
@@ -35,7 +36,7 @@ const initRedis = async (): Promise<void> => {
   const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
   
   if (!redisUrl) {
-    console.log('ℹ️ Redis not configured, using memory cache only');
+    logger.skip('Redis not configured, using memory cache only');
     return;
   }
 
@@ -47,23 +48,23 @@ const initRedis = async (): Promise<void> => {
 
     await redisClient.ping();
     redisAvailable = true;
-    console.log('✅ Redis cache connected');
+    logger.connect('Redis cache connected');
 
     redisClient.on('error', (error) => {
-      console.error('❌ Redis error:', error);
+      logger.fail('Redis error', { error: error instanceof Error ? error.message : String(error) });
       redisAvailable = false;
     });
 
     redisClient.on('reconnecting', () => {
-      console.log('🔄 Redis reconnecting...');
+      logger.retry('Redis reconnecting...');
     });
 
     redisClient.on('ready', () => {
       redisAvailable = true;
-      console.log('✅ Redis ready');
+      logger.success('Redis ready');
     });
   } catch (error) {
-    console.warn('⚠️ Redis connection failed, using memory cache only:', error);
+    logger.warn('Redis connection failed, using memory cache only', { error: error instanceof Error ? error.message : String(error) });
     redisAvailable = false;
   }
 };
@@ -84,7 +85,7 @@ export const cacheService = {
    */
   init: async (): Promise<void> => {
     await initRedis();
-    console.log(`✅ Cache service initialized (Memory: ${MAX_MEMORY_KEYS} keys, Redis: ${redisAvailable ? 'enabled' : 'disabled'})`);
+    logger.success('Cache service initialized', { memoryMaxKeys: MAX_MEMORY_KEYS, redisEnabled: redisAvailable });
   },
 
   /**
@@ -109,7 +110,7 @@ export const cacheService = {
           return parsed;
         }
       } catch (error) {
-        console.warn('Cache get error:', error);
+        logger.warn('Cache get error', { key, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -142,7 +143,7 @@ export const cacheService = {
           }
         }
       } catch (error) {
-        console.warn('Cache set error:', error);
+        logger.warn('Cache set error', { key, error: error instanceof Error ? error.message : String(error) });
       }
     }
   },
@@ -157,7 +158,7 @@ export const cacheService = {
       try {
         await redisClient.del(key);
       } catch (error) {
-        console.warn('Cache delete error:', error);
+        logger.warn('Cache delete error', { key, error: error instanceof Error ? error.message : String(error) });
       }
     }
   },
@@ -184,7 +185,7 @@ export const cacheService = {
           invalidatedCount += keys.length;
         }
       } catch (error) {
-        console.warn('Cache invalidate error:', error);
+        logger.warn('Cache invalidate error', { tag, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -211,7 +212,7 @@ export const cacheService = {
           invalidatedCount += keys.length;
         }
       } catch (error) {
-        console.warn('Cache pattern invalidate error:', error);
+        logger.warn('Cache pattern invalidate error', { pattern, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -265,7 +266,7 @@ export const cacheService = {
       try {
         await redisClient.flushdb();
       } catch (error) {
-        console.warn('Cache flush error:', error);
+        logger.warn('Cache flush error', { error: error instanceof Error ? error.message : String(error) });
       }
     }
   },
@@ -278,7 +279,7 @@ export const cacheService = {
 
     if (redisClient) {
       await redisClient.quit();
-      console.log('✅ Cache connections closed');
+      logger.disconnect('Cache connections closed');
     }
   }
 };
@@ -332,4 +333,3 @@ export const cacheKeys = {
 };
 
 export default cacheService;
-

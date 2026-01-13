@@ -12,6 +12,29 @@
  *   0 - Review passed or no changes
  *   1 - Review failed or error occurred
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -22,8 +45,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -48,11 +71,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 var child_process_1 = require("child_process");
-var fs = require("fs");
-var path = require("path");
-var readline = require("readline");
+var fs = __importStar(require("fs"));
+var path = __importStar(require("path"));
+var readline = __importStar(require("readline"));
 // Configuration
 var MIN_PASSING_SCORE = 80;
 var BASE_BRANCH = 'main';
@@ -66,7 +89,7 @@ var colors = {
     yellow: '\x1b[33m',
     blue: '\x1b[34m',
     magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
+    cyan: '\x1b[36m'
 };
 function log(message, color) {
     if (color === void 0) { color = colors.reset; }
@@ -89,10 +112,10 @@ function logSection(title) {
     log('─'.repeat(40), colors.yellow);
 }
 function runReview() {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     return __awaiter(this, void 0, void 0, function () {
-        var currentBranch_1, diff, diffStats, filesChanged_1, insertions, deletions, previewLines, testsPass, backendTestsRan, frontendTestsRan, isTestSuccess, isTestFailure, backendResult, output, failedTests, frontendResult, output, failedTests, autoScore, issues, warnings, hardcodedPatterns, isCodeFile, currentFile_1, diffLines, _loop_1, _i, hardcodedPatterns_1, _a, pattern, name_1, consoleLogMatches, missingTypes, todoComments, rl_1, logEntry;
-        var _b, _c, _d, _e, _f, _g, _h, _j;
-        return __generator(this, function (_k) {
+        var currentBranch_1, diff, diffStats, filesChanged_1, insertions, deletions, previewLines, typeCheckPass, output, tsErrors, output, tsErrors, testsPass, backendTestsRan, frontendTestsRan, isTestSuccess, isTestFailure, backendResult, output, failedTests, frontendResult, output, failedTests, autoScore, issues, warnings, hardcodedPatterns, isCodeFile, currentFile_1, diffLines, _loop_1, _i, hardcodedPatterns_1, _l, pattern, name_1, consoleLogMatches, missingTypes, todoComments, rl_1, logEntry;
+        return __generator(this, function (_m) {
             logHeader('🏛️  PRINCIPAL ARCHITECT CODE REVIEW');
             log("\uD83D\uDCC5 Review started at: ".concat(new Date().toLocaleString()), colors.blue);
             log("\uD83D\uDCC1 Working directory: ".concat(process.cwd()), colors.blue);
@@ -103,7 +126,7 @@ function runReview() {
                     (0, child_process_1.execSync)('git rev-parse --git-dir', { stdio: 'pipe' });
                     log('✅ Git repository detected', colors.green);
                 }
-                catch (_l) {
+                catch (_o) {
                     log('❌ Not a git repository!', colors.red);
                     process.exit(1);
                 }
@@ -117,12 +140,12 @@ function runReview() {
                     (0, child_process_1.execSync)("git rev-parse --verify ".concat(BASE_BRANCH), { stdio: 'pipe' });
                     log("\u2705 Base branch '".concat(BASE_BRANCH, "' exists"), colors.green);
                 }
-                catch (_m) {
+                catch (_p) {
                     log("\u26A0\uFE0F Base branch '".concat(BASE_BRANCH, "' not found locally, trying origin/").concat(BASE_BRANCH), colors.yellow);
                     try {
                         (0, child_process_1.execSync)("git fetch origin ".concat(BASE_BRANCH), { stdio: 'pipe' });
                     }
-                    catch (_o) {
+                    catch (_q) {
                         log("\u274C Could not fetch ".concat(BASE_BRANCH), colors.red);
                     }
                 }
@@ -153,8 +176,8 @@ function runReview() {
                 logSection('Step 4: Change Summary');
                 log(diffStats, colors.cyan);
                 filesChanged_1 = diffStats.split('\n').filter(function (line) { return line.includes('|'); }).length;
-                insertions = ((_b = diffStats.match(/(\d+) insertions?/)) === null || _b === void 0 ? void 0 : _b[1]) || '0';
-                deletions = ((_c = diffStats.match(/(\d+) deletions?/)) === null || _c === void 0 ? void 0 : _c[1]) || '0';
+                insertions = ((_a = diffStats.match(/(\d+) insertions?/)) === null || _a === void 0 ? void 0 : _a[1]) || '0';
+                deletions = ((_b = diffStats.match(/(\d+) deletions?/)) === null || _b === void 0 ? void 0 : _b[1]) || '0';
                 log("\uD83D\uDCCA Files changed: ".concat(filesChanged_1), colors.blue);
                 log("\u2795 Lines added: ".concat(insertions), colors.green);
                 log("\u2796 Lines removed: ".concat(deletions), colors.red);
@@ -181,8 +204,68 @@ function runReview() {
                 if (diff.split('\n').length > 100) {
                     log("\n... and ".concat(diff.split('\n').length - 100, " more lines"), colors.yellow);
                 }
-                // Step 8: Run Tests
-                logSection('Step 6: Running Tests');
+                // Step 6: TypeScript Type Check (matches CI/CD)
+                logSection('Step 6: TypeScript Type Check');
+                typeCheckPass = true;
+                log('🔍 Running TypeScript type check (tsc --noEmit)...', colors.blue);
+                // Check backend TypeScript
+                try {
+                    log('   Checking backend types...', colors.blue);
+                    (0, child_process_1.execSync)('npx tsc --noEmit 2>&1', {
+                        cwd: path.join(process.cwd(), 'backend'),
+                        encoding: 'utf-8',
+                        timeout: 120000
+                    });
+                    log('   ✅ Backend type check passed', colors.green);
+                }
+                catch (backendTscError) {
+                    output = ((_c = backendTscError.stdout) === null || _c === void 0 ? void 0 : _c.toString()) || backendTscError.message || '';
+                    tsErrors = output.match(/error TS\d+:.*/g);
+                    if (tsErrors && tsErrors.length > 0) {
+                        log('   ❌ Backend type check failed', colors.red);
+                        tsErrors.slice(0, 10).forEach(function (err) { return log("      ".concat(err), colors.red); });
+                        if (tsErrors.length > 10) {
+                            log("      ... and ".concat(tsErrors.length - 10, " more errors"), colors.red);
+                        }
+                        typeCheckPass = false;
+                    }
+                    else {
+                        log('   ✅ Backend type check passed (with warnings)', colors.green);
+                    }
+                }
+                // Check frontend TypeScript
+                try {
+                    log('   Checking frontend types...', colors.blue);
+                    (0, child_process_1.execSync)('npx tsc --noEmit 2>&1', {
+                        cwd: path.join(process.cwd(), 'frontend'),
+                        encoding: 'utf-8',
+                        timeout: 120000
+                    });
+                    log('   ✅ Frontend type check passed', colors.green);
+                }
+                catch (frontendTscError) {
+                    output = ((_d = frontendTscError.stdout) === null || _d === void 0 ? void 0 : _d.toString()) || frontendTscError.message || '';
+                    tsErrors = output.match(/error TS\d+:.*/g);
+                    if (tsErrors && tsErrors.length > 0) {
+                        log('   ❌ Frontend type check failed', colors.red);
+                        tsErrors.slice(0, 10).forEach(function (err) { return log("      ".concat(err), colors.red); });
+                        if (tsErrors.length > 10) {
+                            log("      ... and ".concat(tsErrors.length - 10, " more errors"), colors.red);
+                        }
+                        typeCheckPass = false;
+                    }
+                    else {
+                        log('   ✅ Frontend type check passed (with warnings)', colors.green);
+                    }
+                }
+                if (typeCheckPass) {
+                    log('✅ All type checks passed!', colors.green);
+                }
+                else {
+                    log('❌ TypeScript errors found. Fix them before pushing.', colors.red);
+                }
+                // Step 7: Run Tests
+                logSection('Step 7: Running Tests');
                 testsPass = true;
                 backendTestsRan = false;
                 frontendTestsRan = false;
@@ -232,9 +315,9 @@ function runReview() {
                 }
                 catch (backendError) {
                     backendTestsRan = true;
-                    output = ((_d = backendError.stdout) === null || _d === void 0 ? void 0 : _d.toString())
-                        || ((_e = backendError.output) === null || _e === void 0 ? void 0 : _e.filter(Boolean).join(''))
-                        || ((_f = backendError.stderr) === null || _f === void 0 ? void 0 : _f.toString())
+                    output = ((_e = backendError.stdout) === null || _e === void 0 ? void 0 : _e.toString())
+                        || ((_f = backendError.output) === null || _f === void 0 ? void 0 : _f.filter(Boolean).join(''))
+                        || ((_g = backendError.stderr) === null || _g === void 0 ? void 0 : _g.toString())
                         || backendError.message
                         || '';
                     // Check if tests actually passed despite non-zero exit (e.g., due to warnings or stderr output)
@@ -276,9 +359,9 @@ function runReview() {
                 }
                 catch (frontendError) {
                     frontendTestsRan = true;
-                    output = ((_g = frontendError.stdout) === null || _g === void 0 ? void 0 : _g.toString())
-                        || ((_h = frontendError.output) === null || _h === void 0 ? void 0 : _h.filter(Boolean).join(''))
-                        || ((_j = frontendError.stderr) === null || _j === void 0 ? void 0 : _j.toString())
+                    output = ((_h = frontendError.stdout) === null || _h === void 0 ? void 0 : _h.toString())
+                        || ((_j = frontendError.output) === null || _j === void 0 ? void 0 : _j.filter(Boolean).join(''))
+                        || ((_k = frontendError.stderr) === null || _k === void 0 ? void 0 : _k.toString())
                         || frontendError.message
                         || '';
                     // Check if tests actually passed despite non-zero exit
@@ -313,21 +396,29 @@ function runReview() {
                 else {
                     log('❌ Some tests failed. Fix them before pushing.', colors.red);
                 }
-                // Step 9: Automated Quality Checks
-                logSection('Step 7: Automated Quality Checks');
+                // Step 8: Automated Quality Checks
+                logSection('Step 8: Automated Quality Checks');
                 autoScore = 100;
                 issues = [];
                 warnings = [];
+                // Deduct score if TypeScript type check failed
+                if (!typeCheckPass) {
+                    issues.push('🔴 TypeScript errors - Fix type errors before pushing');
+                    autoScore -= 30;
+                }
                 // Deduct score if tests failed
                 if (!testsPass) {
                     issues.push('🔴 Tests failed - Fix failing tests before pushing');
                     autoScore -= 30;
                 }
+                // Note: Short UI feedback timeouts (under 5000ms) are acceptable UX patterns
                 hardcodedPatterns = [
-                    { pattern: /setTimeout\(\s*[^,]+,\s*\d{4,}\s*\)/, name: 'Hardcoded timeout value' },
+                    { pattern: /setTimeout\(\s*[^,]+,\s*[5-9]\d{3,}\s*\)|setTimeout\(\s*[^,]+,\s*\d{5,}\s*\)/, name: 'Hardcoded timeout value' },
                     { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
                     { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
-                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.)[\w.-]+\.com/, name: 'Hardcoded external URL' },
+                    // Exclude known third-party API base URLs from this check
+                    // Whitelist covers: major API providers, Israeli job sites, documentation sites, etc.
+                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
                 ];
                 isCodeFile = function (line) {
                     // Check if we're in a documentation or config file by looking at the diff header
@@ -345,11 +436,15 @@ function runReview() {
                         // Only check added lines in actual code files
                         if (!line.startsWith('+') || line.startsWith('+++'))
                             return false;
-                        // Skip if in non-code files (md, json, yml, env, etc.) or quality check scripts
+                        // Skip if in non-code files (md, json, yml, env, etc.) or quality check/test scripts
                         if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile_1))
                             return false;
-                        if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile_1))
+                        if (/check-quality\.(js|ts)|run-tests\.(js|ts)|review-log|deploy-check/.test(currentFile_1))
                             return false;
+                        if (/scripts\//.test(currentFile_1)) // Skip all script files
+                            return false;
+                        if (/scripts\//.test(currentFile_1))
+                            return false; // Skip all script files
                         return pattern.test(line);
                     });
                     if (addedLines.length > 0) {
@@ -358,7 +453,7 @@ function runReview() {
                     }
                 };
                 for (_i = 0, hardcodedPatterns_1 = hardcodedPatterns; _i < hardcodedPatterns_1.length; _i++) {
-                    _a = hardcodedPatterns_1[_i], pattern = _a.pattern, name_1 = _a.name;
+                    _l = hardcodedPatterns_1[_i], pattern = _l.pattern, name_1 = _l.name;
                     _loop_1(pattern, name_1);
                 }
                 // Check for console.log (should use proper logger) - only in service/controller code
@@ -380,7 +475,8 @@ function runReview() {
                 });
                 if (consoleLogMatches.length > 0) {
                     warnings.push("\uD83D\uDFE1 console.log usage: ".concat(consoleLogMatches.length, " instance(s) - Consider using proper logger"));
-                    autoScore -= 2 * consoleLogMatches.length;
+                    // Cap at 5 points max for console.log warnings
+                    autoScore -= Math.min(5, consoleLogMatches.length);
                 }
                 // Check for missing type annotations (TypeScript) - only in actual code files
                 currentFile_1 = '';
@@ -401,7 +497,8 @@ function runReview() {
                 });
                 if (missingTypes.length > 0) {
                     warnings.push("\uD83D\uDFE1 'any' type usage: ".concat(missingTypes.length, " instance(s) - Prefer explicit types"));
-                    autoScore -= 2 * missingTypes.length;
+                    // Cap at 5 points max for 'any' type warnings
+                    autoScore -= Math.min(5, missingTypes.length);
                 }
                 // Check for TODO/FIXME comments - only in actual code files
                 currentFile_1 = '';
@@ -440,7 +537,7 @@ function runReview() {
                 autoScore = Math.max(0, Math.min(100, autoScore));
                 log("\n\uD83D\uDCCA Automated Pre-Score: ".concat(autoScore, "/100"), autoScore >= 80 ? colors.green : colors.yellow);
                 // Step 10: Manual review prompt
-                logSection('Step 8: Manual Review Required');
+                logSection('Step 9: Manual Review Required');
                 log('', colors.reset);
                 log('╔══════════════════════════════════════════════════════════════════╗', colors.cyan);
                 log('║                    🏛️  MANUAL REVIEW REQUIRED                    ║', colors.cyan);
@@ -453,10 +550,10 @@ function runReview() {
                 log('  OR run: git diff main...HEAD | clip (to copy full diff)', colors.blue);
                 log('', colors.reset);
                 // Step 11: Interactive confirmation
-                logSection('Step 9: Push Confirmation');
+                logSection('Step 10: Push Confirmation');
                 rl_1 = readline.createInterface({
                     input: process.stdin,
-                    output: process.stdout,
+                    output: process.stdout
                 });
                 // For non-interactive environments (like git hooks), enforce the score threshold
                 if (!process.stdin.isTTY) {

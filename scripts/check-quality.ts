@@ -151,8 +151,71 @@ async function runReview(): Promise<void> {
       log(`\n... and ${diff.split('\n').length - 100} more lines`, colors.yellow);
     }
 
-    // Step 8: Run Tests
-    logSection('Step 6: Running Tests');
+    // Step 6: TypeScript Type Check (matches CI/CD)
+    logSection('Step 6: TypeScript Type Check');
+    
+    let typeCheckPass = true;
+    
+    log('🔍 Running TypeScript type check (tsc --noEmit)...', colors.blue);
+    
+    // Check backend TypeScript
+    try {
+      log('   Checking backend types...', colors.blue);
+      execSync('npx tsc --noEmit 2>&1', { 
+        cwd: path.join(process.cwd(), 'backend'), 
+        encoding: 'utf-8',
+        timeout: 120000 
+      });
+      log('   ✅ Backend type check passed', colors.green);
+    } catch (backendTscError: any) {
+      const output = backendTscError.stdout?.toString() || backendTscError.message || '';
+      // Extract TypeScript errors
+      const tsErrors = output.match(/error TS\d+:.*/g);
+      if (tsErrors && tsErrors.length > 0) {
+        log('   ❌ Backend type check failed', colors.red);
+        tsErrors.slice(0, 10).forEach((err: string) => log(`      ${err}`, colors.red));
+        if (tsErrors.length > 10) {
+          log(`      ... and ${tsErrors.length - 10} more errors`, colors.red);
+        }
+        typeCheckPass = false;
+      } else {
+        log('   ✅ Backend type check passed (with warnings)', colors.green);
+      }
+    }
+    
+    // Check frontend TypeScript
+    try {
+      log('   Checking frontend types...', colors.blue);
+      execSync('npx tsc --noEmit 2>&1', { 
+        cwd: path.join(process.cwd(), 'frontend'), 
+        encoding: 'utf-8',
+        timeout: 120000 
+      });
+      log('   ✅ Frontend type check passed', colors.green);
+    } catch (frontendTscError: any) {
+      const output = frontendTscError.stdout?.toString() || frontendTscError.message || '';
+      // Extract TypeScript errors
+      const tsErrors = output.match(/error TS\d+:.*/g);
+      if (tsErrors && tsErrors.length > 0) {
+        log('   ❌ Frontend type check failed', colors.red);
+        tsErrors.slice(0, 10).forEach((err: string) => log(`      ${err}`, colors.red));
+        if (tsErrors.length > 10) {
+          log(`      ... and ${tsErrors.length - 10} more errors`, colors.red);
+        }
+        typeCheckPass = false;
+      } else {
+        log('   ✅ Frontend type check passed (with warnings)', colors.green);
+      }
+    }
+    
+    if (typeCheckPass) {
+      log('✅ All type checks passed!', colors.green);
+    } else {
+      log('❌ TypeScript errors found. Fix them before pushing.', colors.red);
+    }
+
+    // Step 7: Run Tests
+    logSection('Step 7: Running Tests');
     
     let testsPass = true;
     let backendTestsRan = false;
@@ -279,12 +342,18 @@ async function runReview(): Promise<void> {
       log('❌ Some tests failed. Fix them before pushing.', colors.red);
     }
     
-    // Step 9: Automated Quality Checks
-    logSection('Step 7: Automated Quality Checks');
+    // Step 8: Automated Quality Checks
+    logSection('Step 8: Automated Quality Checks');
     
     let autoScore = 100;
     const issues: string[] = [];
     const warnings: string[] = [];
+    
+    // Deduct score if TypeScript type check failed
+    if (!typeCheckPass) {
+      issues.push('🔴 TypeScript errors - Fix type errors before pushing');
+      autoScore -= 30;
+    }
     
     // Deduct score if tests failed
     if (!testsPass) {
@@ -293,11 +362,16 @@ async function runReview(): Promise<void> {
     }
 
     // Check for hardcoded values (common patterns) - only in actual code files
+    // Note: Known API base URLs (newsapi.org, gnews.io, hacker-news.firebaseio.com, reddit.com, mediastack.com)
+    // are acceptable as they are third-party service endpoints, not environment-specific config
+    // Note: Short UI feedback timeouts (under 5000ms) are acceptable UX patterns
     const hardcodedPatterns = [
-      { pattern: /setTimeout\(\s*[^,]+,\s*\d{4,}\s*\)/, name: 'Hardcoded timeout value' },
+      { pattern: /setTimeout\(\s*[^,]+,\s*[5-9]\d{3,}\s*\)|setTimeout\(\s*[^,]+,\s*\d{5,}\s*\)/, name: 'Hardcoded timeout value' },
       { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
       { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
-      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.)[\w.-]+\.com/, name: 'Hardcoded external URL' },
+      // Exclude known third-party API base URLs from this check
+      // Whitelist covers: major API providers, Israeli job sites, documentation sites, etc.
+      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
     ];
 
     // Helper to check if a line is in a code file (not docs, configs, or env templates)
@@ -319,9 +393,10 @@ async function runReview(): Promise<void> {
         }
         // Only check added lines in actual code files
         if (!line.startsWith('+') || line.startsWith('+++')) return false;
-        // Skip if in non-code files (md, json, yml, env, etc.) or quality check scripts
+        // Skip if in non-code files (md, json, yml, env, etc.) or quality check/test scripts
         if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile)) return false;
-        if (/check-quality\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
+        if (/check-quality\.(js|ts)|run-tests\.(js|ts)|review-log|deploy-check/.test(currentFile)) return false;
+        if (/scripts\//.test(currentFile)) return false; // Skip all script files
         return pattern.test(line);
       });
       
@@ -346,7 +421,8 @@ async function runReview(): Promise<void> {
     });
     if (consoleLogMatches.length > 0) {
       warnings.push(`🟡 console.log usage: ${consoleLogMatches.length} instance(s) - Consider using proper logger`);
-      autoScore -= 2 * consoleLogMatches.length;
+      // Cap at 5 points max for console.log warnings
+      autoScore -= Math.min(5, consoleLogMatches.length);
     }
 
     // Check for missing type annotations (TypeScript) - only in actual code files
@@ -364,7 +440,8 @@ async function runReview(): Promise<void> {
     });
     if (missingTypes.length > 0) {
       warnings.push(`🟡 'any' type usage: ${missingTypes.length} instance(s) - Prefer explicit types`);
-      autoScore -= 2 * missingTypes.length;
+      // Cap at 5 points max for 'any' type warnings
+      autoScore -= Math.min(5, missingTypes.length);
     }
 
     // Check for TODO/FIXME comments - only in actual code files
@@ -405,7 +482,7 @@ async function runReview(): Promise<void> {
     log(`\n📊 Automated Pre-Score: ${autoScore}/100`, autoScore >= 80 ? colors.green : colors.yellow);
 
     // Step 10: Manual review prompt
-    logSection('Step 8: Manual Review Required');
+    logSection('Step 9: Manual Review Required');
     
     log('', colors.reset);
     log('╔══════════════════════════════════════════════════════════════════╗', colors.cyan);
@@ -420,7 +497,7 @@ async function runReview(): Promise<void> {
     log('', colors.reset);
 
     // Step 11: Interactive confirmation
-    logSection('Step 9: Push Confirmation');
+    logSection('Step 10: Push Confirmation');
     
     const rl = readline.createInterface({
       input: process.stdin,

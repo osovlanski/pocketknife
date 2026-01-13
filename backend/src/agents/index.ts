@@ -23,6 +23,8 @@ export { problemsAgent, ProblemsAgent } from './ProblemsAgent';
 export { todoAgent, ToDoAgent } from './ToDoAgent';
 export { shoppingAgent, ShoppingAgent } from './ShoppingAgent';
 export { cookingAgent, CookingAgent } from './CookingAgent';
+export { newsAgent, NewsAgent } from './NewsAgent';
+export { diyAgent, DIYAgent } from './DIYAgent';
 
 // Register all agents
 import { agentRegistry } from './AgentRegistry';
@@ -34,6 +36,9 @@ import { problemsAgent } from './ProblemsAgent';
 import { todoAgent } from './ToDoAgent';
 import { shoppingAgent } from './ShoppingAgent';
 import { cookingAgent } from './CookingAgent';
+import { newsAgent } from './NewsAgent';
+import { diyAgent } from './DIYAgent';
+import logger from '../utils/logger';
 
 /**
  * Initialize all agents and register them
@@ -47,7 +52,10 @@ export const initializeAgents = () => {
   agentRegistry.register(todoAgent);
   agentRegistry.register(shoppingAgent);
   agentRegistry.register(cookingAgent);
+  agentRegistry.register(newsAgent);
+  agentRegistry.register(diyAgent);
   
-  console.log('✅ All agents registered');
-  console.log(`   📦 Registered: ${agentRegistry.getAll().map(a => a.metadata.name).join(', ')}`);
+  logger.success('All agents registered', { 
+    agents: agentRegistry.getAll().map(a => a.metadata.name) 
+  });
 };

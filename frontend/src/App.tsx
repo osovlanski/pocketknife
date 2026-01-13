@@ -9,7 +9,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
-  CheckSquare, ShoppingCart, Mountain, Square, Utensils
+  CheckSquare, ShoppingCart, Mountain, Square, Utensils,
+  Newspaper, Wrench
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -44,6 +45,8 @@ import ProblemSolvingAgent from './components/ProblemSolvingAgent';
 import ToDoAgent from './components/ToDoAgent';
 import ShoppingAgent from './components/ShoppingAgent';
 import CookingAgent from './components/CookingAgent';
+import NewsAgent from './components/NewsAgent';
+import DIYAgent from './components/DIYAgent';
 
 // Activity Log
 import ActivityLog from './components/ActivityLog';
@@ -81,7 +84,9 @@ const agentTabs: TabConfig[] = [
   { id: 'problems', label: 'Problems', icon: Code, color: 'cyan', path: '/agents/problems' },
   { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
-  { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' }
+  { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' },
+  { id: 'news', label: 'News', icon: Newspaper, color: 'red', path: '/agents/news' },
+  { id: 'diy', label: 'DIY', icon: Wrench, color: 'amber', path: '/agents/diy' }
 ];
 
 // =============================================================================
@@ -158,7 +163,8 @@ const App: React.FC = () => {
   // Agent enabled status (from admin settings)
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
     email: true, jobs: true, travel: true, learning: true,
-    problems: true, todo: true, shopping: true, cooking: true
+    problems: true, todo: true, shopping: true, cooking: true,
+    news: true, diy: true
   });
   
   // Jobs state
@@ -637,6 +643,12 @@ const App: React.FC = () => {
 
           {/* Cooking Agent */}
           <Route path="/agents/cooking" element={<CookingAgent />} />
+
+          {/* News Agent */}
+          <Route path="/agents/news" element={<NewsAgent />} />
+
+          {/* DIY Agent */}
+          <Route path="/agents/diy" element={<DIYAgent />} />
 
           {/* Catch-all redirect to home */}
           <Route path="*" element={

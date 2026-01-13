@@ -286,6 +286,209 @@
   color: rgb(252, 211, 77);
 }
 
+/* Standardized Integration Tag Colors */
+.integrationTagPrimary {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+}
+
+.integrationTagBlue {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(147, 197, 253);
+}
+
+.integrationTagGreen {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgb(110, 231, 183);
+}
+
+.integrationTagAmber {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(252, 211, 77);
+}
+
+/* Integration Status Indicator */
+.integrationStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.integrationStatusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.integrationStatusDotConnected {
+  background: rgb(16, 185, 129);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.integrationStatusDotConfigured {
+  background: rgb(245, 158, 11);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.integrationStatusDotError {
+  background: rgb(239, 68, 68);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.integrationStatusDotNotConfigured {
+  background: rgb(100, 116, 139);
+}
+
+/* Brand Icon Backgrounds */
+.integrationIconBrandGoogle {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(219, 68, 55, 0.15));
+}
+
+.integrationIconBrandTelegram {
+  background: rgba(0, 136, 204, 0.2);
+}
+
+.integrationIconBrandDiscord {
+  background: rgba(88, 101, 242, 0.2);
+}
+
+.integrationIconBrandFacebook {
+  background: rgba(24, 119, 242, 0.2);
+}
+
+/* Setup Instructions Box */
+.integrationSetupBox {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.integrationSetupTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: rgb(148, 163, 184);
+  margin-bottom: 0.75rem;
+}
+
+.integrationSetupList {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: rgb(148, 163, 184);
+  line-height: 1.75;
+}
+
+.integrationSetupList a {
+  color: rgb(139, 92, 246);
+  text-decoration: none;
+}
+
+.integrationSetupList a:hover {
+  text-decoration: underline;
+}
+
+.integrationSetupList code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+/* Button Standardization for Integrations */
+.integrationBtn {
+  min-width: 150px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.integrationBtnConnect {
+  background: linear-gradient(135deg, rgb(139, 92, 246), rgb(168, 85, 247));
+  color: white;
+}
+
+.integrationBtnConnect:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.integrationBtnDisconnect {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: rgb(248, 113, 113);
+}
+
+.integrationBtnDisconnect:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.integrationBtnTest {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: rgb(110, 231, 183);
+}
+
+.integrationBtnTest:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.integrationBtnRetry {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: rgb(252, 211, 77);
+}
+
+.integrationBtnRetry:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.integrationBtnConfigure {
+  background: rgba(100, 116, 139, 0.15);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  color: rgb(148, 163, 184);
+}
+
+.integrationBtnConfigure:hover {
+  background: rgba(100, 116, 139, 0.25);
+}
+
+/* Card States */
+.integrationCardConnected {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.integrationCardError {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.integrationCardPending {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Spinner Animation */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* -----------------------------------------------------------------------------
    Toggle Buttons
    ----------------------------------------------------------------------------- */

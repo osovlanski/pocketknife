@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, ArrowRight, Sparkles,
-  Zap, Shield, Settings, Utensils
+  Zap, Shield, Settings, Utensils, Newspaper, Hammer
 } from 'lucide-react';
 import type { CurrentUser } from '../services/authApi';
 import type { AgentStatus } from '../services/configApi';
@@ -96,6 +96,24 @@ const agents: AgentCard[] = [
     path: '/agents/cooking',
     gradient: 'from-lime-500 to-green-600',
     features: ['Inventory tracking', 'Recipe wishlist', 'Dish images']
+  },
+  {
+    id: 'news',
+    name: 'News Agent',
+    description: 'Personalized daily/weekly news digest that learns your preferences and surfaces relevant stories.',
+    icon: Newspaper,
+    path: '/agents/news',
+    gradient: 'from-red-500 to-orange-600',
+    features: ['Smart personalization', 'Topic learning', 'Geo-local news']
+  },
+  {
+    id: 'diy',
+    name: 'DIY Agent',
+    description: 'Step-by-step guides for DIY projects with material lists and shopping integration.',
+    icon: Hammer,
+    path: '/agents/diy',
+    gradient: 'from-amber-500 to-yellow-600',
+    features: ['Project guides', 'Material lists', 'Shopping links']
   }
 ];
 

@@ -17,6 +17,8 @@ export { default as useGmail } from './useGmail';
 export { default as useLearning } from './useLearning';
 export { default as useProblems } from './useProblems';
 export { default as useCooking } from './useCooking';
+export { default as useNews } from './useNews';
+export { default as useDIY } from './useDIY';
 
 // Re-export types
 export type { UseAuthReturn } from './useAuth';
@@ -29,3 +31,5 @@ export type { UseGmailReturn } from './useGmail';
 export type { UseLearningReturn } from './useLearning';
 export type { UseProblemsReturn } from './useProblems';
 export type { UseCookingReturn } from './useCooking';
+export type { UseNewsReturn } from './useNews';
+export type { UseDIYReturn } from './useDIY';
