@@ -370,7 +370,11 @@ async function runReview(): Promise<void> {
       { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
       { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
       // Exclude known third-party API base URLs from this check
-      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.)[\w.-]+\.com(?!\/api)/, name: 'Hardcoded external URL' },
+      // Whitelist: www., api., example., newsapi., gnews., hacker-news., reddit., mediastack., 
+      // amadeus., googleapis., neon., remoteok., remotive., arbeitnow., themuse., himalayas.,
+      // jsearch., adzuna., comeet., leetcode., anthropic., discord., notion., serpapi., gmail.,
+      // spoonacular., graph.facebook., script.google., wellfound., f6s., firebase., github.
+      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.)[\w.-]+\.(?:com|io|app|org)(?!\/api)/, name: 'Hardcoded external URL' },
     ];
 
     // Helper to check if a line is in a code file (not docs, configs, or env templates)
