@@ -3,12 +3,14 @@
  * 
  * App header with logo and user actions.
  * Supports React Router navigation.
+ * Includes mobile navigation for small screens.
  */
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Wrench, Settings, Shield, User, Home, ChevronRight } from 'lucide-react';
 import UserMenu from './UserMenu';
+import MobileNav from './MobileNav';
 import type { CurrentUser, AuthStatus } from '../../services/authApi';
 import styles from '../../styles/layout.module.css';
 
@@ -101,8 +103,8 @@ const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Right side actions */}
-        <div className={styles.headerActions}>
+        {/* Right side actions - Desktop */}
+        <div className={`${styles.headerActions} ${styles.desktopOnly}`}>
           {/* Home Button (when not on home) */}
           {!isHome && (
             <Link
@@ -179,6 +181,15 @@ const Header: React.FC<HeaderProps> = ({
             </button>
           )}
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNav
+          user={user}
+          isAdmin={isAdmin}
+          isLoading={isLoading}
+          onSignInClick={onSignInClick}
+          onSignOut={onSignOut}
+        />
       </div>
     </header>
   );

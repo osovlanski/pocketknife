@@ -361,6 +361,103 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* =============================================================================
+   MOBILE RESPONSIVE STYLES
+   ============================================================================= */
+
+/* Container - tighter padding on mobile */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.75rem;
+  }
+}
+
+/* Cards - smaller padding on mobile */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+    border-radius: 0.75rem;
+  }
+}
+
+/* Typography - smaller sizes on mobile */
+@media (max-width: 768px) {
+  .heading1 {
+    font-size: 1.75rem;
+  }
+
+  .heading2 {
+    font-size: 1.25rem;
+  }
+
+  .heading3 {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heading1 {
+    font-size: 1.5rem;
+  }
+
+  .heading2 {
+    font-size: 1.125rem;
+  }
+}
+
+/* Buttons - full width on very small screens, touch-friendly sizes */
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.875rem 1.25rem;
+    min-height: 48px; /* Touch-friendly minimum */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btnSmall {
+    padding: 0.625rem 0.875rem;
+    min-height: 40px;
+  }
+
+  .btnLarge {
+    padding: 1rem 1.5rem;
+    min-height: 52px;
+  }
+}
+
+/* Form elements - touch-friendly sizes */
+@media (max-width: 768px) {
+  .input {
+    padding: 0.875rem 1rem;
+    min-height: 48px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .select {
+    padding: 0.875rem 1rem;
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .label {
+    font-size: 0.8125rem;
+    margin-bottom: 0.375rem;
+  }
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  .customScrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
 
 
 
