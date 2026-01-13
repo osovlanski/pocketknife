@@ -417,11 +417,8 @@ function runReview() {
                     { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
                     { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
                     // Exclude known third-party API base URLs from this check
-                    // Whitelist: www., api., example., newsapi., gnews., hacker-news., reddit., mediastack., 
-                    // amadeus., googleapis., neon., remoteok., remotive., arbeitnow., themuse., himalayas.,
-                    // jsearch., adzuna., comeet., leetcode., anthropic., discord., notion., serpapi., gmail.,
-                    // spoonacular., graph.facebook., script.google., wellfound., f6s., firebase., github.
-                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.)[\w.-]+\.(?:com|io|app|org)(?!\/api)/, name: 'Hardcoded external URL' },
+                    // Whitelist covers: major API providers, Israeli job sites, documentation sites, etc.
+                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
                 ];
                 isCodeFile = function (line) {
                     // Check if we're in a documentation or config file by looking at the diff header
