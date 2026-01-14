@@ -129,89 +129,39 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
     !agentStatus || agentStatus[agent.id as keyof AgentStatus] !== false
   );
   return (
-    <div style={{ 
-      minHeight: '100%',
-      background: 'linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(30, 27, 75) 50%, rgb(15, 23, 42) 100%)'
-    }}>
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900">
       {/* Hero Section */}
-      <section style={{
-        padding: '4rem 1.5rem',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Animated background elements */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          overflow: 'hidden',
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '10%',
-            left: '10%',
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)',
-            borderRadius: '50%',
-            filter: 'blur(40px)',
-            animation: 'pulse 4s ease-in-out infinite'
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '20%',
-            right: '15%',
-            width: '250px',
-            height: '250px',
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)',
-            borderRadius: '50%',
-            filter: 'blur(40px)',
-            animation: 'pulse 4s ease-in-out infinite 1s'
-          }} />
+      <section className="relative overflow-hidden px-4 py-8 sm:py-12 md:py-16 text-center">
+        {/* Animated background elements - hidden on very small screens for performance */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
+          <div 
+            className="absolute top-[10%] left-[10%] w-48 sm:w-72 md:w-80 aspect-square 
+                       bg-purple-500/15 rounded-full blur-3xl animate-pulse"
+          />
+          <div 
+            className="absolute bottom-[20%] right-[15%] w-40 sm:w-60 md:w-64 aspect-square 
+                       bg-blue-500/15 rounded-full blur-3xl animate-pulse"
+            style={{ animationDelay: '1s' }}
+          />
         </div>
 
-        <div style={{ position: 'relative', maxWidth: '48rem', margin: '0 auto' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            background: 'rgba(139, 92, 246, 0.2)',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: '9999px',
-            marginBottom: '1.5rem'
-          }}>
-            <Sparkles style={{ width: '1rem', height: '1rem', color: 'rgb(167, 139, 250)' }} />
-            <span style={{ color: 'rgb(196, 181, 253)', fontSize: '0.875rem', fontWeight: 500 }}>
+        <div className="relative max-w-3xl mx-auto px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full mb-4 sm:mb-6">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-purple-300 text-xs sm:text-sm font-medium">
               AI-Powered Multi-Agent Platform
             </span>
           </div>
 
-          <h1 style={{
-            fontSize: '3.5rem',
-            fontWeight: 800,
-            marginBottom: '1.5rem',
-            lineHeight: 1.1
-          }}>
-            <span style={{ color: 'white' }}>Your Personal</span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 leading-tight">
+            <span className="text-white">Your Personal</span>
             <br />
-            <span style={{
-              background: 'linear-gradient(135deg, rgb(251, 191, 36) 0%, rgb(251, 146, 60) 50%, rgb(245, 158, 11) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
+            <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
               AI Assistant Army
             </span>
           </h1>
 
-          <p style={{
-            fontSize: '1.25rem',
-            color: 'rgb(148, 163, 184)',
-            marginBottom: '2rem',
-            maxWidth: '36rem',
-            margin: '0 auto 2rem'
-          }}>
+          <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
             Seven specialized AI agents working together to automate your tasks, 
             find opportunities, and save you time.
           </p>
@@ -219,54 +169,31 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
           {!user && (
             <Link
               to="/agents/email"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '1rem 2rem',
-                background: 'linear-gradient(135deg, rgb(139, 92, 246) 0%, rgb(99, 102, 241) 100%)',
-                borderRadius: '0.75rem',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '1.125rem',
-                textDecoration: 'none',
-                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)',
-                transition: 'all 0.2s ease'
-              }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 
+                         bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl
+                         text-white font-semibold text-base sm:text-lg no-underline
+                         shadow-lg shadow-purple-500/40 hover:opacity-90 transition-opacity
+                         touch-manipulation active:scale-95"
             >
               Get Started
-              <ArrowRight style={{ width: '1.25rem', height: '1.25rem' }} />
+              <ArrowRight className="w-5 h-5" />
             </Link>
           )}
 
           {user && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem'
-            }}>
-              <span style={{ color: 'rgb(148, 163, 184)' }}>
-                Welcome back, <strong style={{ color: 'white' }}>{user.name || user.email}</strong>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <span className="text-slate-400 text-sm sm:text-base text-center">
+                Welcome back, <strong className="text-white">{user.name || user.email}</strong>
               </span>
               <Link
                 to="/agents/email"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  background: 'rgba(139, 92, 246, 0.2)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  borderRadius: '0.5rem',
-                  color: 'rgb(196, 181, 253)',
-                  fontWeight: 500,
-                  textDecoration: 'none',
-                  transition: 'all 0.2s ease'
-                }}
+                className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3
+                           bg-purple-500/20 border border-purple-500/30 rounded-lg
+                           text-purple-300 font-medium text-sm sm:text-base no-underline
+                           hover:bg-purple-500/30 transition-colors touch-manipulation"
               >
                 Go to Agents
-                <ArrowRight style={{ width: '1rem', height: '1rem' }} />
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
@@ -274,16 +201,8 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
       </section>
 
       {/* Stats Section */}
-      <section style={{
-        padding: '2rem 1.5rem',
-        maxWidth: '72rem',
-        margin: '0 auto'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1.5rem'
-        }}>
+      <section className="px-4 py-6 sm:py-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {[
             { icon: Zap, label: 'AI Agents', value: String(enabledAgents.length), color: 'rgb(251, 191, 36)' },
             { icon: Mail, label: 'Emails Processed', value: '10K+', color: 'rgb(96, 165, 250)' },
@@ -292,24 +211,17 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
           ].map((stat, index) => (
             <div
               key={index}
-              style={{
-                background: 'rgba(30, 41, 59, 0.5)',
-                border: '1px solid rgba(71, 85, 105, 0.3)',
-                borderRadius: '1rem',
-                padding: '1.5rem',
-                textAlign: 'center'
-              }}
+              className="bg-slate-800/50 border border-slate-700/30 rounded-xl sm:rounded-2xl 
+                         p-3 sm:p-4 md:p-6 text-center"
             >
-              <stat.icon style={{ 
-                width: '2rem', 
-                height: '2rem', 
-                color: stat.color,
-                margin: '0 auto 0.75rem'
-              }} />
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'white' }}>
+              <stat.icon 
+                className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 sm:mb-3" 
+                style={{ color: stat.color }} 
+              />
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
                 {stat.value}
               </div>
-              <div style={{ color: 'rgb(148, 163, 184)', fontSize: '0.875rem' }}>
+              <div className="text-slate-400 text-xs sm:text-sm">
                 {stat.label}
               </div>
             </div>
@@ -318,120 +230,49 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
       </section>
 
       {/* Agents Grid */}
-      <section style={{
-        padding: '3rem 1.5rem',
-        maxWidth: '80rem',
-        margin: '0 auto'
-      }}>
-        <h2 style={{
-          fontSize: '1.75rem',
-          fontWeight: 700,
-          color: 'white',
-          textAlign: 'center',
-          marginBottom: '2.5rem'
-        }}>
+      <section className="px-4 py-8 sm:py-12 max-w-7xl mx-auto">
+        <h2 className="text-xl sm:text-2xl font-bold text-white text-center mb-6 sm:mb-10">
           Meet Your AI Agents
         </h2>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '1.5rem'
-        }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {enabledAgents.map((agent) => (
             <Link
               key={agent.id}
               to={agent.path}
-              style={{
-                display: 'block',
-                background: 'rgba(30, 41, 59, 0.6)',
-                border: '1px solid rgba(71, 85, 105, 0.3)',
-                borderRadius: '1rem',
-                padding: '1.5rem',
-                textDecoration: 'none',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.3)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
+              className="group block bg-slate-800/60 border border-slate-700/30 rounded-xl 
+                         p-4 sm:p-6 no-underline relative overflow-hidden
+                         hover:-translate-y-1 hover:border-purple-500/50 hover:shadow-xl
+                         active:scale-[0.98] transition-all duration-200 touch-manipulation"
             >
               {/* Gradient accent */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '3px',
-                background: `linear-gradient(to right, var(--tw-gradient-stops))`,
-                backgroundImage: `linear-gradient(to right, ${agent.gradient.split(' ')[0].replace('from-', '')} 0%, ${agent.gradient.split(' ')[1].replace('to-', '')} 100%)`
-              }} />
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${agent.gradient}`} />
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  borderRadius: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  flexShrink: 0
-                }}>
-                  <agent.icon style={{ 
-                    width: '1.5rem', 
-                    height: '1.5rem', 
-                    color: 'rgb(167, 139, 250)' 
-                  }} />
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl 
+                                flex items-center justify-center bg-purple-500/15 shrink-0">
+                  <agent.icon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{
-                    fontSize: '1.125rem',
-                    fontWeight: 600,
-                    color: 'white',
-                    marginBottom: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2
+                                 flex items-center gap-2">
                     {agent.name}
-                    <ArrowRight style={{ 
-                      width: '1rem', 
-                      height: '1rem', 
-                      color: 'rgb(148, 163, 184)',
-                      opacity: 0.5
-                    }} />
+                    <ArrowRight className="w-4 h-4 text-slate-400 opacity-50 
+                                          group-hover:opacity-100 group-hover:translate-x-1 
+                                          transition-all" />
                   </h3>
                   
-                  <p style={{
-                    color: 'rgb(148, 163, 184)',
-                    fontSize: '0.875rem',
-                    marginBottom: '1rem',
-                    lineHeight: 1.5
-                  }}>
+                  <p className="text-slate-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed line-clamp-2">
                     {agent.description}
                   </p>
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {agent.features.map((feature, idx) => (
                       <span
                         key={idx}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          background: 'rgba(71, 85, 105, 0.3)',
-                          borderRadius: '9999px',
-                          color: 'rgb(148, 163, 184)',
-                          fontSize: '0.75rem'
-                        }}
+                        className="px-2 sm:px-3 py-0.5 sm:py-1 bg-slate-700/30 rounded-full
+                                   text-slate-400 text-[10px] sm:text-xs"
                       >
                         {feature}
                       </span>
@@ -445,53 +286,28 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
       </section>
 
       {/* Quick Links */}
-      <section style={{
-        padding: '2rem 1.5rem 4rem',
-        maxWidth: '48rem',
-        margin: '0 auto'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap'
-        }}>
+      <section className="px-4 py-8 pb-12 sm:pb-16 max-w-2xl mx-auto">
+        <div className="flex justify-center gap-3 sm:gap-4 flex-wrap">
           <Link
             to="/settings"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              background: 'rgba(71, 85, 105, 0.3)',
-              border: '1px solid rgba(71, 85, 105, 0.3)',
-              borderRadius: '0.5rem',
-              color: 'rgb(148, 163, 184)',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease'
-            }}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3
+                       bg-slate-600/30 border border-slate-600/30 rounded-lg
+                       text-slate-400 no-underline hover:bg-slate-600/50 
+                       transition-colors touch-manipulation text-sm sm:text-base"
           >
-            <Settings style={{ width: '1.25rem', height: '1.25rem' }} />
+            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
             Settings
           </Link>
 
           {isAdmin && (
             <Link
               to="/admin"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.75rem 1.25rem',
-                background: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                borderRadius: '0.5rem',
-                color: 'rgb(196, 181, 253)',
-                textDecoration: 'none',
-                transition: 'all 0.2s ease'
-              }}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3
+                         bg-purple-500/15 border border-purple-500/30 rounded-lg
+                         text-purple-300 no-underline hover:bg-purple-500/25 
+                         transition-colors touch-manipulation text-sm sm:text-base"
             >
-              <Shield style={{ width: '1.25rem', height: '1.25rem' }} />
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
               Admin Panel
             </Link>
           )}

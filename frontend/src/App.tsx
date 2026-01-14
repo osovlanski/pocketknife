@@ -114,19 +114,16 @@ interface AgentLayoutProps {
 }
 
 const AgentLayout: React.FC<AgentLayoutProps> = ({ title, subtitle, gradient, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-    <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-      <h1 style={{
-        fontSize: '2.25rem',
-        fontWeight: 700,
-        marginBottom: '0.5rem',
-        background: gradient,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
+  <div className="flex flex-col gap-4 sm:gap-6">
+    <div className="text-center mb-2 sm:mb-4">
+      <h1 
+        className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2
+                   bg-clip-text text-transparent px-2"
+        style={{ backgroundImage: gradient }}
+      >
         {title}
       </h1>
-      <p style={{ color: 'rgb(203, 213, 225)' }}>{subtitle}</p>
+      <p className="text-slate-300 text-sm sm:text-base px-4">{subtitle}</p>
     </div>
     {children}
   </div>
@@ -533,85 +530,57 @@ const App: React.FC = () => {
               gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
             >
               {/* Travel Mode Switcher */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div className="flex justify-center gap-2 mb-4 px-2">
                 <button
                   onClick={() => setTravelMode('flights')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '0.5rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: travelMode === 'flights'
-                      ? 'linear-gradient(to right, rgb(59, 130, 246), rgb(139, 92, 246))'
-                      : 'rgba(255, 255, 255, 0.1)',
-                    color: travelMode === 'flights' ? 'white' : 'rgb(203, 213, 225)'
-                  }}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${travelMode === 'flights'
+                               ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
                 >
-                  <Plane style={{ width: '1.25rem', height: '1.25rem' }} />
-                  Flights & Hotels
+                  <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden xs:inline">Flights & Hotels</span>
+                  <span className="xs:hidden">Flights</span>
                 </button>
                 <button
                   onClick={() => setTravelMode('ski')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '0.5rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: travelMode === 'ski'
-                      ? 'linear-gradient(to right, rgb(6, 182, 212), rgb(59, 130, 246))'
-                      : 'rgba(255, 255, 255, 0.1)',
-                    color: travelMode === 'ski' ? 'white' : 'rgb(203, 213, 225)'
-                  }}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${travelMode === 'ski'
+                               ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
                 >
-                  <Mountain style={{ width: '1.25rem', height: '1.25rem' }} />
-                  ⛷️ Ski Deals
+                  <Mountain className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>⛷️ Ski</span>
                 </button>
               </div>
 
               {travelMode === 'flights' ? (
                 <>
-                  <div style={{ position: 'relative' }}>
+                  <div className="relative">
                     <TravelSearchPanel onSearch={handleTravelSearch} loading={travelLoading} />
                     {travelLoading && (
                       <button
                         onClick={handleStopTravelSearch}
-                        style={{
-                          position: 'absolute',
-                          top: '1rem',
-                          right: '1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: 'rgba(239, 68, 68, 0.2)',
-                          border: '1px solid rgba(239, 68, 68, 0.5)',
-                          borderRadius: '0.5rem',
-                          color: 'rgb(248, 113, 113)',
-                          cursor: 'pointer'
-                        }}
+                        className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1.5 sm:gap-2 
+                                   px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 border border-red-500/50 
+                                   rounded-lg text-red-400 cursor-pointer text-sm sm:text-base
+                                   hover:bg-red-500/30 transition-colors touch-manipulation"
                       >
-                        <Square style={{ width: '1rem', height: '1rem', fill: 'currentColor' }} />
+                        <Square className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
                         Stop
                       </button>
                     )}
                   </div>
 
                   {travelError && (
-                    <div style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      borderRadius: '0.75rem',
-                      padding: '1rem'
-                    }}>
-                      <p style={{ color: 'rgb(248, 113, 113)' }}>❌ {travelError}</p>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4">
+                      <p className="text-red-400 text-sm sm:text-base">❌ {travelError}</p>
                     </div>
                   )}
 
