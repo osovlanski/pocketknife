@@ -55,10 +55,13 @@ export interface JobListing {
 
 export type IndustryType = 'fintech' | 'cybersecurity' | 'healthtech' | 'ecommerce' | 'saas' | 'ai' | 'gaming' | 'devtools' | 'edtech' | 'proptech' | 'insurtech' | 'cleantech' | 'automotive';
 
+export type CompanySizeType = 'startup' | 'midsize' | 'enterprise';
+
 export interface JobSearchFilters {
-    companySize?: 'startup' | 'midsize' | 'enterprise' | 'any';
-    industry?: IndustryType | 'any';  // Legacy single industry
-    industries?: IndustryType[];      // NEW: Multiple industries support
+    companySize?: CompanySizeType | 'any';  // Legacy single selection
+    companySizes?: CompanySizeType[];       // NEW: Multiple company sizes support
+    industry?: IndustryType | 'any';        // Legacy single industry
+    industries?: IndustryType[];            // Multiple industries support
     salaryMin?: number;
     salaryMax?: number;
     experienceLevel?: 'junior' | 'mid' | 'senior' | 'any';

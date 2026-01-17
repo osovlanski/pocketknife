@@ -23,6 +23,9 @@ router.get('/agenda', todoController.getDailyAgenda);
 // Calendar sync
 router.post('/calendar/sync', todoController.syncCalendar);
 
+// Import calendar event as task
+router.post('/calendar/import', todoController.importCalendarEvent);
+
 // Routine patterns
 router.get('/routines', todoController.getSuggestedRoutines);
 router.post('/routines/:id/approve', todoController.approveRoutine);

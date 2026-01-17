@@ -229,3 +229,5 @@ export interface IsraelBeach {
   coordinates: { latitude: number; longitude: number };
 }
 
+
+

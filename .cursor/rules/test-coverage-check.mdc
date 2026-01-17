@@ -1,12 +1,12 @@
 ---
-description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
 globs: **/*
 alwaysApply: false
 ---
 
-# Test Coverage Pre-Push Check Rule
+# Test Coverage & Sanity Check Pre-Push Rule
 
-Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
 
 ## When This Rule Applies
 
@@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
 ```
 > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
 
-### Step 2: Run Coverage Report (Backend)
+### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+```bash
+cd backend && npm test -- --run tests/api/routes.test.ts
+```
+> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+
+### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+
+**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+
+#### Frontend Changes
+| Check | What to Verify |
+| :--- | :--- |
+| **Render test** | Click on all new UI elements, ensure no console errors |
+| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+| **Loading states** | Verify loading spinners appear during async operations |
+| **Error states** | Test with invalid data, verify error messages display properly |
+| **Empty states** | Test with no data, verify empty state UI appears |
+
+#### Backend Changes
+| Check | What to Verify |
+| :--- | :--- |
+| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+| **Response format** | Verify response matches expected TypeScript types |
+| **Error handling** | Test with missing/invalid params, verify proper error responses |
+
+#### Common Runtime Errors to Prevent
+```typescript
+// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+
+// ✅ GOOD: Access specific property
+<pre>{data.template.javascript}</pre>
+
+// ❌ BAD: Rendering array directly
+<span>{tags}</span>
+
+// ✅ GOOD: Map over array
+<span>{tags.join(', ')}</span>
+// or
+{tags.map(tag => <span key={tag}>{tag}</span>)}
+
+// ❌ BAD: Accessing property on potentially undefined
+<span>{user.name}</span>
+
+// ✅ GOOD: Optional chaining
+<span>{user?.name}</span>
+```
+
+### Step 4: Run Coverage Report (Backend)
 ```bash
 cd backend && npm test -- --run --coverage
 ```
 
-### Step 3: Analyze Results
+### Step 4: Analyze Results
 Check if coverage meets thresholds defined in `vitest.config.ts`:
 - Statements: Current threshold
 - Branches: Current threshold
@@ -47,24 +96,65 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
 
 | Priority | What to Test | Time Investment | Coverage Goal |
 | :---: | :--- | :---: | :---: |
-| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
 | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
 | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
-| **P3 - Low** | Routes, static data | Skip | 0% OK |
+| **P3 - Low** | Static data, constants | Skip | 0% OK |
 
 ### When to Add Tests
 
 **MUST add tests if:**
+- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
 - New service or utility function is created
 - Core business logic is modified
 - Bug fix (add regression test)
 - Security-related code changes
 
 **CAN skip tests if:**
-- Simple route definitions
 - Configuration changes only
 - Documentation updates
 - Styling/UI-only changes (frontend)
+
+## API Route Verification (Prevents 404 Errors)
+
+When adding new API routes, you MUST update the route verification test to prevent 404 errors in production.
+
+### File: `backend/tests/api/routes.test.ts`
+
+This test file:
+1. Verifies all routes are registered and don't return 404
+2. Documents frontend-backend route sync
+3. Catches missing routes before manual testing
+
+### Adding New Routes Checklist
+
+When adding a new feature with API routes:
+
+1. ✅ Add route to `backend/src/routes/[feature].ts`
+2. ✅ Add controller method to `backend/src/controllers/[feature]Controller.ts`
+3. ✅ Add agent action to `backend/src/agents/[Feature]Agent.ts` (if applicable)
+4. ✅ **Add route to `tests/api/routes.test.ts`** ← CRITICAL!
+5. ✅ Add frontend API call to `frontend/src/services/[feature]Api.ts`
+
+### Route Test Pattern
+
+```typescript
+describe('[Feature] Routes', () => {
+  const routes = [
+    { method: 'get', path: '/api/feature/endpoint' },
+    { method: 'post', path: '/api/feature/action' },
+  ];
+
+  it.each(routes)('$method $path should not return 404', async ({ method, path }) => {
+    const req = request(app);
+    const response = method === 'get' 
+      ? await req.get(path)
+      : await req[method as 'post' | 'put'](path).send({});
+    
+    expect(response.status).not.toBe(404);
+  });
+});
+```
 
 ## Test Suggestion Template
 

@@ -250,8 +250,17 @@ export const updatePreferences = async (req: Request, res: Response) => {
 export const getPreferences = async (req: Request, res: Response) => {
   try {
     const userId = await getUserId(req);
+    
+    // Return default preferences if not authenticated
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      return res.json({
+        topics: ['technology', 'business', 'science'],
+        sources: [],
+        countries: ['us'],
+        language: 'en',
+        digestFrequency: 'daily',
+        digestTime: '08:00'
+      });
     }
 
     const result = await newsAgent.execute({
@@ -260,13 +269,29 @@ export const getPreferences = async (req: Request, res: Response) => {
     });
 
     if (!result.success) {
-      return res.status(400).json(result);
+      // Return default preferences on error
+      return res.json({
+        topics: ['technology', 'business', 'science'],
+        sources: [],
+        countries: ['us'],
+        language: 'en',
+        digestFrequency: 'daily',
+        digestTime: '08:00'
+      });
     }
 
     res.json(result.data);
   } catch (error: any) {
     console.error('Get preferences failed:', error);
-    res.status(500).json({ success: false, error: error.message });
+    // Return default preferences on error
+    res.json({
+      topics: ['technology', 'business', 'science'],
+      sources: [],
+      countries: ['us'],
+      language: 'en',
+      digestFrequency: 'daily',
+      digestTime: '08:00'
+    });
   }
 };
 

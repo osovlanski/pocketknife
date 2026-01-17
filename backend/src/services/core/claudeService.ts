@@ -197,6 +197,61 @@ Respond ONLY with valid JSON:
       throw error;
     }
   }
+
+  /**
+   * Analyze an image using Claude's vision capabilities
+   * Supports Hebrew and English text extraction
+   */
+  async analyzeImage(
+    base64Image: string, 
+    prompt: string, 
+    mimeType: string = 'image/jpeg',
+    maxTokens: number = 2000
+  ): Promise<string> {
+    try {
+      this.initializeClient();
+      
+      if (!this.client) {
+        throw new Error('Failed to initialize Anthropic client');
+      }
+
+      // Validate mime type
+      const validMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validMimeTypes.includes(mimeType)) {
+        throw new Error(`Invalid mime type: ${mimeType}. Supported: ${validMimeTypes.join(', ')}`);
+      }
+
+      const message = await this.client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                  data: base64Image
+                }
+              },
+              {
+                type: 'text',
+                text: prompt
+              }
+            ]
+          }
+        ]
+      });
+
+      const textBlock = message.content.find(block => block.type === 'text');
+      return textBlock?.type === 'text' ? textBlock.text : '';
+    } catch (error) {
+      logger.fail('Error analyzing image', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
 }
 
 export default new ClaudeService();

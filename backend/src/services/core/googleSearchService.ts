@@ -210,18 +210,26 @@ const AGENT_SEARCH_CONFIGS: Record<AgentType, {
 class GoogleSearchService {
   private apiKey: string | null = null;
   private defaultCseId: string | null = null;
-  private isConfigured: boolean | null = null;
+  private _isConfigured: boolean | null = null;
   private initialized = false;
+
+  /**
+   * Check if GoogleSearch is configured with API key and CSE ID
+   */
+  public get isConfigured(): boolean {
+    this.ensureInitialized();
+    return this._isConfigured || false;
+  }
 
   private ensureInitialized(): void {
     if (this.initialized) return;
     
     this.apiKey = process.env.GOOGLE_CSE_API_KEY || '';
     this.defaultCseId = process.env.GOOGLE_CSE_ID || '';
-    this.isConfigured = Boolean(this.apiKey && this.defaultCseId);
+    this._isConfigured = Boolean(this.apiKey && this.defaultCseId);
     this.initialized = true;
 
-    if (this.isConfigured) {
+    if (this._isConfigured) {
       logger.success('GoogleSearch configured', { remaining: quotaManager.getStatus().remaining });
     } else {
       logger.warn('GoogleSearch not configured. Set GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID in .env');
@@ -230,7 +238,7 @@ class GoogleSearchService {
 
   isAvailable(): boolean {
     this.ensureInitialized();
-    return this.isConfigured!;
+    return this._isConfigured!;
   }
 
   hasQuota(): boolean {
@@ -253,7 +261,7 @@ class GoogleSearchService {
   ): Promise<SearchResult[]> {
     this.ensureInitialized();
     
-    if (!this.isConfigured) {
+    if (!this._isConfigured) {
       logger.warn('GoogleSearch service not configured');
       return [];
     }

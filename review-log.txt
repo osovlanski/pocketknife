@@ -11039,3 +11039,472 @@ diff --git a/backend/prisma/schema.prisma b/backend/prisma/schema.prisma
 [2026-01-13T11:25:29.574Z] 
 [2026-01-13T11:25:29.576Z] ✅ Automated checks passed - Push proceeding
 [2026-01-13T11:25:29.577Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-13T16:02:48+02:00] Pre-push hook triggered
+[2026-01-13T14:02:50.899Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-13T14:02:50.916Z] 📋 Minimum passing score: 80/100
+[2026-01-13T14:02:50.918Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-13T14:02:50.921Z] 
+[2026-01-13T14:02:50.923Z] ════════════════════════════════════════════════════════════
+[2026-01-13T14:02:50.925Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-13T14:02:50.927Z] ════════════════════════════════════════════════════════════
+[2026-01-13T14:02:50.930Z] 
+[2026-01-13T14:02:50.989Z] 📅 Review started at: 1/13/2026, 4:02:50 PM
+[2026-01-13T14:02:50.991Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-13T14:02:50.993Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-13T14:02:50.996Z] ────────────────────────────────────────
+[2026-01-13T14:02:51.652Z] ✅ Git repository detected
+[2026-01-13T14:02:51.653Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-13T14:02:51.655Z] ────────────────────────────────────────
+[2026-01-13T14:02:52.312Z] 📍 Current branch: feature/mobile-responsive
+[2026-01-13T14:02:52.314Z] 🎯 Comparing against: main
+[2026-01-13T14:02:52.927Z] ✅ Base branch 'main' exists
+[2026-01-13T14:02:52.930Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-13T14:02:52.932Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.519Z] 
+▶ Step 4: Change Summary
+[2026-01-13T14:02:55.522Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.524Z]  frontend/index.html                          |  41 ++-
+ frontend/public/icons/icon.svg               |  27 ++
+ frontend/public/manifest.json                |  86 ++++++
+ frontend/public/sw.js                        | 111 ++++++++
+ frontend/src/App.tsx                         | 103 +++-----
+ frontend/src/components/HomePage.tsx         | 342 ++++++------------------
+ frontend/src/components/common/Header.tsx    |  15 +-
+ frontend/src/components/common/MobileNav.tsx | 233 ++++++++++++++++
+ frontend/src/components/common/index.ts      |   1 +
+ frontend/src/index.css                       |  66 +++++
+ frontend/src/styles/common.module.css        |  97 +++++++
+ frontend/src/styles/layout.module.css        |  91 +++++++
+ frontend/src/styles/mobile.module.css        | 381 +++++++++++++++++++++++++++
+ frontend/tailwind.config.cjs                 |  19 +-
+ 14 files changed, 1273 insertions(+), 340 deletions(-)
+
+[2026-01-13T14:02:55.526Z] 📊 Files changed: 14
+[2026-01-13T14:02:55.529Z] ➕ Lines added: 1273
+[2026-01-13T14:02:55.531Z] ➖ Lines removed: 340
+[2026-01-13T14:02:55.533Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-13T14:02:55.535Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.539Z] 
+diff --git a/frontend/index.html b/frontend/index.html
+[2026-01-13T14:02:55.542Z] index 439b0f1..05c40d7 100644
+[2026-01-13T14:02:55.544Z] --- a/frontend/index.html
+[2026-01-13T14:02:55.546Z] +++ b/frontend/index.html
+[2026-01-13T14:02:55.548Z] @@ -2,12 +2,24 @@
+[2026-01-13T14:02:55.551Z]  <html lang="en">
+[2026-01-13T14:02:55.553Z]  <head>
+[2026-01-13T14:02:55.555Z]      <meta charset="UTF-8">
+[2026-01-13T14:02:55.557Z] -    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+[2026-01-13T14:02:55.560Z] +    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+[2026-01-13T14:02:55.563Z] +    <meta name="theme-color" content="#8b5cf6">
+[2026-01-13T14:02:55.565Z] +    <meta name="apple-mobile-web-app-capable" content="yes">
+[2026-01-13T14:02:55.567Z] +    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+[2026-01-13T14:02:55.570Z] +    <meta name="apple-mobile-web-app-title" content="Pocketknife">
+[2026-01-13T14:02:55.572Z] +    <meta name="description" content="Your Personal AI Assistant Army - Seven specialized AI agents working together to automate your tasks">
+[2026-01-13T14:02:55.574Z] +    <meta name="mobile-web-app-capable" content="yes">
+[2026-01-13T14:02:55.576Z]      <title>Pocketknife</title>
+[2026-01-13T14:02:55.579Z]      
+[2026-01-13T14:02:55.582Z] -    <!-- Favicon -->
+[2026-01-13T14:02:55.584Z] +    <!-- Favicon & Icons -->
+[2026-01-13T14:02:55.586Z]      <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+[2026-01-13T14:02:55.588Z] -    <link rel="apple-touch-icon" href="/favicon.svg">
+[2026-01-13T14:02:55.590Z] +    <link rel="apple-touch-icon" href="/icons/icon.svg">
+[2026-01-13T14:02:55.592Z] +    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon.svg">
+[2026-01-13T14:02:55.595Z] +    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon.svg">
+[2026-01-13T14:02:55.597Z] +    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon.svg">
+[2026-01-13T14:02:55.599Z] +    
+[2026-01-13T14:02:55.602Z] +    <!-- PWA Manifest -->
+[2026-01-13T14:02:55.604Z] +    <link rel="manifest" href="/manifest.json">
+[2026-01-13T14:02:55.606Z]      
+[2026-01-13T14:02:55.608Z]      <!-- Vanta.js Dependencies -->
+[2026-01-13T14:02:55.610Z]      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+[2026-01-13T14:02:55.613Z] @@ -44,7 +56,9 @@
+[2026-01-13T14:02:55.616Z]      <!-- Initialize Vanta.js after DOM is ready -->
+[2026-01-13T14:02:55.618Z]      <script>
+[2026-01-13T14:02:55.620Z]          document.addEventListener('DOMContentLoaded', function() {
+[2026-01-13T14:02:55.622Z] +            // Initialize Vanta.js (reduce points on mobile for performance)
+[2026-01-13T14:02:55.625Z]              if (typeof VANTA !== 'undefined') {
+[2026-01-13T14:02:55.628Z] +                const isMobile = window.innerWidth < 768;
+[2026-01-13T14:02:55.631Z]                  VANTA.NET({
+[2026-01-13T14:02:55.633Z]                      el: "#vanta-bg",
+[2026-01-13T14:02:55.635Z]                      mouseControls: true,
+[2026-01-13T14:02:55.637Z] @@ -53,16 +67,29 @@
+[2026-01-13T14:02:55.639Z]                      minHeight: 200.00,
+[2026-01-13T14:02:55.644Z]                      minWidth: 200.00,
+[2026-01-13T14:02:55.649Z]                      scale: 1.00,
+[2026-01-13T14:02:55.652Z] -                    scaleMobile: 1.00,
+[2026-01-13T14:02:55.654Z] +                    scaleMobile: 0.75,
+[2026-01-13T14:02:55.657Z]                      color: 0xff3f81,
+[2026-01-13T14:02:55.659Z]                      backgroundColor: 0x23153c,
+[2026-01-13T14:02:55.662Z] -                    points: 10,
+[2026-01-13T14:02:55.664Z] -                    maxDistance: 20,
+[2026-01-13T14:02:55.667Z] -                    spacing: 15,
+[2026-01-13T14:02:55.669Z] +                    points: isMobile ? 6 : 10,
+[2026-01-13T14:02:55.671Z] +                    maxDistance: isMobile ? 15 : 20,
+[2026-01-13T14:02:55.684Z] +                    spacing: isMobile ? 18 : 15,
+[2026-01-13T14:02:55.686Z]                      showDots: true
+[2026-01-13T14:02:55.688Z]                  });
+[2026-01-13T14:02:55.690Z]              }
+[2026-01-13T14:02:55.692Z]          });
+[2026-01-13T14:02:55.695Z] +        
+[2026-01-13T14:02:55.697Z] +        // Register Service Worker for PWA
+[2026-01-13T14:02:55.699Z] +        if ('serviceWorker' in navigator) {
+[2026-01-13T14:02:55.702Z] +            window.addEventListener('load', function() {
+[2026-01-13T14:02:55.704Z] +                navigator.serviceWorker.register('/sw.js')
+[2026-01-13T14:02:55.706Z] +                    .then(function(registration) {
+[2026-01-13T14:02:55.709Z] +                        console.log('SW registered:', registration.scope);
+[2026-01-13T14:02:55.713Z] +                    })
+[2026-01-13T14:02:55.715Z] +                    .catch(function(error) {
+[2026-01-13T14:02:55.718Z] +                        console.log('SW registration failed:', error);
+[2026-01-13T14:02:55.720Z] +                    });
+[2026-01-13T14:02:55.722Z] +            });
+[2026-01-13T14:02:55.724Z] +        }
+[2026-01-13T14:02:55.727Z]      </script>
+[2026-01-13T14:02:55.729Z]  </body>
+[2026-01-13T14:02:55.731Z]  </html>
+[2026-01-13T14:02:55.733Z] 
+diff --git a/frontend/public/icons/icon.svg b/frontend/public/icons/icon.svg
+[2026-01-13T14:02:55.735Z] new file mode 100644
+[2026-01-13T14:02:55.737Z] index 0000000..421100e
+[2026-01-13T14:02:55.739Z] --- /dev/null
+[2026-01-13T14:02:55.740Z] +++ b/frontend/public/icons/icon.svg
+[2026-01-13T14:02:55.743Z] @@ -0,0 +1,27 @@
+[2026-01-13T14:02:55.745Z] +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+[2026-01-13T14:02:55.747Z] +  <defs>
+[2026-01-13T14:02:55.750Z] +    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+[2026-01-13T14:02:55.752Z] +      <stop offset="0%" style="stop-color:#8b5cf6"/>
+[2026-01-13T14:02:55.754Z] +      <stop offset="100%" style="stop-color:#ec4899"/>
+[2026-01-13T14:02:55.756Z] +    </linearGradient>
+[2026-01-13T14:02:55.757Z] +    <linearGradient id="knife" x1="0%" y1="0%" x2="100%" y2="100%">
+[2026-01-13T14:02:55.760Z] +      <stop offset="0%" style="stop-color:#fbbf24"/>
+[2026-01-13T14:02:55.762Z] +      <stop offset="100%" style="stop-color:#f97316"/>
+[2026-01-13T14:02:55.765Z] +    </linearGradient>
+[2026-01-13T14:02:55.768Z] +  </defs>
+[2026-01-13T14:02:55.770Z] +  <!-- Background circle -->
+[2026-01-13T14:02:55.772Z] +  <circle cx="256" cy="256" r="240" fill="url(#bg)"/>
+[2026-01-13T14:02:55.774Z] +  <!-- Wrench/Tool icon -->
+[2026-01-13T14:02:55.776Z] +  <g transform="translate(128, 128) scale(0.5)">
+[2026-01-13T14:02:55.778Z] +    <path fill="url(#knife)" d="M507.7,205.3c-5.7-5.7-13.3-8.8-21.3-8.8s-15.6,3.1-21.3,8.8l-64.5,64.5l-45.3-45.3l64.5-64.5c11.8-11.8,11.8-30.9,0-42.6c-22.6-22.6-53.6-35.1-85.8-35.1c-32.1,0-62.3,11.5-86,32.5L54.3,308.5c-72.4,72.4-72.4,190.1,0,262.6c36.2,36.2,83.7,54.3,131.3,54.3s95.1-18.1,131.3-54.3l193.8-193.8c11.8-11.8,11.8-30.9,0-42.6l-45.3-45.3l64.5-64.5C519.4,213,519.4,217.1,507.7,205.3z M274.3,528.5c-48.7,48.7-128,48.7-176.7,0c-48.7-48.7-48.7-128,0-176.7l193.8-193.8c14.6-13.2,33.4-20.5,53.4-20.5c17.3,0,33.8,5.5,47.3,15.6L185.6,359.6c-11.8,11.8-11.8,30.9,0,42.6c5.9,5.9,13.6,8.8,21.3,8.8s15.4-2.9,21.3-8.8l206.5-206.5c10.1,13.5,15.6,30,15.6,47.3c0,20-7.3,38.8-20.5,53.4L274.3,528.5z"/>
+[2026-01-13T14:02:55.781Z] +  </g>
+[2026-01-13T14:02:55.783Z] +  <!-- Simplified Swiss army knife shape -->
+[2026-01-13T14:02:55.787Z] 
+... and 1863 more lines
+[2026-01-13T14:02:55.789Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-13T14:02:55.791Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.793Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-13T14:02:55.796Z]    Checking backend types...
+[2026-01-13T14:04:17.145Z]    ✅ Backend type check passed
+[2026-01-13T14:04:17.150Z]    Checking frontend types...
+[2026-01-13T14:04:50.457Z]    ✅ Frontend type check passed
+[2026-01-13T14:04:50.462Z] ✅ All type checks passed!
+[2026-01-13T14:04:50.463Z] 
+▶ Step 7: Running Tests
+[2026-01-13T14:04:50.465Z] ────────────────────────────────────────
+[2026-01-13T14:04:50.467Z] 🧪 Running test suites...
+[2026-01-13T14:04:50.468Z]    Running backend tests...
+[2026-01-13T14:05:37.079Z]    ✅ Backend tests passed
+[2026-01-13T14:05:37.091Z]    Running frontend tests...
+[2026-01-13T14:06:27.560Z]    ✅ Frontend tests passed
+[2026-01-13T14:06:27.564Z] ✅ All tests passed!
+[2026-01-13T14:06:27.565Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-13T14:06:27.566Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.577Z] 
+🟡 Warnings:
+[2026-01-13T14:06:27.582Z]    🟡 console.log usage: 3 instance(s) - Consider using proper logger
+[2026-01-13T14:06:27.585Z] 
+📊 Automated Pre-Score: 97/100
+[2026-01-13T14:06:27.587Z] 
+▶ Step 9: Manual Review Required
+[2026-01-13T14:06:27.589Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.591Z] 
+[2026-01-13T14:06:27.592Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T14:06:27.593Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-13T14:06:27.595Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-13T14:06:27.596Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-13T14:06:27.597Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T14:06:27.599Z] 
+[2026-01-13T14:06:27.600Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-13T14:06:27.601Z] 
+[2026-01-13T14:06:27.602Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-13T14:06:27.603Z] 
+[2026-01-13T14:06:27.604Z] 
+▶ Step 10: Push Confirmation
+[2026-01-13T14:06:27.605Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.608Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-13T14:06:27.609Z] 📝 Pre-push automated score: 97
+[2026-01-13T14:06:27.611Z] 
+[2026-01-13T14:06:27.612Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T14:06:27.613Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-13T14:06:27.614Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T14:06:27.615Z] 
+[2026-01-13T14:06:27.616Z] ✅ Automated checks passed - Push proceeding
+[2026-01-13T14:06:27.617Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-13T16:06:27+02:00] Push APPROVED
+[2026-01-17T12:26:29+02:00] Pre-push hook triggered
+[2026-01-17T10:26:30.949Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T10:26:30.973Z] 📋 Minimum passing score: 80/100
+[2026-01-17T10:26:30.976Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T10:26:30.981Z] 
+[2026-01-17T10:26:30.983Z] ════════════════════════════════════════════════════════════
+[2026-01-17T10:26:30.985Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T10:26:30.986Z] ════════════════════════════════════════════════════════════
+[2026-01-17T10:26:30.988Z] 
+[2026-01-17T10:26:31.044Z] 📅 Review started at: 1/17/2026, 12:26:30 PM
+[2026-01-17T10:26:31.047Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T10:26:31.051Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T10:26:31.053Z] ────────────────────────────────────────
+[2026-01-17T10:26:31.744Z] ✅ Git repository detected
+[2026-01-17T10:26:31.746Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T10:26:31.747Z] ────────────────────────────────────────
+[2026-01-17T10:26:32.273Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T10:26:32.274Z] 🎯 Comparing against: main
+[2026-01-17T10:26:32.779Z] ✅ Base branch 'main' exists
+[2026-01-17T10:26:32.781Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T10:26:32.783Z] ────────────────────────────────────────
+[2026-01-17T10:26:35.984Z] 
+▶ Step 4: Change Summary
+[2026-01-17T10:26:35.986Z] ────────────────────────────────────────
+[2026-01-17T10:26:35.987Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          |  162 ++
+ backend/package.json                               |    2 +
+ backend/src/agents/JobsAgent.ts                    |  239 ++-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/jobController.ts           |  286 +++-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 ++-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++++++++++++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |    8 +
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 +++++
+ .../services/jobs/systemDesignEvaluationService.ts |  362 +++++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  239 +++
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 +++++++
+ frontend/package-lock.json                         | 1259 ++++++++++++++-
+ frontend/package.json                              |    1 +
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  636 ++++++++
+ frontend/src/components/IsraelTravelPanel.tsx      |  809 ++++++++++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1116 +++++++++++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  646 ++++++++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 +++++++++++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/mockInterviewApi.ts          |  233 +++
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +++
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +++
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ review-log.txt                                     |  207 +++
+ 54 files changed, 11458 insertions(+), 234 deletions(-)
+
+[2026-01-17T10:26:35.989Z] 📊 Files changed: 54
+[2026-01-17T10:26:35.991Z] ➕ Lines added: 11458
+[2026-01-17T10:26:35.992Z] ➖ Lines removed: 234
+[2026-01-17T10:26:35.994Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T10:26:35.995Z] ────────────────────────────────────────
+[2026-01-17T10:26:36.000Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.002Z] index eda50f4..b8c12e9 100644
+[2026-01-17T10:26:36.003Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.004Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.006Z] @@ -1,12 +1,12 @@
+[2026-01-17T10:26:36.007Z]  ---
+[2026-01-17T10:26:36.009Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T10:26:36.011Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T10:26:36.012Z]  globs: **/*
+[2026-01-17T10:26:36.014Z]  alwaysApply: false
+[2026-01-17T10:26:36.016Z]  ---
+[2026-01-17T10:26:36.019Z]  
+[2026-01-17T10:26:36.022Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T10:26:36.024Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T10:26:36.028Z]  
+[2026-01-17T10:26:36.029Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T10:26:36.031Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T10:26:36.033Z]  
+[2026-01-17T10:26:36.035Z]  ## When This Rule Applies
+[2026-01-17T10:26:36.036Z]  
+[2026-01-17T10:26:36.038Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T10:26:36.040Z]  ```
+[2026-01-17T10:26:36.041Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T10:26:36.043Z]  
+[2026-01-17T10:26:36.045Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T10:26:36.047Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T10:26:36.048Z] +```bash
+[2026-01-17T10:26:36.050Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T10:26:36.052Z] +```
+[2026-01-17T10:26:36.054Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T10:26:36.057Z] +
+[2026-01-17T10:26:36.059Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T10:26:36.060Z] +
+[2026-01-17T10:26:36.062Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T10:26:36.064Z] +
+[2026-01-17T10:26:36.065Z] +#### Frontend Changes
+[2026-01-17T10:26:36.067Z] +| Check | What to Verify |
+[2026-01-17T10:26:36.068Z] +| :--- | :--- |
+[2026-01-17T10:26:36.070Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T10:26:36.072Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T10:26:36.073Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T10:26:36.076Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T10:26:36.079Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T10:26:36.082Z] +
+[2026-01-17T10:26:36.084Z] +#### Backend Changes
+[2026-01-17T10:26:36.086Z] +| Check | What to Verify |
+[2026-01-17T10:26:36.090Z] +| :--- | :--- |
+[2026-01-17T10:26:36.093Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T10:26:36.094Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T10:26:36.097Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T10:26:36.099Z] +
+[2026-01-17T10:26:36.101Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T10:26:36.103Z] +```typescript
+[2026-01-17T10:26:36.105Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T10:26:36.107Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T10:26:36.108Z] +
+[2026-01-17T10:26:36.110Z] +// ✅ GOOD: Access specific property
+[2026-01-17T10:26:36.116Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T10:26:36.118Z] +
+[2026-01-17T10:26:36.120Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T10:26:36.123Z] +<span>{tags}</span>
+[2026-01-17T10:26:36.125Z] +
+[2026-01-17T10:26:36.128Z] +// ✅ GOOD: Map over array
+[2026-01-17T10:26:36.130Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T10:26:36.132Z] +// or
+[2026-01-17T10:26:36.138Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T10:26:36.140Z] +
+[2026-01-17T10:26:36.142Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T10:26:36.144Z] +<span>{user.name}</span>
+[2026-01-17T10:26:36.146Z] +
+[2026-01-17T10:26:36.148Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T10:26:36.150Z] +<span>{user?.name}</span>
+[2026-01-17T10:26:36.151Z] +```
+[2026-01-17T10:26:36.153Z] +
+[2026-01-17T10:26:36.154Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T10:26:36.156Z]  ```bash
+[2026-01-17T10:26:36.157Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T10:26:36.159Z]  ```
+[2026-01-17T10:26:36.160Z]  
+[2026-01-17T10:26:36.162Z] -### Step 3: Analyze Results
+[2026-01-17T10:26:36.163Z] +### Step 4: Analyze Results
+[2026-01-17T10:26:36.165Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T10:26:36.168Z]  - Statements: Current threshold
+[2026-01-17T10:26:36.170Z]  - Branches: Current threshold
+[2026-01-17T10:26:36.173Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T10:26:36.175Z]  
+[2026-01-17T10:26:36.176Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T10:26:36.178Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T10:26:36.179Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T10:26:36.181Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T10:26:36.182Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T10:26:36.183Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T10:26:36.185Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T10:26:36.186Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T10:26:36.188Z]  
+[2026-01-17T10:26:36.190Z]  ### When to Add Tests
+[2026-01-17T10:26:36.191Z]  
+[2026-01-17T10:26:36.193Z]  **MUST add tests if:**
+[2026-01-17T10:26:36.195Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T10:26:36.196Z]  - New service or utility function is created
+[2026-01-17T10:26:36.204Z] 
+... and 13358 more lines
+[2026-01-17T10:26:36.206Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T10:26:36.207Z] ────────────────────────────────────────
+[2026-01-17T10:26:36.208Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T10:26:36.210Z]    Checking backend types...
+[2026-01-17T10:27:33.157Z]    ✅ Backend type check passed
+[2026-01-17T10:27:33.161Z]    Checking frontend types...
+[2026-01-17T10:28:19.051Z]    ✅ Frontend type check passed
+[2026-01-17T10:28:19.056Z] ✅ All type checks passed!
+[2026-01-17T10:28:19.059Z] 
+▶ Step 7: Running Tests
+[2026-01-17T10:28:19.061Z] ────────────────────────────────────────
+[2026-01-17T10:28:19.063Z] 🧪 Running test suites...
+[2026-01-17T10:28:19.065Z]    Running backend tests...
+[2026-01-17T10:29:08.709Z]    ✅ Backend tests passed
+[2026-01-17T10:29:08.713Z]    Running frontend tests...
+[2026-01-17T10:30:02.241Z]    ✅ Frontend tests passed
+[2026-01-17T10:30:02.244Z] ✅ All tests passed!
+[2026-01-17T10:30:02.245Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T10:30:02.246Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.304Z] 
+🔴 Critical Issues Found:
+[2026-01-17T10:30:02.305Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-17T10:30:02.306Z] 
+🟡 Warnings:
+[2026-01-17T10:30:02.308Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T10:30:02.309Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T10:30:02.310Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T10:30:02.311Z] 
+📊 Automated Pre-Score: 74/100
+[2026-01-17T10:30:02.312Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T10:30:02.313Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.315Z] 
+[2026-01-17T10:30:02.316Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T10:30:02.317Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T10:30:02.318Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T10:30:02.319Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T10:30:02.321Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T10:30:02.323Z] 
+[2026-01-17T10:30:02.324Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T10:30:02.326Z] 
+[2026-01-17T10:30:02.327Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T10:30:02.329Z] 
+[2026-01-17T10:30:02.330Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T10:30:02.331Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.335Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T10:30:02.337Z] 📝 Pre-push automated score: 74
+[2026-01-17T10:30:02.338Z] 
+[2026-01-17T10:30:02.339Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T10:30:02.340Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T10:30:02.342Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T10:30:02.343Z] 
+[2026-01-17T10:30:02.345Z]    Score: 74/100 (Minimum required: 80)
+[2026-01-17T10:30:02.348Z] 
+[2026-01-17T10:30:02.350Z]    Fix the following issues before pushing:
+[2026-01-17T10:30:02.352Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-17T10:30:02.353Z] 
+[2026-01-17T10:30:02.354Z]    Also consider fixing these warnings:
+[2026-01-17T10:30:02.355Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T10:30:02.356Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T10:30:02.357Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T10:30:02.359Z] 
+[2026-01-17T10:30:02.360Z]    After fixing, run: git push
+[2026-01-17T10:30:02.361Z] 
+[2026-01-17T10:30:02.362Z] BLOCKED - Automated score: 74/100 (min: 80)
+[2026-01-17T12:30:02+02:00] Push BLOCKED - Exit code: 1

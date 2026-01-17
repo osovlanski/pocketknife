@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.0",
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.6.2",
     "lucide-react": "^0.294.0",

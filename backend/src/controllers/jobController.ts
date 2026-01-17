@@ -7,6 +7,8 @@ import israelTechScraperService from '../services/jobs/israelTechScraperService'
 import companyEnrichmentService from '../services/jobs/companyEnrichmentService';
 import processControlService from '../services/core/processControlService';
 import { databaseService } from '../services/core/databaseService';
+import { jobsAgent } from '../agents/JobsAgent';
+import logger from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -36,7 +38,7 @@ export const uploadCV = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'CV text is required' });
     }
 
-    console.log('📄 Analyzing CV...');
+    logger.start('Analyzing CV...');
     const io = req.app.get('io');
     emitLog(io, '📄 Analyzing your CV with AI...', 'info');
 
@@ -74,7 +76,7 @@ export const uploadCV = async (req: Request, res: Response) => {
       preferences
     });
   } catch (error: any) {
-    console.error('❌ Error uploading CV:', error);
+    logger.fail('Error uploading CV', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -88,7 +90,7 @@ export const getCVData = async (req: Request, res: Response) => {
     const data = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
     res.json(data);
   } catch (error: any) {
-    console.error('❌ Error getting CV data:', error);
+    logger.fail('Error getting CV data', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -114,7 +116,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     const cvData = fileContent.cvData || fileContent; // Handle both new and old format
     
     // Debug: Log CV skills for verification
-    console.log(`📋 CV loaded: ${cvData.name || 'Unknown'}, ${cvData.skills?.length || 0} skills, ${cvData.experience?.length || 0} experience entries`);
+    logger.found(`CV loaded: ${cvData.name || 'Unknown'}`, { skills: cvData.skills?.length || 0, experience: cvData.experience?.length || 0 });
     
     // =========================================================================
     // MULTI-QUERY EXPANSION: Generate multiple search queries for better results
@@ -310,7 +312,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Make sure to complete the process on error
     processControlService.completeProcess('jobs', false);
     
-    console.error('❌ Error searching jobs:', error);
+    logger.fail('Error searching jobs', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -324,7 +326,7 @@ export const getJobListings = async (req: Request, res: Response) => {
     const jobs = JSON.parse(fs.readFileSync(JOB_LISTINGS_FILE, 'utf-8'));
     res.json({ jobs });
   } catch (error: any) {
-    console.error('❌ Error getting job listings:', error);
+    logger.fail('Error getting job listings', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -347,7 +349,7 @@ export const updateJobPreferences = async (req: Request, res: Response) => {
       preferences: data.preferences
     });
   } catch (error: any) {
-    console.error('❌ Error updating preferences:', error);
+    logger.fail('Error updating preferences', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -385,7 +387,7 @@ export const aiSearch = async (req: Request, res: Response) => {
       keywords: result.keywords
     });
   } catch (error: any) {
-    console.error('❌ AI search error:', error);
+    logger.fail('AI search error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -416,7 +418,7 @@ export const getCareerPath = async (req: Request, res: Response) => {
       careerPath
     });
   } catch (error: any) {
-    console.error('❌ Career path error:', error);
+    logger.fail('Career path error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -465,7 +467,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
       sources: ['Geektime', 'AllJobs']
     });
   } catch (error: any) {
-    console.error('❌ Israeli jobs search error:', error);
+    logger.fail('Israeli jobs search error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -496,7 +498,7 @@ export const getCompanyInfo = async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
-    console.error('❌ Company info error:', error);
+    logger.fail('Company info error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -519,7 +521,267 @@ export const enrichCompanies = async (req: Request, res: Response) => {
       companies: Object.fromEntries(results)
     });
   } catch (error: any) {
-    console.error('❌ Company enrichment error:', error);
+    logger.fail('Company enrichment error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// =============================================================================
+// MOCK INTERVIEW ENDPOINTS
+// =============================================================================
+
+/**
+ * Extract interview questions from an uploaded image
+ * Supports Hebrew text extraction and translation
+ */
+export const extractInterviewQuestions = async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, imageMimeType } = req.body;
+    const io = req.app.get('io');
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image data (base64) is required' });
+    }
+
+    emitLog(io, '📷 Extracting interview questions from image...', 'info');
+
+    const result = await jobsAgent.execute({
+      action: 'extract-interview-questions',
+      imageBase64,
+      imageMimeType: imageMimeType || 'image/jpeg'
+    });
+
+    if (!result.success) {
+      emitLog(io, `❌ Extraction failed: ${result.error}`, 'error');
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { questions?: any[] } | undefined;
+    const questions = data?.questions || [];
+    emitLog(io, `✅ Extracted ${questions.length} questions`, 'success');
+
+    res.json({
+      success: true,
+      questions
+    });
+  } catch (error: any) {
+    logger.fail('Extract interview questions error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Generate an AI-powered answer for an interview question
+ */
+export const generateInterviewAnswer = async (req: Request, res: Response) => {
+  try {
+    const { question, role, experience, skills } = req.body;
+    const io = req.app.get('io');
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    emitLog(io, '🎯 Generating interview answer...', 'info');
+
+    const result = await jobsAgent.execute({
+      action: 'generate-answer',
+      question,
+      context: {
+        role,
+        experience,
+        skills
+      }
+    });
+
+    if (!result.success) {
+      emitLog(io, `❌ Answer generation failed: ${result.error}`, 'error');
+      return res.status(400).json({ error: result.error });
+    }
+
+    emitLog(io, '✅ Interview answer generated', 'success');
+
+    const data = result.data as { answer?: any } | undefined;
+    res.json({
+      success: true,
+      answer: data?.answer
+    });
+  } catch (error: any) {
+    logger.fail('Generate interview answer error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Evaluate a user's interview answer
+ */
+export const evaluateInterviewAnswer = async (req: Request, res: Response) => {
+  try {
+    const { question, userAnswer, role, experience } = req.body;
+    const io = req.app.get('io');
+
+    if (!question || !userAnswer) {
+      return res.status(400).json({ error: 'Question and user answer are required' });
+    }
+
+    emitLog(io, '📝 Evaluating your interview answer...', 'info');
+
+    const result = await jobsAgent.execute({
+      action: 'evaluate-answer',
+      question,
+      userAnswer,
+      context: {
+        role,
+        experience
+      }
+    });
+
+    if (!result.success) {
+      emitLog(io, `❌ Evaluation failed: ${result.error}`, 'error');
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { evaluation?: any } | undefined;
+    const evaluation = data?.evaluation;
+    emitLog(io, `✅ Answer evaluated: ${evaluation?.score}/10`, 'success');
+
+    res.json({
+      success: true,
+      evaluation
+    });
+  } catch (error: any) {
+    logger.fail('Evaluate interview answer error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get example interview questions based on company, role, or category
+ * Similar to Glassdoor interview questions feature
+ */
+export const getExampleQuestions = async (req: Request, res: Response) => {
+  try {
+    const { company, role, category, industry, experienceLevel, count } = req.body;
+    const io = req.app.get('io');
+
+    emitLog(io, '📝 Generating example interview questions...', 'info');
+
+    const result = await jobsAgent.execute({
+      action: 'get-example-questions',
+      company,
+      role,
+      category,
+      industry,
+      experienceLevel,
+      count: count || 10
+    });
+
+    if (!result.success) {
+      emitLog(io, `❌ Failed to generate questions: ${result.error}`, 'error');
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { questions?: any[]; tips?: string[]; source?: string } | undefined;
+    const questions = data?.questions || [];
+    emitLog(io, `✅ Generated ${questions.length} example questions`, 'success');
+
+    res.json({
+      success: true,
+      questions: data?.questions,
+      tips: data?.tips,
+      source: data?.source
+    });
+  } catch (error: any) {
+    logger.fail('Get example questions error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get popular company interview questions (pre-defined question banks)
+ */
+export const getPopularCompanyQuestions = async (req: Request, res: Response) => {
+  try {
+    const result = await jobsAgent.execute({
+      action: 'get-popular-company-questions'
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { companies?: any[] } | undefined;
+    res.json({
+      success: true,
+      companies: data?.companies
+    });
+  } catch (error: any) {
+    logger.fail('Get popular company questions error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Evaluate a system design diagram
+ */
+export const evaluateSystemDesign = async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, jsonData, textAnnotations, question, elapsedTime } = req.body;
+    const io = req.app.get('io');
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    emitLog(io, '🏗️ Evaluating system design...', 'info');
+
+    const result = await jobsAgent.execute({
+      action: 'evaluate-system-design',
+      imageBase64,
+      jsonData,
+      textAnnotations,
+      question,
+      elapsedTime
+    });
+
+    if (!result.success) {
+      emitLog(io, `❌ Evaluation failed: ${result.error}`, 'error');
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { evaluation?: any } | undefined;
+    emitLog(io, `✅ System design evaluated: Score ${data?.evaluation?.score}/100`, 'success');
+
+    res.json({
+      success: true,
+      evaluation: data?.evaluation
+    });
+  } catch (error: any) {
+    logger.fail('System design evaluation error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get example system design questions
+ */
+export const getSystemDesignQuestions = async (req: Request, res: Response) => {
+  try {
+    const result = await jobsAgent.execute({
+      action: 'get-system-design-questions'
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    const data = result.data as { questions?: any[] } | undefined;
+    res.json({
+      success: true,
+      questions: data?.questions
+    });
+  } catch (error: any) {
+    logger.fail('Get system design questions error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };

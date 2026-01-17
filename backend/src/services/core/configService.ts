@@ -60,6 +60,14 @@ const DEFAULT_CONFIG = {
   'job.startups.maxResultsPerSource': 50,
   
   // ==========================================================================
+  // MOCK INTERVIEW
+  // ==========================================================================
+  'mockInterview.ai.answerMaxTokens': 2000,
+  'mockInterview.ai.evaluationMaxTokens': 1500,
+  'mockInterview.ai.exampleQuestionsMaxTokens': 3000,
+  'mockInterview.ai.translationMaxTokens': 500,
+  
+  // ==========================================================================
   // EMAIL AGENT
   // ==========================================================================
   'email.batch.size': 50,
@@ -200,7 +208,12 @@ const DEFAULT_CONFIG = {
   'feature.companyEnrichment': true,
   'feature.activityLogging': true,
   'feature.israeliShops': true,
-  'feature.calendarSync': true
+  'feature.calendarSync': true,
+  
+  // ==========================================================================
+  // DEVELOPMENT CORS ORIGINS
+  // ==========================================================================
+  'cors.devOrigins': ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']
 } as const;
 
 type ConfigKey = keyof typeof DEFAULT_CONFIG;

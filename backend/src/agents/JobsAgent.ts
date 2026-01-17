@@ -10,9 +10,11 @@
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
+import mockInterviewService, { InterviewQuestion, InterviewAnswer } from '../services/jobs/mockInterviewService';
+import systemDesignEvaluationService, { SystemDesignEvaluation, SystemDesignQuestion } from '../services/jobs/systemDesignEvaluationService';
 
 interface JobsParams extends AgentParams {
-  action: 'save-job' | 'get-saved' | 'update-preferences';
+  action: 'save-job' | 'get-saved' | 'update-preferences' | 'extract-interview-questions' | 'generate-answer' | 'evaluate-answer' | 'get-example-questions' | 'get-popular-company-questions' | 'evaluate-system-design' | 'get-system-design-questions';
   jobData?: any;
   preferences?: {
     preferredLocations?: string[];
@@ -21,12 +23,46 @@ interface JobsParams extends AgentParams {
     minSalary?: number;
     maxSalary?: number;
   };
+  // Mock interview params
+  imageBase64?: string;
+  imageMimeType?: string;
+  question?: string | SystemDesignQuestion;
+  userAnswer?: string;
+  context?: {
+    role?: string;
+    experience?: string;
+    skills?: string[];
+  };
+  // Example questions params
+  company?: string;
+  role?: string;
+  category?: 'technical' | 'behavioral' | 'situational' | 'system-design' | 'coding';
+  industry?: string;
+  experienceLevel?: 'junior' | 'mid' | 'senior';
+  count?: number;
+  // System design params
+  jsonData?: string;
+  textAnnotations?: string[];
+  elapsedTime?: number;
 }
 
 interface JobsResult {
   savedJob?: any;
   savedJobs?: any[];
   preferences?: any;
+  // Mock interview results
+  questions?: InterviewQuestion[] | SystemDesignQuestion[];
+  answer?: InterviewAnswer;
+  evaluation?: {
+    score: number;
+    feedback: string;
+    improvements: string[];
+    strengths: string[];
+  } | SystemDesignEvaluation;
+  // Example questions results
+  tips?: string[];
+  source?: string;
+  companies?: { company: string; categories: string[]; sampleQuestions: string[] }[];
 }
 
 export class JobsAgent extends AbstractAgent {
@@ -48,6 +84,20 @@ export class JobsAgent extends AbstractAgent {
         return this.getSavedJobs(params);
       case 'update-preferences':
         return this.updatePreferences(params);
+      case 'extract-interview-questions':
+        return this.extractInterviewQuestions(params);
+      case 'generate-answer':
+        return this.generateInterviewAnswer(params);
+      case 'evaluate-answer':
+        return this.evaluateInterviewAnswer(params);
+      case 'get-example-questions':
+        return this.getExampleQuestions(params);
+      case 'get-popular-company-questions':
+        return this.getPopularCompanyQuestions();
+      case 'evaluate-system-design':
+        return this.evaluateSystemDesign(params);
+      case 'get-system-design-questions':
+        return this.getSystemDesignQuestions();
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -187,6 +237,193 @@ export class JobsAgent extends AbstractAgent {
         data: { preferences: updatedPrefs }
       };
     } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Extract interview questions from an uploaded image
+   * Supports Hebrew text extraction and translation
+   */
+  private async extractInterviewQuestions(params: JobsParams): Promise<AgentResult<JobsResult>> {
+    const { imageBase64, imageMimeType } = params;
+
+    if (!imageBase64) {
+      return { success: false, error: 'Image data is required' };
+    }
+
+    this.emitLog('📷 Extracting interview questions from image...', 'info');
+
+    try {
+      const questions = await mockInterviewService.extractTextFromImage(
+        imageBase64,
+        imageMimeType || 'image/jpeg'
+      );
+
+      if (questions.length === 0) {
+        this.emitLog('⚠️ No interview questions found in the image', 'warning');
+        return { success: true, data: { questions: [] } };
+      }
+
+      this.emitLog(`✅ Extracted ${questions.length} interview questions`, 'success');
+
+      return { success: true, data: { questions } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to extract questions: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Generate an AI-powered answer for an interview question
+   */
+  private async generateInterviewAnswer(params: JobsParams): Promise<AgentResult<JobsResult>> {
+    const { question, context } = params;
+
+    if (!question) {
+      return { success: false, error: 'Question is required' };
+    }
+
+    this.emitLog('🎯 Generating interview answer...', 'info');
+
+    try {
+      // Extract question string if it's a SystemDesignQuestion object
+      const questionStr = typeof question === 'string' ? question : question.title;
+      const answer = await mockInterviewService.generateAnswer(questionStr, context);
+
+      this.emitLog('✅ Interview answer generated', 'success');
+
+      return { success: true, data: { answer } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to generate answer: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Evaluate a user's interview answer
+   */
+  private async evaluateInterviewAnswer(params: JobsParams): Promise<AgentResult<JobsResult>> {
+    const { question, userAnswer, context } = params;
+
+    if (!question || !userAnswer) {
+      return { success: false, error: 'Question and user answer are required' };
+    }
+
+    this.emitLog('📝 Evaluating your interview answer...', 'info');
+
+    try {
+      // Extract question string if it's a SystemDesignQuestion object
+      const questionStr = typeof question === 'string' ? question : question.title;
+      const evaluation = await mockInterviewService.evaluateAnswer(questionStr, userAnswer, context);
+
+      this.emitLog(`✅ Answer evaluated: ${evaluation.score}/10`, 'success');
+
+      return { success: true, data: { evaluation } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to evaluate answer: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get example interview questions based on company, role, or category
+   * Similar to Glassdoor interview questions feature
+   */
+  private async getExampleQuestions(params: JobsParams): Promise<AgentResult<JobsResult>> {
+    const { company, role, category, industry, experienceLevel, count } = params;
+
+    this.emitLog('📝 Generating example interview questions...', 'info');
+
+    try {
+      const result = await mockInterviewService.getExampleQuestions({
+        company,
+        role,
+        category,
+        industry,
+        experienceLevel,
+        count
+      });
+
+      this.emitLog(`✅ Generated ${result.questions.length} example questions`, 'success');
+
+      return { 
+        success: true, 
+        data: { 
+          questions: result.questions,
+          tips: result.tips,
+          source: result.source
+        } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to generate example questions: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get popular company interview questions (pre-defined question banks)
+   */
+  private async getPopularCompanyQuestions(): Promise<AgentResult<JobsResult>> {
+    try {
+      const companies = mockInterviewService.getPopularCompanyQuestions();
+
+      return { 
+        success: true, 
+        data: { companies } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to get popular company questions: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Evaluate a system design diagram
+   */
+  private async evaluateSystemDesign(params: JobsParams): Promise<AgentResult<JobsResult>> {
+    const { imageBase64, jsonData, textAnnotations, question, elapsedTime } = params;
+
+    if (!question) {
+      return { success: false, error: 'Question is required for evaluation' };
+    }
+
+    this.emitLog('🏗️ Evaluating system design...', 'info');
+
+    try {
+      const evaluation = await systemDesignEvaluationService.evaluate({
+        imageBase64: imageBase64 || '',
+        jsonData: jsonData || '{}',
+        textAnnotations: textAnnotations || [],
+        question: question as SystemDesignQuestion,
+        elapsedTime
+      });
+
+      this.emitLog(`✅ System design evaluated: Score ${evaluation.score}/100`, 'success');
+
+      return {
+        success: true,
+        data: { evaluation }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to evaluate system design: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get example system design questions
+   */
+  private async getSystemDesignQuestions(): Promise<AgentResult<JobsResult>> {
+    try {
+      const questions = systemDesignEvaluationService.getExampleQuestions();
+
+      return {
+        success: true,
+        data: { questions }
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to get system design questions: ${error.message}`, 'error');
       return { success: false, error: error.message };
     }
   }

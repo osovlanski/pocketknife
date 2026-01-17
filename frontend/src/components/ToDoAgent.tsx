@@ -26,7 +26,8 @@ import {
   X,
   Loader2,
   ExternalLink,
-  CalendarDays
+  CalendarDays,
+  Download
 } from 'lucide-react';
 import useTodo from '../hooks/useTodo';
 import type { Task, RoutinePattern, TaskData, CalendarEvent } from '../services/todoApi';
@@ -255,9 +256,10 @@ const RoutinesPanel: React.FC<RoutinesPanelProps> = ({ routines, onApprove, onDi
 interface CalendarPanelProps {
   events: CalendarEvent[];
   date: string;
+  onImportEvent?: (event: CalendarEvent) => void;
 }
 
-const CalendarPanel: React.FC<CalendarPanelProps> = ({ events, date }) => {
+const CalendarPanel: React.FC<CalendarPanelProps> = ({ events, date, onImportEvent }) => {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -315,17 +317,29 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ events, date }) => {
                   </p>
                 )}
               </div>
-              {event.htmlLink && (
-                <a 
-                  href={event.htmlLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.calendarEventLink}
-                  title="Open in Google Calendar"
-                >
-                  <ExternalLink className={styles.iconSmall} />
-                </a>
-              )}
+              <div className={styles.calendarEventActions}>
+                {/* Import as Task button - only show for non-Pocketknife events */}
+                {!event.isPocketknifeTask && onImportEvent && (
+                  <button
+                    onClick={() => onImportEvent(event)}
+                    className={styles.calendarImportButton}
+                    title="Import as Task"
+                  >
+                    <Download className={styles.iconSmall} />
+                  </button>
+                )}
+                {event.htmlLink && (
+                  <a 
+                    href={event.htmlLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.calendarEventLink}
+                    title="Open in Google Calendar"
+                  >
+                    <ExternalLink className={styles.iconSmall} />
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -795,7 +809,11 @@ const ToDoAgent: React.FC = () => {
         )}
 
         {/* Calendar Panel (Right Side) */}
-        <CalendarPanel events={calendarEvents} date={todo.formattedDate} />
+        <CalendarPanel 
+          events={calendarEvents} 
+          date={todo.formattedDate} 
+          onImportEvent={todo.handleImportCalendarEvent}
+        />
       </div>
     </div>
   );

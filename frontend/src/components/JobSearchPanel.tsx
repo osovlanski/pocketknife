@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
 import { extractTextFromFile } from '../utils/fileParser';
-import { JobSearchFilters, IndustryType } from '../types';
+import { JobSearchFilters, IndustryType, CompanySizeType } from '../types';
 import { API_BASE_URL } from '../config';
+
+// Available company sizes for selection
+const AVAILABLE_COMPANY_SIZES: { value: CompanySizeType; label: string; emoji: string }[] = [
+  { value: 'startup', label: 'Startup (1-50)', emoji: '🚀' },
+  { value: 'midsize', label: 'Mid-size (51-500)', emoji: '🏢' },
+  { value: 'enterprise', label: 'Enterprise (500+)', emoji: '🏛️' },
+];
 
 // Available industries for selection
 const AVAILABLE_INDUSTRIES: { value: IndustryType; label: string; emoji: string }[] = [
@@ -46,13 +53,37 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
   // Advanced filters
   const [filters, setFilters] = useState<JobSearchFilters>({
     companySize: 'any',
+    companySizes: [],  // NEW: Multiple company sizes
     industry: 'any',
-    industries: [],  // NEW: Multiple industries
+    industries: [],    // Multiple industries
     salaryMin: undefined,
     salaryMax: undefined,
     experienceLevel: 'any',
     jobType: 'any'
   });
+  
+  // Toggle company size selection
+  const handleCompanySizeToggle = (size: CompanySizeType) => {
+    const currentSizes = filters.companySizes || [];
+    const isSelected = currentSizes.includes(size);
+    
+    if (isSelected) {
+      setFilters({ 
+        ...filters, 
+        companySizes: currentSizes.filter(s => s !== size) 
+      });
+    } else {
+      setFilters({ 
+        ...filters, 
+        companySizes: [...currentSizes, size] 
+      });
+    }
+  };
+  
+  // Clear all company sizes
+  const handleClearCompanySizes = () => {
+    setFilters({ ...filters, companySizes: [] });
+  };
   
   // Toggle industry selection
   const handleIndustryToggle = (industry: IndustryType) => {
@@ -407,19 +438,51 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
         {showAdvancedFilters && (
           <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Company Size */}
-              <div>
-                <label className="text-sm text-slate-300 mb-1 block">Company Size</label>
-                <select
-                  value={filters.companySize}
-                  onChange={(e) => setFilters({ ...filters, companySize: e.target.value as any })}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-                >
-                  <option value="any">Any Size</option>
-                  <option value="startup">Startup (1-50)</option>
-                  <option value="midsize">Mid-size (51-500)</option>
-                  <option value="enterprise">Enterprise (500+)</option>
-                </select>
+              {/* Company Size - Multi-select */}
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-slate-300">Company Size (select multiple)</label>
+                  {(filters.companySizes?.length || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearCompanySizes}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Clear all ({filters.companySizes?.length})
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_COMPANY_SIZES.map((size) => {
+                    const isSelected = filters.companySizes?.includes(size.value);
+                    return (
+                      <button
+                        key={size.value}
+                        type="button"
+                        onClick={() => handleCompanySizeToggle(size.value)}
+                        className={`
+                          flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                          ${isSelected 
+                            ? 'bg-purple-500 text-white border-purple-400' 
+                            : 'bg-white/5 text-slate-300 border-white/20 hover:bg-white/10'
+                          }
+                          border
+                        `}
+                        aria-pressed={isSelected}
+                        tabIndex={0}
+                      >
+                        <span>{size.emoji}</span>
+                        <span>{size.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {(filters.companySizes?.length || 0) === 0 
+                    ? '💡 Select company sizes to filter results' 
+                    : `Filtering by ${filters.companySizes?.length} company size(s)`
+                  }
+                </p>
               </div>
 
               {/* Industry - Multi-select */}
