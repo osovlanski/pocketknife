@@ -14,7 +14,14 @@ import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
 import claudeService from '../services/core/claudeService';
-import { israeliShopsService } from '../services/shopping/israeliShopsService';
+import { 
+  productAggregatorService, 
+  ebayService, 
+  amazonService, 
+  aliexpressService,
+  israeliShopsService,
+  UnifiedProduct
+} from '../services/shopping';
 
 interface ShoppingParams extends AgentParams {
   action: 
@@ -687,191 +694,101 @@ Respond ONLY with valid JSON:
   }
 
   /**
-   * Search a specific source for products
+   * Search a specific source for products using real APIs
    */
   private async searchSource(source: string, query: string, filters?: ProductFilters): Promise<Product[]> {
-    // In a real implementation, this would call actual APIs
-    // For now, we'll simulate the search with realistic mock data
-    
-    const mockProducts: Product[] = [];
-    
-    // Source-specific URL templates that lead to actual search results
-    const sourceUrls: Record<string, { search: string; format: (q: string) => string }> = {
-      ebay: {
-        search: 'https://www.ebay.com/sch/i.html?_nkw=',
-        format: (q) => `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=15`
-      },
-      aliexpress: {
-        search: 'https://www.aliexpress.com/wholesale?SearchText=',
-        format: (q) => `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(q)}&SortType=total_tranpro_desc`
-      },
-      amazon: {
-        search: 'https://www.amazon.com/s?k=',
-        format: (q) => `https://www.amazon.com/s?k=${encodeURIComponent(q)}&s=review-rank`
+    try {
+      let products: UnifiedProduct[] = [];
+
+      switch (source) {
+        case 'ebay':
+          if (ebayService.isAvailable()) {
+            const ebayProducts = await ebayService.search({
+              query,
+              minPrice: filters?.minPrice,
+              maxPrice: filters?.maxPrice,
+              limit: 15
+            });
+            products = ebayProducts.map(p => this.mapToProduct(p, 'ebay'));
+          }
+          break;
+
+        case 'amazon':
+          if (amazonService.isAvailable()) {
+            const amazonProducts = await amazonService.search({
+              query,
+              minPrice: filters?.minPrice,
+              maxPrice: filters?.maxPrice,
+              limit: 15
+            });
+            products = amazonProducts.map(p => this.mapToProduct(p, 'amazon'));
+          }
+          break;
+
+        case 'aliexpress':
+          if (aliexpressService.isAvailable()) {
+            const aliProducts = await aliexpressService.search({
+              query,
+              minPrice: filters?.minPrice,
+              maxPrice: filters?.maxPrice,
+              limit: 15
+            });
+            products = aliProducts.map(p => this.mapToProduct(p, 'aliexpress'));
+          }
+          break;
+
+        default:
+          this.emitLog(`⚠️ Unknown source: ${source}`, 'warning');
+          return [];
       }
-    };
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+      // Apply category filter if specified
+      if (filters?.category) {
+        products = products.filter(p => 
+          p.category?.toLowerCase().includes(filters.category!.toLowerCase())
+        );
+      }
 
-    // Generate realistic product name variations
-    const productVariations = this.generateProductVariations(query, source);
-
-    // Generate mock products
-    const numProducts = Math.min(productVariations.length, Math.floor(Math.random() * 5) + 3);
-    for (let i = 0; i < numProducts; i++) {
-      const basePrice = this.generateRealisticPrice(query);
-      const hasDiscount = Math.random() > 0.4;
-      const discount = hasDiscount ? Math.floor(Math.random() * 35) + 5 : undefined;
-      const originalPrice = hasDiscount ? basePrice / (1 - (discount! / 100)) : undefined;
-
-      const variation = productVariations[i];
-      const category = this.inferCategory(query);
-      
-      // Generate a product-specific search URL
-      const productSearchQuery = variation.title.split(' ').slice(0, 5).join(' ');
-      
-      const product: Product = {
-        title: variation.title,
-        description: variation.description,
-        price: Math.round(basePrice * 100) / 100,
-        originalPrice: originalPrice ? Math.round(originalPrice * 100) / 100 : undefined,
-        currency: 'USD',
-        discount,
-        source,
-        sourceUrl: sourceUrls[source]?.format(productSearchQuery) || sourceUrls.ebay.format(productSearchQuery),
-        sourceId: `${source}-${Date.now()}-${i}`,
-        // Use placeholder image service with product-related seed
-        imageUrl: `https://picsum.photos/seed/${encodeURIComponent(variation.title.substring(0, 20))}/400/300`,
-        category,
-        tags: [source, category, ...query.toLowerCase().split(' ').slice(0, 3)]
-      };
-
-      // Apply filters
-      if (filters?.minPrice && product.price < filters.minPrice) continue;
-      if (filters?.maxPrice && product.price > filters.maxPrice) continue;
-      if (filters?.category && product.category?.toLowerCase() !== filters.category.toLowerCase()) continue;
-
-      mockProducts.push(product);
+      return products;
+    } catch (error: any) {
+      this.emitLog(`⚠️ Error searching ${source}: ${error.message}`, 'warning');
+      return [];
     }
-
-    return mockProducts;
   }
 
   /**
-   * Generate realistic product name variations based on search query
+   * Map unified product to internal Product type
    */
-  private generateProductVariations(query: string, source: string): Array<{ title: string; description: string }> {
-    const lowerQuery = query.toLowerCase();
-    
-    // Product templates by category
-    const templates: Record<string, Array<{ suffix: string; desc: string }>> = {
-      'playstation': [
-        { suffix: 'Console Bundle with Controller', desc: 'Complete gaming bundle with wireless controller and HDMI cable' },
-        { suffix: 'Digital Edition', desc: 'All-digital version with no disc drive, slim design' },
-        { suffix: 'Disc Edition Console', desc: 'Standard edition with 4K Blu-ray disc drive' },
-        { suffix: 'DualSense Controller', desc: 'Official wireless controller with haptic feedback' },
-        { suffix: 'Slim Model 1TB', desc: 'Compact design with 1TB SSD storage' },
-        { suffix: 'Charging Station', desc: 'Dual charging dock for controllers' },
-        { suffix: 'Media Remote', desc: 'Dedicated remote for streaming and entertainment' },
-      ],
-      'xbox': [
-        { suffix: 'Series X Console', desc: 'Powerful 4K gaming console with 1TB SSD' },
-        { suffix: 'Series S Digital Edition', desc: 'All-digital compact gaming console' },
-        { suffix: 'Wireless Controller', desc: 'Official wireless controller with textured grip' },
-        { suffix: 'Game Pass Ultimate 12 Months', desc: 'Access to 100+ games with EA Play included' },
-        { suffix: 'Elite Controller Series 2', desc: 'Pro-level customizable controller' },
-      ],
-      'laptop': [
-        { suffix: 'Pro 15" 16GB RAM 512GB SSD', desc: 'High-performance laptop for professionals' },
-        { suffix: 'Gaming Edition RTX 4060', desc: 'Gaming laptop with dedicated graphics' },
-        { suffix: 'Ultrabook 14" Lightweight', desc: 'Thin and light for productivity on the go' },
-        { suffix: 'Business Edition i7', desc: 'Enterprise-grade security and performance' },
-      ],
-      'headphones': [
-        { suffix: 'Wireless Bluetooth Over-Ear', desc: 'Premium wireless headphones with 40h battery' },
-        { suffix: 'Active Noise Cancelling', desc: 'Block out noise with advanced ANC technology' },
-        { suffix: 'Gaming Headset with Mic', desc: '7.1 surround sound for immersive gaming' },
-        { suffix: 'Sports In-Ear Waterproof', desc: 'Sweat and water resistant for workouts' },
-      ],
-      'default': [
-        { suffix: 'Premium Quality', desc: 'High-quality product with excellent reviews' },
-        { suffix: 'Best Seller Edition', desc: 'Top-rated by thousands of customers' },
-        { suffix: 'Pro Version', desc: 'Professional-grade with enhanced features' },
-        { suffix: 'Starter Bundle', desc: 'Everything you need to get started' },
-        { suffix: 'Deluxe Set', desc: 'Complete set with accessories included' },
-      ]
+  private mapToProduct(p: any, source: string): Product {
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      currency: p.currency || 'USD',
+      discount: p.discount,
+      source: source,
+      sourceUrl: p.sourceUrl,
+      sourceId: p.sourceId || p.id,
+      imageUrl: p.imageUrl,
+      dealScore: p.dealScore,
+      dealReason: p.dealReason,
+      category: p.category,
+      tags: p.tags || [source]
     };
-
-    // Find matching template
-    let selectedTemplates = templates.default;
-    for (const [key, value] of Object.entries(templates)) {
-      if (lowerQuery.includes(key)) {
-        selectedTemplates = value;
-        break;
-      }
-    }
-
-    // Generate variations
-    const variations: Array<{ title: string; description: string }> = [];
-    const queryWords = query.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-    const baseTitle = queryWords.join(' ');
-
-    // Shuffle and pick variations
-    const shuffled = [...selectedTemplates].sort(() => Math.random() - 0.5);
-    
-    for (const template of shuffled) {
-      variations.push({
-        title: `${baseTitle} ${template.suffix}`,
-        description: template.desc
-      });
-    }
-
-    // Add source-specific branding
-    const brandPrefixes: Record<string, string[]> = {
-      ebay: ['', 'New ', 'Factory Sealed '],
-      aliexpress: ['', 'Original ', 'Authentic '],
-      amazon: ["Amazon's Choice ", '', 'Bestseller ']
-    };
-
-    const prefixes = brandPrefixes[source] || [''];
-    return variations.map((v, i) => ({
-      title: `${prefixes[i % prefixes.length]}${v.title}`,
-      description: v.description
-    }));
   }
 
   /**
-   * Generate realistic prices based on product category
+   * Get service status for available shopping sources
    */
-  private generateRealisticPrice(query: string): number {
-    const lowerQuery = query.toLowerCase();
-    
-    const priceRanges: Record<string, { min: number; max: number }> = {
-      'playstation 5': { min: 399, max: 549 },
-      'playstation': { min: 29, max: 549 },
-      'xbox': { min: 29, max: 549 },
-      'nintendo switch': { min: 199, max: 349 },
-      'laptop': { min: 399, max: 1999 },
-      'macbook': { min: 899, max: 2499 },
-      'iphone': { min: 699, max: 1199 },
-      'headphones': { min: 29, max: 399 },
-      'keyboard': { min: 29, max: 199 },
-      'mouse': { min: 19, max: 149 },
-      'monitor': { min: 149, max: 999 },
-      'camera': { min: 199, max: 2999 },
-      'default': { min: 19, max: 299 }
-    };
-
-    let range = priceRanges.default;
-    for (const [key, value] of Object.entries(priceRanges)) {
-      if (lowerQuery.includes(key)) {
-        range = value;
-        break;
-      }
-    }
-
-    return Math.random() * (range.max - range.min) + range.min;
+  getServiceStatus(): { source: string; available: boolean }[] {
+    return [
+      { source: 'ebay', available: ebayService.isAvailable() },
+      { source: 'amazon', available: amazonService.isAvailable() },
+      { source: 'aliexpress', available: aliexpressService.isAvailable() },
+      { source: 'israeli', available: israeliShopsService.isAvailable() }
+    ];
   }
 
   /**

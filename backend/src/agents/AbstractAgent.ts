@@ -6,6 +6,11 @@
  * - Real-time logging via Socket.io
  * - Activity persistence to database
  * - State management
+ * - Rate limiting per agent
+ * - Retry logic with exponential backoff
+ * - Configurable timeouts
+ * - Metrics/telemetry
+ * - Input validation
  */
 
 import { Server as SocketServer } from 'socket.io';
@@ -20,7 +25,60 @@ import {
   LogType 
 } from './types';
 import { databaseService, getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import logger from '../utils/logger';
+import { 
+  withRetry, 
+  RetryOptions, 
+  RateLimiter, 
+  CircuitBreaker,
+  isDefaultRetryable 
+} from '../utils/retry';
+import { telemetryService } from '../utils/telemetry';
+import { z } from 'zod';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export interface AgentConfig {
+  /** Rate limit: max requests per minute (default: 60) */
+  rateLimit?: number;
+  /** Retry options for failed operations */
+  retryOptions?: RetryOptions;
+  /** Default timeout in milliseconds (default: 30000) */
+  defaultTimeoutMs?: number;
+  /** Per-action timeout overrides */
+  actionTimeouts?: Record<string, number>;
+  /** Enable metrics collection (default: true) */
+  metricsEnabled?: boolean;
+  /** Circuit breaker threshold (default: 5) */
+  circuitBreakerThreshold?: number;
+  /** Circuit breaker reset time in ms (default: 60000) */
+  circuitBreakerResetMs?: number;
+}
+
+export interface AgentMetrics {
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  totalDurationMs: number;
+  avgDurationMs: number;
+  lastExecutionTime: Date | null;
+  actionMetrics: Record<string, {
+    count: number;
+    successCount: number;
+    failedCount: number;
+    avgDurationMs: number;
+  }>;
+  rateLimitHits: number;
+  retryCount: number;
+  circuitBreakerTrips: number;
+}
+
+// =============================================================================
+// ABSTRACT AGENT
+// =============================================================================
 
 export abstract class AbstractAgent implements IPersistentAgent {
   abstract readonly metadata: AgentMetadata;
@@ -35,6 +93,64 @@ export abstract class AbstractAgent implements IPersistentAgent {
   };
   
   private stopRequested: boolean = false;
+  
+  // Rate limiting
+  private rateLimiter: RateLimiter;
+  
+  // Circuit breaker for external calls
+  private circuitBreaker: CircuitBreaker;
+  
+  // Metrics collection
+  private metrics: AgentMetrics = {
+    totalExecutions: 0,
+    successfulExecutions: 0,
+    failedExecutions: 0,
+    totalDurationMs: 0,
+    avgDurationMs: 0,
+    lastExecutionTime: null,
+    actionMetrics: {},
+    rateLimitHits: 0,
+    retryCount: 0,
+    circuitBreakerTrips: 0
+  };
+  
+  // Configuration
+  protected config: AgentConfig;
+  
+  // Validation schemas (override in subclasses)
+  protected validationSchemas: Record<string, z.ZodSchema> = {};
+
+  constructor(config?: AgentConfig) {
+    // Set defaults with optional config overrides
+    this.config = {
+      rateLimit: config?.rateLimit || 60,
+      defaultTimeoutMs: config?.defaultTimeoutMs || 30000,
+      actionTimeouts: config?.actionTimeouts || {},
+      metricsEnabled: config?.metricsEnabled ?? true,
+      circuitBreakerThreshold: config?.circuitBreakerThreshold || 5,
+      circuitBreakerResetMs: config?.circuitBreakerResetMs || 60000,
+      retryOptions: {
+        maxRetries: 3,
+        initialDelayMs: 1000,
+        maxDelayMs: 30000,
+        backoffMultiplier: 2,
+        jitter: true,
+        ...config?.retryOptions
+      }
+    };
+    
+    // Initialize rate limiter (tokens per minute)
+    this.rateLimiter = new RateLimiter(
+      this.config.rateLimit!,
+      60000 // 1 minute refill
+    );
+    
+    // Initialize circuit breaker
+    this.circuitBreaker = new CircuitBreaker(
+      this.config.circuitBreakerThreshold!,
+      this.config.circuitBreakerResetMs!
+    );
+  }
 
   /**
    * Initialize the agent with Socket.io server
@@ -51,13 +167,66 @@ export abstract class AbstractAgent implements IPersistentAgent {
   }
 
   /**
+   * Get timeout for a specific action
+   */
+  protected getActionTimeout(action?: string): number {
+    if (action && this.config.actionTimeouts?.[action]) {
+      return this.config.actionTimeouts[action];
+    }
+    return this.config.defaultTimeoutMs || 30000;
+  }
+
+  /**
+   * Validate params against registered schema
+   */
+  protected validateParams<T>(action: string, params: unknown): { valid: true; data: T } | { valid: false; error: string } {
+    const schema = this.validationSchemas[action];
+    if (!schema) {
+      // No schema registered, pass through
+      return { valid: true, data: params as T };
+    }
+
+    const result = schema.safeParse(params);
+    if (result.success) {
+      return { valid: true, data: result.data as T };
+    }
+
+    const errors = result.error.issues.map((issue: z.ZodIssue) => {
+      const path = issue.path.join('.');
+      return path ? `${path}: ${issue.message}` : issue.message;
+    }).join('; ');
+
+    return { valid: false, error: errors };
+  }
+
+  /**
    * Execute the agent's main task
-   * Wraps the implementation with lifecycle management
+   * Wraps the implementation with lifecycle management, rate limiting, and retry logic
    */
   async execute(params: AgentParams): Promise<AgentResult> {
     const startTime = Date.now();
+    const action = (params as any).action || 'execute';
     
     try {
+      // Check rate limit
+      if (!(await this.rateLimiter.acquire())) {
+        this.metrics.rateLimitHits++;
+        telemetryService.recordRateLimitHit(this.metadata.id);
+        this.emitLog(`⚠️ Rate limit exceeded for ${this.metadata.name}`, 'warning');
+        
+        // Wait for token
+        await this.rateLimiter.waitForToken();
+      }
+
+      // Validate input if schema exists
+      const validation = this.validateParams(action, params);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: `Validation error: ${validation.error}`
+        };
+      }
+      
       // Reset state
       this.stopRequested = false;
       this.state = {
@@ -71,14 +240,21 @@ export abstract class AbstractAgent implements IPersistentAgent {
       this.emitStatus('running');
       this.emitLog(`🚀 Starting ${this.metadata.name}...`, 'info');
       
-      // Execute the agent's implementation
-      const result = await this.run(params);
+      // Get timeout for this action
+      const timeout = this.getActionTimeout(action);
+      
+      // Execute with retry logic, timeout, and circuit breaker
+      const result = await this.executeWithProtection(params, action, timeout);
       
       // Update state based on result
       const duration = Date.now() - startTime;
       this.state.status = this.stopRequested ? 'idle' : 'completed';
       this.state.lastRunAt = new Date();
       this.state.progress = 100;
+      
+      // Update metrics and telemetry
+      this.updateMetrics(action, duration, result.success);
+      telemetryService.recordAgentExecution(this.metadata.id, action, duration, result.success);
       
       if (this.stopRequested) {
         this.emitLog(`⏹️ ${this.metadata.name} stopped by user`, 'warning');
@@ -90,7 +266,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
       this.emitStatus('completed');
       
       // Log activity to database (will use default user if userId not provided)
-      await this.saveUserActivity(params.userId, 'execute', {
+      await this.saveUserActivity(params.userId, action, {
         success: result.success,
         duration,
         params: this.sanitizeParams(params)
@@ -103,6 +279,10 @@ export abstract class AbstractAgent implements IPersistentAgent {
       this.state.status = 'error';
       this.state.lastError = error.message;
       
+      // Update metrics and telemetry for failure
+      this.updateMetrics(action, duration, false);
+      telemetryService.recordAgentExecution(this.metadata.id, action, duration, false);
+      
       this.emitLog(`❌ ${this.metadata.name} error: ${error.message}`, 'error');
       this.emitStatus('error');
       
@@ -112,6 +292,228 @@ export abstract class AbstractAgent implements IPersistentAgent {
         duration
       };
     }
+  }
+
+  /**
+   * Execute with retry, timeout, and circuit breaker protection
+   */
+  private async executeWithProtection(
+    params: AgentParams, 
+    action: string, 
+    timeoutMs: number
+  ): Promise<AgentResult> {
+    // Wrap execution with circuit breaker
+    return this.circuitBreaker.execute(async () => {
+      // Wrap with retry logic
+      return withRetry(
+        async () => {
+          // Wrap with timeout
+          return this.executeWithTimeout(params, timeoutMs);
+        },
+        {
+          ...this.config.retryOptions,
+          operationName: `${this.metadata.name}:${action}`,
+          isRetryable: (error) => {
+            // Don't retry validation errors or user-caused errors
+            if (error.message?.includes('Validation error')) return false;
+            if (error.message?.includes('required')) return false;
+            if (error.message?.includes('not found')) return false;
+            return isDefaultRetryable(error);
+          },
+          onRetry: (error, attempt, delay) => {
+            this.metrics.retryCount++;
+            telemetryService.recordRetry(this.metadata.id, action, attempt);
+            this.emitLog(`🔄 Retry ${attempt} for ${action} in ${delay}ms: ${error.message}`, 'warning');
+          }
+        }
+      );
+    }, () => {
+      // Fallback when circuit is open
+      this.metrics.circuitBreakerTrips++;
+      telemetryService.recordCircuitBreakerTrip(this.metadata.id);
+      this.emitLog(`⚡ Circuit breaker open for ${this.metadata.name}`, 'error');
+      return {
+        success: false,
+        error: 'Service temporarily unavailable due to repeated failures. Please try again later.'
+      };
+    });
+  }
+
+  /**
+   * Execute with timeout
+   */
+  private async executeWithTimeout(params: AgentParams, timeoutMs: number): Promise<AgentResult> {
+    return new Promise(async (resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      try {
+        const result = await this.run(params);
+        clearTimeout(timeoutId);
+        resolve(result);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Update metrics after execution
+   */
+  private updateMetrics(action: string, duration: number, success: boolean): void {
+    if (!this.config.metricsEnabled) return;
+
+    // Overall metrics
+    this.metrics.totalExecutions++;
+    this.metrics.totalDurationMs += duration;
+    this.metrics.avgDurationMs = this.metrics.totalDurationMs / this.metrics.totalExecutions;
+    this.metrics.lastExecutionTime = new Date();
+
+    if (success) {
+      this.metrics.successfulExecutions++;
+    } else {
+      this.metrics.failedExecutions++;
+    }
+
+    // Per-action metrics
+    if (!this.metrics.actionMetrics[action]) {
+      this.metrics.actionMetrics[action] = {
+        count: 0,
+        successCount: 0,
+        failedCount: 0,
+        avgDurationMs: 0
+      };
+    }
+
+    const actionMetric = this.metrics.actionMetrics[action];
+    actionMetric.count++;
+    actionMetric.avgDurationMs = 
+      ((actionMetric.avgDurationMs * (actionMetric.count - 1)) + duration) / actionMetric.count;
+
+    if (success) {
+      actionMetric.successCount++;
+    } else {
+      actionMetric.failedCount++;
+    }
+  }
+
+  /**
+   * Get current metrics
+   */
+  getMetrics(): AgentMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Reset metrics
+   */
+  resetMetrics(): void {
+    this.metrics = {
+      totalExecutions: 0,
+      successfulExecutions: 0,
+      failedExecutions: 0,
+      totalDurationMs: 0,
+      avgDurationMs: 0,
+      lastExecutionTime: null,
+      actionMetrics: {},
+      rateLimitHits: 0,
+      retryCount: 0,
+      circuitBreakerTrips: 0
+    };
+  }
+
+  /**
+   * Get circuit breaker state
+   */
+  getCircuitBreakerState(): 'closed' | 'open' | 'half-open' {
+    return this.circuitBreaker.getState();
+  }
+
+  /**
+   * Reset circuit breaker
+   */
+  resetCircuitBreaker(): void {
+    this.circuitBreaker.reset();
+  }
+
+  /**
+   * Get rate limiter status
+   */
+  getRateLimitStatus(): { available: number; limit: number } {
+    return {
+      available: this.rateLimiter.getAvailableTokens(),
+      limit: this.config.rateLimit || 60
+    };
+  }
+
+  /**
+   * Execute an external call with automatic retry and circuit breaker
+   * Use this for API calls within agent actions
+   */
+  protected async executeExternalCall<T>(
+    operation: () => Promise<T>,
+    options?: {
+      operationName?: string;
+      retryOptions?: Partial<RetryOptions>;
+      timeoutMs?: number;
+    }
+  ): Promise<T> {
+    const timeoutMs = options?.timeoutMs || this.config.defaultTimeoutMs || 30000;
+    const operationName = options?.operationName || 'external-call';
+    const startTime = Date.now();
+
+    return this.circuitBreaker.execute(async () => {
+      return withRetry(
+        async () => {
+          return new Promise<T>(async (resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+              reject(new Error(`External call timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+
+            try {
+              const result = await operation();
+              clearTimeout(timeoutId);
+              
+              // Record successful external API call
+              const duration = Date.now() - startTime;
+              telemetryService.recordExternalApiCall(
+                this.metadata.id,
+                operationName,
+                duration,
+                true
+              );
+              
+              resolve(result);
+            } catch (error) {
+              clearTimeout(timeoutId);
+              
+              // Record failed external API call
+              const duration = Date.now() - startTime;
+              telemetryService.recordExternalApiCall(
+                this.metadata.id,
+                operationName,
+                duration,
+                false
+              );
+              
+              reject(error);
+            }
+          });
+        },
+        {
+          ...this.config.retryOptions,
+          ...options?.retryOptions,
+          operationName,
+          onRetry: (error, attempt, delay) => {
+            this.metrics.retryCount++;
+            telemetryService.recordRetry(this.metadata.id, operationName, attempt);
+            this.emitLog(`🔄 Retrying external call (${attempt}): ${error.message}`, 'warning');
+          }
+        }
+      );
+    });
   }
 
   /**
@@ -177,6 +579,9 @@ export abstract class AbstractAgent implements IPersistentAgent {
    * Emit status change
    */
   protected emitStatus(status: AgentState['status']): void {
+    // Record agent state in telemetry
+    telemetryService.setAgentState(this.metadata.id, status);
+    
     this.io?.emit('agent-status', {
       agent: this.metadata.id,
       status,

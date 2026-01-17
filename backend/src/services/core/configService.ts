@@ -131,7 +131,7 @@ const DEFAULT_CONFIG = {
   // NEWS AGENT
   // ==========================================================================
   'news.search.maxResults': 30,
-  'news.sources.default': ['hackernews', 'reddit', 'newsapi'],
+  'news.sources.default': ['hackernews', 'reddit', 'lobsters', 'devto', 'gnews', 'mediastack'],
   'news.topics.default': ['tech', 'business', 'science'],
   'news.learning.rate': 0.1,
   'news.digest.maxArticles': 10,
@@ -141,11 +141,16 @@ const DEFAULT_CONFIG = {
   'news.api.timeoutMs': 5000,
   'news.api.longTimeoutMs': 10000,
   'news.hackernews.fetchLimit': 50,
+  'news.lobsters.fetchLimit': 30,
+  'news.devto.fetchLimit': 30,
   'news.api.newsapi.baseUrl': 'https://newsapi.org/v2',
   'news.api.gnews.baseUrl': 'https://gnews.io/api/v4',
   'news.api.hackernews.baseUrl': 'https://hacker-news.firebaseio.com/v0',
   'news.api.reddit.baseUrl': 'https://www.reddit.com',
   'news.api.mediastack.baseUrl': 'http://api.mediastack.com/v1',
+  'news.api.lobsters.baseUrl': 'https://lobste.rs',
+  'news.api.devto.baseUrl': 'https://dev.to/api',
+  'news.api.currentsapi.baseUrl': 'https://api.currentsapi.services/v1',
   'news.reddit.subreddits': ['technology', 'worldnews', 'science', 'programming', 'business', 'sports'],
   
   // ==========================================================================

@@ -89,6 +89,18 @@ const NEWS_SOURCE_DEFAULTS = {
   mediastack: {
     name: 'MediaStack',
     categories: ['general', 'business', 'entertainment', 'health', 'science', 'sports', 'technology']
+  },
+  lobsters: {
+    name: 'Lobste.rs',
+    categories: ['tech', 'programming', 'security', 'devops']
+  },
+  devto: {
+    name: 'DEV.to',
+    categories: ['tech', 'programming', 'webdev', 'javascript', 'python']
+  },
+  currentsapi: {
+    name: 'CurrentsAPI',
+    categories: ['technology', 'business', 'science', 'world', 'politics', 'sports']
   }
 };
 
@@ -98,7 +110,10 @@ const NEWS_BASE_URLS = {
   gnews: configService.get('news.api.gnews.baseUrl', 'https://gnews.io/api/v4'),
   hackernews: configService.get('news.api.hackernews.baseUrl', 'https://hacker-news.firebaseio.com/v0'),
   reddit: configService.get('news.api.reddit.baseUrl', 'https://www.reddit.com'),
-  mediastack: configService.get('news.api.mediastack.baseUrl', 'http://api.mediastack.com/v1')
+  mediastack: configService.get('news.api.mediastack.baseUrl', 'http://api.mediastack.com/v1'),
+  lobsters: configService.get('news.api.lobsters.baseUrl', 'https://lobste.rs'),
+  devto: configService.get('news.api.devto.baseUrl', 'https://dev.to/api'),
+  currentsapi: configService.get('news.api.currentsapi.baseUrl', 'https://api.currentsapi.services/v1')
 };
 
 // Topic to category mapping
@@ -158,6 +173,16 @@ export const newsService = {
     }
     if (sources.includes('mediastack') && process.env.MEDIASTACK_API_KEY) {
       searchPromises.push(newsService.searchMediaStack(query, topics, countryCode, maxResults));
+    }
+    // Free sources - no API key required
+    if (sources.includes('lobsters')) {
+      searchPromises.push(newsService.searchLobsters(query, topics, maxResults));
+    }
+    if (sources.includes('devto')) {
+      searchPromises.push(newsService.searchDevTo(query, topics, maxResults));
+    }
+    if (sources.includes('currentsapi') && process.env.CURRENTSAPI_KEY) {
+      searchPromises.push(newsService.searchCurrentsAPI(query, topics, countryCode, maxResults));
     }
 
     const results = await Promise.allSettled(searchPromises);
@@ -491,6 +516,193 @@ export const newsService = {
       return articles;
     } catch (error: any) {
       logger.fail('MediaStack search failed', { error: error.message });
+      return [];
+    }
+  },
+
+  /**
+   * Search Lobste.rs (free, no API key required)
+   * Tech-focused community similar to HackerNews
+   */
+  searchLobsters: async (
+    query?: string,
+    topics?: string[],
+    maxResults: number = 20
+  ): Promise<NewsArticle[]> => {
+    const apiTimeout = configService.get('news.api.timeoutMs', 5000);
+    
+    try {
+      // Lobste.rs has a simple JSON feed
+      const response = await axios.get(`${NEWS_BASE_URLS.lobsters}/hottest.json`, {
+        timeout: apiTimeout
+      });
+      
+      const stories = response.data || [];
+      const articles: NewsArticle[] = [];
+      
+      for (const story of stories) {
+        if (!story.url) continue;
+        
+        // Filter by query if provided
+        if (query && !story.title?.toLowerCase().includes(query.toLowerCase())) {
+          continue;
+        }
+        
+        // Filter by topics if provided
+        const storyTags = story.tags || [];
+        if (topics?.length) {
+          const hasMatchingTopic = topics.some(topic => 
+            storyTags.some((tag: string) => tag.toLowerCase().includes(topic.toLowerCase()))
+          );
+          if (!hasMatchingTopic && !storyTags.some((t: string) => ['programming', 'tech', 'security', 'devops'].includes(t))) {
+            continue;
+          }
+        }
+        
+        articles.push({
+          id: `lobsters-${story.short_id}`,
+          url: story.url,
+          title: story.title,
+          description: `${story.score} points | ${story.comment_count || 0} comments | Tags: ${storyTags.join(', ')}`,
+          source: 'lobsters',
+          sourceName: 'Lobste.rs',
+          publishedAt: new Date(story.created_at),
+          topics: storyTags.length ? storyTags : ['tech', 'programming'],
+          readingTime: 5
+        });
+        
+        if (articles.length >= maxResults) break;
+      }
+      
+      return articles;
+    } catch (error: any) {
+      logger.fail('Lobste.rs search failed', { error: error.message });
+      return [];
+    }
+  },
+
+  /**
+   * Search DEV.to (free, no API key required)
+   * Developer community with tech articles and tutorials
+   */
+  searchDevTo: async (
+    query?: string,
+    topics?: string[],
+    maxResults: number = 20
+  ): Promise<NewsArticle[]> => {
+    const apiTimeout = configService.get('news.api.timeoutMs', 5000);
+    
+    try {
+      const params: Record<string, string | number> = {
+        per_page: Math.min(maxResults, 30),
+        top: 1 // Get top articles from past day
+      };
+      
+      if (query) {
+        // DEV.to doesn't have search in the same endpoint, but we can use tag
+        params.tag = query.toLowerCase().replace(/\s+/g, '');
+      } else if (topics?.length) {
+        params.tag = topics[0].toLowerCase();
+      }
+      
+      const response = await axios.get(`${NEWS_BASE_URLS.devto}/articles`, {
+        params,
+        timeout: apiTimeout
+      });
+      
+      const posts = response.data || [];
+      const articles: NewsArticle[] = [];
+      
+      for (const post of posts) {
+        // Filter by query in title/description if provided
+        if (query && !post.title?.toLowerCase().includes(query.toLowerCase()) && 
+            !post.description?.toLowerCase().includes(query.toLowerCase())) {
+          continue;
+        }
+        
+        articles.push({
+          id: `devto-${post.id}`,
+          url: post.url,
+          title: post.title,
+          description: post.description || `${post.positive_reactions_count || 0} reactions | ${post.comments_count || 0} comments`,
+          content: post.body_markdown,
+          author: post.user?.name || post.user?.username,
+          source: 'devto',
+          sourceName: 'DEV.to',
+          imageUrl: post.cover_image || post.social_image,
+          publishedAt: new Date(post.published_at),
+          topics: post.tag_list || ['programming', 'webdev'],
+          readingTime: post.reading_time_minutes || 5
+        });
+        
+        if (articles.length >= maxResults) break;
+      }
+      
+      return articles;
+    } catch (error: any) {
+      logger.fail('DEV.to search failed', { error: error.message });
+      return [];
+    }
+  },
+
+  /**
+   * Search CurrentsAPI (free tier: 600 requests/day)
+   * General news from worldwide sources
+   */
+  searchCurrentsAPI: async (
+    query?: string,
+    topics?: string[],
+    countryCode?: string,
+    maxResults: number = 20
+  ): Promise<NewsArticle[]> => {
+    const apiKey = process.env.CURRENTSAPI_KEY;
+    if (!apiKey) return [];
+
+    try {
+      const params: Record<string, string> = {
+        apiKey,
+        language: 'en',
+        page_size: String(Math.min(maxResults, 200))
+      };
+
+      let endpoint = '/latest-news';
+      
+      if (query) {
+        endpoint = '/search';
+        params.keywords = query;
+      }
+      
+      if (topics?.length) {
+        params.category = topics[0];
+      }
+      
+      if (countryCode) {
+        params.country = countryCode.toUpperCase();
+      }
+
+      const longTimeout = configService.get('news.api.longTimeoutMs', 10000);
+      const response = await axios.get(`${NEWS_BASE_URLS.currentsapi}${endpoint}`, {
+        params,
+        timeout: longTimeout
+      });
+
+      const articles: NewsArticle[] = (response.data.news || []).map((article: any) => ({
+        id: `currentsapi-${Buffer.from(article.url || article.id).toString('base64').slice(0, 20)}`,
+        url: article.url,
+        title: article.title,
+        description: article.description || '',
+        author: article.author,
+        source: 'currentsapi',
+        sourceName: 'CurrentsAPI',
+        imageUrl: article.image !== 'None' ? article.image : undefined,
+        publishedAt: new Date(article.published),
+        topics: article.category ? [article.category] : ['general'],
+        readingTime: 5
+      }));
+
+      return articles;
+    } catch (error: any) {
+      logger.fail('CurrentsAPI search failed', { error: error.message });
       return [];
     }
   },

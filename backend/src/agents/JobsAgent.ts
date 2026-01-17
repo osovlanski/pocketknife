@@ -7,11 +7,106 @@
  * This agent wraps the existing job services and provides a unified interface.
  */
 
-import { AbstractAgent } from './AbstractAgent';
+import { AbstractAgent, AgentConfig } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
 import mockInterviewService, { InterviewQuestion, InterviewAnswer } from '../services/jobs/mockInterviewService';
 import systemDesignEvaluationService, { SystemDesignEvaluation, SystemDesignQuestion } from '../services/jobs/systemDesignEvaluationService';
+import { z } from 'zod';
+
+// Validation schemas for Jobs Agent actions
+const JobsSchemas = {
+  'save-job': z.object({
+    action: z.literal('save-job'),
+    userId: z.string().min(1, 'User ID is required'),
+    jobData: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      company: z.string().min(1),
+      url: z.string().url().optional(),
+      location: z.string().optional(),
+      salary: z.string().optional(),
+      description: z.string().optional()
+    })
+  }),
+  
+  'get-saved': z.object({
+    action: z.literal('get-saved'),
+    userId: z.string().min(1, 'User ID is required')
+  }),
+  
+  'update-preferences': z.object({
+    action: z.literal('update-preferences'),
+    userId: z.string().min(1, 'User ID is required'),
+    preferences: z.object({
+      preferredLocations: z.array(z.string()).optional(),
+      preferredJobTypes: z.array(z.string()).optional(),
+      preferredCompanies: z.array(z.string()).optional(),
+      minSalary: z.number().nonnegative().optional(),
+      maxSalary: z.number().positive().optional()
+    })
+  }),
+  
+  'extract-interview-questions': z.object({
+    action: z.literal('extract-interview-questions'),
+    userId: z.string().optional(),
+    imageBase64: z.string().min(1, 'Image data is required'),
+    imageMimeType: z.string().optional()
+  }),
+  
+  'generate-answer': z.object({
+    action: z.literal('generate-answer'),
+    userId: z.string().optional(),
+    question: z.string().min(1, 'Question is required'),
+    context: z.object({
+      role: z.string().optional(),
+      experience: z.string().optional(),
+      skills: z.array(z.string()).optional()
+    }).optional()
+  }),
+  
+  'evaluate-answer': z.object({
+    action: z.literal('evaluate-answer'),
+    userId: z.string().optional(),
+    question: z.string().min(1, 'Question is required'),
+    userAnswer: z.string().min(1, 'Answer is required'),
+    context: z.object({
+      role: z.string().optional(),
+      experience: z.string().optional(),
+      skills: z.array(z.string()).optional()
+    }).optional()
+  }),
+  
+  'get-example-questions': z.object({
+    action: z.literal('get-example-questions'),
+    userId: z.string().optional(),
+    role: z.string().optional(),
+    company: z.string().optional(),
+    category: z.enum(['technical', 'behavioral', 'situational', 'system-design', 'coding']).optional(),
+    industry: z.string().optional(),
+    experienceLevel: z.enum(['junior', 'mid', 'senior']).optional(),
+    count: z.number().int().positive().max(20).optional()
+  }),
+  
+  'get-popular-company-questions': z.object({
+    action: z.literal('get-popular-company-questions'),
+    userId: z.string().optional()
+  }),
+  
+  'evaluate-system-design': z.object({
+    action: z.literal('evaluate-system-design'),
+    userId: z.string().optional(),
+    question: z.any(), // SystemDesignQuestion can be complex
+    jsonData: z.string().optional(),
+    textAnnotations: z.array(z.string()).optional(),
+    elapsedTime: z.number().optional()
+  }),
+  
+  'get-system-design-questions': z.object({
+    action: z.literal('get-system-design-questions'),
+    userId: z.string().optional()
+  })
+};
 
 interface JobsParams extends AgentParams {
   action: 'save-job' | 'get-saved' | 'update-preferences' | 'extract-interview-questions' | 'generate-answer' | 'evaluate-answer' | 'get-example-questions' | 'get-popular-company-questions' | 'evaluate-system-design' | 'get-system-design-questions';
@@ -73,6 +168,24 @@ export class JobsAgent extends AbstractAgent {
     icon: '💼',
     color: '#8B5CF6' // Purple
   };
+
+  // Register validation schemas for each action
+  protected validationSchemas = JobsSchemas as Record<string, z.ZodSchema>;
+
+  constructor(config?: AgentConfig) {
+    super({
+      // Custom config for Jobs Agent
+      rateLimit: 30, // 30 requests per minute
+      defaultTimeoutMs: 60000, // 60s timeout (AI operations can be slow)
+      actionTimeouts: {
+        'extract-interview-questions': 120000, // 2 min for image processing
+        'evaluate-system-design': 90000, // 1.5 min for evaluation
+        'generate-answer': 45000 // 45s for answer generation
+      },
+      circuitBreakerThreshold: 3,
+      ...config
+    });
+  }
 
   protected async run(params: JobsParams): Promise<AgentResult<JobsResult>> {
     const { action } = params;
