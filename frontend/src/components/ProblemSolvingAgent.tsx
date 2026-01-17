@@ -3,6 +3,7 @@ import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Bui
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
+import logger from '../services/logger';
 
 interface CodingProblem {
   id: string;
@@ -127,7 +128,7 @@ const ProblemSolvingAgent = () => {
         })));
       }
     } catch (error) {
-      console.error('Test execution failed:', error);
+      logger.error('Test execution failed', { error });
       // Simulate test results
       setLocalTests(prev => prev.map(test => ({
         ...test,
@@ -391,7 +392,7 @@ func main() {
         setHasUnsavedChanges(false);
       }
     } catch (error) {
-      console.error('Failed to generate signature:', error);
+      logger.error('Failed to generate signature', { error });
     } finally {
       setIsGeneratingSignature(false);
     }
@@ -422,7 +423,7 @@ func main() {
         setShowDiffView(true);
       }
     } catch (error) {
-      console.error('Failed to generate improved code:', error);
+      logger.error('Failed to generate improved code', { error });
     } finally {
       setIsGeneratingSuggestion(false);
     }
@@ -606,7 +607,7 @@ func main() {
         setProblems(data.problems || []);
       }
     } catch (error: any) {
-      console.error('Search failed:', error.message);
+      logger.error('Search failed', { error: error.message });
     } finally {
       setIsSearching(false);
     }
@@ -645,7 +646,7 @@ func main() {
           setProblems(prev => prev.map(p => p.id === problem.id ? updatedProblem : p));
         }
       } catch (error) {
-        console.error('Failed to load description:', error);
+        logger.error('Failed to load description', { error });
       } finally {
         setIsLoadingDescription(false);
       }
@@ -716,12 +717,12 @@ func main() {
             setSaveStatus({ type: 'warning', message: saveData.error || 'Could not save solution' });
           }
         } catch (saveError: any) {
-          console.warn('Failed to save solution:', saveError.message);
+          logger.warn('Failed to save solution', { error: saveError.message });
           setSaveStatus({ type: 'warning', message: 'Evaluated but not saved (DB unavailable)' });
         }
       }
     } catch (error: any) {
-      console.error('Failed to evaluate code:', error.message);
+      logger.error('Failed to evaluate code', { error: error.message });
     } finally {
       setIsEvaluating(false);
     }
@@ -764,7 +765,7 @@ func main() {
         setShowHints(true);
       }
     } catch (error: any) {
-      console.error('Failed to generate hints:', error.message);
+      logger.error('Failed to generate hints', { error: error.message });
     } finally {
       setIsGeneratingHints(false);
     }

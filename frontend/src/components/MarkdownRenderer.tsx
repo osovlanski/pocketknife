@@ -9,6 +9,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mermaid from 'mermaid';
+import logger from '../services/logger';
 
 // Initialize mermaid with theme
 mermaid.initialize({
@@ -64,7 +65,7 @@ const MermaidDiagram: React.FC<{ code: string; id: string }> = ({ code, id }) =>
         const { svg: renderedSvg } = await mermaid.render(`mermaid-${id}`, code.trim());
         setSvg(renderedSvg);
       } catch (err: any) {
-        console.error('Mermaid render error:', err);
+        logger.error('Mermaid render error', { error: err.message });
         setError(err.message || 'Failed to render diagram');
       }
     };

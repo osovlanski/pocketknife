@@ -43,6 +43,7 @@ import useAdmin from '../hooks/useAdmin';
 
 // Services & Types
 import * as adminApi from '../services/adminApi';
+import logger from '../services/logger';
 import type { User, AuditLog, SystemSetting, PlatformStats, ExternalApiConfig, ApiTestResult } from '../services/adminApi';
 
 // Styles
@@ -266,7 +267,7 @@ const DashboardTab: React.FC = () => {
       const { stats } = await adminApi.getStats();
       setStats(stats);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      logger.error('Failed to load stats', { error });
     } finally {
       setLoading(false);
     }
@@ -396,7 +397,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ currentUser }) => {
       setUsers(response.users);
       setTotalPages(response.pagination.totalPages);
     } catch (error) {
-      console.error('Failed to load users:', error);
+      logger.error('Failed to load users', { error });
     } finally {
       setLoading(false);
     }
@@ -746,14 +747,13 @@ const ExternalApisTab: React.FC<ExternalApisTabProps> = ({ isSuperAdmin }) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📡 Loading external API configurations...');
+      logger.debug('Loading external API configurations...');
       const response = await adminApi.getExternalApis();
-      console.log('📊 API Response:', response);
+      logger.debug('API Response received', { count: Object.keys(response.apis || {}).length });
       const grouped = response.apis || {};
-      console.log('📦 Grouped APIs:', grouped, 'Count:', Object.keys(grouped).length);
       setApis(grouped);
     } catch (err: any) {
-      console.error('❌ Failed to load APIs:', err);
+      logger.error('Failed to load APIs', { error: err.message });
       setError(err.response?.data?.error || err.message || 'Failed to load API configurations');
     } finally {
       setLoading(false);
@@ -776,7 +776,7 @@ const ExternalApisTab: React.FC<ExternalApisTabProps> = ({ isSuperAdmin }) => {
       setTestResults(prev => ({ ...prev, [name]: result }));
       loadApis();
     } catch (error) {
-      console.error('Test failed:', error);
+      logger.error('Test failed', { error });
     } finally {
       setTesting(null);
     }
@@ -786,17 +786,19 @@ const ExternalApisTab: React.FC<ExternalApisTabProps> = ({ isSuperAdmin }) => {
     try {
       setTestingAll(true);
       setError(null);
-      console.log('🧪 Testing all APIs across all categories...');
+      logger.debug('Testing all APIs across all categories...');
       const response = await adminApi.testAllExternalApis(); // Test all categories
-      console.log('📊 Test results:', response);
+      logger.debug('Test results received', { count: response.results?.length || 0 });
       const resultMap: Record<string, ApiTestResult> = {};
       response.results.forEach(r => { resultMap[r.name] = r; });
       setTestResults(resultMap);
       loadApis();
     } catch (err: any) {
-      console.error('❌ Test all failed:', err);
-      console.error('   Response:', err.response?.data);
-      console.error('   Status:', err.response?.status);
+      logger.error('Test all failed', { 
+        error: err.message, 
+        response: err.response?.data, 
+        status: err.response?.status 
+      });
       const errorMessage = err.response?.data?.error || err.message || 'Unknown error';
       const errorDetails = err.response?.data?.details || '';
       setError(`Test failed: ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
@@ -1054,7 +1056,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ isSuperAdmin }) => {
       const { settings } = await adminApi.getSettings();
       setSettings(settings);
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      logger.error('Failed to load settings', { error });
     } finally {
       setLoading(false);
     }
@@ -1193,7 +1195,7 @@ const AuditTab: React.FC = () => {
       setLogs(response.logs);
       setTotalPages(response.pagination.totalPages);
     } catch (error) {
-      console.error('Failed to load audit logs:', error);
+      logger.error('Failed to load audit logs', { error });
     } finally {
       setLoading(false);
     }

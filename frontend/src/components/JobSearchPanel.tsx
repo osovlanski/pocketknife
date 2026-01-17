@@ -3,6 +3,7 @@ import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircl
 import { extractTextFromFile } from '../utils/fileParser';
 import { JobSearchFilters, IndustryType, CompanySizeType } from '../types';
 import { API_BASE_URL } from '../config';
+import logger from '../services/logger';
 
 // Available company sizes for selection
 const AVAILABLE_COMPANY_SIZES: { value: CompanySizeType; label: string; emoji: string }[] = [
@@ -125,7 +126,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
       setCVText(text);
       setError('');
     } catch (err: any) {
-      console.error('Error reading file:', err);
+      logger.error('Error reading file', { error: err.message });
       setError(err.message || 'Failed to read file. Please try pasting your CV text instead.');
     } finally {
       setUploading(false);
@@ -147,7 +148,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
       setCVData(data.cvData);
       onCVUploaded(data);
     } catch (error: any) {
-      console.error('Error uploading CV:', error);
+      logger.error('Error uploading CV', { error: error.message });
       alert('Error analyzing CV: ' + error.message);
     } finally {
       setUploading(false);
@@ -190,14 +191,14 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
           setLocation(city && country ? `${city}, ${country}` : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
           setGpsError(null);
         } catch (error) {
-          console.error('Error getting location name:', error);
+          logger.error('Error getting location name', { error });
           // Fallback to coordinates
           setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         }
         setUseGPS(false);
       },
       (error) => {
-        console.error('Geolocation error:', error.code, error.message);
+        logger.error('Geolocation error', { code: error.code, message: error.message });
         
         // Provide specific error messages based on error code
         let errorMessage = 'Could not get your location. ';

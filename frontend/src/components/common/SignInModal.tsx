@@ -9,6 +9,7 @@ import { User, Building2 } from 'lucide-react';
 import Modal from './Modal';
 import Button from './Button';
 import * as authApi from '../../services/authApi';
+import logger from '../../services/logger';
 import styles from '../../styles/modal.module.css';
 import commonStyles from '../../styles/common.module.css';
 
@@ -42,7 +43,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
         const status = await authApi.getSocialProvidersStatus();
         setProvidersStatus(status);
       } catch (err) {
-        console.error('Failed to check social providers:', err);
+        logger.error('Failed to check social providers', { error: err });
       }
     };
     if (isOpen) {

@@ -42,8 +42,10 @@ import type {
   ExampleQuestion,
   CompanyQuestionBank,
   SystemDesignQuestion,
-  SystemDesignEvaluation
+  SystemDesignEvaluation,
+  CodeEvaluationResult
 } from '../services/mockInterviewApi';
+import type { ApiError } from '../types';
 import CodeEditorModal, { CodeQuestion, CodeSubmission } from './shared/CodeEditorModal';
 import SystemDesignWhiteboard, { DiagramSubmission } from './shared/SystemDesignWhiteboard';
 import ProblemSolvingAgent from './ProblemSolvingAgent';
@@ -77,7 +79,7 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
   // Code Editor Modal state
   const [codeEditorOpen, setCodeEditorOpen] = useState(false);
   const [currentCodeQuestion, setCurrentCodeQuestion] = useState<CodeQuestion | null>(null);
-  const [codeEvaluation, setCodeEvaluation] = useState<any>(null);
+  const [codeEvaluation, setCodeEvaluation] = useState<CodeEvaluationResult | null>(null);
   
   // System Design Whiteboard state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
@@ -206,8 +208,9 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
       } else {
         setError('Failed to generate example questions');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to generate example questions');
+    } catch (err) {
+      const error = err as ApiError;
+      setError(error.response?.data?.error || 'Failed to generate example questions');
     } finally {
       setIsLoading(false);
     }
@@ -254,8 +257,9 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
         // Expand the first question by default
         setExpandedQuestions(new Set([0]));
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to extract questions from image');
+    } catch (err) {
+      const error = err as ApiError;
+      setError(error.response?.data?.error || 'Failed to extract questions from image');
     } finally {
       setIsLoading(false);
     }
@@ -271,15 +275,18 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
 
     try {
       const questionText = question.translated || question.original;
+      // Default skills used for answer generation - CV integration can enhance this
+      const defaultSkills = ['JavaScript', 'TypeScript', 'React'];
       const result = await mockInterviewApi.generateAnswer(questionText, {
         role,
         experience,
-        skills: ['JavaScript', 'TypeScript', 'React'] // TODO: Get from CV
+        skills: defaultSkills
       });
 
       setAnswers(prev => new Map(prev).set(index, result.answer));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to generate answer');
+    } catch (err) {
+      const error = err as ApiError;
+      setError(error.response?.data?.error || 'Failed to generate answer');
     } finally {
       setIsLoading(false);
     }
@@ -306,8 +313,9 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
       });
 
       setEvaluations(prev => new Map(prev).set(index, result.evaluation));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to evaluate answer');
+    } catch (err) {
+      const error = err as ApiError;
+      setError(error.response?.data?.error || 'Failed to evaluate answer');
     } finally {
       setIsLoading(false);
     }

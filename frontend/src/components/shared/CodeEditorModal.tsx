@@ -276,13 +276,14 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
             actual: 'Executed (backend validation needed)',
             executionTime: performance.now() - startTime,
           });
-        } catch (error: any) {
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           results.push({
             passed: false,
             input: testCase.input,
             expected: testCase.expectedOutput,
-            actual: error.message,
-            error: error.message,
+            actual: errorMessage,
+            error: errorMessage,
           });
         }
       }

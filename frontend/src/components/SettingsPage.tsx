@@ -33,6 +33,7 @@ import useSettings from '../hooks/useSettings';
 // Services & Types
 import * as authApi from '../services/authApi';
 import type { CurrentUser, UserPreferences, AuthStatus, TelegramStatus, DiscordStatus, FacebookStatus } from '../services/authApi';
+import logger from '../services/logger';
 
 // Styles
 import styles from '../styles/settings.module.css';
@@ -829,7 +830,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
         setGoogleLoadError(status.error);
       }
     } catch (error: any) {
-      console.error('Failed to load Google status:', error);
+      logger.error('Failed to load Google status', { error: error.message });
       setGoogleLoadError(
         error.response?.data?.error || 
         error.message || 
@@ -866,7 +867,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       const status = await authApi.getTelegramStatus();
       setTelegramStatus(status);
     } catch (error: any) {
-      console.error('Failed to load Telegram status:', error);
+      logger.error('Failed to load Telegram status', { error: error.message });
       setTelegramStatus({
         configured: false,
         connected: false,
@@ -901,7 +902,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       const status = await authApi.getDiscordStatus();
       setDiscordStatus(status);
     } catch (error: any) {
-      console.error('Failed to load Discord status:', error);
+      logger.error('Failed to load Discord status', { error: error.message });
       setDiscordStatus({
         configured: false,
         connected: false,
@@ -936,7 +937,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       const status = await authApi.getFacebookStatus();
       setFacebookStatus(status);
     } catch (error: any) {
-      console.error('Failed to load Facebook status:', error);
+      logger.error('Failed to load Facebook status', { error: error.message });
       setFacebookStatus({
         configured: false,
         connected: false,
@@ -1008,7 +1009,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
       await authApi.disconnectGoogle();
       await loadGoogleStatus();
     } catch (error) {
-      console.error('Failed to disconnect Google:', error);
+      logger.error('Failed to disconnect Google', { error });
     } finally {
       setIsLoadingGoogle(false);
     }

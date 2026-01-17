@@ -3,6 +3,7 @@ import { ExternalLink, MapPin, Building2, DollarSign, Calendar, ChevronDown, Che
 import * as configApi from '../services/configApi';
 import type { JobThresholds } from '../services/configApi';
 import { API_BASE_URL } from '../config';
+import logger from '../services/logger';
 
 interface CompanyInfo {
   name: string;
@@ -60,7 +61,7 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
         const config = await configApi.getJobThresholds();
         setThresholds(config);
       } catch (error) {
-        console.warn('Failed to load job config, using defaults');
+        logger.warn('Failed to load job config, using defaults', { error });
       }
     };
     loadConfig();
@@ -94,7 +95,7 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch company info:', error);
+      logger.error('Failed to fetch company info', { error });
     } finally {
       setLoadingCompanies(prev => {
         const newSet = new Set(prev);

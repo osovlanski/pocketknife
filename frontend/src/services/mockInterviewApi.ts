@@ -167,6 +167,22 @@ export const getPopularCompanyQuestions = async (): Promise<{
 };
 
 // =============================================================================
+// CODE EVALUATION
+// =============================================================================
+
+export interface CodeEvaluationResult {
+  passed?: boolean;
+  code?: string;
+  executionTime?: number;
+  score?: number;
+  correctness?: number;
+  efficiency?: number;
+  codeQuality?: number;
+  feedback?: string;
+  improvements?: string[];
+}
+
+// =============================================================================
 // SYSTEM DESIGN
 // =============================================================================
 

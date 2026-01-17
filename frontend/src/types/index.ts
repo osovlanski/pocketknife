@@ -1,4 +1,16 @@
 // frontend/src/types/index.ts
+
+// Common Error Types
+export interface ApiError extends Error {
+    response?: {
+        data?: {
+            error?: string;
+            message?: string;
+        };
+        status?: number;
+    };
+}
+
 export interface Email {
     id: string;
     subject: string;

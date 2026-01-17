@@ -122,10 +122,15 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
     try {
       setIsLoading(true);
       
-      const params: any = {};
-      if (selectedRegion !== 'all') params.region = selectedRegion;
-      if (selectedActivity !== 'all') params.activity = selectedActivity;
-      if (selectedDuration !== 'all') params.duration = selectedDuration;
+      const params: {
+        region?: IsraelRegion;
+        activity?: IsraelActivityType;
+        duration?: TripDuration;
+        budget?: BudgetLevel;
+      } = {};
+      if (selectedRegion !== 'all') params.region = selectedRegion as IsraelRegion;
+      if (selectedActivity !== 'all') params.activity = selectedActivity as IsraelActivityType;
+      if (selectedDuration !== 'all') params.duration = selectedDuration as TripDuration;
       params.budget = selectedBudget;
 
       const data = await getIsraelDestinations(params);
@@ -141,8 +146,8 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
   const loadTrails = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params: any = {};
-      if (selectedRegion !== 'all') params.region = selectedRegion;
+      const params: { region?: IsraelRegion } = {};
+      if (selectedRegion !== 'all') params.region = selectedRegion as IsraelRegion;
       
       const data = await getIsraelTrails(params);
       setTrails(data.trails);
@@ -157,8 +162,8 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
   const loadBeaches = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params: any = {};
-      if (selectedRegion !== 'all') params.region = selectedRegion;
+      const params: { region?: IsraelRegion } = {};
+      if (selectedRegion !== 'all') params.region = selectedRegion as IsraelRegion;
       
       const data = await getIsraelBeaches(params);
       setBeaches(data.beaches);
@@ -178,9 +183,13 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
       setAiSuggestions([]);
       setAiSummary('');
       
-      const filters: any = {};
-      if (selectedRegion !== 'all') filters.regions = [selectedRegion];
-      if (selectedActivity !== 'all') filters.activityTypes = [selectedActivity];
+      const filters: {
+        regions?: IsraelRegion[];
+        activityTypes?: IsraelActivityType[];
+        budget?: BudgetLevel;
+      } = {};
+      if (selectedRegion !== 'all') filters.regions = [selectedRegion as IsraelRegion];
+      if (selectedActivity !== 'all') filters.activityTypes = [selectedActivity as IsraelActivityType];
       if (selectedBudget) filters.budget = selectedBudget;
       
       const data = await searchIsraelAI(aiPrompt, filters);

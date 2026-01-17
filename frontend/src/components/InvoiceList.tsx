@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { FileText, Download, ExternalLink, RefreshCw, Cloud } from 'lucide-react';
 import { getInvoices } from '../services/api';
 import { API_BASE_URL } from '../config';
+import logger from '../services/logger';
 
 interface Invoice {
   id: string;
@@ -65,14 +66,14 @@ const InvoiceList: React.FC = () => {
     const handleFocus = () => {
       // Always re-fetch when window regains focus if auth is required
       if (authRequired) {
-        console.log('[InvoiceList] Window focused, re-fetching...');
+        logger.debug('Window focused, re-fetching invoices');
         fetchInvoices();
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authRequired) {
-        console.log('[InvoiceList] Tab visible, re-fetching...');
+        logger.debug('Tab visible, re-fetching invoices');
         fetchInvoices();
       }
     };
@@ -81,7 +82,7 @@ const InvoiceList: React.FC = () => {
     let interval: ReturnType<typeof setInterval> | null = null;
     if (authRequired) {
       interval = setInterval(() => {
-        console.log('[InvoiceList] Periodic check for auth status...');
+        logger.debug('Periodic check for auth status');
         fetchInvoices();
       }, 5000);
     }

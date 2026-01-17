@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
 import MarkdownRenderer from './MarkdownRenderer';
 import { API_BASE_URL, SOCKET_URL } from '../config';
+import logger from '../services/logger';
 
 interface LearningResource {
   id: string;
@@ -142,7 +143,7 @@ const LearningAgent = () => {
         setLinkedInInfo(data);
       }
     } catch (error) {
-      console.warn('Could not fetch LinkedIn info');
+      logger.warn('Could not fetch LinkedIn info', { error });
     }
   };
 
@@ -153,7 +154,7 @@ const LearningAgent = () => {
         setSearchHistory(JSON.parse(history));
       }
     } catch (error) {
-      console.warn('Could not load search history');
+      logger.warn('Could not load search history', { error });
     }
   };
 
@@ -210,7 +211,7 @@ const LearningAgent = () => {
         setSavedArticles(prev => [...prev, resource]);
       }
     } catch (error) {
-      console.error('Failed to save article:', error);
+      logger.error('Failed to save article', { error });
     }
   };
 
@@ -250,13 +251,13 @@ const LearningAgent = () => {
       const data = await response.json();
 
       if (data.error) {
-        console.error('Search error:', data.error);
+        logger.error('Search error', { error: data.error });
         return;
       }
 
       setResources(data.resources || []);
     } catch (error: any) {
-      console.error('Search failed:', error.message);
+      logger.error('Search failed', { error: error.message });
     } finally {
       setIsSearching(false);
     }
@@ -277,14 +278,14 @@ const LearningAgent = () => {
       const data = await response.json();
 
       if (data.error) {
-        console.error('Topic summary error:', data.error);
+        logger.error('Topic summary error', { error: data.error });
         return;
       }
 
       setTopicSummary(data.summary);
       setShowSummary(true);
     } catch (error: any) {
-      console.error('Failed to generate summary:', error.message);
+      logger.error('Failed to generate summary', { error: error.message });
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -314,7 +315,7 @@ const LearningAgent = () => {
         setExpandedResources(prev => new Set([...prev, resourceId]));
       }
     } catch (error: any) {
-      console.error('Failed to summarize:', error.message);
+      logger.error('Failed to summarize', { error: error.message });
       setResources(prev => prev.map(r =>
         r.id === resourceId ? { ...r, isSummarizing: false } : r
       ));
@@ -339,7 +340,7 @@ const LearningAgent = () => {
       setCopiedId(resourceId);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      logger.error('Failed to copy', { error });
     }
   };
 
