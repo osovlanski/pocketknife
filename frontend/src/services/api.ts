@@ -1,6 +1,6 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../config';
+import type { Email } from '../types';
 
 export const fetchEmails = async () => {
   try {
@@ -11,7 +11,7 @@ export const fetchEmails = async () => {
   }
 };
 
-export const classifyEmail = async (email: any) => {
+export const classifyEmail = async (email: Email) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/agent/classify`, { email });
     return response.data;
@@ -20,7 +20,7 @@ export const classifyEmail = async (email: any) => {
   }
 };
 
-export const processEmail = async (email: any) => {
+export const processEmail = async (email: Email) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/agent/process`, { email });
     return response.data;

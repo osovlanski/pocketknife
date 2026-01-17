@@ -12,6 +12,7 @@ import { processAllEmails, testNotification } from '../services/api';
 import * as authApi from '../services/authApi';
 import useSearchController from './useSearchController';
 import { SOCKET_URL, API_BASE_URL } from '../config';
+import logger from '../services/logger';
 
 export interface GmailStats {
   invoices: number;
@@ -75,7 +76,7 @@ export const useGmail = (): UseGmailReturn => {
       setAuthUrl(authApi.getGoogleAuthUrl());
       setUserEmail(data.email || null);
     } catch (error) {
-      console.error('Failed to check auth status:', error);
+      logger.error('Failed to check auth status', { error });
       setIsAuthenticated(false);
     }
   }, []);
@@ -145,7 +146,7 @@ export const useGmail = (): UseGmailReturn => {
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        console.error('Processing error:', error.message);
+        logger.error('Email processing error', { error: error.message });
       }
     } finally {
       searchController.reset();
@@ -158,11 +159,11 @@ export const useGmail = (): UseGmailReturn => {
 
   const handleTestNotification = useCallback(async () => {
     try {
-      console.log('📧 Testing notification...');
-      const result = await testNotification();
-      console.log(`✅ Test notification sent via ${result.method}`);
+      await testNotification();
+      // Notification test result is shown via toast
     } catch (error: any) {
-      console.error(`❌ Test failed: ${error.message}`);
+      // Error is handled by the calling component
+      throw error;
     }
   }, []);
 

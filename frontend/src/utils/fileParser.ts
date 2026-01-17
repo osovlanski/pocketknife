@@ -1,6 +1,7 @@
 /**
  * Extract text from different file types
  */
+import logger from '../services/logger';
 
 // Initialize PDF.js worker once
 let pdfWorkerInitialized = false;
@@ -92,7 +93,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
     }
     
     // Try alternative approach with a fallback
-    console.log('Primary PDF parsing failed, trying fallback...');
+    logger.debug('Primary PDF parsing failed, trying fallback');
     return await extractTextFromPDFFallback(file);
   }
 }

@@ -16,6 +16,7 @@ import { io, Socket } from 'socket.io-client';
 
 // Config
 import { API_BASE_URL, SOCKET_URL } from './config';
+import logger from './services/logger';
 
 // Hooks
 import useAuth from './hooks/useAuth';
@@ -57,6 +58,7 @@ import ActivityLog from './components/ActivityLog';
 import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './services/travelApi';
 import { getAgentStatus, invalidateCache, type AgentStatus } from './services/configApi';
 import type { TravelSearchQuery } from './types/travel';
+import type { JobSearchFilters } from './types';
 import type { TabConfig } from './components/common/NavTabs';
 
 // Styles
@@ -233,7 +235,7 @@ const App: React.FC = () => {
         const status = await getAgentStatus();
         setAgentStatus(status);
       } catch (error) {
-        console.error('Failed to load agent status:', error);
+        logger.error('Failed to load agent status', { error });
         // Keep defaults (all enabled) on error
       }
     };
@@ -252,7 +254,7 @@ const App: React.FC = () => {
     if (location.pathname !== '/admin') {
       // Just navigated away from admin - invalidate cache and refresh agent status
       invalidateCache();
-      getAgentStatus().then(setAgentStatus).catch(console.error);
+      getAgentStatus().then(setAgentStatus).catch(err => logger.error('Failed to refresh agent status', { error: err }));
     }
   }, [location.pathname]);
 
@@ -273,7 +275,7 @@ const App: React.FC = () => {
           
           // Also sign the user into the app if we have their email
           if (authEmail) {
-            console.log('[Auth] Google OAuth success, signing in user:', authEmail);
+            logger.info('Google OAuth success, signing in user', { email: authEmail });
             const signInResult = await auth.signIn(authEmail);
             if (signInResult.success) {
               notifications.showSuccess(
@@ -281,7 +283,7 @@ const App: React.FC = () => {
               );
             } else {
               // Google connected but app sign-in failed - show error to user
-              console.error('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
+              logger.error('Google OAuth success but app sign-in failed', { error: signInResult.error });
               notifications.showError(
                 `Sign-in failed: ${signInResult.error || 'Unknown error'}. Google is connected, but please try signing in manually.`
               );
@@ -292,7 +294,7 @@ const App: React.FC = () => {
             );
           }
         } catch (error) {
-          console.error('[Auth] Google OAuth verification error:', error);
+          logger.error('Google OAuth verification error', { error });
           // Backend said success but verification failed - show warning
           notifications.showWarning(
             'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
@@ -354,21 +356,21 @@ const App: React.FC = () => {
 
   const handleSignIn = useCallback(async (email: string) => {
     try {
-      console.log('[Auth] Attempting sign in for:', email);
+      logger.debug('Attempting sign in', { email });
       const result = await auth.signIn(email);
-      console.log('[Auth] Sign in result:', result);
+      logger.debug('Sign in result', { success: result.success });
       
       if (result.success) {
         notifications.showSuccess(`Welcome back, ${email}!`);
         // Force refresh user state to ensure UI updates
         await auth.refreshUser();
       } else {
-        console.error('[Auth] Sign in failed:', result.error);
+        logger.error('Sign in failed', { error: result.error });
         notifications.showError(result.error || 'Sign in failed');
       }
       return result;
     } catch (error: any) {
-      console.error('[Auth] Sign in exception:', error);
+      logger.error('Sign in exception', { error: error.message });
       notifications.showError('Sign in failed: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
@@ -384,11 +386,11 @@ const App: React.FC = () => {
     setActivityLogs([]);
   }, []);
 
-  const handleCVUploaded = useCallback((data: any) => {
-    console.log('CV uploaded:', data);
+  const handleCVUploaded = useCallback((data: { filename?: string; skills?: string[] }) => {
+    logger.info('CV uploaded', { filename: data?.filename });
   }, []);
 
-  const handleJobSearch = useCallback(async (location?: string, remoteOnly?: boolean, filters?: any) => {
+  const handleJobSearch = useCallback(async (location?: string, remoteOnly?: boolean, filters?: JobSearchFilters) => {
     const controller = jobSearchController.start();
     
     try {
@@ -444,7 +446,7 @@ const App: React.FC = () => {
       await stopTravelSearch();
       setTravelLoading(false);
     } catch (error) {
-      console.error('Error stopping travel search:', error);
+      logger.error('Error stopping travel search', { error });
     }
   }, []);
 
