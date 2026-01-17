@@ -80,7 +80,7 @@ export async function generateHints(req: Request, res: Response) {
  */
 export async function getProblemDescription(req: Request, res: Response) {
   try {
-    const { titleSlug } = req.params;
+    const titleSlug = req.params.titleSlug as string;
 
     if (!titleSlug) {
       return res.status(400).json({ error: 'Problem title slug is required' });
@@ -222,7 +222,7 @@ export async function generateImprovedCode(req: Request, res: Response) {
  */
 export async function getCompanyInterviewProfile(req: Request, res: Response) {
   try {
-    const { companyName } = req.params;
+    const companyName = req.params.companyName as string;
 
     if (!companyName) {
       return res.status(400).json({ error: 'Company name is required' });
@@ -480,7 +480,8 @@ export async function getSolvedProblems(req: Request, res: Response) {
  */
 export async function getSolvedProblemCode(req: Request, res: Response) {
   try {
-    const { problemId, source } = req.params;
+    const problemId = req.params.problemId as string;
+    const source = req.params.source as string | undefined;
 
     const prisma = getPrisma();
     if (!prisma) {
@@ -685,9 +686,9 @@ export async function getCodingPatterns(req: Request, res: Response) {
  */
 export async function getCodingPatternById(req: Request, res: Response) {
   try {
-    const { patternId } = req.params;
+    const patternId = req.params.patternId as string;
 
-    const pattern = CODING_PATTERNS.find(p => p.id === patternId);
+    const pattern = CODING_PATTERNS.find((p: { id: string }) => p.id === patternId);
 
     if (!pattern) {
       return res.status(404).json({ error: `Pattern '${patternId}' not found` });
@@ -746,8 +747,8 @@ export async function getSuggestedProblems(req: Request, res: Response) {
 
     // Get topics from weak problems to suggest similar patterns
     const weakTopics = new Set<string>();
-    weakProblems.forEach(p => {
-      (p.topics as string[]).forEach(t => weakTopics.add(t.toLowerCase()));
+    weakProblems.forEach((p: { topics: unknown }) => {
+      (p.topics as string[]).forEach((t: string) => weakTopics.add(t.toLowerCase()));
     });
 
     // Find matching patterns based on weak topics

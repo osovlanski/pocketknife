@@ -113,11 +113,12 @@ export const authenticate = async (
         lastLoginAt: new Date(),
         loginCount: { increment: 1 }
       }
-    }).catch(err => console.error('Failed to update login stats:', err));
+    }).catch((err: Error) => {
+      // Silently fail - login stats update is non-critical
+    });
 
     next();
   } catch (error: any) {
-    console.error('Authentication error:', error);
     res.status(500).json({ error: 'Authentication failed' });
   }
 };

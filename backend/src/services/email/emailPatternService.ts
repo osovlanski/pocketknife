@@ -7,6 +7,7 @@
 
 import { getPrisma } from '../core/databaseService';
 import claudeService from '../core/claudeService';
+import logger from '../../utils/logger';
 
 interface PatternMatch {
   id: string;
@@ -124,7 +125,7 @@ class EmailPatternService {
 
       return null;
     } catch (error) {
-      console.error('Error finding pattern match:', error);
+      logger.fail('Error finding pattern match', { error: (error as Error).message });
       return null;
     }
   }
@@ -180,7 +181,7 @@ class EmailPatternService {
     } catch (error) {
       // Ignore duplicate key errors for concurrent inserts
       if ((error as any).code !== 'P2002') {
-        console.error('Error recording email pattern:', error);
+        logger.fail('Error recording email pattern', { error: (error as Error).message });
       }
     }
   }
@@ -303,7 +304,7 @@ Respond ONLY with valid JSON:
             confidence: pattern.confidence
           });
 
-          console.log(`📧 Learned pattern: ${pattern.domain} → ${pattern.customTag || pattern.category}`);
+          logger.email(`Learned pattern: ${pattern.domain} → ${pattern.customTag || pattern.category}`);
         } catch (error) {
           console.error(`Failed to save pattern for ${pattern.domain}:`, error);
         }
@@ -345,7 +346,7 @@ Respond ONLY with valid JSON:
         take: 50
       });
 
-      return patterns.map(p => ({
+      return patterns.map((p) => ({
         id: p.id,
         senderDomain: p.senderDomain,
         senderName: p.senderName,

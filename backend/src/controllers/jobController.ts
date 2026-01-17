@@ -476,7 +476,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
  */
 export const getCompanyInfo = async (req: Request, res: Response) => {
   try {
-    const { companyName } = req.params;
+    const companyName = req.params.companyName as string;
     
     if (!companyName) {
       return res.status(400).json({ error: 'Company name is required' });

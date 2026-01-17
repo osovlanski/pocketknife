@@ -858,10 +858,10 @@ Respond ONLY with valid JSON:
     const prompt = `Match these invoice items to grocery categories and existing items.
 
 Invoice items:
-${invoiceItems.map(i => `- "${i.itemName}" (qty: ${i.quantity}, price: ${i.price})`).join('\n')}
+${invoiceItems.map((i) => `- "${i.itemName}" (qty: ${i.quantity}, price: ${i.price ?? 'N/A'})`).join('\n')}
 
 Existing inventory items:
-${existingItems.map(i => `- "${i.name}" (id: ${i.id}, category: ${i.category})`).join('\n')}
+${existingItems.map((i) => `- "${i.name}" (id: ${i.id}, category: ${i.category ?? 'unknown'})`).join('\n')}
 
 For each invoice item, determine:
 1. The best matching existing item (if any)
@@ -890,7 +890,7 @@ Respond ONLY with valid JSON:
       let created = 0;
 
       for (const match of data.matches || []) {
-        const invoiceItem = invoiceItems.find(i => i.itemName === match.invoiceItemName);
+        const invoiceItem = invoiceItems.find((i) => i.itemName === match.invoiceItemName);
         if (!invoiceItem) continue;
 
         if (match.matchedItemId && match.confidence >= confidenceThreshold) {
@@ -1040,7 +1040,7 @@ Respond ONLY with valid JSON:
       select: { name: true }
     });
 
-    const suggestions = lowItems.map(i => i.name);
+    const suggestions = lowItems.map((i) => i.name);
 
     // Cache suggestions
     const suggestionsCacheTtl = configService.get('cooking.cache.itemsTtlSeconds', 300);

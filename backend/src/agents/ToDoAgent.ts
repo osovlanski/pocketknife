@@ -768,7 +768,7 @@ export class ToDoAgent extends AbstractAgent {
       }
 
       // Use AI to analyze patterns
-      const taskSummary = completedTasks.map(t => ({
+      const taskSummary = completedTasks.map((t) => ({
         title: t.title,
         category: t.category,
         completedAt: t.completedAt,

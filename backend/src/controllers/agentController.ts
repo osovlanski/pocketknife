@@ -476,7 +476,7 @@ export const getLearnedPatterns = async (req: Request, res: Response) => {
 
 export const approvePattern = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const success = await emailPatternService.approvePattern(id);
         if (success) {
             res.status(200).json({ message: 'Pattern approved successfully' });
@@ -493,7 +493,7 @@ export const approvePattern = async (req: Request, res: Response) => {
 
 export const deletePattern = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const success = await emailPatternService.deletePattern(id);
         if (success) {
             res.status(200).json({ message: 'Pattern deleted successfully' });
