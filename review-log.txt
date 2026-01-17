@@ -11508,3 +11508,273 @@ diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage
 [2026-01-17T10:30:02.361Z] 
 [2026-01-17T10:30:02.362Z] BLOCKED - Automated score: 74/100 (min: 80)
 [2026-01-17T12:30:02+02:00] Push BLOCKED - Exit code: 1
+[2026-01-17T13:04:38+02:00] Pre-push hook triggered
+[2026-01-17T11:04:40.132Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:04:40.148Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:04:40.150Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:04:40.154Z] 
+[2026-01-17T11:04:40.155Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:04:40.157Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:04:40.159Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:04:40.160Z] 
+[2026-01-17T11:04:40.203Z] 📅 Review started at: 1/17/2026, 1:04:40 PM
+[2026-01-17T11:04:40.205Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:04:40.207Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:04:40.208Z] ────────────────────────────────────────
+[2026-01-17T11:04:40.788Z] ✅ Git repository detected
+[2026-01-17T11:04:40.789Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:04:40.791Z] ────────────────────────────────────────
+[2026-01-17T11:04:41.310Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:04:41.312Z] 🎯 Comparing against: main
+[2026-01-17T11:04:41.823Z] ✅ Base branch 'main' exists
+[2026-01-17T11:04:41.825Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:04:41.826Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.962Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:04:44.963Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.964Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          | 5440 --------------------
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 +-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/jobController.ts           |  286 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 +-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 ++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 ++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  239 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 ++
+ frontend/package-lock.json                         | 1259 ++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  636 +++
+ frontend/src/components/IsraelTravelPanel.tsx      |  809 +++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1116 ++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  646 +++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 ++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/mockInterviewApi.ts          |  233 +
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     |  469 ++
+ 55 files changed, 11575 insertions(+), 5681 deletions(-)
+
+[2026-01-17T11:04:44.966Z] 📊 Files changed: 55
+[2026-01-17T11:04:44.967Z] ➕ Lines added: 11575
+[2026-01-17T11:04:44.969Z] ➖ Lines removed: 5681
+[2026-01-17T11:04:44.972Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:04:44.974Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.980Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.981Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:04:44.983Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.985Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.986Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:04:44.988Z]  ---
+[2026-01-17T11:04:44.989Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:04:44.991Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:04:44.993Z]  globs: **/*
+[2026-01-17T11:04:44.994Z]  alwaysApply: false
+[2026-01-17T11:04:44.996Z]  ---
+[2026-01-17T11:04:44.997Z]  
+[2026-01-17T11:04:44.999Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:04:45.001Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:04:45.002Z]  
+[2026-01-17T11:04:45.004Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:04:45.005Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:04:45.006Z]  
+[2026-01-17T11:04:45.008Z]  ## When This Rule Applies
+[2026-01-17T11:04:45.013Z]  
+[2026-01-17T11:04:45.015Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:04:45.017Z]  ```
+[2026-01-17T11:04:45.019Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:04:45.021Z]  
+[2026-01-17T11:04:45.022Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:04:45.024Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:04:45.025Z] +```bash
+[2026-01-17T11:04:45.027Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:04:45.028Z] +```
+[2026-01-17T11:04:45.030Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:04:45.032Z] +
+[2026-01-17T11:04:45.034Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:04:45.036Z] +
+[2026-01-17T11:04:45.037Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:04:45.039Z] +
+[2026-01-17T11:04:45.041Z] +#### Frontend Changes
+[2026-01-17T11:04:45.042Z] +| Check | What to Verify |
+[2026-01-17T11:04:45.044Z] +| :--- | :--- |
+[2026-01-17T11:04:45.045Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:04:45.046Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:04:45.048Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:04:45.049Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:04:45.051Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:04:45.052Z] +
+[2026-01-17T11:04:45.054Z] +#### Backend Changes
+[2026-01-17T11:04:45.055Z] +| Check | What to Verify |
+[2026-01-17T11:04:45.056Z] +| :--- | :--- |
+[2026-01-17T11:04:45.058Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:04:45.060Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:04:45.062Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:04:45.063Z] +
+[2026-01-17T11:04:45.065Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:04:45.067Z] +```typescript
+[2026-01-17T11:04:45.068Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:04:45.070Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:04:45.071Z] +
+[2026-01-17T11:04:45.073Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:04:45.074Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:04:45.076Z] +
+[2026-01-17T11:04:45.077Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:04:45.078Z] +<span>{tags}</span>
+[2026-01-17T11:04:45.080Z] +
+[2026-01-17T11:04:45.081Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:04:45.083Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:04:45.086Z] +// or
+[2026-01-17T11:04:45.087Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:04:45.089Z] +
+[2026-01-17T11:04:45.091Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:04:45.092Z] +<span>{user.name}</span>
+[2026-01-17T11:04:45.094Z] +
+[2026-01-17T11:04:45.096Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:04:45.098Z] +<span>{user?.name}</span>
+[2026-01-17T11:04:45.099Z] +```
+[2026-01-17T11:04:45.102Z] +
+[2026-01-17T11:04:45.104Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:04:45.106Z]  ```bash
+[2026-01-17T11:04:45.109Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:04:45.111Z]  ```
+[2026-01-17T11:04:45.113Z]  
+[2026-01-17T11:04:45.114Z] -### Step 3: Analyze Results
+[2026-01-17T11:04:45.116Z] +### Step 4: Analyze Results
+[2026-01-17T11:04:45.118Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:04:45.120Z]  - Statements: Current threshold
+[2026-01-17T11:04:45.122Z]  - Branches: Current threshold
+[2026-01-17T11:04:45.123Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:04:45.125Z]  
+[2026-01-17T11:04:45.127Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:04:45.135Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:04:45.138Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:04:45.139Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:04:45.141Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:04:45.143Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:04:45.144Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:04:45.146Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:04:45.148Z]  
+[2026-01-17T11:04:45.149Z]  ### When to Add Tests
+[2026-01-17T11:04:45.151Z]  
+[2026-01-17T11:04:45.153Z]  **MUST add tests if:**
+[2026-01-17T11:04:45.157Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:04:45.159Z]  - New service or utility function is created
+[2026-01-17T11:04:45.172Z] 
+... and 18858 more lines
+[2026-01-17T11:04:45.174Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:04:45.175Z] ────────────────────────────────────────
+[2026-01-17T11:04:45.178Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:04:45.181Z]    Checking backend types...
+[2026-01-17T11:06:07.227Z]    ✅ Backend type check passed
+[2026-01-17T11:06:07.232Z]    Checking frontend types...
+[2026-01-17T11:07:03.607Z]    ✅ Frontend type check passed
+[2026-01-17T11:07:03.615Z] ✅ All type checks passed!
+[2026-01-17T11:07:03.617Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:07:03.619Z] ────────────────────────────────────────
+[2026-01-17T11:07:03.622Z] 🧪 Running test suites...
+[2026-01-17T11:07:03.624Z]    Running backend tests...
+[2026-01-17T11:08:17.901Z]    ❌ Backend tests failed
+[2026-01-17T11:08:17.906Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > metadata > should have correct agent metadata
+[2026-01-17T11:08:17.907Z]       FAIL  tests/services/cacheService.test.ts > CacheService > cacheKeys > should generate correct job search cache keys
+[2026-01-17T11:08:17.909Z]       FAIL  tests/services/cookingService.test.ts > CookingService > COOKING_CATEGORIES > should export valid cooking categories
+[2026-01-17T11:08:17.910Z]       FAIL  tests/services/databaseService.test.ts > DatabaseService > getPrisma > should return a Prisma client or null
+[2026-01-17T11:08:17.912Z]       FAIL  tests/services/notionService.test.ts > NotionService > isConfigured > should return true when NOTION_TOKEN is set
+[2026-01-17T11:08:17.915Z]    Running frontend tests...
+[2026-01-17T11:09:59.188Z]    ✅ Frontend tests passed
+[2026-01-17T11:09:59.198Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-17T11:09:59.201Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:09:59.202Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.493Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:09:59.496Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T11:09:59.499Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:09:59.501Z] 
+🟡 Warnings:
+[2026-01-17T11:09:59.505Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T11:09:59.507Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T11:09:59.509Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:09:59.511Z] 
+📊 Automated Pre-Score: 49/100
+[2026-01-17T11:09:59.517Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:09:59.519Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.521Z] 
+[2026-01-17T11:09:59.522Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:09:59.525Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:09:59.527Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:09:59.530Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:09:59.532Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:09:59.534Z] 
+[2026-01-17T11:09:59.541Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:09:59.543Z] 
+[2026-01-17T11:09:59.545Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:09:59.548Z] 
+[2026-01-17T11:09:59.550Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:09:59.552Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.558Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:09:59.560Z] 📝 Pre-push automated score: 49
+[2026-01-17T11:09:59.564Z] 
+[2026-01-17T11:09:59.566Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:09:59.568Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T11:09:59.570Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:09:59.572Z] 
+[2026-01-17T11:09:59.573Z]    Score: 49/100 (Minimum required: 80)
+[2026-01-17T11:09:59.575Z] 
+[2026-01-17T11:09:59.577Z]    Fix the following issues before pushing:
+[2026-01-17T11:09:59.581Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T11:09:59.583Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:09:59.588Z] 
+[2026-01-17T11:09:59.592Z]    Also consider fixing these warnings:
+[2026-01-17T11:09:59.594Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T11:09:59.596Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T11:09:59.598Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:09:59.600Z] 
+[2026-01-17T11:09:59.602Z]    After fixing, run: git push
+[2026-01-17T11:09:59.604Z] 
+[2026-01-17T11:09:59.606Z] BLOCKED - Automated score: 49/100 (min: 80)
+[2026-01-17T13:10:00+02:00] Push BLOCKED - Exit code: 1

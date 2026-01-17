@@ -188,8 +188,9 @@ describe('Frontend-Backend Route Sync', () => {
 describe('Controller Method Verification', () => {
   const controllersDir = path.join(__dirname, '../../src/controllers');
   
-  it('jobs controller should have all interview methods', () => {
-    const controllerPath = path.join(controllersDir, 'jobController.ts');
+  it('interview controller should have all interview methods', () => {
+    // Interview methods are now in separate interviewController.ts
+    const controllerPath = path.join(controllersDir, 'interviewController.ts');
     const content = fs.readFileSync(controllerPath, 'utf-8');
     
     // Check for required export methods
@@ -198,6 +199,16 @@ describe('Controller Method Verification', () => {
     expect(content).toContain('export const evaluateInterviewAnswer');
     expect(content).toContain('export const getExampleQuestions');
     expect(content).toContain('export const getPopularCompanyQuestions');
+  });
+  
+  it('jobs controller should re-export interview methods', () => {
+    const controllerPath = path.join(controllersDir, 'jobController.ts');
+    const content = fs.readFileSync(controllerPath, 'utf-8');
+    
+    // Check for re-exports from interviewController
+    expect(content).toContain("export {");
+    expect(content).toContain("extractInterviewQuestions");
+    expect(content).toContain("from './interviewController'");
   });
   
   it('todo controller should have calendar import method', () => {

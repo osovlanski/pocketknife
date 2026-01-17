@@ -32,6 +32,7 @@ import {
   CodingPattern, 
   SuggestionsResponse 
 } from '../services/problemSolvingApi';
+import logger from '../services/logger';
 
 interface CodingPatternsPanelProps {
   onSelectProblem?: (problem: { title: string; hint: string }) => void;
@@ -89,7 +90,7 @@ const CodingPatternsPanel: React.FC<CodingPatternsPanelProps> = ({ onSelectProbl
       setPatterns(data.patterns);
       setCategories(data.categories);
     } catch (error) {
-      console.error('Failed to load patterns:', error);
+      logger.error('Failed to load patterns', { error });
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +103,7 @@ const CodingPatternsPanel: React.FC<CodingPatternsPanelProps> = ({ onSelectProbl
       const data = await getSuggestedProblems();
       setSuggestions(data);
     } catch (error) {
-      console.error('Failed to load suggestions:', error);
+      logger.error('Failed to load suggestions', { error });
     } finally {
       setIsLoadingSuggestions(false);
     }

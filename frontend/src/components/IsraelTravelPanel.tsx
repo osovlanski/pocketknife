@@ -46,6 +46,7 @@ import {
   TripDuration,
   BudgetLevel
 } from '../services/travelApi';
+import logger from '../services/logger';
 
 interface IsraelTravelPanelProps {
   onClose?: () => void;
@@ -130,7 +131,7 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
       const data = await getIsraelDestinations(params);
       setDestinations(data.destinations);
     } catch (error) {
-      console.error('Failed to load destinations:', error);
+      logger.error('Failed to load destinations', { error });
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +147,7 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
       const data = await getIsraelTrails(params);
       setTrails(data.trails);
     } catch (error) {
-      console.error('Failed to load trails:', error);
+      logger.error('Failed to load trails', { error });
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +163,7 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
       const data = await getIsraelBeaches(params);
       setBeaches(data.beaches);
     } catch (error) {
-      console.error('Failed to load beaches:', error);
+      logger.error('Failed to load beaches', { error });
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +187,7 @@ const IsraelTravelPanel: React.FC<IsraelTravelPanelProps> = ({ onClose }) => {
       setAiSuggestions(data.suggestions);
       if (data.aiSummary) setAiSummary(data.aiSummary);
     } catch (error) {
-      console.error('AI search failed:', error);
+      logger.error('AI search failed', { error });
     } finally {
       setIsAiSearching(false);
     }

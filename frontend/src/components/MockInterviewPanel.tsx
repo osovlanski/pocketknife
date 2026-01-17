@@ -34,6 +34,7 @@ import {
   Brain
 } from 'lucide-react';
 import * as mockInterviewApi from '../services/mockInterviewApi';
+import logger from '../services/logger';
 import type { 
   InterviewQuestion, 
   InterviewAnswer, 
@@ -100,7 +101,7 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
           setPopularCompanies(result.companies);
         }
       } catch (err) {
-        console.error('Failed to load popular companies:', err);
+        logger.error('Failed to load popular companies', { error: err });
       }
     };
     
@@ -111,7 +112,7 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
           setSystemDesignQuestions(result.questions);
         }
       } catch (err) {
-        console.error('Failed to load system design questions:', err);
+        logger.error('Failed to load system design questions', { error: err });
       }
     };
     
@@ -175,7 +176,7 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
         setDesignEvaluation(result.evaluation);
       }
     } catch (err) {
-      console.error('Failed to evaluate system design:', err);
+      logger.error('Failed to evaluate system design', { error: err });
       setError('Failed to evaluate system design');
     } finally {
       setIsLoading(false);

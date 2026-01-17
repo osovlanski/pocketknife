@@ -32,6 +32,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
+import logger from '../../services/logger';
 
 // =============================================================================
 // TYPES
@@ -288,7 +289,7 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
 
       setTestResults(results);
     } catch (error) {
-      console.error('Test execution error:', error);
+      logger.error('Test execution error', { error });
     } finally {
       setIsRunning(false);
     }
@@ -318,7 +319,7 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
           setCurrentHintIndex(prev => prev + 1);
         }
       } catch (error) {
-        console.error('Failed to get AI hint:', error);
+        logger.error('Failed to get AI hint', { error });
       } finally {
         setIsLoadingHint(false);
       }
