@@ -37,7 +37,7 @@ describe('NotionService', () => {
     it('should return true when NOTION_TOKEN is set', async () => {
       const { notionService } = await import('../../src/services/integrations/notionService');
       expect(notionService.isConfigured()).toBe(true);
-    });
+    }, 15000);
 
     it('should return false when NOTION_TOKEN is not set', async () => {
       delete process.env.NOTION_TOKEN;

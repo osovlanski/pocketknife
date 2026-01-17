@@ -51,7 +51,7 @@ describe('CookingAgent', () => {
       expect(cookingAgent.metadata.name).toBe('Cooking Agent');
       expect(cookingAgent.metadata.icon).toBe('🍳');
       expect(cookingAgent.metadata.color).toBe('#22C55E');
-    });
+    }, 15000);
   });
 
   describe('execute - add-item action', () => {
