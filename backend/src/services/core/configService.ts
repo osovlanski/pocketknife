@@ -66,6 +66,7 @@ const DEFAULT_CONFIG = {
   'mockInterview.ai.evaluationMaxTokens': 1500,
   'mockInterview.ai.exampleQuestionsMaxTokens': 3000,
   'mockInterview.ai.translationMaxTokens': 500,
+  'mockInterview.ai.systemDesignMaxTokens': 2000,
   
   // ==========================================================================
   // EMAIL AGENT

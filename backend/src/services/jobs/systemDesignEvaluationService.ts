@@ -6,6 +6,7 @@
  */
 
 import claudeService from '../core/claudeService';
+import { configService } from '../core/configService';
 import logger from '../../utils/logger';
 
 // =============================================================================
@@ -80,7 +81,8 @@ class SystemDesignEvaluationService {
         response = await claudeService.analyzeImage(request.imageBase64, prompt);
       } else {
         // Fallback to text-only analysis
-        response = await claudeService.generateText(prompt, 2000);
+        const maxTokens = configService.get('mockInterview.ai.systemDesignMaxTokens', 2000);
+        response = await claudeService.generateText(prompt, maxTokens);
       }
 
       // 4. Parse response
