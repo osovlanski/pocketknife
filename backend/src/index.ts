@@ -64,9 +64,9 @@ const server = createServer(app);
 
 // CORS configuration - support multiple frontend origins during development
 // Development origins are loaded from configService, production uses FRONTEND_URL env var only
-const devOrigins = process.env.NODE_ENV === 'production' 
+const devOrigins: string[] = process.env.NODE_ENV === 'production' 
   ? [] 
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+  : (configService.get('cors.devOrigins') as unknown as string[]) || [];
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   ...devOrigins
