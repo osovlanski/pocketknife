@@ -7,6 +7,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL, config } from '../config';
+import logger from './logger';
 
 // =============================================================================
 // TYPES
@@ -75,7 +76,7 @@ export const getConfig = async (): Promise<ConfigResponse> => {
     cacheTimestamp = Date.now();
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch config:', error);
+    logger.error('Failed to fetch config', { error });
     // Return defaults if fetch fails
     return getDefaultConfig();
   }

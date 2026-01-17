@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { TravelSearchQuery, FlightResult, HotelResult, TripPlan } from '../types/travel';
 import { API_BASE_URL } from '../config';
+import logger from './logger';
 
 const API_URL = API_BASE_URL;
 
@@ -43,7 +44,7 @@ export const searchTravel = async (query: TravelSearchQuery): Promise<TravelSear
     
     return response.data;
   } catch (error: any) {
-    console.error('Travel search error:', error);
+    logger.error('Travel search error', { error: error.message });
     throw new Error(error.response?.data?.error || 'Failed to search travel options');
   }
 };
@@ -57,7 +58,7 @@ export const getDestinationRecommendations = async (budget?: number, interests?:
     const response = await axios.get(`${API_URL}/travel/recommendations?${params}`);
     return response.data.recommendations;
   } catch (error: any) {
-    console.error('Recommendations error:', error);
+    logger.error('Recommendations error', { error: error.message });
     throw new Error('Failed to get recommendations');
   }
 };
@@ -84,7 +85,7 @@ export const generateTripPlan = async (
     
     return response.data.tripPlan;
   } catch (error: any) {
-    console.error('Trip plan error:', error);
+    logger.error('Trip plan error', { error: error.message });
     throw new Error('Failed to generate trip plan');
   }
 };
@@ -127,7 +128,7 @@ export const searchSkiDeals = async (query: SkiSearchQuery): Promise<{ deals: Sk
     const response = await axios.post(`${API_URL}/travel/ski`, query);
     return response.data;
   } catch (error: any) {
-    console.error('Ski deals search error:', error);
+    logger.error('Ski deals search error', { error: error.message });
     throw new Error(error.response?.data?.error || 'Failed to search ski deals');
   }
 };
@@ -141,7 +142,7 @@ export const getSkiResorts = async (country?: string, priceLevel?: string): Prom
     const response = await axios.get(`${API_URL}/travel/ski/resorts?${params}`);
     return response.data.resorts;
   } catch (error: any) {
-    console.error('Ski resorts error:', error);
+    logger.error('Ski resorts error', { error: error.message });
     throw new Error('Failed to get ski resorts');
   }
 };
@@ -151,7 +152,7 @@ export const stopTravelSearch = async (): Promise<void> => {
   try {
     await axios.post(`${API_URL}/stop`, { processId: 'travel' });
   } catch (error: any) {
-    console.error('Stop travel error:', error);
+    logger.error('Stop travel error', { error: error.message });
   }
 };
 
@@ -160,7 +161,7 @@ export const stopSkiSearch = async (): Promise<void> => {
   try {
     await axios.post(`${API_URL}/stop`, { processId: 'ski' });
   } catch (error: any) {
-    console.error('Stop ski error:', error);
+    logger.error('Stop ski error', { error: error.message });
   }
 };
 
@@ -275,7 +276,7 @@ export const searchIsraelDestinations = async (
     const response = await axios.post(`${API_URL}/travel/israel/search`, request);
     return response.data;
   } catch (error: any) {
-    console.error('Israel search error:', error);
+    logger.error('Israel search error', { error: error.message });
     throw new Error(error.response?.data?.error || 'Failed to search Israel destinations');
   }
 };
@@ -291,7 +292,7 @@ export const searchIsraelAI = async (
     const response = await axios.post(`${API_URL}/travel/israel/ai`, { prompt, filters });
     return response.data;
   } catch (error: any) {
-    console.error('Israel AI search error:', error);
+    logger.error('Israel AI search error', { error: error.message });
     throw new Error(error.response?.data?.error || 'Failed to get AI suggestions');
   }
 };
@@ -315,7 +316,7 @@ export const getIsraelDestinations = async (params?: {
     const response = await axios.get(`${API_URL}/travel/israel/destinations?${queryParams}`);
     return response.data;
   } catch (error: any) {
-    console.error('Get Israel destinations error:', error);
+    logger.error('Get Israel destinations error', { error: error.message });
     throw new Error('Failed to get Israel destinations');
   }
 };
@@ -337,7 +338,7 @@ export const getIsraelTrails = async (params?: {
     const response = await axios.get(`${API_URL}/travel/israel/trails?${queryParams}`);
     return response.data;
   } catch (error: any) {
-    console.error('Get Israel trails error:', error);
+    logger.error('Get Israel trails error', { error: error.message });
     throw new Error('Failed to get Israel trails');
   }
 };
@@ -359,7 +360,7 @@ export const getIsraelBeaches = async (params?: {
     const response = await axios.get(`${API_URL}/travel/israel/beaches?${queryParams}`);
     return response.data;
   } catch (error: any) {
-    console.error('Get Israel beaches error:', error);
+    logger.error('Get Israel beaches error', { error: error.message });
     throw new Error('Failed to get Israel beaches');
   }
 };

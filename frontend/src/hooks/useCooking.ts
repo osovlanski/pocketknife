@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as cookingApi from '../services/cookingApi';
+import logger from '../services/logger';
 import type {
   InventoryItem,
   InventoryItemData,
@@ -133,7 +134,7 @@ export const useCooking = (): UseCookingReturn => {
       );
       setItems(result.items || []);
     } catch (error) {
-      console.error('Failed to load inventory items:', error);
+      logger.error('Failed to load inventory items', { error });
     }
   };
 
@@ -142,7 +143,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.getLists();
       setLists(result.lists || []);
     } catch (error) {
-      console.error('Failed to load shopping lists:', error);
+      logger.error('Failed to load shopping lists', { error });
     }
   };
 
@@ -151,7 +152,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.getSummary();
       setSummary(result.summary);
     } catch (error) {
-      console.error('Failed to load summary:', error);
+      logger.error('Failed to load summary', { error });
     }
   };
 
@@ -164,7 +165,7 @@ export const useCooking = (): UseCookingReturn => {
       setExpiringItems(expiringResult.items || []);
       setLowStockItems(lowStockResult.items || []);
     } catch (error) {
-      console.error('Failed to load alerts:', error);
+      logger.error('Failed to load alerts', { error });
     }
   };
 
@@ -173,7 +174,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.getSuggestions();
       setSuggestions(result.suggestions || []);
     } catch (error) {
-      console.error('Failed to load suggestions:', error);
+      logger.error('Failed to load suggestions', { error });
     }
   };
 
@@ -182,7 +183,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.getSavedRecipes();
       setSavedRecipes(result.recipes || []);
     } catch (error) {
-      console.error('Failed to load saved recipes:', error);
+      logger.error('Failed to load saved recipes', { error });
     }
   };
 
@@ -191,7 +192,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.getWishlist();
       setWishlist(result.wishlist || []);
     } catch (error) {
-      console.error('Failed to load wishlist:', error);
+      logger.error('Failed to load wishlist', { error });
     }
   };
 
@@ -214,7 +215,7 @@ export const useCooking = (): UseCookingReturn => {
       setShowAddItem(false);
       await Promise.all([loadItems(), loadSummary()]);
     } catch (error) {
-      console.error('Failed to add item:', error);
+      logger.error('Failed to add item', { error });
       alert('Failed to add item. Please try again.');
     } finally {
       setLoading(false);
@@ -226,7 +227,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.updateItem(id, data);
       await loadItems();
     } catch (error) {
-      console.error('Failed to update item:', error);
+      logger.error('Failed to update item', { error });
     }
   }, []);
 
@@ -235,7 +236,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.deleteItem(id);
       await Promise.all([loadItems(), loadSummary()]);
     } catch (error) {
-      console.error('Failed to delete item:', error);
+      logger.error('Failed to delete item', { error });
     }
   }, []);
 
@@ -244,7 +245,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.updateItemStatus(id, status);
       await Promise.all([loadItems(), loadAlerts()]);
     } catch (error) {
-      console.error('Failed to update status:', error);
+      logger.error('Failed to update status', { error });
     }
   }, []);
 
@@ -262,7 +263,7 @@ export const useCooking = (): UseCookingReturn => {
       setShowAddList(false);
       await loadLists();
     } catch (error) {
-      console.error('Failed to create list:', error);
+      logger.error('Failed to create list', { error });
       alert('Failed to create list. Please try again.');
     } finally {
       setLoading(false);
@@ -277,7 +278,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.addListItem(listId, item);
       await loadLists();
     } catch (error) {
-      console.error('Failed to add list item:', error);
+      logger.error('Failed to add list item', { error });
     }
   }, []);
 
@@ -286,7 +287,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.toggleListItem(itemId, isChecked);
       await loadLists();
     } catch (error) {
-      console.error('Failed to toggle item:', error);
+      logger.error('Failed to toggle list item', { error });
     }
   }, []);
 
@@ -296,7 +297,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.completeList(listId);
       await Promise.all([loadLists(), loadItems(), loadSummary()]);
     } catch (error) {
-      console.error('Failed to complete list:', error);
+      logger.error('Failed to complete list', { error });
       alert('Failed to complete list. Please try again.');
     } finally {
       setLoading(false);
@@ -313,7 +314,7 @@ export const useCooking = (): UseCookingReturn => {
       const result = await cookingApi.findRecipes(params || { useAvailableOnly: true });
       setRecipes(result.recipes || []);
     } catch (error) {
-      console.error('Failed to find recipes:', error);
+      logger.error('Failed to find recipes', { error });
       alert('Failed to search recipes. Please try again.');
     } finally {
       setSearchingRecipes(false);
@@ -325,7 +326,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.saveRecipe(recipe, notes);
       await loadSavedRecipes();
     } catch (error) {
-      console.error('Failed to save recipe:', error);
+      logger.error('Failed to save recipe', { error });
       alert('Failed to save recipe. Please try again.');
     }
   }, []);
@@ -339,7 +340,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.addToWishlist(recipe);
       await loadWishlist();
     } catch (error) {
-      console.error('Failed to add to wishlist:', error);
+      logger.error('Failed to add to wishlist', { error });
       alert('Failed to add recipe to wishlist. Please try again.');
     }
   }, []);
@@ -349,7 +350,7 @@ export const useCooking = (): UseCookingReturn => {
       await cookingApi.removeFromWishlist(recipeId);
       await loadWishlist();
     } catch (error) {
-      console.error('Failed to remove from wishlist:', error);
+      logger.error('Failed to remove from wishlist', { error });
       alert('Failed to remove recipe from wishlist. Please try again.');
     }
   }, []);

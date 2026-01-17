@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as diyApi from '../services/diyApi';
+import logger from '../services/logger';
 import type { 
   DIYProject, 
   DIYProjectRequest, 
@@ -78,7 +79,7 @@ export const useDIY = (): UseDIYReturn => {
         const result = await diyApi.getCategories();
         setCategories(result.categories || []);
       } catch (err) {
-        console.error('Failed to load categories:', err);
+        logger.error('Failed to load categories', { error: err });
       }
     };
     loadCategories();
@@ -95,7 +96,7 @@ export const useDIY = (): UseDIYReturn => {
       return project;
     } catch (err: any) {
       setError(err.message || 'Failed to generate project');
-      console.error('Generate project failed:', err);
+      logger.error('Generate project failed', { error: err });
       return null;
     } finally {
       setGenerating(false);
@@ -111,7 +112,7 @@ export const useDIY = (): UseDIYReturn => {
       setCurrentProject(result.project);
     } catch (err: any) {
       setError(err.message || 'Failed to get project');
-      console.error('Get project failed:', err);
+      logger.error('Get project failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export const useDIY = (): UseDIYReturn => {
       setProjects(result.projects || []);
     } catch (err: any) {
       setError(err.message || 'Failed to get projects');
-      console.error('Get projects failed:', err);
+      logger.error('Get projects failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -143,7 +144,7 @@ export const useDIY = (): UseDIYReturn => {
       return result.project?.id || null;
     } catch (err: any) {
       setError(err.message || 'Failed to save project');
-      console.error('Save project failed:', err);
+      logger.error('Save project failed', { error: err });
       return null;
     } finally {
       setLoading(false);
@@ -167,7 +168,7 @@ export const useDIY = (): UseDIYReturn => {
       setProjects(result.projects || []);
     } catch (err: any) {
       setError(err.message || 'Failed to update status');
-      console.error('Update status failed:', err);
+      logger.error('Update status failed', { error: err });
     }
   }, []);
 
@@ -177,7 +178,7 @@ export const useDIY = (): UseDIYReturn => {
       await diyApi.addFeedback(id, { rating, notes });
     } catch (err: any) {
       setError(err.message || 'Failed to add feedback');
-      console.error('Add feedback failed:', err);
+      logger.error('Add feedback failed', { error: err });
     }
   }, []);
 
@@ -191,7 +192,7 @@ export const useDIY = (): UseDIYReturn => {
       const result = await diyApi.getMaterialsWithLinks(materials, location);
       return result.materials || materials;
     } catch (err: any) {
-      console.error('Get materials links failed:', err);
+      logger.error('Get materials links failed', { error: err });
       return materials;
     } finally {
       setLoading(false);
@@ -208,7 +209,7 @@ export const useDIY = (): UseDIYReturn => {
       return result.shoppingListId;
     } catch (err: any) {
       setError(err.message || 'Failed to create shopping list');
-      console.error('Create shopping list failed:', err);
+      logger.error('Create shopping list failed', { error: err });
       return null;
     }
   }, []);
@@ -220,7 +221,7 @@ export const useDIY = (): UseDIYReturn => {
       const result = await diyApi.searchIdeas(query);
       setIdeas(result.ideas || []);
     } catch (err: any) {
-      console.error('Search ideas failed:', err);
+      logger.error('Search ideas failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -239,7 +240,7 @@ export const useDIY = (): UseDIYReturn => {
       const result = await diyApi.getFeaturedIdeas(options);
       setFeaturedIdeas(result.ideas || []);
     } catch (err: any) {
-      console.error('Get featured ideas failed:', err);
+      logger.error('Get featured ideas failed', { error: err });
       setError(err.message || 'Failed to load featured ideas');
     } finally {
       setLoadingFeatured(false);
@@ -256,7 +257,7 @@ export const useDIY = (): UseDIYReturn => {
       const result = await diyApi.getInspiration(options);
       setInspiration(result.inspiration || null);
     } catch (err: any) {
-      console.error('Get inspiration failed:', err);
+      logger.error('Get inspiration failed', { error: err });
       setError(err.message || 'Failed to get inspiration');
     } finally {
       setLoadingInspiration(false);
@@ -270,7 +271,7 @@ export const useDIY = (): UseDIYReturn => {
       const result = await diyApi.getTemplates(category);
       setTemplates(result.templates || []);
     } catch (err: any) {
-      console.error('Get templates failed:', err);
+      logger.error('Get templates failed', { error: err });
     } finally {
       setLoading(false);
     }

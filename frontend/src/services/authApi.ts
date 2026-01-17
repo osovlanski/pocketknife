@@ -98,7 +98,7 @@ export const getGoogleAuthStatus = async (): Promise<AuthStatus> => {
     const response = await api.get('/auth/status');
     return response.data;
   } catch (error: any) {
-    console.error('Failed to get auth status:', error);
+    logger.error('Failed to get auth status', { error: error.message });
     return {
       authenticated: false,
       message: 'Failed to check authentication status'
@@ -194,7 +194,7 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
     const response = await api.get('/admin/me');
     return response.data.user;
   } catch (error) {
-    console.error('Failed to get current user:', error);
+    logger.error('Failed to get current user', { error });
     return null;
   }
 };
@@ -220,7 +220,7 @@ export const getPreferences = async (): Promise<UserPreferences | null> => {
     const response = await api.get('/settings/preferences');
     return response.data.preferences;
   } catch (error) {
-    console.error('Failed to get preferences:', error);
+    logger.error('Failed to get preferences', { error });
     return null;
   }
 };

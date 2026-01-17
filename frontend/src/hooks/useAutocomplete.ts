@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config';
+import logger from '../services/logger';
 
 interface AutocompleteSuggestion {
   text: string;
@@ -74,7 +75,7 @@ export const useAutocomplete = (options: UseAutocompleteOptions): UseAutocomplet
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          console.warn('Autocomplete fetch failed:', error);
+          logger.warn('Autocomplete fetch failed', { error });
         }
       } finally {
         setIsLoading(false);
@@ -92,7 +93,7 @@ export const useAutocomplete = (options: UseAutocompleteOptions): UseAutocomplet
         body: JSON.stringify({ query, agent })
       });
     } catch (error) {
-      console.warn('Failed to record search:', error);
+      logger.warn('Failed to record search', { error });
     }
   }, [agent]);
 
