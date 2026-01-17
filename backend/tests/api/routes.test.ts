@@ -57,6 +57,48 @@ const extractApiCalls = (filePath: string): { method: string; path: string }[] =
 describe('Route Registration Verification', () => {
   const routesDir = path.join(__dirname, '../../src/routes');
   
+  describe('Agent Routes', () => {
+    const agentsRoutePath = path.join(routesDir, 'agents.ts');
+    
+    it('should have core agent routes registered', () => {
+      const routes = extractRoutes(agentsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      // Core agent routes
+      expect(routePaths).toContain('GET /');
+      expect(routePaths).toContain('GET /status');
+      expect(routePaths).toContain('GET /health');
+      expect(routePaths).toContain('GET /:agentId');
+      expect(routePaths).toContain('POST /:agentId/execute');
+      expect(routePaths).toContain('POST /:agentId/stop');
+      expect(routePaths).toContain('POST /stop-all');
+    });
+    
+    it('should have agent metrics routes registered', () => {
+      const routes = extractRoutes(agentsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      // Metrics routes
+      expect(routePaths).toContain('GET /metrics');
+      expect(routePaths).toContain('GET /:agentId/metrics');
+      expect(routePaths).toContain('POST /:agentId/metrics/reset');
+    });
+    
+    it('should have circuit breaker route registered', () => {
+      const routes = extractRoutes(agentsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('POST /:agentId/circuit-breaker/reset');
+    });
+    
+    it('should have history route registered', () => {
+      const routes = extractRoutes(agentsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('GET /:agentId/history');
+    });
+  });
+
   describe('Jobs Routes', () => {
     const jobsRoutePath = path.join(routesDir, 'jobs.ts');
     

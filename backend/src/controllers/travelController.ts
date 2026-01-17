@@ -5,6 +5,7 @@ import specializedTravelService from '../services/travel/specializedTravelServic
 import israelTravelService from '../services/travel/israelTravelService';
 import processControlService from '../services/core/processControlService';
 import { databaseService } from '../services/core/databaseService';
+import logger from '../utils/logger';
 import type { TripSearchRequest } from '../types/travel';
 import type { IsraelTravelSearchRequest, IsraelRegion, IsraelActivityType } from '../types/israelTravel';
 
@@ -41,7 +42,7 @@ export const searchTravel = async (req: Request, res: Response) => {
     // Start process tracking for stop functionality
     processControlService.startProcess('travel');
 
-    console.log('🌍 Starting travel search...');
+    logger.info('🌍 Starting travel search...');
     emitLog(io, '🌍 Starting travel search...', 'info');
     emitLog(io, `✈️ Searching ${searchRequest.origin} → ${searchRequest.destinations[0]}`, 'info');
 
@@ -83,7 +84,7 @@ export const searchTravel = async (req: Request, res: Response) => {
       }
     }
 
-    console.log(`✅ Travel search complete: ${results.flights.length} flights, ${results.hotels.length} hotels`);
+    logger.info(`✅ Travel search complete: ${results.flights.length} flights, ${results.hotels.length} hotels`);
 
     // Log activity to database
     const user = await databaseService.getDefaultUser();
@@ -180,7 +181,7 @@ export const searchSkiDeals = async (req: Request, res: Response) => {
     // Start process tracking
     processControlService.startProcess('ski');
 
-    console.log('⛷️ Starting ski deals search...');
+    logger.info('⛷️ Starting ski deals search...');
     emitLog(io, '⛷️ Starting ski deals search...', 'info');
 
     const searchRequest: TripSearchRequest = {
@@ -279,7 +280,7 @@ export const searchBeachDeals = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Origin and departure date are required' });
     }
 
-    console.log('🏖️ Starting beach deals search...');
+    logger.info('🏖️ Starting beach deals search...');
 
     const beachDeals = await specializedTravelService.searchBeachDeals(
       searchRequest,
@@ -311,7 +312,7 @@ export const searchIsrael = async (req: Request, res: Response) => {
     const io = req.app.get('io');
     const searchRequest: IsraelTravelSearchRequest = req.body;
 
-    console.log('🇮🇱 Starting Israel travel search...');
+    logger.info('🇮🇱 Starting Israel travel search...');
     emitLog(io, '🇮🇱 Searching Israel travel destinations...', 'info');
 
     const results = await israelTravelService.searchDestinations(searchRequest);
@@ -363,7 +364,7 @@ export const searchIsraelAI = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'A travel prompt is required' });
     }
 
-    console.log('🤖 Generating AI-powered Israel suggestions...');
+    logger.info('🤖 Generating AI-powered Israel suggestions...');
     emitLog(io, '🤖 Generating AI-powered Israel travel suggestions...', 'info');
     emitLog(io, `📝 Processing: "${prompt}"`, 'info');
 

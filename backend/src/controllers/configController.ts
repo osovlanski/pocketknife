@@ -7,6 +7,7 @@
 import { Request, Response } from 'express';
 import { getPrisma } from '../services/core/databaseService';
 import { configService } from '../services/core/configService';
+import logger from '../utils/logger';
 
 /**
  * GET /api/config
@@ -92,7 +93,7 @@ export const getConfig = async (req: Request, res: Response) => {
         const val = setting.value;
         const isEnabled = val === true || val === 'true' || val === 1;
         agents[match[1]] = isEnabled;
-        console.log(`[Config] Agent ${match[1]}: ${isEnabled} (raw value: ${JSON.stringify(val)})`);
+        logger.info(`[Config] Agent ${match[1]}: ${isEnabled} (raw value: ${JSON.stringify(val)})`);
       }
     }
 

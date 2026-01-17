@@ -8,6 +8,7 @@
 import { Router, Request, Response } from 'express';
 import { agentRegistry, AgentId } from '../agents';
 import { databaseService } from '../services/core/databaseService';
+import { telemetryService } from '../utils/telemetry';
 
 const router = Router();
 
@@ -186,6 +187,110 @@ router.get('/:agentId/history', async (req: Request, res: Response) => {
       error: error.message
     });
   }
+});
+
+/**
+ * GET /api/agents/metrics
+ * Get all agent telemetry metrics
+ */
+router.get('/metrics', (req: Request, res: Response) => {
+  const format = req.query.format as string;
+  
+  if (format === 'prometheus') {
+    // Return Prometheus exposition format
+    res.set('Content-Type', 'text/plain');
+    res.send(telemetryService.getPrometheusMetrics());
+  } else {
+    // Return JSON format
+    const allMetrics = telemetryService.getAllMetrics();
+    const metricsObject: Record<string, unknown> = {};
+    
+    for (const [name, metric] of allMetrics) {
+      metricsObject[name] = metric;
+    }
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      metrics: metricsObject
+    });
+  }
+});
+
+/**
+ * GET /api/agents/:agentId/metrics
+ * Get metrics for a specific agent
+ */
+router.get('/:agentId/metrics', (req: Request, res: Response) => {
+  const agentId = req.params.agentId as AgentId;
+  const agent = agentRegistry.get(agentId);
+  
+  if (!agent) {
+    return res.status(404).json({
+      success: false,
+      error: `Agent '${agentId}' not found`
+    });
+  }
+  
+  // Get agent-specific metrics from both agent instance and telemetry service
+  const agentMetrics = agent.getMetrics();
+  const telemetryMetrics = telemetryService.getAgentMetricsSummary(agentId);
+  
+  res.json({
+    success: true,
+    agent: agentId,
+    metrics: agentMetrics,
+    telemetry: telemetryMetrics,
+    rateLimitStatus: agent.getRateLimitStatus(),
+    circuitBreakerState: agent.getCircuitBreakerState()
+  });
+});
+
+/**
+ * POST /api/agents/:agentId/metrics/reset
+ * Reset metrics for a specific agent
+ */
+router.post('/:agentId/metrics/reset', (req: Request, res: Response) => {
+  const agentId = req.params.agentId as AgentId;
+  const agent = agentRegistry.get(agentId);
+  
+  if (!agent) {
+    return res.status(404).json({
+      success: false,
+      error: `Agent '${agentId}' not found`
+    });
+  }
+  
+  agent.resetMetrics();
+  
+  res.json({
+    success: true,
+    message: `Metrics reset for agent '${agentId}'`
+  });
+});
+
+/**
+ * POST /api/agents/:agentId/circuit-breaker/reset
+ * Reset circuit breaker for a specific agent
+ */
+router.post('/:agentId/circuit-breaker/reset', (req: Request, res: Response) => {
+  const agentId = req.params.agentId as AgentId;
+  const agent = agentRegistry.get(agentId);
+  
+  if (!agent) {
+    return res.status(404).json({
+      success: false,
+      error: `Agent '${agentId}' not found`
+    });
+  }
+  
+  agent.resetCircuitBreaker();
+  
+  res.json({
+    success: true,
+    message: `Circuit breaker reset for agent '${agentId}'`,
+    newState: agent.getCircuitBreakerState()
+  });
 });
 
 export default router;

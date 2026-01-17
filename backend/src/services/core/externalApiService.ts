@@ -262,8 +262,53 @@ const DEFAULT_LEARNING_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updat
   }
 ];
 
-// Shopping APIs (Scrapers - may be blocked by websites)
+// Shopping APIs
 const DEFAULT_SHOPPING_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'ebay_rapidapi',
+    displayName: 'eBay (RapidAPI)',
+    category: 'shopping',
+    baseUrl: 'https://ebay-search-result.p.rapidapi.com',
+    apiKeyEnvVar: 'RAPIDAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'eBay product search via RapidAPI',
+    docsUrl: 'https://rapidapi.com/eBay/api/ebay-search-result',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'amazon_rapidapi',
+    displayName: 'Amazon (RapidAPI)',
+    category: 'shopping',
+    baseUrl: 'https://real-time-amazon-data.p.rapidapi.com',
+    apiKeyEnvVar: 'RAPIDAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Amazon product search via RapidAPI',
+    docsUrl: 'https://rapidapi.com/letscrape-6bRBa3QguO5/api/real-time-amazon-data',
+    priority: 2,
+    currentUsage: 0
+  },
+  {
+    name: 'aliexpress_rapidapi',
+    displayName: 'AliExpress (RapidAPI)',
+    category: 'shopping',
+    baseUrl: 'https://aliexpress-datahub.p.rapidapi.com',
+    apiKeyEnvVar: 'RAPIDAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'AliExpress product search via RapidAPI',
+    docsUrl: 'https://rapidapi.com/apidojo/api/unofficial-aliexpress',
+    priority: 3,
+    currentUsage: 0
+  },
   {
     name: 'zap_scraper',
     displayName: 'Zap.co.il Scraper',
@@ -275,20 +320,69 @@ const DEFAULT_SHOPPING_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updat
     authType: 'scraper',
     description: 'Israeli price comparison (web scraper)',
     docsUrl: 'https://www.zap.co.il',
+    priority: 4,
+    currentUsage: 0
+  }
+];
+
+// Cooking APIs
+const DEFAULT_COOKING_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'spoonacular',
+    displayName: 'Spoonacular',
+    category: 'cooking',
+    baseUrl: 'https://api.spoonacular.com',
+    apiKeyEnvVar: 'SPOONACULAR_API_KEY',
+    rateLimit: 150,
+    rateLimitPeriod: 'day',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Recipe search, nutrition data, and meal planning',
+    docsUrl: 'https://spoonacular.com/food-api',
     priority: 1,
     currentUsage: 0
-  },
+  }
+];
+
+// YouTube/Video APIs
+const DEFAULT_VIDEO_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
-    name: 'ksp_scraper',
-    displayName: 'KSP Scraper',
-    category: 'shopping',
-    baseUrl: 'https://www.ksp.co.il',
+    name: 'youtube_data',
+    displayName: 'YouTube Data API',
+    category: 'learning',
+    baseUrl: 'https://www.googleapis.com/youtube/v3',
+    apiKeyEnvVar: 'YOUTUBE_API_KEY',
+    rateLimit: 10000,
+    rateLimitPeriod: 'day',
     isEnabled: true,
-    isHealthy: false,
-    requiresAuth: false,
-    authType: 'scraper',
-    description: 'Israeli electronics retailer (may be blocked - 403)',
-    docsUrl: 'https://www.ksp.co.il',
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Video tutorials and learning content (can use GOOGLE_CSE_API_KEY)',
+    docsUrl: 'https://developers.google.com/youtube/v3',
+    priority: 1,
+    currentUsage: 0
+  }
+];
+
+// Flight APIs
+const DEFAULT_FLIGHT_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'kiwi_tequila',
+    displayName: 'Kiwi.com Tequila',
+    category: 'travel',
+    baseUrl: 'https://api.tequila.kiwi.com',
+    apiKeyEnvVar: 'KIWI_API_KEY',
+    rateLimit: 3000,
+    rateLimitPeriod: 'month',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Flight search with multi-city support',
+    docsUrl: 'https://tequila.kiwi.com/portal/docs/tequila_api',
     priority: 2,
     currentUsage: 0
   }
@@ -308,6 +402,21 @@ const DEFAULT_PROBLEM_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'update
     description: 'Fetch coding problems (GraphQL - POST only)',
     docsUrl: 'https://leetcode.com',
     priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'judge0',
+    displayName: 'Judge0 CE',
+    category: 'problems',
+    baseUrl: 'https://judge0-ce.p.rapidapi.com',
+    apiKeyEnvVar: 'RAPIDAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    description: 'Code execution and evaluation engine (60+ languages)',
+    docsUrl: 'https://ce.judge0.com/',
+    priority: 2,
     currentUsage: 0
   }
 ];
@@ -509,6 +618,49 @@ const DEFAULT_NEWS_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt
     docsUrl: 'https://mediastack.com/documentation',
     priority: 3,
     currentUsage: 0
+  },
+  {
+    name: 'lobsters',
+    displayName: 'Lobste.rs',
+    category: 'news',
+    baseUrl: 'https://lobste.rs',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Tech-focused community with programming/security news (no API key required)',
+    docsUrl: 'https://lobste.rs/about',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'devto',
+    displayName: 'DEV.to',
+    category: 'news',
+    baseUrl: 'https://dev.to/api',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: false,
+    description: 'Developer community with tech articles and tutorials (no API key required)',
+    docsUrl: 'https://developers.forem.com/api',
+    priority: 1,
+    currentUsage: 0
+  },
+  {
+    name: 'currentsapi',
+    displayName: 'CurrentsAPI',
+    category: 'news',
+    baseUrl: 'https://api.currentsapi.services/v1',
+    apiKeyEnvVar: 'CURRENTSAPI_KEY',
+    isEnabled: true,
+    isHealthy: true,
+    requiresAuth: true,
+    authType: 'api_key',
+    rateLimit: 600,
+    rateLimitPeriod: 'day',
+    description: 'Global news from 40,000+ sources (600 requests/day free)',
+    docsUrl: 'https://currentsapi.services/en/docs/',
+    priority: 2,
+    currentUsage: 0
   }
 ];
 
@@ -516,8 +668,11 @@ const DEFAULT_NEWS_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'updatedAt
 const ALL_DEFAULT_APIS = [
   ...DEFAULT_JOB_APIS,
   ...DEFAULT_TRAVEL_APIS,
+  ...DEFAULT_FLIGHT_APIS,
   ...DEFAULT_LEARNING_APIS,
+  ...DEFAULT_VIDEO_APIS,
   ...DEFAULT_SHOPPING_APIS,
+  ...DEFAULT_COOKING_APIS,
   ...DEFAULT_PROBLEM_APIS,
   ...DEFAULT_AI_APIS,
   ...DEFAULT_NOTIFICATION_APIS,

@@ -147,7 +147,7 @@ export class NewsAgent extends AbstractAgent {
       const searchParams: NewsSearchParams = {
         query,
         topics,
-        sources: sources || configService.get('news.sources.default', ['hackernews', 'reddit', 'newsapi']),
+        sources: sources || (['hackernews', 'reddit', 'lobsters', 'devto', 'gnews', 'mediastack'] as string[]),
         timeRange,
         countryCode,
         maxResults: maxResults || configService.get('news.search.maxResults', 30)

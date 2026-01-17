@@ -11,6 +11,7 @@ import { getPrisma } from '../services/core/databaseService';
 import emailNotificationService from '../services/email/emailNotificationService';
 import discordNotificationService from '../services/notifications/discordNotificationService';
 import telegramNotificationService from '../services/notifications/telegramNotificationService';
+import logger from '../utils/logger';
 
 /**
  * Load user's notification method preference from database
@@ -104,17 +105,17 @@ export const processAllEmails = async (req: Request, res: Response) => {
         const notificationMethod = await loadUserNotificationPreference(userEmail);
         if (notificationMethod) {
           emailProcessor.setUserNotificationMethod(notificationMethod);
-          console.log(`📤 Using user notification preference: ${notificationMethod}`);
+          logger.info(`📤 Using user notification preference: ${notificationMethod}`);
         }
         
         // Start process and track it
         processControlService.startProcess('email');
         
-        console.log('📧 Starting to process all emails...');
+        logger.info('📧 Starting to process all emails...');
         emitLog(io, '🚀 Starting email processing...', 'info');
         
         const emails = await gmailService.getUnprocessedEmails();
-        console.log(`📬 Found ${emails.length} unprocessed emails`);
+        logger.info(`📬 Found ${emails.length} unprocessed emails`);
         emitLog(io, `📬 Found ${emails.length} unread email(s) to process`, 'info');
         
         const results = {
@@ -132,7 +133,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
         for (let i = 0; i < emails.length; i++) {
             // Check for stop signal before processing each email
             if (processControlService.shouldStop('email')) {
-                console.log('🛑 Stop signal received - halting email processing');
+                logger.info('🛑 Stop signal received - halting email processing');
                 wasStopped = true;
                 break;
             }
@@ -142,7 +143,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
             const remaining = emails.length - i - 1;
             
             try {
-                console.log(`Processing email: ${email.subject}`);
+                logger.info(`Processing email: ${email.subject}`);
                 emitLog(io, `📧 [${emailNum}/${emails.length}] Processing: "${email.subject.substring(0, 60)}${email.subject.length > 60 ? '...' : ''}"`, 'info');
                 
                 // Check for learned patterns first (faster than AI classification)
@@ -168,11 +169,11 @@ export const processAllEmails = async (req: Request, res: Response) => {
                   await emailPatternService.recordEmailForLearning(email, classification);
                 }
                 
-                console.log(`Classification: ${classification.category} (${classification.confidence})${usedPattern ? ' [from pattern]' : ''}`);
+                logger.info(`Classification: ${classification.category} (${classification.confidence})${usedPattern ? ' [from pattern]' : ''}`);
                 
                 // Check for stop signal after classification (API call)
                 if (processControlService.shouldStop('email')) {
-                    console.log('🛑 Stop signal received after classification - halting');
+                    logger.info('🛑 Stop signal received after classification - halting');
                     wasStopped = true;
                     break;
                 }
@@ -238,7 +239,7 @@ export const processAllEmails = async (req: Request, res: Response) => {
         if (wasStopped) {
             emitLog(io, `⏹️ Processing stopped. Processed: ${results.processed}/${emails.length} emails before stopping.`, 'warning');
         } else {
-            console.log('✅ All emails processed:', results);
+            logger.info('✅ All emails processed:', results);
             emitLog(io, `✅ Processing complete! Processed: ${results.processed}, Invoices: ${results.invoices}, Job Offers: ${results.jobOffers}, Official: ${results.official}, Spam: ${results.spam}${results.errors > 0 ? `, Errors: ${results.errors}` : ''}`, 'success');
             
             // Learn patterns from this batch (improved sender pattern learning)

@@ -67,6 +67,9 @@ const ProblemSolvingAgent = () => {
   const [showDiffView, setShowDiffView] = useState(false);
   const [suggestedCode, setSuggestedCode] = useState<string>('');
   const [originalCode, setOriginalCode] = useState<string>('');
+  
+  // Track the code as it was when loaded (to detect actual changes)
+  const [loadedCode, setLoadedCode] = useState<string>('');
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   
   // Method signature generation
@@ -90,6 +93,9 @@ const ProblemSolvingAgent = () => {
   
   // Hint levels
   const [hintLevel, setHintLevel] = useState(0); // 0-3, 0 means no hints shown
+  
+  // Evaluation panel collapsed state
+  const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(false);
 
   // Run local tests (simulated - in browser execution)
   const handleRunLocalTests = async () => {
@@ -315,11 +321,11 @@ func main() {
     return template ? template(title) : `// ${title}\n// Write your solution here\n`;
   };
 
-  // Check if code has meaningful changes (not just template)
+  // Check if code has meaningful changes (compared to when it was loaded)
   const hasCodeChanges = (): boolean => {
     if (!selectedProblem) return false;
-    const template = getCodeTemplate(language, selectedProblem.title);
-    return code.trim() !== template.trim() && code.trim().length > 20;
+    // Compare against the code as it was when loaded (saved code or template)
+    return code.trim() !== loadedCode.trim();
   };
 
   // Save current code to history
@@ -360,11 +366,9 @@ func main() {
     if (selectedProblem) {
       // Check if we have saved code for this problem in the new language
       const savedCode = getSavedCode(selectedProblem.id, newLanguage);
-      if (savedCode) {
-        setCode(savedCode);
-      } else {
-        setCode(getCodeTemplate(newLanguage, selectedProblem.title));
-      }
+      const codeToLoad = savedCode || getCodeTemplate(newLanguage, selectedProblem.title);
+      setCode(codeToLoad);
+      setLoadedCode(codeToLoad); // Track original loaded code for change detection
     }
     setShowSwitchConfirm(null);
     setHasUnsavedChanges(false);
@@ -389,6 +393,7 @@ func main() {
       const data = await response.json();
       if (data.signature) {
         setCode(data.signature);
+        setLoadedCode(data.signature); // Track as the new baseline
         setHasUnsavedChanges(false);
       }
     } catch (error) {
@@ -625,11 +630,9 @@ func main() {
     
     // Check if we have saved code for this problem
     const savedCode = getSavedCode(problem.id, language);
-    if (savedCode) {
-      setCode(savedCode);
-    } else {
-      setCode(getCodeTemplate(language, problem.title));
-    }
+    const codeToLoad = savedCode || getCodeTemplate(language, problem.title);
+    setCode(codeToLoad);
+    setLoadedCode(codeToLoad); // Track original loaded code for change detection
     setHasUnsavedChanges(false);
 
     // Load full description if needed
@@ -687,6 +690,12 @@ func main() {
       const data = await response.json();
       if (data.evaluation) {
         setEvaluation(data.evaluation);
+        setIsEvaluationCollapsed(false); // Expand to show results
+        
+        // Mark problem as solved if score is >= 70
+        if (data.evaluation.score >= 70 && selectedProblem) {
+          setSolvedProblems(prev => new Set([...prev, selectedProblem.id]));
+        }
         
         // Save to database after successful evaluation
         try {
@@ -808,7 +817,9 @@ func main() {
                     // Don't save, just switch
                     setLanguage(showSwitchConfirm.target);
                     if (selectedProblem) {
-                      setCode(getCodeTemplate(showSwitchConfirm.target, selectedProblem.title));
+                      const newCode = getCodeTemplate(showSwitchConfirm.target, selectedProblem.title);
+                      setCode(newCode);
+                      setLoadedCode(newCode);
                     }
                     setShowSwitchConfirm(null);
                     setHasUnsavedChanges(false);
@@ -1016,6 +1027,12 @@ func main() {
                   <div className="flex items-center gap-2">
                     <List className="w-4 h-4 text-blue-400" />
                     <span className="text-sm font-semibold">{problems.length} Problems</span>
+                    {solvedProblems.size > 0 && (
+                      <span className="text-[10px] bg-green-500/30 text-green-300 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        {solvedProblems.size}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div className="flex items-center gap-1">
@@ -1051,18 +1068,22 @@ func main() {
                       onClick={() => handleSelectProblem(problem)}
                       className={`w-full text-left p-3 border-b border-white/5 hover:bg-white/5 transition-colors ${
                         selectedProblem?.id === problem.id ? 'bg-blue-500/20 border-l-2 border-l-blue-400' : ''
-                      }`}
+                      } ${solvedProblems.has(problem.id) ? 'bg-green-500/5' : ''}`}
                     >
                       <div className="flex items-start gap-2">
-                        <ChevronRight className={`w-4 h-4 mt-0.5 flex-shrink-0 transition-transform ${
-                          selectedProblem?.id === problem.id ? 'rotate-90 text-blue-400' : 'text-slate-500'
-                        }`} />
+                        {solvedProblems.has(problem.id) ? (
+                          <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-400" />
+                        ) : (
+                          <ChevronRight className={`w-4 h-4 mt-0.5 flex-shrink-0 transition-transform ${
+                            selectedProblem?.id === problem.id ? 'rotate-90 text-blue-400' : 'text-slate-500'
+                          }`} />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${difficultyBgColors[problem.difficulty]}`}>
                               {problem.difficulty[0]}
                             </span>
-                            <span className="text-sm font-medium truncate">{problem.title}</span>
+                            <span className={`text-sm font-medium truncate ${solvedProblems.has(problem.id) ? 'text-green-300' : ''}`}>{problem.title}</span>
                           </div>
                           <div className="flex items-center gap-2 text-[10px] text-slate-500">
                             <span>{problem.source}</span>
@@ -1078,17 +1099,23 @@ func main() {
               {/* Collapsed view - just difficulty indicators */}
               {isPanelCollapsed && (
                 <div className="flex-1 overflow-y-auto py-1">
-                  {problems.map((problem) => (
+                  {problems
+                    .filter(p => !showSolvedOnly || solvedProblems.has(p.id))
+                    .map((problem) => (
                     <button
                       key={problem.id}
                       onClick={() => handleSelectProblem(problem)}
-                      className={`w-full p-2 transition-colors ${
+                      className={`w-full p-2 transition-colors relative ${
                         selectedProblem?.id === problem.id ? 'bg-blue-500/30' : 'hover:bg-white/10'
                       }`}
-                      title={problem.title}
+                      title={`${problem.title}${solvedProblems.has(problem.id) ? ' ✓ Solved' : ''}`}
                     >
                       <div className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-[10px] font-bold ${difficultyBgColors[problem.difficulty]}`}>
-                        {problem.difficulty[0]}
+                        {solvedProblems.has(problem.id) ? (
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        ) : (
+                          problem.difficulty[0]
+                        )}
                       </div>
                     </button>
                   ))}
@@ -1293,9 +1320,14 @@ func main() {
                 </div>
                 
                 {/* Local Tests Panel */}
-                <div className="bg-slate-800/50 border-t border-white/10 px-4 py-2 max-h-48 overflow-y-auto">
+                <div className="bg-slate-800/50 border-t border-white/10 px-4 py-2 max-h-64 overflow-y-auto">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-semibold text-slate-400">Local Tests</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-semibold text-slate-400">Local Tests</h4>
+                      <span className="text-[10px] text-slate-500" title="Use JSON format for arrays/objects, comma-separated for multiple params">
+                        (JSON or comma-separated)
+                      </span>
+                    </div>
                     <button
                       onClick={() => setLocalTests([...localTests, { input: '', expected: '' }])}
                       className="text-xs text-blue-400 hover:text-blue-300"
@@ -1303,46 +1335,63 @@ func main() {
                       + Add Test
                     </button>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {localTests.map((test, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs">
-                        <span className="text-slate-500 w-6">{idx + 1}.</span>
-                        <input
-                          type="text"
-                          value={test.input}
-                          onChange={(e) => {
-                            const updated = [...localTests];
-                            updated[idx] = { ...test, input: e.target.value };
-                            setLocalTests(updated);
-                          }}
-                          placeholder="Input"
-                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
-                        />
-                        <span className="text-slate-500">→</span>
-                        <input
-                          type="text"
-                          value={test.expected}
-                          onChange={(e) => {
-                            const updated = [...localTests];
-                            updated[idx] = { ...test, expected: e.target.value };
-                            setLocalTests(updated);
-                          }}
-                          placeholder="Expected"
-                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
-                        />
-                        {test.passed !== undefined && (
-                          <span className={test.passed ? 'text-green-400' : 'text-red-400'}>
-                            {test.passed ? '✓' : '✗'}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => setLocalTests(localTests.filter((_, i) => i !== idx))}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          ×
-                        </button>
+                      <div key={idx} className="bg-slate-900/50 rounded-lg p-2 border border-white/5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-slate-500 text-xs font-medium">Test {idx + 1}</span>
+                          <div className="flex items-center gap-2">
+                            {test.passed !== undefined && (
+                              <span className={`text-xs font-medium ${test.passed ? 'text-green-400' : 'text-red-400'}`}>
+                                {test.passed ? '✓ Passed' : '✗ Failed'}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setLocalTests(localTests.filter((_, i) => i !== idx))}
+                              className="text-red-400 hover:text-red-300 text-xs"
+                              title="Remove test"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-500 mb-1 block">Input (params)</label>
+                            <textarea
+                              value={test.input}
+                              onChange={(e) => {
+                                const updated = [...localTests];
+                                updated[idx] = { ...test, input: e.target.value };
+                                setLocalTests(updated);
+                              }}
+                              placeholder="e.g. [1,2,3], 5&#10;or nums = [1,2], target = 9"
+                              rows={2}
+                              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-500 resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500 mb-1 block">Expected Output</label>
+                            <textarea
+                              value={test.expected}
+                              onChange={(e) => {
+                                const updated = [...localTests];
+                                updated[idx] = { ...test, expected: e.target.value };
+                                setLocalTests(updated);
+                              }}
+                              placeholder="e.g. [0,1]&#10;or true"
+                              rows={2}
+                              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-500 resize-none"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ))}
+                    {localTests.length === 0 && (
+                      <div className="text-center text-slate-500 text-xs py-2">
+                        No tests added. Click "+ Add Test" to create test cases.
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex-1 min-h-0">
@@ -1398,17 +1447,19 @@ func main() {
                 )}
               </div>
 
-              {/* Evaluation Results */}
+              {/* Evaluation Results - Collapsible */}
               {evaluation && (
-                <div className={`rounded-xl border p-4 ${getScoreBgColor(evaluation.score)} flex-shrink-0 max-h-[300px] overflow-y-auto`}>
-                  {/* Score Header */}
-                  <div className="flex items-center justify-between mb-4">
+                <div className={`rounded-xl border ${getScoreBgColor(evaluation.score)} flex-shrink-0 transition-all duration-200 ${isEvaluationCollapsed ? '' : 'max-h-[280px]'} overflow-hidden`}>
+                  {/* Collapsible Header - Always visible */}
+                  <button
+                    onClick={() => setIsEvaluationCollapsed(!isEvaluationCollapsed)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
-                      <Trophy className={`w-6 h-6 ${getScoreColor(evaluation.score)}`} />
-                      <div>
-                        <h3 className="text-lg font-bold">Evaluation Result</h3>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-slate-400">AI-powered code analysis</p>
+                      <Trophy className={`w-5 h-5 ${getScoreColor(evaluation.score)}`} />
+                      <div className="text-left">
+                        <h3 className="text-sm font-bold flex items-center gap-2">
+                          Evaluation Result
                           {saveStatus && (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                               saveStatus.type === 'success' 
@@ -1420,91 +1471,106 @@ func main() {
                               {saveStatus.message}
                             </span>
                           )}
+                        </h3>
+                        {isEvaluationCollapsed && (
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-0.5">
+                            <span>Correct: {evaluation.correctness}%</span>
+                            <span>Time: {evaluation.timeComplexity.score}%</span>
+                            <span>Space: {evaluation.spaceComplexity.score}%</span>
+                            <span>Quality: {evaluation.codeQuality.score}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`text-2xl font-bold ${getScoreColor(evaluation.score)}`}>
+                        {evaluation.score}<span className="text-sm text-slate-400">/100</span>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isEvaluationCollapsed ? '' : 'rotate-90'}`} />
+                    </div>
+                  </button>
+
+                  {/* Expandable Content */}
+                  {!isEvaluationCollapsed && (
+                    <div className="px-4 pb-4 overflow-y-auto max-h-[200px]">
+                      {/* Score Breakdown */}
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        <div className="bg-white/5 rounded-lg p-2 text-center">
+                          <CheckCircle className={`w-3 h-3 mx-auto mb-0.5 ${getScoreColor(evaluation.correctness)}`} />
+                          <div className={`text-xs font-bold ${getScoreColor(evaluation.correctness)}`}>{evaluation.correctness}%</div>
+                          <div className="text-[9px] text-slate-400">Correct</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 text-center">
+                          <Clock className={`w-3 h-3 mx-auto mb-0.5 ${getScoreColor(evaluation.timeComplexity.score)}`} />
+                          <div className={`text-xs font-bold ${getScoreColor(evaluation.timeComplexity.score)}`}>{evaluation.timeComplexity.score}%</div>
+                          <div className="text-[9px] text-slate-400">Time</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 text-center">
+                          <Database className={`w-3 h-3 mx-auto mb-0.5 ${getScoreColor(evaluation.spaceComplexity.score)}`} />
+                          <div className={`text-xs font-bold ${getScoreColor(evaluation.spaceComplexity.score)}`}>{evaluation.spaceComplexity.score}%</div>
+                          <div className="text-[9px] text-slate-400">Space</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 text-center">
+                          <Sparkles className={`w-3 h-3 mx-auto mb-0.5 ${getScoreColor(evaluation.codeQuality.score)}`} />
+                          <div className={`text-xs font-bold ${getScoreColor(evaluation.codeQuality.score)}`}>{evaluation.codeQuality.score}%</div>
+                          <div className="text-[9px] text-slate-400">Quality</div>
                         </div>
                       </div>
-                    </div>
-                    <div className={`text-4xl font-bold ${getScoreColor(evaluation.score)}`}>
-                      {evaluation.score}
-                      <span className="text-xl text-slate-400">/100</span>
-                    </div>
-                  </div>
 
-                  {/* Score Breakdown */}
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <CheckCircle className={`w-4 h-4 mx-auto mb-1 ${getScoreColor(evaluation.correctness)}`} />
-                      <div className={`text-sm font-bold ${getScoreColor(evaluation.correctness)}`}>{evaluation.correctness}%</div>
-                      <div className="text-[10px] text-slate-400">Correct</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <Clock className={`w-4 h-4 mx-auto mb-1 ${getScoreColor(evaluation.timeComplexity.score)}`} />
-                      <div className={`text-sm font-bold ${getScoreColor(evaluation.timeComplexity.score)}`}>{evaluation.timeComplexity.score}%</div>
-                      <div className="text-[10px] text-slate-400">Time</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <Database className={`w-4 h-4 mx-auto mb-1 ${getScoreColor(evaluation.spaceComplexity.score)}`} />
-                      <div className={`text-sm font-bold ${getScoreColor(evaluation.spaceComplexity.score)}`}>{evaluation.spaceComplexity.score}%</div>
-                      <div className="text-[10px] text-slate-400">Space</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <Sparkles className={`w-4 h-4 mx-auto mb-1 ${getScoreColor(evaluation.codeQuality.score)}`} />
-                      <div className={`text-sm font-bold ${getScoreColor(evaluation.codeQuality.score)}`}>{evaluation.codeQuality.score}%</div>
-                      <div className="text-[10px] text-slate-400">Quality</div>
-                    </div>
-                  </div>
-
-                  {/* Complexity */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-[10px] text-slate-400 mb-1">Time Complexity</div>
-                      <div className="text-xs font-mono text-cyan-400">{evaluation.timeComplexity.analysis}</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-[10px] text-slate-400 mb-1">Space Complexity</div>
-                      <div className="text-xs font-mono text-cyan-400">{evaluation.spaceComplexity.analysis}</div>
-                    </div>
-                  </div>
-
-                  {/* Feedback */}
-                  <div className="bg-white/5 rounded-lg p-3 mb-3">
-                    <p className="text-xs text-slate-200">{evaluation.overallFeedback}</p>
-                  </div>
-
-                  {/* Suggestions */}
-                  {evaluation.suggestions.length > 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-semibold text-amber-300 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Suggestions
-                        </h4>
-                        <button
-                          onClick={generateImprovedCode}
-                          disabled={isGeneratingSuggestion || showDiffView}
-                          className="flex items-center gap-1 bg-purple-500/30 hover:bg-purple-500/40 px-2 py-1 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
-                          title="Apply suggestions and see diff"
-                        >
-                          {isGeneratingSuggestion ? (
-                            <>
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <GitCompare className="w-3 h-3" />
-                              Apply & Review
-                            </>
-                          )}
-                        </button>
+                      {/* Complexity */}
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="bg-white/5 rounded-lg p-1.5">
+                          <div className="text-[9px] text-slate-400 mb-0.5">Time Complexity</div>
+                          <div className="text-[10px] font-mono text-cyan-400">{evaluation.timeComplexity.analysis}</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-1.5">
+                          <div className="text-[9px] text-slate-400 mb-0.5">Space Complexity</div>
+                          <div className="text-[10px] font-mono text-cyan-400">{evaluation.spaceComplexity.analysis}</div>
+                        </div>
                       </div>
-                      <ul className="space-y-1">
-                        {evaluation.suggestions.slice(0, 3).map((suggestion, idx) => (
-                          <li key={idx} className="flex items-start gap-1 text-[11px] text-slate-200">
-                            <span className="text-amber-400">{idx + 1}.</span>
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
+
+                      {/* Feedback */}
+                      <div className="bg-white/5 rounded-lg p-2 mb-2">
+                        <p className="text-[10px] text-slate-200 leading-relaxed">{evaluation.overallFeedback}</p>
+                      </div>
+
+                      {/* Suggestions */}
+                      {evaluation.suggestions.length > 0 && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <h4 className="text-[10px] font-semibold text-amber-300 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Suggestions
+                            </h4>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generateImprovedCode(); }}
+                              disabled={isGeneratingSuggestion || showDiffView}
+                              className="flex items-center gap-1 bg-purple-500/30 hover:bg-purple-500/40 px-1.5 py-0.5 rounded text-[9px] font-semibold transition-colors disabled:opacity-50"
+                              title="Apply suggestions and see diff"
+                            >
+                              {isGeneratingSuggestion ? (
+                                <>
+                                  <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  <GitCompare className="w-2.5 h-2.5" />
+                                  Apply & Review
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <ul className="space-y-0.5">
+                            {evaluation.suggestions.slice(0, 3).map((suggestion, idx) => (
+                              <li key={idx} className="flex items-start gap-1 text-[10px] text-slate-200">
+                                <span className="text-amber-400">{idx + 1}.</span>
+                                {suggestion}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
