@@ -91,7 +91,7 @@ class FlightSearchService {
       this.kiwiClient = axios.create({
         baseURL: this.kiwiBaseUrl,
         headers: { 'apikey': kiwiApiKey },
-        timeout: configService.get('travel.api.timeoutMs', 15000)
+        timeout: (configService.get('travel.api.timeoutMs') as number) || 15000
       });
       logger.init('Kiwi (Tequila) flight API client initialized');
     }

@@ -33,6 +33,7 @@ const DEFAULT_CONFIG = {
   'shopping.search.maxResults': 30,
   'shopping.search.maxIsraeliResults': 10,
   'shopping.ai.maxTokens': 1500,
+  'shopping.api.timeoutMs': 10000,
   
   // ==========================================================================
   // JOB AGENT
@@ -58,6 +59,8 @@ const DEFAULT_CONFIG = {
   'job.startups.drushimEnabled': true,
   'job.startups.f6sEnabled': true,
   'job.startups.maxResultsPerSource': 50,
+  'jobs.glassdoor.timeoutMs': 10000,
+  'jobs.glassdoor.enabled': true,
   
   // ==========================================================================
   // MOCK INTERVIEW
@@ -85,6 +88,8 @@ const DEFAULT_CONFIG = {
   'problem.evaluation.model': 'claude-sonnet-4-20250514',
   'problem.hints.maxCount': 3,
   'problem.ai.maxTokens': 2000,
+  'problems.judge0.timeoutMs': 10000,
+  'problems.leetcode.timeoutMs': 10000,
   
   // ==========================================================================
   // LEARNING AGENT
@@ -92,6 +97,8 @@ const DEFAULT_CONFIG = {
   'learning.search.maxResults': 15,
   'learning.sources.default': ['devto', 'hackernews', 'reddit', 'newsletters'],
   'learning.ai.maxTokens': 2000,
+  'learning.youtube.timeoutMs': 10000,
+  'learning.youtube.enabled': true,
   
   // ==========================================================================
   // TRAVEL AGENT
@@ -105,6 +112,7 @@ const DEFAULT_CONFIG = {
   'travel.israel.cacheTTL': 3600,
   'travel.israel.aiEnabled': true,
   'travel.israel.defaultRegions': ['center', 'north', 'jerusalem'],
+  'travel.api.timeoutMs': 10000,
   
   // ==========================================================================
   // TODO AGENT

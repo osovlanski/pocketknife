@@ -133,7 +133,7 @@ class Judge0Service {
     if (selfHostedUrl) {
       this.client = axios.create({
         baseURL: selfHostedUrl,
-        timeout: configService.get('problems.judge0.timeoutMs', 30000)
+        timeout: (configService.get('problems.judge0.timeoutMs') as number) || 30000
       });
       logger.init('Judge0 self-hosted client initialized');
       return selfHostedUrl;
@@ -147,7 +147,7 @@ class Judge0Service {
           'X-RapidAPI-Key': rapidApiKey,
           'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
         },
-        timeout: configService.get('problems.judge0.timeoutMs', 30000)
+        timeout: (configService.get('problems.judge0.timeoutMs') as number) || 30000
       });
       logger.init('Judge0 RapidAPI client initialized');
       return 'https://judge0-ce.p.rapidapi.com';

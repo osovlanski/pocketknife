@@ -67,7 +67,7 @@ class AmazonService {
           'X-RapidAPI-Key': rapidApiKey,
           'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com'
         },
-        timeout: configService.get('shopping.api.timeoutMs', 15000)
+        timeout: (configService.get('shopping.api.timeoutMs') as number) || 15000
       });
       logger.init('Amazon RapidAPI client initialized');
     }

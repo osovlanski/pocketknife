@@ -1,14 +1,15 @@
 import { Request, Response } from 'express';
 import learningService from '../services/learning/learningService';
 import { databaseService } from '../services/core/databaseService';
+import logger from '../utils/logger';
 
 // LinkedIn environment variables check
 // Note: Direct LinkedIn API is a FUTURE ENHANCEMENT - not yet implemented
 // LinkedIn JOBS work via JSearch API (RAPIDAPI_KEY)
 if (process.env.LINKEDIN_ACCESS_TOKEN) {
-  console.log('ℹ️ LINKEDIN_ACCESS_TOKEN found in .env');
-  console.log('   Note: Direct LinkedIn API is not yet implemented.');
-  console.log('   LinkedIn JOBS are available via JSearch API (working).');
+  logger.info('LINKEDIN_ACCESS_TOKEN found in .env');
+  logger.info('Note: Direct LinkedIn API is not yet implemented.');
+  logger.info('LinkedIn JOBS are available via JSearch API (working).');
   learningService.configureLinkedIn({
     accessToken: process.env.LINKEDIN_ACCESS_TOKEN,
     isPremium: process.env.LINKEDIN_IS_PREMIUM === 'true'
@@ -26,7 +27,7 @@ export async function searchLearningResources(req: Request, res: Response) {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
-    console.log(`📚 Learning search request: "${query}" | Sources: ${sources.join(', ')}`);
+    logger.info(`📚 Learning search request: "${query}" | Sources: ${sources.join(', ')}`);
 
     // Get socket.io instance for real-time updates
     const io = req.app.get('io');
@@ -75,7 +76,7 @@ export async function summarizeArticle(req: Request, res: Response) {
       return res.status(400).json({ error: 'Article URL is required' });
     }
 
-    console.log(`📝 Expert summarize request for: ${title || url}`);
+    logger.info(`📝 Expert summarize request for: ${title || url}`);
 
     const summary = await learningService.summarizeArticle(url, title || 'Article');
 
@@ -136,7 +137,7 @@ export async function configureLinkedIn(req: Request, res: Response) {
       isPremium: isPremium === true
     });
 
-    console.log('🔗 LinkedIn configured via API');
+    logger.info('🔗 LinkedIn configured via API');
 
     res.json({
       success: true,
@@ -162,7 +163,7 @@ export async function generateTopicSummary(req: Request, res: Response) {
       return res.status(400).json({ error: 'Topic is required' });
     }
 
-    console.log(`📚 Generating topic summary for: "${topic}"`);    const summary = await learningService.generateTopicSummary(topic);
+    logger.info(`📚 Generating topic summary for: "${topic}"`);    const summary = await learningService.generateTopicSummary(topic);
 
     // Log activity to database
     const user = await databaseService.getDefaultUser();

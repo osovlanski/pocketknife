@@ -418,7 +418,7 @@ export const TravelAgentSchemas = {
   saveTrip: z.object({
     action: z.literal('saveTrip'),
     userId: z.string().min(1, 'User ID is required'),
-    tripData: z.record(z.unknown())
+    tripData: z.record(z.string(), z.unknown())
   })
 };
 

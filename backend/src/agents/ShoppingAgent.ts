@@ -698,7 +698,7 @@ Respond ONLY with valid JSON:
    */
   private async searchSource(source: string, query: string, filters?: ProductFilters): Promise<Product[]> {
     try {
-      let products: UnifiedProduct[] = [];
+      let products: Product[] = [];
 
       switch (source) {
         case 'ebay':
@@ -761,7 +761,7 @@ Respond ONLY with valid JSON:
    */
   private mapToProduct(p: any, source: string): Product {
     return {
-      id: p.id,
+      id: p.id || `${source}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: p.title,
       description: p.description,
       price: p.price,

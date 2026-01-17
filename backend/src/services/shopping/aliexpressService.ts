@@ -73,7 +73,7 @@ class AliExpressService {
           'X-RapidAPI-Key': rapidApiKey,
           'X-RapidAPI-Host': 'aliexpress-datahub.p.rapidapi.com'
         },
-        timeout: configService.get('shopping.api.timeoutMs', 15000)
+        timeout: (configService.get('shopping.api.timeoutMs') as number) || 15000
       });
       logger.init('AliExpress RapidAPI client initialized');
     }

@@ -317,8 +317,8 @@ export function validateParams<T>(
   }
   
   // Format error messages
-  const errors = result.error.errors.map(e => {
-    const path = e.path.join('.');
+  const errors = result.error.issues.map((e) => {
+    const path = e.path.map(String).join('.');
     return path ? `${path}: ${e.message}` : e.message;
   });
   

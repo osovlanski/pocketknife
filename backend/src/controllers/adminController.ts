@@ -1165,10 +1165,10 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
       });
     }
     
-    console.log(`📋 Found ${apis.length} APIs to test in category: ${category}`);
+    logger.info(`📋 Found ${apis.length} APIs to test in category: ${category}`);
     
     if (!apis || apis.length === 0) {
-      console.log('⚠️ No APIs found to test');
+      logger.info('⚠️ No APIs found to test');
       return res.json({
         results: [],
         summary: { total: 0, healthy: 0, unhealthy: 0, healthPercentage: 0 }
@@ -1204,7 +1204,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
 
     // Test each API sequentially to avoid rate limits
     for (const api of apis) {
-      console.log(`  Testing ${api.displayName}...`);
+      logger.info(`  Testing ${api.displayName}...`);
       const startTime = Date.now();
       let isHealthy = false;
       let error: string | undefined;
@@ -1350,7 +1350,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
       
       const responseTime = Date.now() - startTime;
       
-      console.log(`    ${isHealthy ? '✅' : '❌'} ${api.displayName}: ${isHealthy ? 'OK' : error} (${responseTime}ms)`);
+      logger.info(`    ${isHealthy ? '✅' : '❌'} ${api.displayName}: ${isHealthy ? 'OK' : error} (${responseTime}ms)`);
       
       // Update health in DB (silently fails if table doesn't exist)
       try {
@@ -1409,7 +1409,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
     const healthy = results.filter(r => r.isHealthy).length;
     const unhealthy = results.filter(r => !r.isHealthy).length;
 
-    console.log(`\n📊 Test Summary: ${healthy}/${results.length} APIs healthy (${Math.round((healthy / results.length) * 100)}%)`);
+    logger.info(`\n📊 Test Summary: ${healthy}/${results.length} APIs healthy (${Math.round((healthy / results.length) * 100)}%)`);
 
     res.json({
       results,
