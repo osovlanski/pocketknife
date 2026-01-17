@@ -11039,3 +11039,2084 @@ diff --git a/backend/prisma/schema.prisma b/backend/prisma/schema.prisma
 [2026-01-13T11:25:29.574Z] 
 [2026-01-13T11:25:29.576Z] ✅ Automated checks passed - Push proceeding
 [2026-01-13T11:25:29.577Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-13T16:02:48+02:00] Pre-push hook triggered
+[2026-01-13T14:02:50.899Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-13T14:02:50.916Z] 📋 Minimum passing score: 80/100
+[2026-01-13T14:02:50.918Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-13T14:02:50.921Z] 
+[2026-01-13T14:02:50.923Z] ════════════════════════════════════════════════════════════
+[2026-01-13T14:02:50.925Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-13T14:02:50.927Z] ════════════════════════════════════════════════════════════
+[2026-01-13T14:02:50.930Z] 
+[2026-01-13T14:02:50.989Z] 📅 Review started at: 1/13/2026, 4:02:50 PM
+[2026-01-13T14:02:50.991Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-13T14:02:50.993Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-13T14:02:50.996Z] ────────────────────────────────────────
+[2026-01-13T14:02:51.652Z] ✅ Git repository detected
+[2026-01-13T14:02:51.653Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-13T14:02:51.655Z] ────────────────────────────────────────
+[2026-01-13T14:02:52.312Z] 📍 Current branch: feature/mobile-responsive
+[2026-01-13T14:02:52.314Z] 🎯 Comparing against: main
+[2026-01-13T14:02:52.927Z] ✅ Base branch 'main' exists
+[2026-01-13T14:02:52.930Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-13T14:02:52.932Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.519Z] 
+▶ Step 4: Change Summary
+[2026-01-13T14:02:55.522Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.524Z]  frontend/index.html                          |  41 ++-
+ frontend/public/icons/icon.svg               |  27 ++
+ frontend/public/manifest.json                |  86 ++++++
+ frontend/public/sw.js                        | 111 ++++++++
+ frontend/src/App.tsx                         | 103 +++-----
+ frontend/src/components/HomePage.tsx         | 342 ++++++------------------
+ frontend/src/components/common/Header.tsx    |  15 +-
+ frontend/src/components/common/MobileNav.tsx | 233 ++++++++++++++++
+ frontend/src/components/common/index.ts      |   1 +
+ frontend/src/index.css                       |  66 +++++
+ frontend/src/styles/common.module.css        |  97 +++++++
+ frontend/src/styles/layout.module.css        |  91 +++++++
+ frontend/src/styles/mobile.module.css        | 381 +++++++++++++++++++++++++++
+ frontend/tailwind.config.cjs                 |  19 +-
+ 14 files changed, 1273 insertions(+), 340 deletions(-)
+
+[2026-01-13T14:02:55.526Z] 📊 Files changed: 14
+[2026-01-13T14:02:55.529Z] ➕ Lines added: 1273
+[2026-01-13T14:02:55.531Z] ➖ Lines removed: 340
+[2026-01-13T14:02:55.533Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-13T14:02:55.535Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.539Z] 
+diff --git a/frontend/index.html b/frontend/index.html
+[2026-01-13T14:02:55.542Z] index 439b0f1..05c40d7 100644
+[2026-01-13T14:02:55.544Z] --- a/frontend/index.html
+[2026-01-13T14:02:55.546Z] +++ b/frontend/index.html
+[2026-01-13T14:02:55.548Z] @@ -2,12 +2,24 @@
+[2026-01-13T14:02:55.551Z]  <html lang="en">
+[2026-01-13T14:02:55.553Z]  <head>
+[2026-01-13T14:02:55.555Z]      <meta charset="UTF-8">
+[2026-01-13T14:02:55.557Z] -    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+[2026-01-13T14:02:55.560Z] +    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+[2026-01-13T14:02:55.563Z] +    <meta name="theme-color" content="#8b5cf6">
+[2026-01-13T14:02:55.565Z] +    <meta name="apple-mobile-web-app-capable" content="yes">
+[2026-01-13T14:02:55.567Z] +    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+[2026-01-13T14:02:55.570Z] +    <meta name="apple-mobile-web-app-title" content="Pocketknife">
+[2026-01-13T14:02:55.572Z] +    <meta name="description" content="Your Personal AI Assistant Army - Seven specialized AI agents working together to automate your tasks">
+[2026-01-13T14:02:55.574Z] +    <meta name="mobile-web-app-capable" content="yes">
+[2026-01-13T14:02:55.576Z]      <title>Pocketknife</title>
+[2026-01-13T14:02:55.579Z]      
+[2026-01-13T14:02:55.582Z] -    <!-- Favicon -->
+[2026-01-13T14:02:55.584Z] +    <!-- Favicon & Icons -->
+[2026-01-13T14:02:55.586Z]      <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+[2026-01-13T14:02:55.588Z] -    <link rel="apple-touch-icon" href="/favicon.svg">
+[2026-01-13T14:02:55.590Z] +    <link rel="apple-touch-icon" href="/icons/icon.svg">
+[2026-01-13T14:02:55.592Z] +    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon.svg">
+[2026-01-13T14:02:55.595Z] +    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon.svg">
+[2026-01-13T14:02:55.597Z] +    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon.svg">
+[2026-01-13T14:02:55.599Z] +    
+[2026-01-13T14:02:55.602Z] +    <!-- PWA Manifest -->
+[2026-01-13T14:02:55.604Z] +    <link rel="manifest" href="/manifest.json">
+[2026-01-13T14:02:55.606Z]      
+[2026-01-13T14:02:55.608Z]      <!-- Vanta.js Dependencies -->
+[2026-01-13T14:02:55.610Z]      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+[2026-01-13T14:02:55.613Z] @@ -44,7 +56,9 @@
+[2026-01-13T14:02:55.616Z]      <!-- Initialize Vanta.js after DOM is ready -->
+[2026-01-13T14:02:55.618Z]      <script>
+[2026-01-13T14:02:55.620Z]          document.addEventListener('DOMContentLoaded', function() {
+[2026-01-13T14:02:55.622Z] +            // Initialize Vanta.js (reduce points on mobile for performance)
+[2026-01-13T14:02:55.625Z]              if (typeof VANTA !== 'undefined') {
+[2026-01-13T14:02:55.628Z] +                const isMobile = window.innerWidth < 768;
+[2026-01-13T14:02:55.631Z]                  VANTA.NET({
+[2026-01-13T14:02:55.633Z]                      el: "#vanta-bg",
+[2026-01-13T14:02:55.635Z]                      mouseControls: true,
+[2026-01-13T14:02:55.637Z] @@ -53,16 +67,29 @@
+[2026-01-13T14:02:55.639Z]                      minHeight: 200.00,
+[2026-01-13T14:02:55.644Z]                      minWidth: 200.00,
+[2026-01-13T14:02:55.649Z]                      scale: 1.00,
+[2026-01-13T14:02:55.652Z] -                    scaleMobile: 1.00,
+[2026-01-13T14:02:55.654Z] +                    scaleMobile: 0.75,
+[2026-01-13T14:02:55.657Z]                      color: 0xff3f81,
+[2026-01-13T14:02:55.659Z]                      backgroundColor: 0x23153c,
+[2026-01-13T14:02:55.662Z] -                    points: 10,
+[2026-01-13T14:02:55.664Z] -                    maxDistance: 20,
+[2026-01-13T14:02:55.667Z] -                    spacing: 15,
+[2026-01-13T14:02:55.669Z] +                    points: isMobile ? 6 : 10,
+[2026-01-13T14:02:55.671Z] +                    maxDistance: isMobile ? 15 : 20,
+[2026-01-13T14:02:55.684Z] +                    spacing: isMobile ? 18 : 15,
+[2026-01-13T14:02:55.686Z]                      showDots: true
+[2026-01-13T14:02:55.688Z]                  });
+[2026-01-13T14:02:55.690Z]              }
+[2026-01-13T14:02:55.692Z]          });
+[2026-01-13T14:02:55.695Z] +        
+[2026-01-13T14:02:55.697Z] +        // Register Service Worker for PWA
+[2026-01-13T14:02:55.699Z] +        if ('serviceWorker' in navigator) {
+[2026-01-13T14:02:55.702Z] +            window.addEventListener('load', function() {
+[2026-01-13T14:02:55.704Z] +                navigator.serviceWorker.register('/sw.js')
+[2026-01-13T14:02:55.706Z] +                    .then(function(registration) {
+[2026-01-13T14:02:55.709Z] +                        console.log('SW registered:', registration.scope);
+[2026-01-13T14:02:55.713Z] +                    })
+[2026-01-13T14:02:55.715Z] +                    .catch(function(error) {
+[2026-01-13T14:02:55.718Z] +                        console.log('SW registration failed:', error);
+[2026-01-13T14:02:55.720Z] +                    });
+[2026-01-13T14:02:55.722Z] +            });
+[2026-01-13T14:02:55.724Z] +        }
+[2026-01-13T14:02:55.727Z]      </script>
+[2026-01-13T14:02:55.729Z]  </body>
+[2026-01-13T14:02:55.731Z]  </html>
+[2026-01-13T14:02:55.733Z] 
+diff --git a/frontend/public/icons/icon.svg b/frontend/public/icons/icon.svg
+[2026-01-13T14:02:55.735Z] new file mode 100644
+[2026-01-13T14:02:55.737Z] index 0000000..421100e
+[2026-01-13T14:02:55.739Z] --- /dev/null
+[2026-01-13T14:02:55.740Z] +++ b/frontend/public/icons/icon.svg
+[2026-01-13T14:02:55.743Z] @@ -0,0 +1,27 @@
+[2026-01-13T14:02:55.745Z] +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+[2026-01-13T14:02:55.747Z] +  <defs>
+[2026-01-13T14:02:55.750Z] +    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+[2026-01-13T14:02:55.752Z] +      <stop offset="0%" style="stop-color:#8b5cf6"/>
+[2026-01-13T14:02:55.754Z] +      <stop offset="100%" style="stop-color:#ec4899"/>
+[2026-01-13T14:02:55.756Z] +    </linearGradient>
+[2026-01-13T14:02:55.757Z] +    <linearGradient id="knife" x1="0%" y1="0%" x2="100%" y2="100%">
+[2026-01-13T14:02:55.760Z] +      <stop offset="0%" style="stop-color:#fbbf24"/>
+[2026-01-13T14:02:55.762Z] +      <stop offset="100%" style="stop-color:#f97316"/>
+[2026-01-13T14:02:55.765Z] +    </linearGradient>
+[2026-01-13T14:02:55.768Z] +  </defs>
+[2026-01-13T14:02:55.770Z] +  <!-- Background circle -->
+[2026-01-13T14:02:55.772Z] +  <circle cx="256" cy="256" r="240" fill="url(#bg)"/>
+[2026-01-13T14:02:55.774Z] +  <!-- Wrench/Tool icon -->
+[2026-01-13T14:02:55.776Z] +  <g transform="translate(128, 128) scale(0.5)">
+[2026-01-13T14:02:55.778Z] +    <path fill="url(#knife)" d="M507.7,205.3c-5.7-5.7-13.3-8.8-21.3-8.8s-15.6,3.1-21.3,8.8l-64.5,64.5l-45.3-45.3l64.5-64.5c11.8-11.8,11.8-30.9,0-42.6c-22.6-22.6-53.6-35.1-85.8-35.1c-32.1,0-62.3,11.5-86,32.5L54.3,308.5c-72.4,72.4-72.4,190.1,0,262.6c36.2,36.2,83.7,54.3,131.3,54.3s95.1-18.1,131.3-54.3l193.8-193.8c11.8-11.8,11.8-30.9,0-42.6l-45.3-45.3l64.5-64.5C519.4,213,519.4,217.1,507.7,205.3z M274.3,528.5c-48.7,48.7-128,48.7-176.7,0c-48.7-48.7-48.7-128,0-176.7l193.8-193.8c14.6-13.2,33.4-20.5,53.4-20.5c17.3,0,33.8,5.5,47.3,15.6L185.6,359.6c-11.8,11.8-11.8,30.9,0,42.6c5.9,5.9,13.6,8.8,21.3,8.8s15.4-2.9,21.3-8.8l206.5-206.5c10.1,13.5,15.6,30,15.6,47.3c0,20-7.3,38.8-20.5,53.4L274.3,528.5z"/>
+[2026-01-13T14:02:55.781Z] +  </g>
+[2026-01-13T14:02:55.783Z] +  <!-- Simplified Swiss army knife shape -->
+[2026-01-13T14:02:55.787Z] 
+... and 1863 more lines
+[2026-01-13T14:02:55.789Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-13T14:02:55.791Z] ────────────────────────────────────────
+[2026-01-13T14:02:55.793Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-13T14:02:55.796Z]    Checking backend types...
+[2026-01-13T14:04:17.145Z]    ✅ Backend type check passed
+[2026-01-13T14:04:17.150Z]    Checking frontend types...
+[2026-01-13T14:04:50.457Z]    ✅ Frontend type check passed
+[2026-01-13T14:04:50.462Z] ✅ All type checks passed!
+[2026-01-13T14:04:50.463Z] 
+▶ Step 7: Running Tests
+[2026-01-13T14:04:50.465Z] ────────────────────────────────────────
+[2026-01-13T14:04:50.467Z] 🧪 Running test suites...
+[2026-01-13T14:04:50.468Z]    Running backend tests...
+[2026-01-13T14:05:37.079Z]    ✅ Backend tests passed
+[2026-01-13T14:05:37.091Z]    Running frontend tests...
+[2026-01-13T14:06:27.560Z]    ✅ Frontend tests passed
+[2026-01-13T14:06:27.564Z] ✅ All tests passed!
+[2026-01-13T14:06:27.565Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-13T14:06:27.566Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.577Z] 
+🟡 Warnings:
+[2026-01-13T14:06:27.582Z]    🟡 console.log usage: 3 instance(s) - Consider using proper logger
+[2026-01-13T14:06:27.585Z] 
+📊 Automated Pre-Score: 97/100
+[2026-01-13T14:06:27.587Z] 
+▶ Step 9: Manual Review Required
+[2026-01-13T14:06:27.589Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.591Z] 
+[2026-01-13T14:06:27.592Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T14:06:27.593Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-13T14:06:27.595Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-13T14:06:27.596Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-13T14:06:27.597Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T14:06:27.599Z] 
+[2026-01-13T14:06:27.600Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-13T14:06:27.601Z] 
+[2026-01-13T14:06:27.602Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-13T14:06:27.603Z] 
+[2026-01-13T14:06:27.604Z] 
+▶ Step 10: Push Confirmation
+[2026-01-13T14:06:27.605Z] ────────────────────────────────────────
+[2026-01-13T14:06:27.608Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-13T14:06:27.609Z] 📝 Pre-push automated score: 97
+[2026-01-13T14:06:27.611Z] 
+[2026-01-13T14:06:27.612Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-13T14:06:27.613Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-13T14:06:27.614Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-13T14:06:27.615Z] 
+[2026-01-13T14:06:27.616Z] ✅ Automated checks passed - Push proceeding
+[2026-01-13T14:06:27.617Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-13T16:06:27+02:00] Push APPROVED
+[2026-01-17T12:26:29+02:00] Pre-push hook triggered
+[2026-01-17T10:26:30.949Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T10:26:30.973Z] 📋 Minimum passing score: 80/100
+[2026-01-17T10:26:30.976Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T10:26:30.981Z] 
+[2026-01-17T10:26:30.983Z] ════════════════════════════════════════════════════════════
+[2026-01-17T10:26:30.985Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T10:26:30.986Z] ════════════════════════════════════════════════════════════
+[2026-01-17T10:26:30.988Z] 
+[2026-01-17T10:26:31.044Z] 📅 Review started at: 1/17/2026, 12:26:30 PM
+[2026-01-17T10:26:31.047Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T10:26:31.051Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T10:26:31.053Z] ────────────────────────────────────────
+[2026-01-17T10:26:31.744Z] ✅ Git repository detected
+[2026-01-17T10:26:31.746Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T10:26:31.747Z] ────────────────────────────────────────
+[2026-01-17T10:26:32.273Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T10:26:32.274Z] 🎯 Comparing against: main
+[2026-01-17T10:26:32.779Z] ✅ Base branch 'main' exists
+[2026-01-17T10:26:32.781Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T10:26:32.783Z] ────────────────────────────────────────
+[2026-01-17T10:26:35.984Z] 
+▶ Step 4: Change Summary
+[2026-01-17T10:26:35.986Z] ────────────────────────────────────────
+[2026-01-17T10:26:35.987Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          |  162 ++
+ backend/package.json                               |    2 +
+ backend/src/agents/JobsAgent.ts                    |  239 ++-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/jobController.ts           |  286 +++-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 ++-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++++++++++++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |    8 +
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 +++++
+ .../services/jobs/systemDesignEvaluationService.ts |  362 +++++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  239 +++
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 +++++++
+ frontend/package-lock.json                         | 1259 ++++++++++++++-
+ frontend/package.json                              |    1 +
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  636 ++++++++
+ frontend/src/components/IsraelTravelPanel.tsx      |  809 ++++++++++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1116 +++++++++++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  646 ++++++++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 +++++++++++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/mockInterviewApi.ts          |  233 +++
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +++
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +++
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ review-log.txt                                     |  207 +++
+ 54 files changed, 11458 insertions(+), 234 deletions(-)
+
+[2026-01-17T10:26:35.989Z] 📊 Files changed: 54
+[2026-01-17T10:26:35.991Z] ➕ Lines added: 11458
+[2026-01-17T10:26:35.992Z] ➖ Lines removed: 234
+[2026-01-17T10:26:35.994Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T10:26:35.995Z] ────────────────────────────────────────
+[2026-01-17T10:26:36.000Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.002Z] index eda50f4..b8c12e9 100644
+[2026-01-17T10:26:36.003Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.004Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T10:26:36.006Z] @@ -1,12 +1,12 @@
+[2026-01-17T10:26:36.007Z]  ---
+[2026-01-17T10:26:36.009Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T10:26:36.011Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T10:26:36.012Z]  globs: **/*
+[2026-01-17T10:26:36.014Z]  alwaysApply: false
+[2026-01-17T10:26:36.016Z]  ---
+[2026-01-17T10:26:36.019Z]  
+[2026-01-17T10:26:36.022Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T10:26:36.024Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T10:26:36.028Z]  
+[2026-01-17T10:26:36.029Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T10:26:36.031Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T10:26:36.033Z]  
+[2026-01-17T10:26:36.035Z]  ## When This Rule Applies
+[2026-01-17T10:26:36.036Z]  
+[2026-01-17T10:26:36.038Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T10:26:36.040Z]  ```
+[2026-01-17T10:26:36.041Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T10:26:36.043Z]  
+[2026-01-17T10:26:36.045Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T10:26:36.047Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T10:26:36.048Z] +```bash
+[2026-01-17T10:26:36.050Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T10:26:36.052Z] +```
+[2026-01-17T10:26:36.054Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T10:26:36.057Z] +
+[2026-01-17T10:26:36.059Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T10:26:36.060Z] +
+[2026-01-17T10:26:36.062Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T10:26:36.064Z] +
+[2026-01-17T10:26:36.065Z] +#### Frontend Changes
+[2026-01-17T10:26:36.067Z] +| Check | What to Verify |
+[2026-01-17T10:26:36.068Z] +| :--- | :--- |
+[2026-01-17T10:26:36.070Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T10:26:36.072Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T10:26:36.073Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T10:26:36.076Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T10:26:36.079Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T10:26:36.082Z] +
+[2026-01-17T10:26:36.084Z] +#### Backend Changes
+[2026-01-17T10:26:36.086Z] +| Check | What to Verify |
+[2026-01-17T10:26:36.090Z] +| :--- | :--- |
+[2026-01-17T10:26:36.093Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T10:26:36.094Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T10:26:36.097Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T10:26:36.099Z] +
+[2026-01-17T10:26:36.101Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T10:26:36.103Z] +```typescript
+[2026-01-17T10:26:36.105Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T10:26:36.107Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T10:26:36.108Z] +
+[2026-01-17T10:26:36.110Z] +// ✅ GOOD: Access specific property
+[2026-01-17T10:26:36.116Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T10:26:36.118Z] +
+[2026-01-17T10:26:36.120Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T10:26:36.123Z] +<span>{tags}</span>
+[2026-01-17T10:26:36.125Z] +
+[2026-01-17T10:26:36.128Z] +// ✅ GOOD: Map over array
+[2026-01-17T10:26:36.130Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T10:26:36.132Z] +// or
+[2026-01-17T10:26:36.138Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T10:26:36.140Z] +
+[2026-01-17T10:26:36.142Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T10:26:36.144Z] +<span>{user.name}</span>
+[2026-01-17T10:26:36.146Z] +
+[2026-01-17T10:26:36.148Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T10:26:36.150Z] +<span>{user?.name}</span>
+[2026-01-17T10:26:36.151Z] +```
+[2026-01-17T10:26:36.153Z] +
+[2026-01-17T10:26:36.154Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T10:26:36.156Z]  ```bash
+[2026-01-17T10:26:36.157Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T10:26:36.159Z]  ```
+[2026-01-17T10:26:36.160Z]  
+[2026-01-17T10:26:36.162Z] -### Step 3: Analyze Results
+[2026-01-17T10:26:36.163Z] +### Step 4: Analyze Results
+[2026-01-17T10:26:36.165Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T10:26:36.168Z]  - Statements: Current threshold
+[2026-01-17T10:26:36.170Z]  - Branches: Current threshold
+[2026-01-17T10:26:36.173Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T10:26:36.175Z]  
+[2026-01-17T10:26:36.176Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T10:26:36.178Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T10:26:36.179Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T10:26:36.181Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T10:26:36.182Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T10:26:36.183Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T10:26:36.185Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T10:26:36.186Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T10:26:36.188Z]  
+[2026-01-17T10:26:36.190Z]  ### When to Add Tests
+[2026-01-17T10:26:36.191Z]  
+[2026-01-17T10:26:36.193Z]  **MUST add tests if:**
+[2026-01-17T10:26:36.195Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T10:26:36.196Z]  - New service or utility function is created
+[2026-01-17T10:26:36.204Z] 
+... and 13358 more lines
+[2026-01-17T10:26:36.206Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T10:26:36.207Z] ────────────────────────────────────────
+[2026-01-17T10:26:36.208Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T10:26:36.210Z]    Checking backend types...
+[2026-01-17T10:27:33.157Z]    ✅ Backend type check passed
+[2026-01-17T10:27:33.161Z]    Checking frontend types...
+[2026-01-17T10:28:19.051Z]    ✅ Frontend type check passed
+[2026-01-17T10:28:19.056Z] ✅ All type checks passed!
+[2026-01-17T10:28:19.059Z] 
+▶ Step 7: Running Tests
+[2026-01-17T10:28:19.061Z] ────────────────────────────────────────
+[2026-01-17T10:28:19.063Z] 🧪 Running test suites...
+[2026-01-17T10:28:19.065Z]    Running backend tests...
+[2026-01-17T10:29:08.709Z]    ✅ Backend tests passed
+[2026-01-17T10:29:08.713Z]    Running frontend tests...
+[2026-01-17T10:30:02.241Z]    ✅ Frontend tests passed
+[2026-01-17T10:30:02.244Z] ✅ All tests passed!
+[2026-01-17T10:30:02.245Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T10:30:02.246Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.304Z] 
+🔴 Critical Issues Found:
+[2026-01-17T10:30:02.305Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-17T10:30:02.306Z] 
+🟡 Warnings:
+[2026-01-17T10:30:02.308Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T10:30:02.309Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T10:30:02.310Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T10:30:02.311Z] 
+📊 Automated Pre-Score: 74/100
+[2026-01-17T10:30:02.312Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T10:30:02.313Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.315Z] 
+[2026-01-17T10:30:02.316Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T10:30:02.317Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T10:30:02.318Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T10:30:02.319Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T10:30:02.321Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T10:30:02.323Z] 
+[2026-01-17T10:30:02.324Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T10:30:02.326Z] 
+[2026-01-17T10:30:02.327Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T10:30:02.329Z] 
+[2026-01-17T10:30:02.330Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T10:30:02.331Z] ────────────────────────────────────────
+[2026-01-17T10:30:02.335Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T10:30:02.337Z] 📝 Pre-push automated score: 74
+[2026-01-17T10:30:02.338Z] 
+[2026-01-17T10:30:02.339Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T10:30:02.340Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T10:30:02.342Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T10:30:02.343Z] 
+[2026-01-17T10:30:02.345Z]    Score: 74/100 (Minimum required: 80)
+[2026-01-17T10:30:02.348Z] 
+[2026-01-17T10:30:02.350Z]    Fix the following issues before pushing:
+[2026-01-17T10:30:02.352Z]    🔴 Hardcoded localhost URL: Found 3 instance(s)
+[2026-01-17T10:30:02.353Z] 
+[2026-01-17T10:30:02.354Z]    Also consider fixing these warnings:
+[2026-01-17T10:30:02.355Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T10:30:02.356Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T10:30:02.357Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T10:30:02.359Z] 
+[2026-01-17T10:30:02.360Z]    After fixing, run: git push
+[2026-01-17T10:30:02.361Z] 
+[2026-01-17T10:30:02.362Z] BLOCKED - Automated score: 74/100 (min: 80)
+[2026-01-17T12:30:02+02:00] Push BLOCKED - Exit code: 1
+[2026-01-17T13:04:38+02:00] Pre-push hook triggered
+[2026-01-17T11:04:40.132Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:04:40.148Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:04:40.150Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:04:40.154Z] 
+[2026-01-17T11:04:40.155Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:04:40.157Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:04:40.159Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:04:40.160Z] 
+[2026-01-17T11:04:40.203Z] 📅 Review started at: 1/17/2026, 1:04:40 PM
+[2026-01-17T11:04:40.205Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:04:40.207Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:04:40.208Z] ────────────────────────────────────────
+[2026-01-17T11:04:40.788Z] ✅ Git repository detected
+[2026-01-17T11:04:40.789Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:04:40.791Z] ────────────────────────────────────────
+[2026-01-17T11:04:41.310Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:04:41.312Z] 🎯 Comparing against: main
+[2026-01-17T11:04:41.823Z] ✅ Base branch 'main' exists
+[2026-01-17T11:04:41.825Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:04:41.826Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.962Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:04:44.963Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.964Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          | 5440 --------------------
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 +-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/jobController.ts           |  286 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 +-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 ++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 ++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  239 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 ++
+ frontend/package-lock.json                         | 1259 ++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  636 +++
+ frontend/src/components/IsraelTravelPanel.tsx      |  809 +++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1116 ++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  646 +++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 ++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/mockInterviewApi.ts          |  233 +
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     |  469 ++
+ 55 files changed, 11575 insertions(+), 5681 deletions(-)
+
+[2026-01-17T11:04:44.966Z] 📊 Files changed: 55
+[2026-01-17T11:04:44.967Z] ➕ Lines added: 11575
+[2026-01-17T11:04:44.969Z] ➖ Lines removed: 5681
+[2026-01-17T11:04:44.972Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:04:44.974Z] ────────────────────────────────────────
+[2026-01-17T11:04:44.980Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.981Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:04:44.983Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.985Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:04:44.986Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:04:44.988Z]  ---
+[2026-01-17T11:04:44.989Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:04:44.991Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:04:44.993Z]  globs: **/*
+[2026-01-17T11:04:44.994Z]  alwaysApply: false
+[2026-01-17T11:04:44.996Z]  ---
+[2026-01-17T11:04:44.997Z]  
+[2026-01-17T11:04:44.999Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:04:45.001Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:04:45.002Z]  
+[2026-01-17T11:04:45.004Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:04:45.005Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:04:45.006Z]  
+[2026-01-17T11:04:45.008Z]  ## When This Rule Applies
+[2026-01-17T11:04:45.013Z]  
+[2026-01-17T11:04:45.015Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:04:45.017Z]  ```
+[2026-01-17T11:04:45.019Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:04:45.021Z]  
+[2026-01-17T11:04:45.022Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:04:45.024Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:04:45.025Z] +```bash
+[2026-01-17T11:04:45.027Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:04:45.028Z] +```
+[2026-01-17T11:04:45.030Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:04:45.032Z] +
+[2026-01-17T11:04:45.034Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:04:45.036Z] +
+[2026-01-17T11:04:45.037Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:04:45.039Z] +
+[2026-01-17T11:04:45.041Z] +#### Frontend Changes
+[2026-01-17T11:04:45.042Z] +| Check | What to Verify |
+[2026-01-17T11:04:45.044Z] +| :--- | :--- |
+[2026-01-17T11:04:45.045Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:04:45.046Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:04:45.048Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:04:45.049Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:04:45.051Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:04:45.052Z] +
+[2026-01-17T11:04:45.054Z] +#### Backend Changes
+[2026-01-17T11:04:45.055Z] +| Check | What to Verify |
+[2026-01-17T11:04:45.056Z] +| :--- | :--- |
+[2026-01-17T11:04:45.058Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:04:45.060Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:04:45.062Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:04:45.063Z] +
+[2026-01-17T11:04:45.065Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:04:45.067Z] +```typescript
+[2026-01-17T11:04:45.068Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:04:45.070Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:04:45.071Z] +
+[2026-01-17T11:04:45.073Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:04:45.074Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:04:45.076Z] +
+[2026-01-17T11:04:45.077Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:04:45.078Z] +<span>{tags}</span>
+[2026-01-17T11:04:45.080Z] +
+[2026-01-17T11:04:45.081Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:04:45.083Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:04:45.086Z] +// or
+[2026-01-17T11:04:45.087Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:04:45.089Z] +
+[2026-01-17T11:04:45.091Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:04:45.092Z] +<span>{user.name}</span>
+[2026-01-17T11:04:45.094Z] +
+[2026-01-17T11:04:45.096Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:04:45.098Z] +<span>{user?.name}</span>
+[2026-01-17T11:04:45.099Z] +```
+[2026-01-17T11:04:45.102Z] +
+[2026-01-17T11:04:45.104Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:04:45.106Z]  ```bash
+[2026-01-17T11:04:45.109Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:04:45.111Z]  ```
+[2026-01-17T11:04:45.113Z]  
+[2026-01-17T11:04:45.114Z] -### Step 3: Analyze Results
+[2026-01-17T11:04:45.116Z] +### Step 4: Analyze Results
+[2026-01-17T11:04:45.118Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:04:45.120Z]  - Statements: Current threshold
+[2026-01-17T11:04:45.122Z]  - Branches: Current threshold
+[2026-01-17T11:04:45.123Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:04:45.125Z]  
+[2026-01-17T11:04:45.127Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:04:45.135Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:04:45.138Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:04:45.139Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:04:45.141Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:04:45.143Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:04:45.144Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:04:45.146Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:04:45.148Z]  
+[2026-01-17T11:04:45.149Z]  ### When to Add Tests
+[2026-01-17T11:04:45.151Z]  
+[2026-01-17T11:04:45.153Z]  **MUST add tests if:**
+[2026-01-17T11:04:45.157Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:04:45.159Z]  - New service or utility function is created
+[2026-01-17T11:04:45.172Z] 
+... and 18858 more lines
+[2026-01-17T11:04:45.174Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:04:45.175Z] ────────────────────────────────────────
+[2026-01-17T11:04:45.178Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:04:45.181Z]    Checking backend types...
+[2026-01-17T11:06:07.227Z]    ✅ Backend type check passed
+[2026-01-17T11:06:07.232Z]    Checking frontend types...
+[2026-01-17T11:07:03.607Z]    ✅ Frontend type check passed
+[2026-01-17T11:07:03.615Z] ✅ All type checks passed!
+[2026-01-17T11:07:03.617Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:07:03.619Z] ────────────────────────────────────────
+[2026-01-17T11:07:03.622Z] 🧪 Running test suites...
+[2026-01-17T11:07:03.624Z]    Running backend tests...
+[2026-01-17T11:08:17.901Z]    ❌ Backend tests failed
+[2026-01-17T11:08:17.906Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > metadata > should have correct agent metadata
+[2026-01-17T11:08:17.907Z]       FAIL  tests/services/cacheService.test.ts > CacheService > cacheKeys > should generate correct job search cache keys
+[2026-01-17T11:08:17.909Z]       FAIL  tests/services/cookingService.test.ts > CookingService > COOKING_CATEGORIES > should export valid cooking categories
+[2026-01-17T11:08:17.910Z]       FAIL  tests/services/databaseService.test.ts > DatabaseService > getPrisma > should return a Prisma client or null
+[2026-01-17T11:08:17.912Z]       FAIL  tests/services/notionService.test.ts > NotionService > isConfigured > should return true when NOTION_TOKEN is set
+[2026-01-17T11:08:17.915Z]    Running frontend tests...
+[2026-01-17T11:09:59.188Z]    ✅ Frontend tests passed
+[2026-01-17T11:09:59.198Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-17T11:09:59.201Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:09:59.202Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.493Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:09:59.496Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T11:09:59.499Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:09:59.501Z] 
+🟡 Warnings:
+[2026-01-17T11:09:59.505Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T11:09:59.507Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T11:09:59.509Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:09:59.511Z] 
+📊 Automated Pre-Score: 49/100
+[2026-01-17T11:09:59.517Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:09:59.519Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.521Z] 
+[2026-01-17T11:09:59.522Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:09:59.525Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:09:59.527Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:09:59.530Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:09:59.532Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:09:59.534Z] 
+[2026-01-17T11:09:59.541Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:09:59.543Z] 
+[2026-01-17T11:09:59.545Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:09:59.548Z] 
+[2026-01-17T11:09:59.550Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:09:59.552Z] ────────────────────────────────────────
+[2026-01-17T11:09:59.558Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:09:59.560Z] 📝 Pre-push automated score: 49
+[2026-01-17T11:09:59.564Z] 
+[2026-01-17T11:09:59.566Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:09:59.568Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T11:09:59.570Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:09:59.572Z] 
+[2026-01-17T11:09:59.573Z]    Score: 49/100 (Minimum required: 80)
+[2026-01-17T11:09:59.575Z] 
+[2026-01-17T11:09:59.577Z]    Fix the following issues before pushing:
+[2026-01-17T11:09:59.581Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T11:09:59.583Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:09:59.588Z] 
+[2026-01-17T11:09:59.592Z]    Also consider fixing these warnings:
+[2026-01-17T11:09:59.594Z]    🟡 console.log usage: 28 instance(s) - Consider using proper logger
+[2026-01-17T11:09:59.596Z]    🟡 'any' type usage: 52 instance(s) - Prefer explicit types
+[2026-01-17T11:09:59.598Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:09:59.600Z] 
+[2026-01-17T11:09:59.602Z]    After fixing, run: git push
+[2026-01-17T11:09:59.604Z] 
+[2026-01-17T11:09:59.606Z] BLOCKED - Automated score: 49/100 (min: 80)
+[2026-01-17T13:10:00+02:00] Push BLOCKED - Exit code: 1
+[2026-01-17T13:16:16+02:00] Pre-push hook triggered
+[2026-01-17T11:16:18.109Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:16:18.123Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:16:18.125Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:16:18.129Z] 
+[2026-01-17T11:16:18.130Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:16:18.132Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:16:18.133Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:16:18.135Z] 
+[2026-01-17T11:16:18.174Z] 📅 Review started at: 1/17/2026, 1:16:18 PM
+[2026-01-17T11:16:18.177Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:16:18.178Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:16:18.179Z] ────────────────────────────────────────
+[2026-01-17T11:16:18.619Z] ✅ Git repository detected
+[2026-01-17T11:16:18.621Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:16:18.622Z] ────────────────────────────────────────
+[2026-01-17T11:16:19.045Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:16:19.046Z] 🎯 Comparing against: main
+[2026-01-17T11:16:19.439Z] ✅ Base branch 'main' exists
+[2026-01-17T11:16:19.440Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:16:19.442Z] ────────────────────────────────────────
+[2026-01-17T11:16:21.808Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:16:21.809Z] ────────────────────────────────────────
+[2026-01-17T11:16:21.811Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          | 5440 --------------------
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 +-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/interviewController.ts     |  279 +
+ backend/src/controllers/jobController.ts           |   38 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 +-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 ++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 ++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  250 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 ++
+ frontend/package-lock.json                         | 1259 ++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  637 +++
+ frontend/src/components/IsraelTravelPanel.tsx      |  810 +++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1117 ++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  647 +++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 ++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/logger.ts                    |  154 +
+ frontend/src/services/mockInterviewApi.ts          |  233 +
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     |  739 +++
+ 57 files changed, 12045 insertions(+), 5681 deletions(-)
+
+[2026-01-17T11:16:21.812Z] 📊 Files changed: 57
+[2026-01-17T11:16:21.814Z] ➕ Lines added: 12045
+[2026-01-17T11:16:21.815Z] ➖ Lines removed: 5681
+[2026-01-17T11:16:21.817Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:16:21.819Z] ────────────────────────────────────────
+[2026-01-17T11:16:21.824Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:16:21.826Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:16:21.828Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:16:21.829Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:16:21.831Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:16:21.832Z]  ---
+[2026-01-17T11:16:21.833Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:16:21.835Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:16:21.836Z]  globs: **/*
+[2026-01-17T11:16:21.837Z]  alwaysApply: false
+[2026-01-17T11:16:21.839Z]  ---
+[2026-01-17T11:16:21.841Z]  
+[2026-01-17T11:16:21.842Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:16:21.844Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:16:21.845Z]  
+[2026-01-17T11:16:21.846Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:16:21.848Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:16:21.849Z]  
+[2026-01-17T11:16:21.850Z]  ## When This Rule Applies
+[2026-01-17T11:16:21.851Z]  
+[2026-01-17T11:16:21.853Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:16:21.854Z]  ```
+[2026-01-17T11:16:21.856Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:16:21.857Z]  
+[2026-01-17T11:16:21.858Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:16:21.860Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:16:21.861Z] +```bash
+[2026-01-17T11:16:21.863Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:16:21.864Z] +```
+[2026-01-17T11:16:21.866Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:16:21.867Z] +
+[2026-01-17T11:16:21.869Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:16:21.870Z] +
+[2026-01-17T11:16:21.872Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:16:21.874Z] +
+[2026-01-17T11:16:21.875Z] +#### Frontend Changes
+[2026-01-17T11:16:21.877Z] +| Check | What to Verify |
+[2026-01-17T11:16:21.878Z] +| :--- | :--- |
+[2026-01-17T11:16:21.880Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:16:21.881Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:16:21.883Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:16:21.884Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:16:21.885Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:16:21.886Z] +
+[2026-01-17T11:16:21.887Z] +#### Backend Changes
+[2026-01-17T11:16:21.889Z] +| Check | What to Verify |
+[2026-01-17T11:16:21.890Z] +| :--- | :--- |
+[2026-01-17T11:16:21.892Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:16:21.894Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:16:21.895Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:16:21.897Z] +
+[2026-01-17T11:16:21.898Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:16:21.899Z] +```typescript
+[2026-01-17T11:16:21.901Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:16:21.902Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:16:21.903Z] +
+[2026-01-17T11:16:21.904Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:16:21.905Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:16:21.907Z] +
+[2026-01-17T11:16:21.909Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:16:21.910Z] +<span>{tags}</span>
+[2026-01-17T11:16:21.911Z] +
+[2026-01-17T11:16:21.913Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:16:21.914Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:16:21.916Z] +// or
+[2026-01-17T11:16:21.918Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:16:21.919Z] +
+[2026-01-17T11:16:21.920Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:16:21.922Z] +<span>{user.name}</span>
+[2026-01-17T11:16:21.923Z] +
+[2026-01-17T11:16:21.925Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:16:21.926Z] +<span>{user?.name}</span>
+[2026-01-17T11:16:21.927Z] +```
+[2026-01-17T11:16:21.928Z] +
+[2026-01-17T11:16:21.930Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:16:21.932Z]  ```bash
+[2026-01-17T11:16:21.933Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:16:21.935Z]  ```
+[2026-01-17T11:16:21.936Z]  
+[2026-01-17T11:16:21.937Z] -### Step 3: Analyze Results
+[2026-01-17T11:16:21.939Z] +### Step 4: Analyze Results
+[2026-01-17T11:16:21.940Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:16:21.942Z]  - Statements: Current threshold
+[2026-01-17T11:16:21.943Z]  - Branches: Current threshold
+[2026-01-17T11:16:21.944Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:16:21.945Z]  
+[2026-01-17T11:16:21.947Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:16:21.949Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:16:21.950Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:16:21.952Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:16:21.953Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:16:21.955Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:16:21.956Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:16:21.957Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:16:21.958Z]  
+[2026-01-17T11:16:21.960Z]  ### When to Add Tests
+[2026-01-17T11:16:21.961Z]  
+[2026-01-17T11:16:21.962Z]  **MUST add tests if:**
+[2026-01-17T11:16:21.963Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:16:21.965Z]  - New service or utility function is created
+[2026-01-17T11:16:21.974Z] 
+... and 19340 more lines
+[2026-01-17T11:16:21.975Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:16:21.977Z] ────────────────────────────────────────
+[2026-01-17T11:16:21.978Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:16:21.979Z]    Checking backend types...
+[2026-01-17T11:17:17.200Z]    ✅ Backend type check passed
+[2026-01-17T11:17:17.204Z]    Checking frontend types...
+[2026-01-17T11:17:51.689Z]    ✅ Frontend type check passed
+[2026-01-17T11:17:51.694Z] ✅ All type checks passed!
+[2026-01-17T11:17:51.696Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:17:51.697Z] ────────────────────────────────────────
+[2026-01-17T11:17:51.698Z] 🧪 Running test suites...
+[2026-01-17T11:17:51.700Z]    Running backend tests...
+[2026-01-17T11:18:32.889Z]    ✅ Backend tests passed
+[2026-01-17T11:18:32.892Z]    Running frontend tests...
+[2026-01-17T11:19:23.976Z]    ✅ Frontend tests passed
+[2026-01-17T11:19:23.983Z] ✅ All tests passed!
+[2026-01-17T11:19:23.985Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:19:23.986Z] ────────────────────────────────────────
+[2026-01-17T11:19:24.087Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:19:24.088Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:19:24.090Z] 
+🟡 Warnings:
+[2026-01-17T11:19:24.091Z]    🟡 console.log usage: 21 instance(s) - Consider using proper logger
+[2026-01-17T11:19:24.093Z]    🟡 'any' type usage: 53 instance(s) - Prefer explicit types
+[2026-01-17T11:19:24.094Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:19:24.096Z] 
+📊 Automated Pre-Score: 79/100
+[2026-01-17T11:19:24.097Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:19:24.099Z] ────────────────────────────────────────
+[2026-01-17T11:19:24.101Z] 
+[2026-01-17T11:19:24.103Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:19:24.104Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:19:24.106Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:19:24.107Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:19:24.109Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:19:24.110Z] 
+[2026-01-17T11:19:24.112Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:19:24.114Z] 
+[2026-01-17T11:19:24.117Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:19:24.118Z] 
+[2026-01-17T11:19:24.119Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:19:24.121Z] ────────────────────────────────────────
+[2026-01-17T11:19:24.125Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:19:24.127Z] 📝 Pre-push automated score: 79
+[2026-01-17T11:19:24.128Z] 
+[2026-01-17T11:19:24.130Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:19:24.131Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T11:19:24.132Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:19:24.134Z] 
+[2026-01-17T11:19:24.136Z]    Score: 79/100 (Minimum required: 80)
+[2026-01-17T11:19:24.138Z] 
+[2026-01-17T11:19:24.140Z]    Fix the following issues before pushing:
+[2026-01-17T11:19:24.143Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-17T11:19:24.144Z] 
+[2026-01-17T11:19:24.146Z]    Also consider fixing these warnings:
+[2026-01-17T11:19:24.148Z]    🟡 console.log usage: 21 instance(s) - Consider using proper logger
+[2026-01-17T11:19:24.150Z]    🟡 'any' type usage: 53 instance(s) - Prefer explicit types
+[2026-01-17T11:19:24.151Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:19:24.153Z] 
+[2026-01-17T11:19:24.155Z]    After fixing, run: git push
+[2026-01-17T11:19:24.156Z] 
+[2026-01-17T11:19:24.158Z] BLOCKED - Automated score: 79/100 (min: 80)
+[2026-01-17T13:19:24+02:00] Push BLOCKED - Exit code: 1
+[2026-01-17T13:23:41+02:00] Pre-push hook triggered
+[2026-01-17T11:23:42.785Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:23:42.805Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:23:42.814Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:23:42.829Z] 
+[2026-01-17T11:23:42.831Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:23:42.834Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:23:42.835Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:23:42.837Z] 
+[2026-01-17T11:23:42.895Z] 📅 Review started at: 1/17/2026, 1:23:42 PM
+[2026-01-17T11:23:42.897Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:23:42.899Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:23:42.902Z] ────────────────────────────────────────
+[2026-01-17T11:23:43.631Z] ✅ Git repository detected
+[2026-01-17T11:23:43.633Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:23:43.635Z] ────────────────────────────────────────
+[2026-01-17T11:23:44.384Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:23:44.385Z] 🎯 Comparing against: main
+[2026-01-17T11:23:45.073Z] ✅ Base branch 'main' exists
+[2026-01-17T11:23:45.075Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:23:45.076Z] ────────────────────────────────────────
+[2026-01-17T11:23:48.859Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:23:48.861Z] ────────────────────────────────────────
+[2026-01-17T11:23:48.862Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          | 5440 --------------------
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 +-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/interviewController.ts     |  279 +
+ backend/src/controllers/jobController.ts           |   38 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 +-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 ++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 ++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  250 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 ++
+ frontend/package-lock.json                         | 1259 ++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  637 +++
+ frontend/src/components/IsraelTravelPanel.tsx      |  810 +++
+ frontend/src/components/JobSearchPanel.tsx         |   93 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    2 +
+ frontend/src/components/MockInterviewPanel.tsx     | 1117 ++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   59 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/shared/CodeEditorModal.tsx |  647 +++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 ++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/logger.ts                    |  154 +
+ frontend/src/services/mockInterviewApi.ts          |  233 +
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |    9 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     | 1004 ++++
+ 57 files changed, 12310 insertions(+), 5681 deletions(-)
+
+[2026-01-17T11:23:48.864Z] 📊 Files changed: 57
+[2026-01-17T11:23:48.866Z] ➕ Lines added: 12310
+[2026-01-17T11:23:48.867Z] ➖ Lines removed: 5681
+[2026-01-17T11:23:48.869Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:23:48.870Z] ────────────────────────────────────────
+[2026-01-17T11:23:48.877Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:23:48.879Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:23:48.880Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:23:48.882Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:23:48.884Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:23:48.885Z]  ---
+[2026-01-17T11:23:48.887Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:23:48.888Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:23:48.890Z]  globs: **/*
+[2026-01-17T11:23:48.892Z]  alwaysApply: false
+[2026-01-17T11:23:48.895Z]  ---
+[2026-01-17T11:23:48.896Z]  
+[2026-01-17T11:23:48.898Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:23:48.899Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:23:48.901Z]  
+[2026-01-17T11:23:48.904Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:23:48.906Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:23:48.907Z]  
+[2026-01-17T11:23:48.909Z]  ## When This Rule Applies
+[2026-01-17T11:23:48.911Z]  
+[2026-01-17T11:23:48.913Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:23:48.915Z]  ```
+[2026-01-17T11:23:48.916Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:23:48.918Z]  
+[2026-01-17T11:23:48.919Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:23:48.921Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:23:48.923Z] +```bash
+[2026-01-17T11:23:48.925Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:23:48.927Z] +```
+[2026-01-17T11:23:48.931Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:23:48.933Z] +
+[2026-01-17T11:23:48.936Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:23:48.937Z] +
+[2026-01-17T11:23:48.938Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:23:48.940Z] +
+[2026-01-17T11:23:48.942Z] +#### Frontend Changes
+[2026-01-17T11:23:48.944Z] +| Check | What to Verify |
+[2026-01-17T11:23:48.946Z] +| :--- | :--- |
+[2026-01-17T11:23:48.948Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:23:48.950Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:23:48.953Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:23:48.956Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:23:48.957Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:23:48.959Z] +
+[2026-01-17T11:23:48.961Z] +#### Backend Changes
+[2026-01-17T11:23:48.963Z] +| Check | What to Verify |
+[2026-01-17T11:23:48.965Z] +| :--- | :--- |
+[2026-01-17T11:23:48.967Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:23:48.968Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:23:48.971Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:23:48.973Z] +
+[2026-01-17T11:23:48.974Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:23:48.976Z] +```typescript
+[2026-01-17T11:23:48.978Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:23:48.980Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:23:48.982Z] +
+[2026-01-17T11:23:48.985Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:23:48.987Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:23:48.989Z] +
+[2026-01-17T11:23:48.991Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:23:48.993Z] +<span>{tags}</span>
+[2026-01-17T11:23:48.995Z] +
+[2026-01-17T11:23:48.997Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:23:48.999Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:23:49.002Z] +// or
+[2026-01-17T11:23:49.004Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:23:49.006Z] +
+[2026-01-17T11:23:49.008Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:23:49.010Z] +<span>{user.name}</span>
+[2026-01-17T11:23:49.012Z] +
+[2026-01-17T11:23:49.014Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:23:49.015Z] +<span>{user?.name}</span>
+[2026-01-17T11:23:49.016Z] +```
+[2026-01-17T11:23:49.019Z] +
+[2026-01-17T11:23:49.021Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:23:49.022Z]  ```bash
+[2026-01-17T11:23:49.025Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:23:49.027Z]  ```
+[2026-01-17T11:23:49.030Z]  
+[2026-01-17T11:23:49.031Z] -### Step 3: Analyze Results
+[2026-01-17T11:23:49.032Z] +### Step 4: Analyze Results
+[2026-01-17T11:23:49.034Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:23:49.035Z]  - Statements: Current threshold
+[2026-01-17T11:23:49.037Z]  - Branches: Current threshold
+[2026-01-17T11:23:49.039Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:23:49.042Z]  
+[2026-01-17T11:23:49.044Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:23:49.046Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:23:49.047Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:23:49.048Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:23:49.050Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:23:49.051Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:23:49.052Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:23:49.056Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:23:49.060Z]  
+[2026-01-17T11:23:49.062Z]  ### When to Add Tests
+[2026-01-17T11:23:49.065Z]  
+[2026-01-17T11:23:49.066Z]  **MUST add tests if:**
+[2026-01-17T11:23:49.068Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:23:49.070Z]  - New service or utility function is created
+[2026-01-17T11:23:49.082Z] 
+... and 19605 more lines
+[2026-01-17T11:23:49.083Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:23:49.085Z] ────────────────────────────────────────
+[2026-01-17T11:23:49.086Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:23:49.090Z]    Checking backend types...
+[2026-01-17T11:24:42.594Z]    ✅ Backend type check passed
+[2026-01-17T11:24:42.596Z]    Checking frontend types...
+[2026-01-17T11:25:17.518Z]    ✅ Frontend type check passed
+[2026-01-17T11:25:17.522Z] ✅ All type checks passed!
+[2026-01-17T11:25:17.523Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:25:17.524Z] ────────────────────────────────────────
+[2026-01-17T11:25:17.525Z] 🧪 Running test suites...
+[2026-01-17T11:25:17.527Z]    Running backend tests...
+[2026-01-17T11:25:59.464Z]    ✅ Backend tests passed
+[2026-01-17T11:25:59.467Z]    Running frontend tests...
+[2026-01-17T11:26:48.508Z]    ✅ Frontend tests passed
+[2026-01-17T11:26:48.511Z] ✅ All tests passed!
+[2026-01-17T11:26:48.512Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:26:48.513Z] ────────────────────────────────────────
+[2026-01-17T11:26:48.591Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:26:48.593Z]    🔴 Hardcoded localhost URL: Found 1 instance(s)
+[2026-01-17T11:26:48.594Z] 
+🟡 Warnings:
+[2026-01-17T11:26:48.595Z]    🟡 console.log usage: 21 instance(s) - Consider using proper logger
+[2026-01-17T11:26:48.596Z]    🟡 'any' type usage: 53 instance(s) - Prefer explicit types
+[2026-01-17T11:26:48.598Z]    🟡 TODO/FIXME comments: 1 instance(s)
+[2026-01-17T11:26:48.600Z] 
+📊 Automated Pre-Score: 84/100
+[2026-01-17T11:26:48.601Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:26:48.603Z] ────────────────────────────────────────
+[2026-01-17T11:26:48.604Z] 
+[2026-01-17T11:26:48.606Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:26:48.608Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:26:48.609Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:26:48.611Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:26:48.612Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:26:48.614Z] 
+[2026-01-17T11:26:48.615Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:26:48.616Z] 
+[2026-01-17T11:26:48.618Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:26:48.619Z] 
+[2026-01-17T11:26:48.620Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:26:48.622Z] ────────────────────────────────────────
+[2026-01-17T11:26:48.625Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:26:48.627Z] 📝 Pre-push automated score: 84
+[2026-01-17T11:26:48.628Z] 
+[2026-01-17T11:26:48.629Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:26:48.630Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-17T11:26:48.631Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:26:48.632Z] 
+[2026-01-17T11:26:48.634Z] ✅ Automated checks passed - Push proceeding
+[2026-01-17T11:26:48.635Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-17T13:26:48+02:00] Push APPROVED
+[2026-01-17T13:44:03+02:00] Pre-push hook triggered
+[2026-01-17T11:44:04.540Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:44:04.556Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:44:04.557Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:44:04.561Z] 
+[2026-01-17T11:44:04.562Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:44:04.564Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:44:04.565Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:44:04.567Z] 
+[2026-01-17T11:44:04.611Z] 📅 Review started at: 1/17/2026, 1:44:04 PM
+[2026-01-17T11:44:04.612Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:44:04.620Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:44:04.622Z] ────────────────────────────────────────
+[2026-01-17T11:44:05.178Z] ✅ Git repository detected
+[2026-01-17T11:44:05.180Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:44:05.182Z] ────────────────────────────────────────
+[2026-01-17T11:44:05.657Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:44:05.659Z] 🎯 Comparing against: main
+[2026-01-17T11:44:06.108Z] ✅ Base branch 'main' exists
+[2026-01-17T11:44:06.110Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:44:06.111Z] ────────────────────────────────────────
+[2026-01-17T11:44:09.575Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:44:09.577Z] ────────────────────────────────────────
+[2026-01-17T11:44:09.578Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          | 5440 --------------------
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 +-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/interviewController.ts     |  279 +
+ backend/src/controllers/jobController.ts           |   38 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 +-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 ++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 ++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  250 +
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 ++
+ frontend/package-lock.json                         | 1259 ++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/AdminPanel.tsx             |   30 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  637 +++
+ frontend/src/components/InvoiceList.tsx            |    7 +-
+ frontend/src/components/IsraelTravelPanel.tsx      |  819 +++
+ frontend/src/components/JobListings.tsx            |    5 +-
+ frontend/src/components/JobSearchPanel.tsx         |  102 +-
+ frontend/src/components/LearningAgent.tsx          |   19 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    5 +-
+ frontend/src/components/MockInterviewPanel.tsx     | 1125 ++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   76 +-
+ frontend/src/components/SettingsPage.tsx           |   11 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/common/SignInModal.tsx     |    3 +-
+ frontend/src/components/shared/CodeEditorModal.tsx |  648 +++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 ++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/logger.ts                    |  154 +
+ frontend/src/services/mockInterviewApi.ts          |  249 +
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |   21 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     | 1258 +++++
+ 63 files changed, 12667 insertions(+), 5728 deletions(-)
+
+[2026-01-17T11:44:09.580Z] 📊 Files changed: 63
+[2026-01-17T11:44:09.582Z] ➕ Lines added: 12667
+[2026-01-17T11:44:09.584Z] ➖ Lines removed: 5728
+[2026-01-17T11:44:09.586Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:44:09.588Z] ────────────────────────────────────────
+[2026-01-17T11:44:09.596Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:44:09.597Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:44:09.598Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:44:09.600Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:44:09.601Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:44:09.602Z]  ---
+[2026-01-17T11:44:09.604Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:44:09.605Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:44:09.607Z]  globs: **/*
+[2026-01-17T11:44:09.609Z]  alwaysApply: false
+[2026-01-17T11:44:09.610Z]  ---
+[2026-01-17T11:44:09.611Z]  
+[2026-01-17T11:44:09.613Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:44:09.615Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:44:09.616Z]  
+[2026-01-17T11:44:09.618Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:44:09.619Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:44:09.621Z]  
+[2026-01-17T11:44:09.622Z]  ## When This Rule Applies
+[2026-01-17T11:44:09.624Z]  
+[2026-01-17T11:44:09.625Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:44:09.627Z]  ```
+[2026-01-17T11:44:09.628Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:44:09.630Z]  
+[2026-01-17T11:44:09.631Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:44:09.633Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:44:09.634Z] +```bash
+[2026-01-17T11:44:09.635Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:44:09.637Z] +```
+[2026-01-17T11:44:09.639Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:44:09.640Z] +
+[2026-01-17T11:44:09.642Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:44:09.643Z] +
+[2026-01-17T11:44:09.644Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:44:09.647Z] +
+[2026-01-17T11:44:09.648Z] +#### Frontend Changes
+[2026-01-17T11:44:09.650Z] +| Check | What to Verify |
+[2026-01-17T11:44:09.651Z] +| :--- | :--- |
+[2026-01-17T11:44:09.653Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:44:09.655Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:44:09.657Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:44:09.658Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:44:09.660Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:44:09.661Z] +
+[2026-01-17T11:44:09.664Z] +#### Backend Changes
+[2026-01-17T11:44:09.666Z] +| Check | What to Verify |
+[2026-01-17T11:44:09.668Z] +| :--- | :--- |
+[2026-01-17T11:44:09.669Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:44:09.671Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:44:09.675Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:44:09.677Z] +
+[2026-01-17T11:44:09.679Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:44:09.681Z] +```typescript
+[2026-01-17T11:44:09.682Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:44:09.684Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:44:09.686Z] +
+[2026-01-17T11:44:09.687Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:44:09.689Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:44:09.691Z] +
+[2026-01-17T11:44:09.694Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:44:09.696Z] +<span>{tags}</span>
+[2026-01-17T11:44:09.697Z] +
+[2026-01-17T11:44:09.699Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:44:09.701Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:44:09.702Z] +// or
+[2026-01-17T11:44:09.703Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:44:09.704Z] +
+[2026-01-17T11:44:09.706Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:44:09.708Z] +<span>{user.name}</span>
+[2026-01-17T11:44:09.709Z] +
+[2026-01-17T11:44:09.711Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:44:09.713Z] +<span>{user?.name}</span>
+[2026-01-17T11:44:09.714Z] +```
+[2026-01-17T11:44:09.716Z] +
+[2026-01-17T11:44:09.717Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:44:09.718Z]  ```bash
+[2026-01-17T11:44:09.720Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:44:09.721Z]  ```
+[2026-01-17T11:44:09.722Z]  
+[2026-01-17T11:44:09.723Z] -### Step 3: Analyze Results
+[2026-01-17T11:44:09.726Z] +### Step 4: Analyze Results
+[2026-01-17T11:44:09.727Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:44:09.729Z]  - Statements: Current threshold
+[2026-01-17T11:44:09.731Z]  - Branches: Current threshold
+[2026-01-17T11:44:09.733Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:44:09.734Z]  
+[2026-01-17T11:44:09.735Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:44:09.737Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:44:09.738Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:44:09.739Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:44:09.741Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:44:09.742Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:44:09.743Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:44:09.745Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:44:09.746Z]  
+[2026-01-17T11:44:09.748Z]  ### When to Add Tests
+[2026-01-17T11:44:09.751Z]  
+[2026-01-17T11:44:09.752Z]  **MUST add tests if:**
+[2026-01-17T11:44:09.754Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:44:09.756Z]  - New service or utility function is created
+[2026-01-17T11:44:09.771Z] 
+... and 20368 more lines
+[2026-01-17T11:44:09.773Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:44:09.774Z] ────────────────────────────────────────
+[2026-01-17T11:44:09.775Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:44:09.777Z]    Checking backend types...
+[2026-01-17T11:45:14.747Z]    ✅ Backend type check passed
+[2026-01-17T11:45:14.751Z]    Checking frontend types...
+[2026-01-17T11:45:56.735Z]    ✅ Frontend type check passed
+[2026-01-17T11:45:56.738Z] ✅ All type checks passed!
+[2026-01-17T11:45:56.739Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:45:56.741Z] ────────────────────────────────────────
+[2026-01-17T11:45:56.742Z] 🧪 Running test suites...
+[2026-01-17T11:45:56.743Z]    Running backend tests...
+[2026-01-17T11:46:43.100Z]    ✅ Backend tests passed
+[2026-01-17T11:46:43.104Z]    Running frontend tests...
+[2026-01-17T11:47:37.542Z]    ✅ Frontend tests passed
+[2026-01-17T11:47:37.545Z] ✅ All tests passed!
+[2026-01-17T11:47:37.547Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:47:37.547Z] ────────────────────────────────────────
+[2026-01-17T11:47:37.646Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:47:37.647Z]    🔴 Hardcoded localhost URL: Found 1 instance(s)
+[2026-01-17T11:47:37.649Z] 
+🟡 Warnings:
+[2026-01-17T11:47:37.650Z]    🟡 console.log usage: 21 instance(s) - Consider using proper logger
+[2026-01-17T11:47:37.652Z]    🟡 'any' type usage: 44 instance(s) - Prefer explicit types
+[2026-01-17T11:47:37.654Z] 
+📊 Automated Pre-Score: 85/100
+[2026-01-17T11:47:37.656Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:47:37.657Z] ────────────────────────────────────────
+[2026-01-17T11:47:37.658Z] 
+[2026-01-17T11:47:37.660Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:47:37.664Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:47:37.667Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:47:37.670Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:47:37.672Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:47:37.674Z] 
+[2026-01-17T11:47:37.675Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:47:37.676Z] 
+[2026-01-17T11:47:37.677Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:47:37.678Z] 
+[2026-01-17T11:47:37.679Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:47:37.681Z] ────────────────────────────────────────
+[2026-01-17T11:47:37.685Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:47:37.687Z] 📝 Pre-push automated score: 85
+[2026-01-17T11:47:37.689Z] 
+[2026-01-17T11:47:37.690Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:47:37.691Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-17T11:47:37.693Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:47:37.694Z] 
+[2026-01-17T11:47:37.695Z] ✅ Automated checks passed - Push proceeding
+[2026-01-17T11:47:37.696Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-17T13:47:38+02:00] Push APPROVED
+[2026-01-17T13:50:35+02:00] Pre-push hook triggered
+[2026-01-17T11:50:37.023Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T11:50:37.038Z] 📋 Minimum passing score: 80/100
+[2026-01-17T11:50:37.039Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T11:50:37.042Z] 
+[2026-01-17T11:50:37.044Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:50:37.046Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T11:50:37.047Z] ════════════════════════════════════════════════════════════
+[2026-01-17T11:50:37.048Z] 
+[2026-01-17T11:50:37.080Z] 📅 Review started at: 1/17/2026, 1:50:37 PM
+[2026-01-17T11:50:37.081Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T11:50:37.082Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T11:50:37.083Z] ────────────────────────────────────────
+[2026-01-17T11:50:37.437Z] ✅ Git repository detected
+[2026-01-17T11:50:37.439Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T11:50:37.440Z] ────────────────────────────────────────
+[2026-01-17T11:50:37.835Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T11:50:37.837Z] 🎯 Comparing against: main
+[2026-01-17T11:50:38.209Z] ✅ Base branch 'main' exists
+[2026-01-17T11:50:38.212Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T11:50:38.213Z] ────────────────────────────────────────
+[2026-01-17T11:50:40.563Z] 
+▶ Step 4: Change Summary
+[2026-01-17T11:50:40.565Z] ────────────────────────────────────────
+[2026-01-17T11:50:40.567Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          |  162 ++
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 ++-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/interviewController.ts     |  279 ++++
+ backend/src/controllers/jobController.ts           |   38 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 ++-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++++++++++++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 +++++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 +++++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  250 +++
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 +++++++
+ frontend/package-lock.json                         | 1259 ++++++++++++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  107 +-
+ frontend/src/components/AdminPanel.tsx             |   30 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  637 ++++++++
+ frontend/src/components/InvoiceList.tsx            |    7 +-
+ frontend/src/components/IsraelTravelPanel.tsx      |  819 ++++++++++
+ frontend/src/components/JobListings.tsx            |    5 +-
+ frontend/src/components/JobSearchPanel.tsx         |  102 +-
+ frontend/src/components/LearningAgent.tsx          |   19 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    5 +-
+ frontend/src/components/MockInterviewPanel.tsx     | 1125 +++++++++++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   76 +-
+ frontend/src/components/SettingsPage.tsx           |   11 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/common/SignInModal.tsx     |    3 +-
+ frontend/src/components/shared/CodeEditorModal.tsx |  648 ++++++++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 +++++++++++++
+ frontend/src/hooks/useNews.ts                      |    2 +
+ frontend/src/hooks/useTodo.ts                      |   84 +-
+ frontend/src/services/logger.ts                    |  154 ++
+ frontend/src/services/mockInterviewApi.ts          |  249 +++
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +++
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  200 +++
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |   21 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     | 1258 +++++++++++++++
+ 63 files changed, 12829 insertions(+), 288 deletions(-)
+
+[2026-01-17T11:50:40.568Z] 📊 Files changed: 63
+[2026-01-17T11:50:40.570Z] ➕ Lines added: 12829
+[2026-01-17T11:50:40.571Z] ➖ Lines removed: 288
+[2026-01-17T11:50:40.573Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T11:50:40.574Z] ────────────────────────────────────────
+[2026-01-17T11:50:40.580Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:50:40.582Z] index eda50f4..b8c12e9 100644
+[2026-01-17T11:50:40.584Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:50:40.585Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T11:50:40.587Z] @@ -1,12 +1,12 @@
+[2026-01-17T11:50:40.588Z]  ---
+[2026-01-17T11:50:40.590Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T11:50:40.591Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T11:50:40.593Z]  globs: **/*
+[2026-01-17T11:50:40.594Z]  alwaysApply: false
+[2026-01-17T11:50:40.595Z]  ---
+[2026-01-17T11:50:40.597Z]  
+[2026-01-17T11:50:40.598Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T11:50:40.599Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T11:50:40.600Z]  
+[2026-01-17T11:50:40.602Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T11:50:40.603Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T11:50:40.605Z]  
+[2026-01-17T11:50:40.606Z]  ## When This Rule Applies
+[2026-01-17T11:50:40.607Z]  
+[2026-01-17T11:50:40.609Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T11:50:40.611Z]  ```
+[2026-01-17T11:50:40.612Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T11:50:40.613Z]  
+[2026-01-17T11:50:40.615Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T11:50:40.616Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T11:50:40.617Z] +```bash
+[2026-01-17T11:50:40.618Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T11:50:40.619Z] +```
+[2026-01-17T11:50:40.621Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T11:50:40.622Z] +
+[2026-01-17T11:50:40.623Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T11:50:40.624Z] +
+[2026-01-17T11:50:40.625Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T11:50:40.626Z] +
+[2026-01-17T11:50:40.627Z] +#### Frontend Changes
+[2026-01-17T11:50:40.629Z] +| Check | What to Verify |
+[2026-01-17T11:50:40.630Z] +| :--- | :--- |
+[2026-01-17T11:50:40.631Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T11:50:40.632Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T11:50:40.634Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T11:50:40.635Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T11:50:40.636Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T11:50:40.637Z] +
+[2026-01-17T11:50:40.639Z] +#### Backend Changes
+[2026-01-17T11:50:40.640Z] +| Check | What to Verify |
+[2026-01-17T11:50:40.642Z] +| :--- | :--- |
+[2026-01-17T11:50:40.643Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T11:50:40.645Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T11:50:40.646Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T11:50:40.648Z] +
+[2026-01-17T11:50:40.649Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T11:50:40.650Z] +```typescript
+[2026-01-17T11:50:40.652Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T11:50:40.654Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T11:50:40.655Z] +
+[2026-01-17T11:50:40.656Z] +// ✅ GOOD: Access specific property
+[2026-01-17T11:50:40.658Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T11:50:40.659Z] +
+[2026-01-17T11:50:40.660Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T11:50:40.662Z] +<span>{tags}</span>
+[2026-01-17T11:50:40.663Z] +
+[2026-01-17T11:50:40.665Z] +// ✅ GOOD: Map over array
+[2026-01-17T11:50:40.666Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T11:50:40.667Z] +// or
+[2026-01-17T11:50:40.668Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T11:50:40.669Z] +
+[2026-01-17T11:50:40.671Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T11:50:40.672Z] +<span>{user.name}</span>
+[2026-01-17T11:50:40.673Z] +
+[2026-01-17T11:50:40.675Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T11:50:40.676Z] +<span>{user?.name}</span>
+[2026-01-17T11:50:40.678Z] +```
+[2026-01-17T11:50:40.680Z] +
+[2026-01-17T11:50:40.682Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T11:50:40.684Z]  ```bash
+[2026-01-17T11:50:40.685Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T11:50:40.687Z]  ```
+[2026-01-17T11:50:40.687Z]  
+[2026-01-17T11:50:40.689Z] -### Step 3: Analyze Results
+[2026-01-17T11:50:40.690Z] +### Step 4: Analyze Results
+[2026-01-17T11:50:40.692Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:50:40.693Z]  - Statements: Current threshold
+[2026-01-17T11:50:40.694Z]  - Branches: Current threshold
+[2026-01-17T11:50:40.695Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T11:50:40.696Z]  
+[2026-01-17T11:50:40.698Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T11:50:40.699Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T11:50:40.700Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:50:40.701Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T11:50:40.702Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T11:50:40.703Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T11:50:40.704Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T11:50:40.705Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T11:50:40.706Z]  
+[2026-01-17T11:50:40.707Z]  ### When to Add Tests
+[2026-01-17T11:50:40.708Z]  
+[2026-01-17T11:50:40.709Z]  **MUST add tests if:**
+[2026-01-17T11:50:40.711Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T11:50:40.712Z]  - New service or utility function is created
+[2026-01-17T11:50:40.719Z] 
+... and 15184 more lines
+[2026-01-17T11:50:40.721Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T11:50:40.722Z] ────────────────────────────────────────
+[2026-01-17T11:50:40.723Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T11:50:40.724Z]    Checking backend types...
+[2026-01-17T11:51:32.545Z]    ✅ Backend type check passed
+[2026-01-17T11:51:32.549Z]    Checking frontend types...
+[2026-01-17T11:52:08.193Z]    ✅ Frontend type check passed
+[2026-01-17T11:52:08.198Z] ✅ All type checks passed!
+[2026-01-17T11:52:08.200Z] 
+▶ Step 7: Running Tests
+[2026-01-17T11:52:08.201Z] ────────────────────────────────────────
+[2026-01-17T11:52:08.203Z] 🧪 Running test suites...
+[2026-01-17T11:52:08.205Z]    Running backend tests...
+[2026-01-17T11:52:50.384Z]    ✅ Backend tests passed
+[2026-01-17T11:52:50.387Z]    Running frontend tests...
+[2026-01-17T11:53:36.992Z]    ✅ Frontend tests passed
+[2026-01-17T11:53:36.996Z] ✅ All tests passed!
+[2026-01-17T11:53:36.997Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T11:53:36.998Z] ────────────────────────────────────────
+[2026-01-17T11:53:37.066Z] 
+🔴 Critical Issues Found:
+[2026-01-17T11:53:37.067Z]    🔴 Hardcoded localhost URL: Found 1 instance(s)
+[2026-01-17T11:53:37.068Z] 
+🟡 Warnings:
+[2026-01-17T11:53:37.070Z]    🟡 console.log usage: 21 instance(s) - Consider using proper logger
+[2026-01-17T11:53:37.071Z]    🟡 'any' type usage: 44 instance(s) - Prefer explicit types
+[2026-01-17T11:53:37.072Z] 
+📊 Automated Pre-Score: 85/100
+[2026-01-17T11:53:37.073Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T11:53:37.074Z] ────────────────────────────────────────
+[2026-01-17T11:53:37.076Z] 
+[2026-01-17T11:53:37.077Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:53:37.078Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T11:53:37.079Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T11:53:37.080Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T11:53:37.081Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:53:37.083Z] 
+[2026-01-17T11:53:37.083Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T11:53:37.084Z] 
+[2026-01-17T11:53:37.085Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T11:53:37.086Z] 
+[2026-01-17T11:53:37.087Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T11:53:37.088Z] ────────────────────────────────────────
+[2026-01-17T11:53:37.090Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T11:53:37.091Z] 📝 Pre-push automated score: 85
+[2026-01-17T11:53:37.092Z] 
+[2026-01-17T11:53:37.093Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T11:53:37.094Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-17T11:53:37.096Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T11:53:37.097Z] 
+[2026-01-17T11:53:37.098Z] ✅ Automated checks passed - Push proceeding
+[2026-01-17T11:53:37.099Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-17T13:53:37+02:00] Push APPROVED
+[2026-01-17T14:42:06+02:00] Pre-push hook triggered
+[2026-01-17T12:42:07.503Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-17T12:42:07.518Z] 📋 Minimum passing score: 80/100
+[2026-01-17T12:42:07.519Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-17T12:42:07.524Z] 
+[2026-01-17T12:42:07.525Z] ════════════════════════════════════════════════════════════
+[2026-01-17T12:42:07.526Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-17T12:42:07.528Z] ════════════════════════════════════════════════════════════
+[2026-01-17T12:42:07.529Z] 
+[2026-01-17T12:42:07.575Z] 📅 Review started at: 1/17/2026, 2:42:07 PM
+[2026-01-17T12:42:07.577Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-17T12:42:07.578Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-17T12:42:07.580Z] ────────────────────────────────────────
+[2026-01-17T12:42:08.004Z] ✅ Git repository detected
+[2026-01-17T12:42:08.005Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-17T12:42:08.007Z] ────────────────────────────────────────
+[2026-01-17T12:42:08.475Z] 📍 Current branch: feature/multi-agent-enhancements
+[2026-01-17T12:42:08.478Z] 🎯 Comparing against: main
+[2026-01-17T12:42:08.938Z] ✅ Base branch 'main' exists
+[2026-01-17T12:42:08.939Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-17T12:42:08.940Z] ────────────────────────────────────────
+[2026-01-17T12:42:11.681Z] 
+▶ Step 4: Change Summary
+[2026-01-17T12:42:11.683Z] ────────────────────────────────────────
+[2026-01-17T12:42:11.684Z]  .cursor/rules/test-coverage-check.mdc              |  106 +-
+ backend/package-lock.json                          |  162 ++
+ backend/package.json                               |    3 +
+ backend/src/agents/JobsAgent.ts                    |  239 ++-
+ backend/src/agents/ToDoAgent.ts                    |  119 +-
+ backend/src/controllers/diyController.ts           |   10 +-
+ backend/src/controllers/interviewController.ts     |  279 ++++
+ backend/src/controllers/jobController.ts           |   38 +-
+ backend/src/controllers/newsController.ts          |   31 +-
+ .../src/controllers/problemSolvingController.ts    |  206 ++-
+ backend/src/controllers/todoController.ts          |   33 +
+ backend/src/data/codingPatterns.ts                 | 1686 ++++++++++++++++++++
+ backend/src/index.ts                               |   37 +-
+ backend/src/routes/jobs.ts                         |   13 +
+ backend/src/routes/news.ts                         |    2 +
+ backend/src/routes/problemSolving.ts               |   16 +-
+ backend/src/routes/todo.ts                         |    3 +
+ backend/src/services/core/claudeService.ts         |   55 +
+ backend/src/services/core/configService.ts         |   16 +-
+ backend/src/services/core/googleSearchService.ts   |   18 +-
+ backend/src/services/diy/index.ts                  |    2 +
+ backend/src/services/jobs/jobSourceService.ts      |  136 +-
+ backend/src/services/jobs/mockInterviewService.ts  |  418 +++++
+ .../services/jobs/systemDesignEvaluationService.ts |  364 +++++
+ backend/src/services/news/index.ts                 |    2 +
+ backend/src/types/israelTravel.ts                  |    2 +
+ backend/tests/api/routes.test.ts                   |  250 +++
+ backend/tests/services/notionService.test.ts       |    2 +
+ backend/tests/utils/logger.test.ts                 |    2 +
+ docs/design/mock-interview-enhancements.md         |  548 +++++++
+ frontend/package-lock.json                         | 1259 ++++++++++++++-
+ frontend/package.json                              |    5 +-
+ frontend/public/manifest.json                      |   59 +-
+ frontend/src/App.tsx                               |  135 +-
+ frontend/src/components/AdminPanel.tsx             |   30 +-
+ frontend/src/components/CodingPatternsPanel.tsx    |  637 ++++++++
+ frontend/src/components/InvoiceList.tsx            |    7 +-
+ frontend/src/components/IsraelTravelPanel.tsx      |  819 ++++++++++
+ frontend/src/components/JobListings.tsx            |    5 +-
+ frontend/src/components/JobSearchPanel.tsx         |  102 +-
+ frontend/src/components/LearningAgent.tsx          |   19 +-
+ frontend/src/components/MarkdownRenderer.tsx       |    5 +-
+ frontend/src/components/MockInterviewPanel.tsx     | 1125 +++++++++++++
+ frontend/src/components/ProblemSolvingAgent.tsx    |   76 +-
+ frontend/src/components/SettingsPage.tsx           |   11 +-
+ frontend/src/components/ToDoAgent.tsx              |   46 +-
+ frontend/src/components/common/IntegrationCard.tsx |    2 +
+ frontend/src/components/common/SignInModal.tsx     |    3 +-
+ frontend/src/components/shared/CodeEditorModal.tsx |  648 ++++++++
+ .../components/shared/SystemDesignWhiteboard.tsx   | 1088 +++++++++++++
+ frontend/src/config.ts                             |   20 +-
+ frontend/src/hooks/useAdmin.ts                     |   15 +-
+ frontend/src/hooks/useAuth.ts                      |    9 +-
+ frontend/src/hooks/useAutocomplete.ts              |    5 +-
+ frontend/src/hooks/useCooking.ts                   |   39 +-
+ frontend/src/hooks/useDIY.ts                       |   27 +-
+ frontend/src/hooks/useGmail.ts                     |   13 +-
+ frontend/src/hooks/useLearning.ts                  |    7 +-
+ frontend/src/hooks/useNews.ts                      |   23 +-
+ frontend/src/hooks/useProblems.ts                  |    7 +-
+ frontend/src/hooks/useSearchController.ts          |    5 +-
+ frontend/src/hooks/useSettings.ts                  |    5 +-
+ frontend/src/hooks/useShopping.ts                  |   19 +-
+ frontend/src/hooks/useTodo.ts                      |  112 +-
+ frontend/src/services/api.ts                       |    8 +-
+ frontend/src/services/authApi.ts                   |   27 +-
+ frontend/src/services/configApi.ts                 |    3 +-
+ frontend/src/services/logger.ts                    |  154 ++
+ frontend/src/services/mockInterviewApi.ts          |  249 +++
+ frontend/src/services/newsApi.ts                   |    2 +
+ frontend/src/services/problemSolvingApi.ts         |  248 +++
+ frontend/src/services/todoApi.ts                   |   14 +
+ frontend/src/services/travelApi.ts                 |  215 ++-
+ frontend/src/styles/news.module.css                |    2 +
+ frontend/src/styles/todo.module.css                |   23 +
+ frontend/src/types/index.ts                        |   21 +-
+ frontend/src/utils/fileParser.ts                   |    7 +-
+ frontend/vitest.config.ts                          |    9 +-
+ review-log.txt                                     | 1258 +++++++++++++++
+ 79 files changed, 12991 insertions(+), 434 deletions(-)
+
+[2026-01-17T12:42:11.686Z] 📊 Files changed: 79
+[2026-01-17T12:42:11.688Z] ➕ Lines added: 12991
+[2026-01-17T12:42:11.689Z] ➖ Lines removed: 434
+[2026-01-17T12:42:11.691Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-17T12:42:11.692Z] ────────────────────────────────────────
+[2026-01-17T12:42:11.698Z] 
+diff --git a/.cursor/rules/test-coverage-check.mdc b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T12:42:11.699Z] index eda50f4..b8c12e9 100644
+[2026-01-17T12:42:11.701Z] --- a/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T12:42:11.702Z] +++ b/.cursor/rules/test-coverage-check.mdc
+[2026-01-17T12:42:11.703Z] @@ -1,12 +1,12 @@
+[2026-01-17T12:42:11.705Z]  ---
+[2026-01-17T12:42:11.706Z] -description: Test coverage check before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', or 'pre-push check'.
+[2026-01-17T12:42:11.707Z] +description: Test coverage and sanity checks before pushing. Triggered by 'check tests', 'test coverage', 'prepare push', 'pre-push check', or 'sanity test'.
+[2026-01-17T12:42:11.709Z]  globs: **/*
+[2026-01-17T12:42:11.710Z]  alwaysApply: false
+[2026-01-17T12:42:11.711Z]  ---
+[2026-01-17T12:42:11.713Z]  
+[2026-01-17T12:42:11.714Z] -# Test Coverage Pre-Push Check Rule
+[2026-01-17T12:42:11.715Z] +# Test Coverage & Sanity Check Pre-Push Rule
+[2026-01-17T12:42:11.717Z]  
+[2026-01-17T12:42:11.718Z] -Before pushing any code changes, verify test coverage and suggest new tests if needed. Balance thoroughness with development velocity.
+[2026-01-17T12:42:11.720Z] +Before pushing any code changes, verify test coverage AND perform sanity tests on new functionality. This prevents runtime errors (like rendering objects as React children) from reaching production.
+[2026-01-17T12:42:11.721Z]  
+[2026-01-17T12:42:11.723Z]  ## When This Rule Applies
+[2026-01-17T12:42:11.725Z]  
+[2026-01-17T12:42:11.729Z] @@ -29,12 +29,61 @@ cd frontend && npx tsc --noEmit
+[2026-01-17T12:42:11.730Z]  ```
+[2026-01-17T12:42:11.732Z]  > ⚠️ **This step is CRITICAL** - CI/CD runs `npx tsc --noEmit` on both frontend and backend. If you skip this locally, you may push code that fails in CI/CD.
+[2026-01-17T12:42:11.733Z]  
+[2026-01-17T12:42:11.735Z] -### Step 2: Run Coverage Report (Backend)
+[2026-01-17T12:42:11.737Z] +### Step 2: Run Route Verification Tests (CRITICAL - Catches 404 Errors)
+[2026-01-17T12:42:11.738Z] +```bash
+[2026-01-17T12:42:11.740Z] +cd backend && npm test -- --run tests/api/routes.test.ts
+[2026-01-17T12:42:11.741Z] +```
+[2026-01-17T12:42:11.742Z] +> ⚠️ **This step catches 404 errors** - When adding new API endpoints, this test verifies that routes are properly registered and frontend/backend routes are in sync.
+[2026-01-17T12:42:11.744Z] +
+[2026-01-17T12:42:11.745Z] +### Step 3: Sanity Test New Functionality (CRITICAL - Prevents Runtime Errors)
+[2026-01-17T12:42:11.746Z] +
+[2026-01-17T12:42:11.748Z] +**For EVERY new feature or UI change, perform these sanity checks BEFORE considering the task complete:**
+[2026-01-17T12:42:11.749Z] +
+[2026-01-17T12:42:11.751Z] +#### Frontend Changes
+[2026-01-17T12:42:11.753Z] +| Check | What to Verify |
+[2026-01-17T12:42:11.754Z] +| :--- | :--- |
+[2026-01-17T12:42:11.756Z] +| **Render test** | Click on all new UI elements, ensure no console errors |
+[2026-01-17T12:42:11.757Z] +| **Object rendering** | If displaying API data, verify objects aren't rendered directly (use `.map()` for arrays, access specific properties for objects) |
+[2026-01-17T12:42:11.758Z] +| **Loading states** | Verify loading spinners appear during async operations |
+[2026-01-17T12:42:11.759Z] +| **Error states** | Test with invalid data, verify error messages display properly |
+[2026-01-17T12:42:11.761Z] +| **Empty states** | Test with no data, verify empty state UI appears |
+[2026-01-17T12:42:11.762Z] +
+[2026-01-17T12:42:11.763Z] +#### Backend Changes
+[2026-01-17T12:42:11.764Z] +| Check | What to Verify |
+[2026-01-17T12:42:11.765Z] +| :--- | :--- |
+[2026-01-17T12:42:11.767Z] +| **Endpoint exists** | Hit new endpoints with curl/Postman, verify no 404 |
+[2026-01-17T12:42:11.768Z] +| **Response format** | Verify response matches expected TypeScript types |
+[2026-01-17T12:42:11.770Z] +| **Error handling** | Test with missing/invalid params, verify proper error responses |
+[2026-01-17T12:42:11.771Z] +
+[2026-01-17T12:42:11.773Z] +#### Common Runtime Errors to Prevent
+[2026-01-17T12:42:11.775Z] +```typescript
+[2026-01-17T12:42:11.777Z] +// ❌ BAD: Rendering object directly (causes "Objects are not valid as React child")
+[2026-01-17T12:42:11.778Z] +<pre>{data.template}</pre>  // if template is { javascript: "...", python: "..." }
+[2026-01-17T12:42:11.780Z] +
+[2026-01-17T12:42:11.781Z] +// ✅ GOOD: Access specific property
+[2026-01-17T12:42:11.782Z] +<pre>{data.template.javascript}</pre>
+[2026-01-17T12:42:11.784Z] +
+[2026-01-17T12:42:11.786Z] +// ❌ BAD: Rendering array directly
+[2026-01-17T12:42:11.788Z] +<span>{tags}</span>
+[2026-01-17T12:42:11.789Z] +
+[2026-01-17T12:42:11.790Z] +// ✅ GOOD: Map over array
+[2026-01-17T12:42:11.792Z] +<span>{tags.join(', ')}</span>
+[2026-01-17T12:42:11.793Z] +// or
+[2026-01-17T12:42:11.794Z] +{tags.map(tag => <span key={tag}>{tag}</span>)}
+[2026-01-17T12:42:11.795Z] +
+[2026-01-17T12:42:11.797Z] +// ❌ BAD: Accessing property on potentially undefined
+[2026-01-17T12:42:11.798Z] +<span>{user.name}</span>
+[2026-01-17T12:42:11.799Z] +
+[2026-01-17T12:42:11.801Z] +// ✅ GOOD: Optional chaining
+[2026-01-17T12:42:11.802Z] +<span>{user?.name}</span>
+[2026-01-17T12:42:11.803Z] +```
+[2026-01-17T12:42:11.804Z] +
+[2026-01-17T12:42:11.805Z] +### Step 4: Run Coverage Report (Backend)
+[2026-01-17T12:42:11.807Z]  ```bash
+[2026-01-17T12:42:11.808Z]  cd backend && npm test -- --run --coverage
+[2026-01-17T12:42:11.809Z]  ```
+[2026-01-17T12:42:11.811Z]  
+[2026-01-17T12:42:11.812Z] -### Step 3: Analyze Results
+[2026-01-17T12:42:11.813Z] +### Step 4: Analyze Results
+[2026-01-17T12:42:11.815Z]  Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T12:42:11.817Z]  - Statements: Current threshold
+[2026-01-17T12:42:11.818Z]  - Branches: Current threshold
+[2026-01-17T12:42:11.820Z] @@ -47,25 +96,66 @@ Check if coverage meets thresholds defined in `vitest.config.ts`:
+[2026-01-17T12:42:11.821Z]  
+[2026-01-17T12:42:11.822Z]  | Priority | What to Test | Time Investment | Coverage Goal |
+[2026-01-17T12:42:11.823Z]  | :---: | :--- | :---: | :---: |
+[2026-01-17T12:42:11.825Z] -| **P0 - Critical** | Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T12:42:11.827Z] +| **P0 - Critical** | API Route Registration, Core services (auth, database, cache) | 5-10 min | 80%+ |
+[2026-01-17T12:42:11.828Z]  | **P1 - Important** | Business logic (agents, controllers) | 10-20 min | 50%+ |
+[2026-01-17T12:42:11.829Z]  | **P2 - Standard** | Utilities, helpers | 5 min | 30%+ |
+[2026-01-17T12:42:11.831Z] -| **P3 - Low** | Routes, static data | Skip | 0% OK |
+[2026-01-17T12:42:11.832Z] +| **P3 - Low** | Static data, constants | Skip | 0% OK |
+[2026-01-17T12:42:11.833Z]  
+[2026-01-17T12:42:11.835Z]  ### When to Add Tests
+[2026-01-17T12:42:11.837Z]  
+[2026-01-17T12:42:11.838Z]  **MUST add tests if:**
+[2026-01-17T12:42:11.839Z] +- **New API routes added** → Update `tests/api/routes.test.ts` with new routes
+[2026-01-17T12:42:11.841Z]  - New service or utility function is created
+[2026-01-17T12:42:11.848Z] 
+... and 16455 more lines
+[2026-01-17T12:42:11.849Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-17T12:42:11.851Z] ────────────────────────────────────────
+[2026-01-17T12:42:11.852Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-17T12:42:11.853Z]    Checking backend types...
+[2026-01-17T12:43:04.342Z]    ❌ Backend type check failed
+[2026-01-17T12:43:04.348Z]       error TS7006: Parameter 'log' implicitly has an 'any' type.
+[2026-01-17T12:43:04.349Z]       error TS7006: Parameter 'i' implicitly has an 'any' type.
+[2026-01-17T12:43:04.351Z]       error TS7006: Parameter 'p' implicitly has an 'any' type.
+[2026-01-17T12:43:04.352Z]       error TS7006: Parameter 's' implicitly has an 'any' type.
+[2026-01-17T12:43:04.354Z]       error TS7006: Parameter 't' implicitly has an 'any' type.
+[2026-01-17T12:43:04.355Z]       error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | undefined'.
+[2026-01-17T12:43:04.357Z]       error TS7006: Parameter 'acc' implicitly has an 'any' type.
+[2026-01-17T12:43:04.358Z]       error TS7006: Parameter 'setting' implicitly has an 'any' type.
+[2026-01-17T12:43:04.359Z]       error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | undefined'.
+[2026-01-17T12:43:04.361Z]       error TS7006: Parameter 'acc' implicitly has an 'any' type.
+[2026-01-17T12:43:04.363Z]       ... and 29 more errors
+[2026-01-17T12:43:04.364Z]    Checking frontend types...
+[2026-01-17T12:43:39.583Z]    ✅ Frontend type check passed
+[2026-01-17T12:43:39.585Z] ❌ TypeScript errors found. Fix them before pushing.
+[2026-01-17T12:43:39.586Z] 
+▶ Step 7: Running Tests
+[2026-01-17T12:43:39.587Z] ────────────────────────────────────────
+[2026-01-17T12:43:39.588Z] 🧪 Running test suites...
+[2026-01-17T12:43:39.589Z]    Running backend tests...
+[2026-01-17T12:44:22.601Z]    ❌ Backend tests failed
+[2026-01-17T12:44:22.608Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > metadata > should have correct agent metadata
+[2026-01-17T12:44:22.609Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > execute - add-item action > should require userId
+[2026-01-17T12:44:22.611Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > execute - add-item action > should require itemData
+[2026-01-17T12:44:22.612Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > execute - add-item action > should require item name
+[2026-01-17T12:44:22.614Z]       FAIL  tests/agents/cookingAgent.test.ts > CookingAgent > execute - add-item action > should add item successfully
+[2026-01-17T12:44:22.615Z]    Running frontend tests...
+[2026-01-17T12:45:16.683Z]    ✅ Frontend tests passed
+[2026-01-17T12:45:16.687Z] ❌ Some tests failed. Fix them before pushing.
+[2026-01-17T12:45:16.689Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-17T12:45:16.690Z] ────────────────────────────────────────
+[2026-01-17T12:45:16.844Z] 
+🔴 Critical Issues Found:
+[2026-01-17T12:45:16.848Z]    🔴 TypeScript errors - Fix type errors before pushing
+[2026-01-17T12:45:16.850Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T12:45:16.852Z]    🔴 Hardcoded localhost URL: Found 1 instance(s)
+[2026-01-17T12:45:16.855Z] 
+🟡 Warnings:
+[2026-01-17T12:45:16.858Z]    🟡 console.log usage: 16 instance(s) - Consider using proper logger
+[2026-01-17T12:45:16.860Z]    🟡 'any' type usage: 44 instance(s) - Prefer explicit types
+[2026-01-17T12:45:16.862Z] 
+📊 Automated Pre-Score: 25/100
+[2026-01-17T12:45:16.864Z] 
+▶ Step 9: Manual Review Required
+[2026-01-17T12:45:16.866Z] ────────────────────────────────────────
+[2026-01-17T12:45:16.869Z] 
+[2026-01-17T12:45:16.872Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T12:45:16.873Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-17T12:45:16.875Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-17T12:45:16.879Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-17T12:45:16.880Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T12:45:16.883Z] 
+[2026-01-17T12:45:16.885Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-17T12:45:16.887Z] 
+[2026-01-17T12:45:16.889Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-17T12:45:16.890Z] 
+[2026-01-17T12:45:16.892Z] 
+▶ Step 10: Push Confirmation
+[2026-01-17T12:45:16.894Z] ────────────────────────────────────────
+[2026-01-17T12:45:16.898Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-17T12:45:16.900Z] 📝 Pre-push automated score: 25
+[2026-01-17T12:45:16.903Z] 
+[2026-01-17T12:45:16.907Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-17T12:45:16.909Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-17T12:45:16.911Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-17T12:45:16.913Z] 
+[2026-01-17T12:45:16.915Z]    Score: 25/100 (Minimum required: 80)
+[2026-01-17T12:45:16.916Z] 
+[2026-01-17T12:45:16.918Z]    Fix the following issues before pushing:
+[2026-01-17T12:45:16.920Z]    🔴 TypeScript errors - Fix type errors before pushing
+[2026-01-17T12:45:16.922Z]    🔴 Tests failed - Fix failing tests before pushing
+[2026-01-17T12:45:16.924Z]    🔴 Hardcoded localhost URL: Found 1 instance(s)
+[2026-01-17T12:45:16.926Z] 
+[2026-01-17T12:45:16.929Z]    Also consider fixing these warnings:
+[2026-01-17T12:45:16.933Z]    🟡 console.log usage: 16 instance(s) - Consider using proper logger
+[2026-01-17T12:45:16.935Z]    🟡 'any' type usage: 44 instance(s) - Prefer explicit types
+[2026-01-17T12:45:16.936Z] 
+[2026-01-17T12:45:16.938Z]    After fixing, run: git push
+[2026-01-17T12:45:16.939Z] 
+[2026-01-17T12:45:16.941Z] BLOCKED - Automated score: 25/100 (min: 80)
+[2026-01-17T14:45:17+02:00] Push BLOCKED - Exit code: 1

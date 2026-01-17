@@ -27,4 +27,17 @@ router.post('/companies/enrich', jobController.enrichCompanies);
 // Preferences
 router.put('/preferences', jobController.updateJobPreferences);
 
+// Mock Interview
+router.post('/interview/extract', jobController.extractInterviewQuestions);
+router.post('/interview/generate-answer', jobController.generateInterviewAnswer);
+router.post('/interview/evaluate', jobController.evaluateInterviewAnswer);
+
+// Example Interview Questions (Glassdoor-style)
+router.post('/interview/example-questions', jobController.getExampleQuestions);
+router.get('/interview/popular-companies', jobController.getPopularCompanyQuestions);
+
+// System Design
+router.post('/interview/system-design/evaluate', jobController.evaluateSystemDesign);
+router.get('/interview/system-design/questions', jobController.getSystemDesignQuestions);
+
 export default router;

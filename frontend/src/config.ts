@@ -12,16 +12,16 @@
  */
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Debug logging for production troubleshooting
-if (typeof window !== 'undefined') {
-  console.log('[Config] API_BASE_URL:', API_BASE_URL);
-  console.log('[Config] VITE_API_URL env:', import.meta.env.VITE_API_URL || 'NOT SET');
-  console.log('[Config] Mode:', import.meta.env.MODE);
-  
-  // Warn if using localhost in production
-  if (import.meta.env.PROD && API_BASE_URL.includes('localhost')) {
-    console.error('[Config] ⚠️ WARNING: Using localhost API URL in production! Set VITE_API_URL environment variable on Vercel.');
-  }
+// Debug logging for development only - in production, logs are suppressed by the logger
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  // eslint-disable-next-line no-console
+  console.info('[Config] API_BASE_URL:', API_BASE_URL, '| Mode:', import.meta.env.MODE);
+}
+
+// Warn if using localhost in production
+if (typeof window !== 'undefined' && import.meta.env.PROD && API_BASE_URL.includes('localhost')) {
+  // eslint-disable-next-line no-console
+  console.error('[Config] ⚠️ WARNING: Using localhost API URL in production! Set VITE_API_URL environment variable on Vercel.');
 }
 
 /**

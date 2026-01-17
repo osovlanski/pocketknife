@@ -6,16 +6,17 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, Mountain, Square, Utensils,
-  Newspaper, Wrench
+  Newspaper, Wrench, MapPin, MessageCircle
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 // Config
 import { API_BASE_URL, SOCKET_URL } from './config';
+import logger from './services/logger';
 
 // Hooks
 import useAuth from './hooks/useAuth';
@@ -35,13 +36,15 @@ import SettingsPage from './components/SettingsPage';
 import GmailAgent from './components/GmailAgent';
 import JobSearchPanel from './components/JobSearchPanel';
 import JobListings from './components/JobListings';
+import MockInterviewPanel from './components/MockInterviewPanel';
 import TravelSearchPanel from './components/TravelSearchPanel';
 import FlightResults from './components/FlightResults';
 import HotelResults from './components/HotelResults';
 import TripPlanner from './components/TripPlanner';
 import SkiDealsPanel from './components/SkiDealsPanel';
+import IsraelTravelPanel from './components/IsraelTravelPanel';
 import LearningAgent from './components/LearningAgent';
-import ProblemSolvingAgent from './components/ProblemSolvingAgent';
+// ProblemSolvingAgent moved to Jobs > Mock Interview > Coding Practice tab
 import ToDoAgent from './components/ToDoAgent';
 import ShoppingAgent from './components/ShoppingAgent';
 import CookingAgent from './components/CookingAgent';
@@ -55,6 +58,7 @@ import ActivityLog from './components/ActivityLog';
 import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './services/travelApi';
 import { getAgentStatus, invalidateCache, type AgentStatus } from './services/configApi';
 import type { TravelSearchQuery } from './types/travel';
+import type { JobSearchFilters } from './types';
 import type { TabConfig } from './components/common/NavTabs';
 
 // Styles
@@ -81,7 +85,7 @@ const agentTabs: TabConfig[] = [
   { id: 'jobs', label: 'Jobs', icon: Briefcase, color: 'purple', path: '/agents/jobs' },
   { id: 'travel', label: 'Travel', icon: Plane, color: 'green', path: '/agents/travel' },
   { id: 'learning', label: 'Learning', icon: BookOpen, color: 'amber', path: '/agents/learning' },
-  { id: 'problems', label: 'Problems', icon: Code, color: 'cyan', path: '/agents/problems' },
+  // Problems/Coding Practice is now part of Jobs > Mock Interview > Coding Practice tab
   { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
   { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' },
@@ -172,7 +176,21 @@ const App: React.FC = () => {
   const [travelResults, setTravelResults] = useState<TravelSearchResponse | null>(null);
   const [travelLoading, setTravelLoading] = useState(false);
   const [travelError, setTravelError] = useState<string | null>(null);
-  const [travelMode, setTravelMode] = useState<'flights' | 'ski'>('flights');
+  const [travelMode, setTravelMode] = useState<'flights' | 'ski' | 'israel'>('flights');
+  
+  // Jobs agent mode
+  const [jobsMode, setJobsMode] = useState<'search' | 'interview'>('search');
+  
+  // Check URL for mode parameter on jobs page
+  useEffect(() => {
+    if (location.pathname === '/agents/jobs') {
+      const params = new URLSearchParams(location.search);
+      const mode = params.get('mode');
+      if (mode === 'interview') {
+        setJobsMode('interview');
+      }
+    }
+  }, [location]);
   
   // Activity log state
   const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
@@ -217,7 +235,7 @@ const App: React.FC = () => {
         const status = await getAgentStatus();
         setAgentStatus(status);
       } catch (error) {
-        console.error('Failed to load agent status:', error);
+        logger.error('Failed to load agent status', { error });
         // Keep defaults (all enabled) on error
       }
     };
@@ -236,7 +254,7 @@ const App: React.FC = () => {
     if (location.pathname !== '/admin') {
       // Just navigated away from admin - invalidate cache and refresh agent status
       invalidateCache();
-      getAgentStatus().then(setAgentStatus).catch(console.error);
+      getAgentStatus().then(setAgentStatus).catch(err => logger.error('Failed to refresh agent status', { error: err }));
     }
   }, [location.pathname]);
 
@@ -257,7 +275,7 @@ const App: React.FC = () => {
           
           // Also sign the user into the app if we have their email
           if (authEmail) {
-            console.log('[Auth] Google OAuth success, signing in user:', authEmail);
+            logger.info('Google OAuth success, signing in user', { email: authEmail });
             const signInResult = await auth.signIn(authEmail);
             if (signInResult.success) {
               notifications.showSuccess(
@@ -265,7 +283,7 @@ const App: React.FC = () => {
               );
             } else {
               // Google connected but app sign-in failed - show error to user
-              console.error('[Auth] Google OAuth success but app sign-in failed:', signInResult.error);
+              logger.error('Google OAuth success but app sign-in failed', { error: signInResult.error });
               notifications.showError(
                 `Sign-in failed: ${signInResult.error || 'Unknown error'}. Google is connected, but please try signing in manually.`
               );
@@ -276,7 +294,7 @@ const App: React.FC = () => {
             );
           }
         } catch (error) {
-          console.error('[Auth] Google OAuth verification error:', error);
+          logger.error('Google OAuth verification error', { error });
           // Backend said success but verification failed - show warning
           notifications.showWarning(
             'Google authentication completed, but verification failed. Please check Settings → Integrations to confirm connection.'
@@ -338,21 +356,21 @@ const App: React.FC = () => {
 
   const handleSignIn = useCallback(async (email: string) => {
     try {
-      console.log('[Auth] Attempting sign in for:', email);
+      logger.debug('Attempting sign in', { email });
       const result = await auth.signIn(email);
-      console.log('[Auth] Sign in result:', result);
+      logger.debug('Sign in result', { success: result.success });
       
       if (result.success) {
         notifications.showSuccess(`Welcome back, ${email}!`);
         // Force refresh user state to ensure UI updates
         await auth.refreshUser();
       } else {
-        console.error('[Auth] Sign in failed:', result.error);
+        logger.error('Sign in failed', { error: result.error });
         notifications.showError(result.error || 'Sign in failed');
       }
       return result;
     } catch (error: any) {
-      console.error('[Auth] Sign in exception:', error);
+      logger.error('Sign in exception', { error: error.message });
       notifications.showError('Sign in failed: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
@@ -368,11 +386,11 @@ const App: React.FC = () => {
     setActivityLogs([]);
   }, []);
 
-  const handleCVUploaded = useCallback((data: any) => {
-    console.log('CV uploaded:', data);
+  const handleCVUploaded = useCallback((data: { filename?: string; skills?: string[] }) => {
+    logger.info('CV uploaded', { filename: data?.filename });
   }, []);
 
-  const handleJobSearch = useCallback(async (location?: string, remoteOnly?: boolean, filters?: any) => {
+  const handleJobSearch = useCallback(async (location?: string, remoteOnly?: boolean, filters?: JobSearchFilters) => {
     const controller = jobSearchController.start();
     
     try {
@@ -428,7 +446,7 @@ const App: React.FC = () => {
       await stopTravelSearch();
       setTravelLoading(false);
     } catch (error) {
-      console.error('Error stopping travel search:', error);
+      logger.error('Error stopping travel search', { error });
     }
   }, []);
 
@@ -508,17 +526,53 @@ const App: React.FC = () => {
           <Route path="/agents/jobs" element={
             <AgentLayout
               title="🤖 AI Job Search Agent"
-              subtitle="Upload your CV and let AI find the perfect job matches"
+              subtitle="Upload your CV, search jobs, and practice interviews with AI"
               gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
             >
-              <JobSearchPanel
-                onCVUploaded={handleCVUploaded}
-                onSearch={handleJobSearch}
-                onStop={handleStopJobSearch}
-                isSearching={jobSearchController.state.isSearching}
-                isStopping={jobSearchController.state.isStopping}
-              />
-              {jobs.length > 0 && <JobListings jobs={jobs} />}
+              {/* Jobs Mode Switcher */}
+              <div className="flex justify-center gap-2 mb-4 px-2">
+                <button
+                  onClick={() => setJobsMode('search')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3
+                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${jobsMode === 'search'
+                                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
+                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
+                >
+                  <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Job Search</span>
+                </button>
+                <button
+                  onClick={() => setJobsMode('interview')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3
+                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${jobsMode === 'interview'
+                                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
+                >
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Mock Interview</span>
+                </button>
+              </div>
+
+              {jobsMode === 'search' ? (
+                <>
+                  <JobSearchPanel
+                    onCVUploaded={handleCVUploaded}
+                    onSearch={handleJobSearch}
+                    onStop={handleStopJobSearch}
+                    isSearching={jobSearchController.state.isSearching}
+                    isStopping={jobSearchController.state.isStopping}
+                  />
+                  {jobs.length > 0 && <JobListings jobs={jobs} />}
+                </>
+              ) : (
+                <MockInterviewPanel />
+              )}
             </AgentLayout>
           } />
 
@@ -530,7 +584,7 @@ const App: React.FC = () => {
               gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
             >
               {/* Travel Mode Switcher */}
-              <div className="flex justify-center gap-2 mb-4 px-2">
+              <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
                 <button
                   onClick={() => setTravelMode('flights')}
                   className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
@@ -558,9 +612,22 @@ const App: React.FC = () => {
                   <Mountain className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>⛷️ Ski</span>
                 </button>
+                <button
+                  onClick={() => setTravelMode('israel')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${travelMode === 'israel'
+                               ? 'bg-gradient-to-r from-blue-400 via-white to-blue-400 text-blue-900'
+                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
+                >
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>🇮🇱 Israel</span>
+                </button>
               </div>
 
-              {travelMode === 'flights' ? (
+              {travelMode === 'flights' && (
                 <>
                   <div className="relative">
                     <TravelSearchPanel onSearch={handleTravelSearch} loading={travelLoading} />
@@ -592,17 +659,19 @@ const App: React.FC = () => {
                     </>
                   )}
                 </>
-              ) : (
-                <SkiDealsPanel />
               )}
+              
+              {travelMode === 'ski' && <SkiDealsPanel />}
+              
+              {travelMode === 'israel' && <IsraelTravelPanel />}
             </AgentLayout>
           } />
 
           {/* Learning Agent */}
           <Route path="/agents/learning" element={<LearningAgent />} />
           
-          {/* Problem Solving Agent */}
-          <Route path="/agents/problems" element={<ProblemSolvingAgent />} />
+          {/* Problem Solving Agent - Redirect to Jobs Mock Interview */}
+          <Route path="/agents/problems" element={<Navigate to="/agents/jobs?mode=interview" replace />} />
 
           {/* ToDo Agent */}
           <Route path="/agents/todo" element={<ToDoAgent />} />

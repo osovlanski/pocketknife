@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as newsApi from '../services/newsApi';
+import logger from '../services/logger';
 import type { 
   NewsArticle, 
   SavedNewsArticle, 
@@ -60,7 +61,7 @@ export const useNews = (): UseNewsReturn => {
         const result = await newsApi.getPreferences();
         setPreferences(result.preferences);
       } catch (err) {
-        console.error('Failed to load preferences:', err);
+        logger.error('Failed to load preferences', { error: err });
       }
     };
     loadPreferences();
@@ -75,7 +76,7 @@ export const useNews = (): UseNewsReturn => {
       setArticles(result.articles || []);
     } catch (err: any) {
       setError(err.message || 'Failed to search news');
-      console.error('News search failed:', err);
+      logger.error('News search failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ export const useNews = (): UseNewsReturn => {
       setArticles(result.articles || []);
     } catch (err: any) {
       setError(err.message || 'Failed to get feed');
-      console.error('Get feed failed:', err);
+      logger.error('Get feed failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export const useNews = (): UseNewsReturn => {
       setDigest(result);
     } catch (err: any) {
       setError(err.message || 'Failed to get digest');
-      console.error('Get digest failed:', err);
+      logger.error('Get digest failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -120,7 +121,7 @@ export const useNews = (): UseNewsReturn => {
       setSavedArticles(result.savedArticles || []);
     } catch (err: any) {
       setError(err.message || 'Failed to save article');
-      console.error('Save article failed:', err);
+      logger.error('Save article failed', { error: err });
     }
   }, []);
 
@@ -131,7 +132,7 @@ export const useNews = (): UseNewsReturn => {
       const result = await newsApi.getSavedArticles(maxResults);
       setSavedArticles(result.savedArticles || []);
     } catch (err: any) {
-      console.error('Get saved articles failed:', err);
+      logger.error('Get saved articles failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -146,7 +147,7 @@ export const useNews = (): UseNewsReturn => {
     try {
       await newsApi.recordInteraction(type, article, metadata);
     } catch (err) {
-      console.error('Record interaction failed:', err);
+      logger.error('Record interaction failed', { error: err });
     }
   }, []);
 
@@ -160,7 +161,7 @@ export const useNews = (): UseNewsReturn => {
       const result = await newsApi.getTrends(geoScope, countryCode);
       setTrends(result.trends || []);
     } catch (err: any) {
-      console.error('Get trends failed:', err);
+      logger.error('Get trends failed', { error: err });
     } finally {
       setLoading(false);
     }
@@ -173,7 +174,7 @@ export const useNews = (): UseNewsReturn => {
       setPreferences(prev => ({ ...prev, ...prefs }));
     } catch (err: any) {
       setError(err.message || 'Failed to update preferences');
-      console.error('Update preferences failed:', err);
+      logger.error('Update preferences failed', { error: err });
     }
   }, []);
 
@@ -183,7 +184,7 @@ export const useNews = (): UseNewsReturn => {
       const result = await newsApi.summarizeArticle(article.url, article);
       return result.summary;
     } catch (err) {
-      console.error('Summarize failed:', err);
+      logger.error('Summarize failed', { error: err });
       return null;
     }
   }, []);
@@ -221,6 +222,8 @@ export const useNews = (): UseNewsReturn => {
 };
 
 export default useNews;
+
+
 
 
 

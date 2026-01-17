@@ -7,6 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { getPrisma } from '../services/core/databaseService';
 import { configService } from '../services/core/configService';
+import logger from '../utils/logger';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.get('/public', async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Error fetching public config:', error);
+    logger.fail('Error fetching public config', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch configuration' });
   }
 });
@@ -97,7 +98,7 @@ router.get('/all', async (req: Request, res: Response) => {
       categories: Object.keys(grouped)
     });
   } catch (error: any) {
-    console.error('Error fetching all config:', error);
+    logger.fail('Error fetching all config', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch configuration' });
   }
 });
@@ -108,7 +109,7 @@ router.get('/all', async (req: Request, res: Response) => {
  */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { value } = req.body;
     const adminEmail = req.headers['x-user-email'] as string;
 
@@ -147,7 +148,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       setting: updated
     });
   } catch (error: any) {
-    console.error('Error updating config:', error);
+    logger.fail('Error updating config', { error: error.message });
     res.status(500).json({ error: 'Failed to update configuration' });
   }
 });

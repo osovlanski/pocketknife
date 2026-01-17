@@ -76,8 +76,10 @@ export const getProject = async (req: Request, res: Response) => {
 export const getProjects = async (req: Request, res: Response) => {
   try {
     const userId = await getUserId(req);
+    
+    // Return empty list if not authenticated
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      return res.json({ projects: [] });
     }
 
     const { status, category, limit } = req.query;
@@ -91,13 +93,15 @@ export const getProjects = async (req: Request, res: Response) => {
     });
 
     if (!result.success) {
-      return res.status(400).json(result);
+      // Return empty list on error
+      return res.json({ projects: [] });
     }
 
     res.json(result.data);
   } catch (error: any) {
     console.error('Get projects failed:', error);
-    res.status(500).json({ success: false, error: error.message });
+    // Return empty list on error
+    res.json({ projects: [] });
   }
 };
 

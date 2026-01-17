@@ -151,3 +151,17 @@ export const learnPatterns = async (): Promise<{ patternsLearned: number }> => {
   return response.data;
 };
 
+export interface CalendarEventImport {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+}
+
+export const importCalendarEvent = async (event: CalendarEventImport): Promise<{ task: Task }> => {
+  const response = await todoAxios.post('/todo/calendar/import', { event });
+  return response.data;
+};
+

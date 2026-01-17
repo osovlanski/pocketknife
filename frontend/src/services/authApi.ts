@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import logger from './logger';
 
 // =============================================================================
 // TYPES
@@ -97,7 +98,7 @@ export const getGoogleAuthStatus = async (): Promise<AuthStatus> => {
     const response = await api.get('/auth/status');
     return response.data;
   } catch (error: any) {
-    console.error('Failed to get auth status:', error);
+    logger.error('Failed to get auth status', { error: error.message });
     return {
       authenticated: false,
       message: 'Failed to check authentication status'
@@ -132,29 +133,28 @@ export const forceGoogleReauth = async (): Promise<{ success: boolean; authUrl: 
 export const signIn = async (email: string): Promise<{ success: boolean; user?: CurrentUser; error?: string }> => {
   try {
     const normalizedEmail = email.toLowerCase().trim();
-    console.log('[authApi] signIn starting for:', normalizedEmail);
-    console.log('[authApi] API_BASE_URL:', API_BASE_URL);
+    logger.debug('signIn starting', { email: normalizedEmail, apiUrl: API_BASE_URL });
     
     // Store the email first so subsequent requests include it
     setStoredEmail(normalizedEmail);
-    console.log('[authApi] Email stored in localStorage');
+    logger.debug('Email stored in localStorage');
     
     // Initialize admin - this will create/upgrade the user if it's the admin email
-    console.log('[authApi] Calling /admin/initialize...');
+    logger.debug('Calling /admin/initialize...');
     const initResponse = await axios.post(`${API_BASE_URL}/admin/initialize`, {}, {
       headers: { 'X-User-Email': normalizedEmail }
     });
-    console.log('[authApi] Initialize response:', initResponse.status);
+    logger.debug('Initialize response', { status: initResponse.status });
     
     // Get user info
-    console.log('[authApi] Calling /admin/me...');
+    logger.debug('Calling /admin/me...');
     const api = createAuthApi();
     const response = await api.get('/admin/me');
-    console.log('[authApi] /admin/me response:', response.status, response.data);
+    logger.debug('/admin/me response', { status: response.status });
     
     const user = response.data.user;
     if (!user) {
-      console.error('[authApi] No user in response');
+      logger.error('No user in response');
       clearStoredEmail();
       return {
         success: false,
@@ -162,14 +162,13 @@ export const signIn = async (email: string): Promise<{ success: boolean; user?: 
       };
     }
     
-    console.log('[authApi] Sign in successful, user role:', user.role);
+    logger.info('Sign in successful', { role: user.role });
     return {
       success: true,
       user
     };
   } catch (error: any) {
-    console.error('[authApi] Sign in error:', error);
-    console.error('[authApi] Error details:', {
+    logger.error('Sign in error', {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data
@@ -195,7 +194,7 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
     const response = await api.get('/admin/me');
     return response.data.user;
   } catch (error) {
-    console.error('Failed to get current user:', error);
+    logger.error('Failed to get current user', { error });
     return null;
   }
 };
@@ -221,7 +220,7 @@ export const getPreferences = async (): Promise<UserPreferences | null> => {
     const response = await api.get('/settings/preferences');
     return response.data.preferences;
   } catch (error) {
-    console.error('Failed to get preferences:', error);
+    logger.error('Failed to get preferences', { error });
     return null;
   }
 };

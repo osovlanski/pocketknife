@@ -3,6 +3,15 @@ import problemSolvingService from '../services/problemSolving/problemSolvingServ
 import { getCompanyProfile, getAllCompanyNames } from '../data/companyMappings';
 import { BLIND_75, NEETCODE_EXTRA, GRIND_75 } from '../data/curatedProblems';
 import { databaseService, getPrisma } from '../services/core/databaseService';
+import { 
+  CODING_PATTERNS, 
+  getPatternsByCategory, 
+  getPatternsByDifficulty, 
+  searchPatterns,
+  getAllCategories,
+  getRelatedPatterns
+} from '../data/codingPatterns';
+import logger from '../utils/logger';
 
 /**
  * Search for coding problems from various sources
@@ -15,7 +24,7 @@ export async function searchProblems(req: Request, res: Response) {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
-    console.log(`🔍 Problem search request: "${query}" | Company: ${company || 'Any'} | Difficulty: ${difficulty || 'Any'}`);
+    logger.search(`Problem search request: "${query}"`, { company: company || 'Any', difficulty: difficulty || 'Any' });
 
     const problems = await problemSolvingService.searchProblems({
       query,
@@ -31,7 +40,7 @@ export async function searchProblems(req: Request, res: Response) {
       problems
     });
   } catch (error: any) {
-    console.error('❌ Problem search error:', error);
+    logger.fail('Problem search error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to search problems'
     });
@@ -49,7 +58,7 @@ export async function generateHints(req: Request, res: Response) {
       return res.status(400).json({ error: 'Problem title and description are required' });
     }
 
-    console.log(`💡 Generating hints for: ${problemTitle}`);
+    logger.processing(`Generating hints for: ${problemTitle}`);
 
     const hints = await problemSolvingService.generateHints(problemTitle, problemDescription);
 
@@ -59,7 +68,7 @@ export async function generateHints(req: Request, res: Response) {
       hints
     });
   } catch (error: any) {
-    console.error('❌ Hint generation error:', error);
+    logger.fail('Hint generation error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to generate hints'
     });
@@ -71,13 +80,13 @@ export async function generateHints(req: Request, res: Response) {
  */
 export async function getProblemDescription(req: Request, res: Response) {
   try {
-    const { titleSlug } = req.params;
+    const titleSlug = req.params.titleSlug as string;
 
     if (!titleSlug) {
       return res.status(400).json({ error: 'Problem title slug is required' });
     }
 
-    console.log(`📄 Fetching description for: ${titleSlug}`);
+    logger.api(`Fetching description for: ${titleSlug}`);
 
     const description = await problemSolvingService.getProblemDescription(titleSlug);
 
@@ -87,7 +96,7 @@ export async function getProblemDescription(req: Request, res: Response) {
       description: description || 'Problem description not available. Please visit the LeetCode website.'
     });
   } catch (error: any) {
-    console.error('❌ Problem description fetch error:', error);
+    logger.fail('Problem description fetch error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to fetch problem description'
     });
@@ -109,7 +118,7 @@ export async function evaluateCode(req: Request, res: Response) {
       return res.status(400).json({ error: 'Code is required' });
     }
 
-    console.log(`📝 Evaluating code for: ${problemTitle} (${language})`);
+    logger.processing(`Evaluating code for: ${problemTitle}`, { language });
 
     const evaluation = await problemSolvingService.evaluateCode(
       problemTitle,
@@ -125,7 +134,7 @@ export async function evaluateCode(req: Request, res: Response) {
       evaluation
     });
   } catch (error: any) {
-    console.error('❌ Code evaluation error:', error);
+    logger.fail('Code evaluation error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to evaluate code'
     });
@@ -143,7 +152,7 @@ export async function generateSignature(req: Request, res: Response) {
       return res.status(400).json({ error: 'Problem title and description are required' });
     }
 
-    console.log(`🔧 Generating signature for: ${problemTitle} (${language})`);
+    logger.processing(`Generating signature for: ${problemTitle}`, { language });
 
     const signature = await problemSolvingService.generateSignature(
       problemTitle,
@@ -158,7 +167,7 @@ export async function generateSignature(req: Request, res: Response) {
       signature
     });
   } catch (error: any) {
-    console.error('❌ Signature generation error:', error);
+    logger.fail('Signature generation error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to generate signature'
     });
@@ -184,7 +193,7 @@ export async function generateImprovedCode(req: Request, res: Response) {
       return res.status(400).json({ error: 'Suggestions are required' });
     }
 
-    console.log(`✨ Generating improved code for: ${problemTitle}`);
+    logger.processing(`Generating improved code for: ${problemTitle}`);
 
     const improvedCode = await problemSolvingService.generateImprovedCode(
       problemTitle,
@@ -201,7 +210,7 @@ export async function generateImprovedCode(req: Request, res: Response) {
       improvedCode
     });
   } catch (error: any) {
-    console.error('❌ Code improvement error:', error);
+    logger.fail('Code improvement error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to improve code'
     });
@@ -213,13 +222,13 @@ export async function generateImprovedCode(req: Request, res: Response) {
  */
 export async function getCompanyInterviewProfile(req: Request, res: Response) {
   try {
-    const { companyName } = req.params;
+    const companyName = req.params.companyName as string;
 
     if (!companyName) {
       return res.status(400).json({ error: 'Company name is required' });
     }
 
-    console.log(`🏢 Fetching interview profile for: ${companyName}`);
+    logger.search(`Fetching interview profile for: ${companyName}`);
 
     const profile = getCompanyProfile(companyName);
 
@@ -235,7 +244,7 @@ export async function getCompanyInterviewProfile(req: Request, res: Response) {
       profile
     });
   } catch (error: any) {
-    console.error('❌ Company profile fetch error:', error);
+    logger.fail('Company profile fetch error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to fetch company profile'
     });
@@ -255,7 +264,7 @@ export async function getAllCompanies(req: Request, res: Response) {
       companies
     });
   } catch (error: any) {
-    console.error('❌ Get companies error:', error);
+    logger.fail('Get companies error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to get companies'
     });
@@ -293,7 +302,7 @@ export async function getCuratedLists(req: Request, res: Response) {
       lists
     });
   } catch (error: any) {
-    console.error('❌ Get curated lists error:', error);
+    logger.fail('Get curated lists error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to get curated lists'
     });
@@ -340,7 +349,7 @@ export async function saveSolvedProblem(req: Request, res: Response) {
       return res.status(500).json({ error: 'Failed to get/create user' });
     }
 
-    console.log(`💾 Saving solved problem: "${title}" for user ${user.email}`);
+    logger.db(`Saving solved problem: "${title}"`, { user: user.email });
 
     // Upsert the solved problem (update if exists, create if not)
     const solvedProblem = await prisma.solvedProblem.upsert({
@@ -389,7 +398,7 @@ export async function saveSolvedProblem(req: Request, res: Response) {
       status: 'success'
     });
 
-    console.log(`✅ Problem saved successfully: ${solvedProblem.id}`);
+    logger.success(`Problem saved successfully`, { id: solvedProblem.id });
 
     res.json({
       success: true,
@@ -404,7 +413,7 @@ export async function saveSolvedProblem(req: Request, res: Response) {
       }
     });
   } catch (error: any) {
-    console.error('❌ Save solved problem error:', error);
+    logger.fail('Save solved problem error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to save solution'
     });
@@ -459,7 +468,7 @@ export async function getSolvedProblems(req: Request, res: Response) {
       solvedProblems
     });
   } catch (error: any) {
-    console.error('❌ Get solved problems error:', error);
+    logger.fail('Get solved problems error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to get solved problems'
     });
@@ -471,7 +480,8 @@ export async function getSolvedProblems(req: Request, res: Response) {
  */
 export async function getSolvedProblemCode(req: Request, res: Response) {
   try {
-    const { problemId, source } = req.params;
+    const problemId = req.params.problemId as string;
+    const source = req.params.source as string | undefined;
 
     const prisma = getPrisma();
     if (!prisma) {
@@ -500,7 +510,7 @@ export async function getSolvedProblemCode(req: Request, res: Response) {
       solvedProblem
     });
   } catch (error: any) {
-    console.error('❌ Get solved problem code error:', error);
+    logger.fail('Get solved problem code error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to get solved problem code'
     });
@@ -520,7 +530,7 @@ export async function runTests(req: Request, res: Response) {
       });
     }
 
-    console.log(`🧪 Running ${testCases.length} test cases for ${language} code`);
+    logger.processing(`Running ${testCases.length} test cases`, { language });
 
     // Use Claude to simulate running the tests
     const claudeService = (await import('../services/core/claudeService')).default;
@@ -622,9 +632,160 @@ Respond in this JSON format only:
       ...testResults
     });
   } catch (error: any) {
-    console.error('❌ Run tests error:', error);
+    logger.fail('Run tests error', { error: error.message });
     res.status(500).json({
       error: error.message || 'Failed to run tests'
+    });
+  }
+}
+
+// ========== CODING PATTERNS API ==========
+
+/**
+ * Get all coding patterns
+ */
+export async function getCodingPatterns(req: Request, res: Response) {
+  try {
+    const { category, difficulty, search } = req.query;
+
+    let patterns = CODING_PATTERNS;
+
+    // Filter by category
+    if (category && typeof category === 'string') {
+      patterns = getPatternsByCategory(category as any);
+    }
+
+    // Filter by difficulty
+    if (difficulty && typeof difficulty === 'string') {
+      patterns = patterns.filter(p => p.difficulty === difficulty);
+    }
+
+    // Search by query
+    if (search && typeof search === 'string') {
+      patterns = searchPatterns(search);
+    }
+
+    logger.found(`Returning ${patterns.length} coding patterns`);
+
+    res.json({
+      success: true,
+      count: patterns.length,
+      categories: getAllCategories(),
+      patterns
+    });
+  } catch (error: any) {
+    logger.fail('Get coding patterns error', { error: error.message });
+    res.status(500).json({
+      error: error.message || 'Failed to get coding patterns'
+    });
+  }
+}
+
+/**
+ * Get a specific coding pattern by ID
+ */
+export async function getCodingPatternById(req: Request, res: Response) {
+  try {
+    const patternId = req.params.patternId as string;
+
+    const pattern = CODING_PATTERNS.find((p: { id: string }) => p.id === patternId);
+
+    if (!pattern) {
+      return res.status(404).json({ error: `Pattern '${patternId}' not found` });
+    }
+
+    const relatedPatterns = getRelatedPatterns(patternId);
+
+    logger.found(`Returning pattern: ${pattern.name}`);
+
+    res.json({
+      success: true,
+      pattern,
+      relatedPatterns
+    });
+  } catch (error: any) {
+    logger.fail('Get pattern error', { error: error.message });
+    res.status(500).json({
+      error: error.message || 'Failed to get pattern'
+    });
+  }
+}
+
+/**
+ * Get suggested problems based on user's weak areas (low scores)
+ */
+export async function getSuggestedProblems(req: Request, res: Response) {
+  try {
+    const prisma = getPrisma();
+    if (!prisma) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(500).json({ error: 'Failed to get user' });
+    }
+
+    // Get user's solved problems with low scores
+    const weakProblems = await prisma.solvedProblem.findMany({
+      where: {
+        userId: user.id,
+        score: { lt: 70 } // Problems with score below 70
+      },
+      orderBy: { score: 'asc' },
+      take: 10,
+      select: {
+        problemId: true,
+        title: true,
+        source: true,
+        difficulty: true,
+        score: true,
+        topics: true,
+        attempts: true
+      }
+    });
+
+    // Get topics from weak problems to suggest similar patterns
+    const weakTopics = new Set<string>();
+    weakProblems.forEach((p: { topics: unknown }) => {
+      (p.topics as string[]).forEach((t: string) => weakTopics.add(t.toLowerCase()));
+    });
+
+    // Find matching patterns based on weak topics
+    const suggestedPatterns = CODING_PATTERNS.filter(pattern => {
+      const patternKeywords = [
+        pattern.name.toLowerCase(),
+        pattern.category,
+        ...pattern.keyIndicators.map(k => k.toLowerCase())
+      ];
+      return patternKeywords.some(kw => 
+        [...weakTopics].some(wt => kw.includes(wt) || wt.includes(kw))
+      );
+    });
+
+    // Get problem statistics
+    const stats = await prisma.solvedProblem.groupBy({
+      by: ['difficulty'],
+      where: { userId: user.id },
+      _avg: { score: true },
+      _count: true
+    });
+
+    logger.found(`Found ${weakProblems.length} weak problems, ${suggestedPatterns.length} suggested patterns`);
+
+    res.json({
+      success: true,
+      weakProblems,
+      suggestedPatterns: suggestedPatterns.slice(0, 5),
+      statistics: stats,
+      recommendation: weakProblems.length > 0
+        ? `Focus on improving your ${[...weakTopics].slice(0, 3).join(', ')} skills`
+        : 'Keep practicing! Try more challenging problems.'
+    });
+  } catch (error: any) {
+    logger.fail('Get suggested problems error', { error: error.message });
+    res.status(500).json({
+      error: error.message || 'Failed to get suggestions'
     });
   }
 }

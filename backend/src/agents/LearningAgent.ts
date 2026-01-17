@@ -377,7 +377,7 @@ export class LearningAgent extends AbstractAgent {
       });
 
       // Extract article data from metadata
-      const history = savedArticles.map(log => ({
+      const history = savedArticles.map((log: { id: string; createdAt: Date; metadata: unknown }) => ({
         id: log.id,
         savedAt: log.createdAt,
         ...(log.metadata as any)

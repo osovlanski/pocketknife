@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../config';
+import logger from '../services/logger';
 
 type AgentType = 'email' | 'jobs' | 'travel' | 'learning' | 'problems';
 
@@ -26,7 +27,7 @@ const getSocket = (): Socket => {
     
     // Listen for process status updates from backend
     sharedSocket.on('process-status', (data: { agent: AgentType; status: string }) => {
-      console.log(`📡 Process status: ${data.agent} -> ${data.status}`);
+      logger.debug('Process status update', { agent: data.agent, status: data.status });
     });
   }
   return sharedSocket;
@@ -110,7 +111,7 @@ export const useSearchController = (agentType: AgentType = 'jobs'): SearchContro
       
       // Send stop signal to backend via Socket.io
       socketRef.current?.emit('stop-process', { agent: agentType });
-      console.log(`🛑 Stop signal sent for ${agentType} agent`);
+      logger.info('Stop signal sent', { agent: agentType });
       
       // Also abort the fetch request on frontend side
       if (abortControllerRef.current) {

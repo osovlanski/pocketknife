@@ -7,6 +7,7 @@ import israelTechScraperService from '../services/jobs/israelTechScraperService'
 import companyEnrichmentService from '../services/jobs/companyEnrichmentService';
 import processControlService from '../services/core/processControlService';
 import { databaseService } from '../services/core/databaseService';
+import logger from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -36,7 +37,7 @@ export const uploadCV = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'CV text is required' });
     }
 
-    console.log('📄 Analyzing CV...');
+    logger.start('Analyzing CV...');
     const io = req.app.get('io');
     emitLog(io, '📄 Analyzing your CV with AI...', 'info');
 
@@ -74,7 +75,7 @@ export const uploadCV = async (req: Request, res: Response) => {
       preferences
     });
   } catch (error: any) {
-    console.error('❌ Error uploading CV:', error);
+    logger.fail('Error uploading CV', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -88,7 +89,7 @@ export const getCVData = async (req: Request, res: Response) => {
     const data = JSON.parse(fs.readFileSync(CV_DATA_FILE, 'utf-8'));
     res.json(data);
   } catch (error: any) {
-    console.error('❌ Error getting CV data:', error);
+    logger.fail('Error getting CV data', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -114,7 +115,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     const cvData = fileContent.cvData || fileContent; // Handle both new and old format
     
     // Debug: Log CV skills for verification
-    console.log(`📋 CV loaded: ${cvData.name || 'Unknown'}, ${cvData.skills?.length || 0} skills, ${cvData.experience?.length || 0} experience entries`);
+    logger.found(`CV loaded: ${cvData.name || 'Unknown'}`, { skills: cvData.skills?.length || 0, experience: cvData.experience?.length || 0 });
     
     // =========================================================================
     // MULTI-QUERY EXPANSION: Generate multiple search queries for better results
@@ -310,7 +311,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     // Make sure to complete the process on error
     processControlService.completeProcess('jobs', false);
     
-    console.error('❌ Error searching jobs:', error);
+    logger.fail('Error searching jobs', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -324,7 +325,7 @@ export const getJobListings = async (req: Request, res: Response) => {
     const jobs = JSON.parse(fs.readFileSync(JOB_LISTINGS_FILE, 'utf-8'));
     res.json({ jobs });
   } catch (error: any) {
-    console.error('❌ Error getting job listings:', error);
+    logger.fail('Error getting job listings', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -347,7 +348,7 @@ export const updateJobPreferences = async (req: Request, res: Response) => {
       preferences: data.preferences
     });
   } catch (error: any) {
-    console.error('❌ Error updating preferences:', error);
+    logger.fail('Error updating preferences', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -385,7 +386,7 @@ export const aiSearch = async (req: Request, res: Response) => {
       keywords: result.keywords
     });
   } catch (error: any) {
-    console.error('❌ AI search error:', error);
+    logger.fail('AI search error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -416,7 +417,7 @@ export const getCareerPath = async (req: Request, res: Response) => {
       careerPath
     });
   } catch (error: any) {
-    console.error('❌ Career path error:', error);
+    logger.fail('Career path error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -465,7 +466,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
       sources: ['Geektime', 'AllJobs']
     });
   } catch (error: any) {
-    console.error('❌ Israeli jobs search error:', error);
+    logger.fail('Israeli jobs search error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -475,7 +476,7 @@ export const searchIsraeliJobs = async (req: Request, res: Response) => {
  */
 export const getCompanyInfo = async (req: Request, res: Response) => {
   try {
-    const { companyName } = req.params;
+    const companyName = req.params.companyName as string;
     
     if (!companyName) {
       return res.status(400).json({ error: 'Company name is required' });
@@ -496,7 +497,7 @@ export const getCompanyInfo = async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
-    console.error('❌ Company info error:', error);
+    logger.fail('Company info error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
@@ -519,7 +520,20 @@ export const enrichCompanies = async (req: Request, res: Response) => {
       companies: Object.fromEntries(results)
     });
   } catch (error: any) {
-    console.error('❌ Company enrichment error:', error);
+    logger.fail('Company enrichment error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
+
+// =============================================================================
+// MOCK INTERVIEW ENDPOINTS (re-exported from interviewController)
+// =============================================================================
+export {
+  extractInterviewQuestions,
+  generateInterviewAnswer,
+  evaluateInterviewAnswer,
+  getExampleQuestions,
+  getPopularCompanyQuestions,
+  evaluateSystemDesign,
+  getSystemDesignQuestions
+} from './interviewController';

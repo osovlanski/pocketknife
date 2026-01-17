@@ -1,6 +1,7 @@
 /**
  * Extract text from different file types
  */
+import logger from '../services/logger';
 
 // Initialize PDF.js worker once
 let pdfWorkerInitialized = false;
@@ -84,7 +85,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
     
     return trimmedText;
   } catch (error: any) {
-    console.error('Error parsing PDF:', error);
+    logger.error('Error parsing PDF', { error: error.message });
     
     // Provide more helpful error messages
     if (error.message === 'scanned-pdf') {
@@ -92,7 +93,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
     }
     
     // Try alternative approach with a fallback
-    console.log('Primary PDF parsing failed, trying fallback...');
+    logger.debug('Primary PDF parsing failed, trying fallback');
     return await extractTextFromPDFFallback(file);
   }
 }
@@ -133,7 +134,7 @@ async function extractTextFromWord(file: File): Promise<string> {
     const result = await mammoth.extractRawText({ arrayBuffer });
     return result.value;
   } catch (error) {
-    console.error('Error parsing Word document:', error);
+    logger.error('Error parsing Word document', { error });
     throw new Error('Failed to parse Word document. Please try uploading as a .txt file or paste the text directly.');
   }
 }

@@ -29,12 +29,22 @@ interface ToDoParams extends AgentParams {
     | 'get-suggested-routines'
     | 'approve-routine'
     | 'dismiss-routine'
-    | 'learn-patterns';
+    | 'learn-patterns'
+    | 'import-calendar-event';
   taskData?: TaskData;
   taskId?: string;
   routineId?: string;
   date?: string; // ISO date string for daily agenda
   filters?: TaskFilters;
+  calendarEventId?: string; // For importing calendar events as tasks
+  calendarEventData?: {
+    id: string;
+    title: string;
+    description?: string;
+    start: string;
+    end: string;
+    isAllDay: boolean;
+  };
 }
 
 interface TaskData {
@@ -128,6 +138,8 @@ export class ToDoAgent extends AbstractAgent {
         return this.dismissRoutine(params);
       case 'learn-patterns':
         return this.learnPatterns(params);
+      case 'import-calendar-event':
+        return this.importCalendarEvent(params);
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -756,7 +768,7 @@ export class ToDoAgent extends AbstractAgent {
       }
 
       // Use AI to analyze patterns
-      const taskSummary = completedTasks.map(t => ({
+      const taskSummary = completedTasks.map((t) => ({
         title: t.title,
         category: t.category,
         completedAt: t.completedAt,
@@ -765,16 +777,51 @@ export class ToDoAgent extends AbstractAgent {
         duration: t.duration
       }));
 
+      // Get calendar events from the next week to understand busy times
+      let calendarBusyTimes: { day: string; startHour: number; endHour: number; title: string }[] = [];
+      try {
+        if (calendarService.isAvailable()) {
+          const weekFromNow = new Date();
+          weekFromNow.setDate(weekFromNow.getDate() + 7);
+          const events = await calendarService.getEvents(new Date(), weekFromNow);
+          
+          calendarBusyTimes = events
+            .filter(event => !event.isAllDay) // Only time-specific events
+            .map(event => {
+              const start = new Date(event.start);
+              const end = new Date(event.end);
+              return {
+                day: start.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(),
+                startHour: start.getHours(),
+                endHour: end.getHours() || (start.getHours() + 1),
+                title: event.title
+              };
+            });
+        }
+      } catch (calError) {
+        // Calendar errors shouldn't block pattern learning
+        this.emitLog('⚠️ Could not fetch calendar events for pattern optimization', 'warning');
+      }
+
       const prompt = `Analyze these completed tasks and identify recurring patterns/routines.
+IMPORTANT: When suggesting times for routines, AVOID the calendar busy times listed below.
 
 Tasks completed in the last 30 days:
 ${JSON.stringify(taskSummary, null, 2)}
+
+Calendar busy times to AVOID (these are blocked for meetings/events):
+${JSON.stringify(calendarBusyTimes, null, 2)}
 
 Find patterns like:
 1. Tasks done on specific days of the week
 2. Tasks done at similar times
 3. Related tasks that happen together
 4. Weekly or daily routines
+
+IMPORTANT RULES:
+- Suggest times that do NOT conflict with the calendar busy times above
+- If a user typically does something at 9:00 but they have recurring meetings at 9:00, suggest an alternative time
+- Prioritize time slots that are consistently free based on the calendar data
 
 Respond ONLY with valid JSON:
 {
@@ -785,6 +832,8 @@ Respond ONLY with valid JSON:
       "dayOfWeek": ["monday", "wednesday", "friday"],
       "timeSlot": "morning" | "afternoon" | "evening",
       "preferredTime": "09:00",
+      "calendarConflict": false,
+      "alternativeTime": null,
       "taskTemplate": {
         "title": "suggested task title",
         "category": "category",
@@ -831,6 +880,74 @@ Respond ONLY with valid JSON:
       return { success: true, data: { patternsLearned } };
     } catch (error: any) {
       this.emitLog(`❌ Pattern learning failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Import a Google Calendar event as a task
+   */
+  private async importCalendarEvent(params: ToDoParams): Promise<AgentResult<ToDoResult>> {
+    const { userId, calendarEventData } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!calendarEventData) return { success: false, error: 'Calendar event data is required' };
+
+    const prisma = getPrisma();
+    if (!prisma) return { success: false, error: 'Database not available' };
+
+    this.emitLog(`📅 Importing calendar event: ${calendarEventData.title}`, 'info');
+
+    try {
+      // Check if this event was already imported
+      const existingTask = await prisma.task.findFirst({
+        where: {
+          userId,
+          googleEventId: calendarEventData.id
+        }
+      });
+
+      if (existingTask) {
+        this.emitLog(`⚠️ Event already imported as task: ${existingTask.title}`, 'warning');
+        return { success: true, data: { task: existingTask } };
+      }
+
+      // Calculate duration from start and end time
+      const startDate = new Date(calendarEventData.start);
+      const endDate = new Date(calendarEventData.end);
+      const durationMs = endDate.getTime() - startDate.getTime();
+      const durationMinutes = Math.round(durationMs / (1000 * 60));
+
+      // Extract time from start date
+      const dueTime = calendarEventData.isAllDay 
+        ? undefined 
+        : startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      // Create the task from calendar event
+      const task = await prisma.task.create({
+        data: {
+          userId,
+          title: calendarEventData.title,
+          description: calendarEventData.description || `Imported from Google Calendar`,
+          priority: 'medium',
+          status: 'pending',
+          dueDate: startDate,
+          dueTime,
+          duration: durationMinutes > 0 ? durationMinutes : 30,
+          category: 'work', // Default category for calendar events
+          tags: ['calendar-import'],
+          isRecurring: false,
+          syncEnabled: false, // Don't sync back to avoid duplicates
+          sourceType: 'manual',
+          googleEventId: calendarEventData.id
+        }
+      });
+
+      this.emitLog(`✅ Created task from calendar event: ${task.title}`, 'success');
+
+      return { success: true, data: { task } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to import calendar event: ${error.message}`, 'error');
       return { success: false, error: error.message };
     }
   }

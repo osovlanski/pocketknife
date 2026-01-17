@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL, SOCKET_URL } from '../config';
+import logger from '../services/logger';
 
 export interface LearningResource {
   id: string;
@@ -189,7 +190,7 @@ export const useLearning = (): UseLearningReturn => {
       const data = await response.json();
       setResources(data.resources || []);
     } catch (error) {
-      console.error('Search failed:', error);
+      logger.error('Learning search failed', { error });
     } finally {
       setIsSearching(false);
     }
@@ -233,7 +234,7 @@ export const useLearning = (): UseLearningReturn => {
         r.id === resourceId ? { ...r, summary: data.summary, isSummarizing: false } : r
       ));
     } catch (error) {
-      console.error('Summarize failed:', error);
+      logger.error('Summarize failed', { error });
       setResources(prev => prev.map(r => 
         r.id === resourceId ? { ...r, isSummarizing: false } : r
       ));
@@ -259,7 +260,7 @@ export const useLearning = (): UseLearningReturn => {
       setTopicSummary(data.summary);
       setShowSummary(true);
     } catch (error) {
-      console.error('Topic summary failed:', error);
+      logger.error('Topic summary failed', { error });
     } finally {
       setIsGeneratingSummary(false);
     }

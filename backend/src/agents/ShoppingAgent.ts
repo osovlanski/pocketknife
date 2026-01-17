@@ -634,11 +634,11 @@ Respond ONLY with valid JSON:
       // Use AI to generate suggestions
       const prompt = `Based on this user profile, suggest 5 products they might like:
 
-User Interests: ${interests.map(i => `${i.interestType}: ${i.value}`).join(', ')}
+User Interests: ${interests.map((i: { interestType: string; value: string }) => `${i.interestType}: ${i.value}`).join(', ')}
 
-Recently Saved Products: ${savedProducts.map(p => p.title).join(', ')}
+Recently Saved Products: ${savedProducts.map((p: { title: string }) => p.title).join(', ')}
 
-Recent Searches: ${recentSearches.map(s => s.query).join(', ')}
+Recent Searches: ${recentSearches.map((s: { query: string }) => s.query).join(', ')}
 
 Suggest products that:
 1. Match their interests

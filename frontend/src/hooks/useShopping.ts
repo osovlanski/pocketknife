@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as shoppingApi from '../services/shoppingApi';
 import * as configApi from '../services/configApi';
+import logger from '../services/logger';
 import type { Product, ProductSuggestion, PriceAlert } from '../services/shoppingApi';
 import type { ShoppingThresholds } from '../services/configApi';
 
@@ -89,7 +90,7 @@ export const useShopping = (): UseShoppingReturn => {
         const config = await configApi.getShoppingThresholds();
         setThresholds(config);
       } catch (error) {
-        console.warn('Failed to load shopping config, using defaults');
+        logger.warn('Failed to load shopping config, using defaults');
       }
     };
     loadConfig();
@@ -128,7 +129,7 @@ export const useShopping = (): UseShoppingReturn => {
       const result = await shoppingApi.getSavedProducts();
       setSavedProducts(result.savedProducts || []);
     } catch (error) {
-      console.error('Failed to load saved products:', error);
+      logger.error('Failed to load saved products', { error });
     }
   };
 
@@ -137,7 +138,7 @@ export const useShopping = (): UseShoppingReturn => {
       const result = await shoppingApi.getPriceAlerts();
       setPriceAlerts(result.priceAlerts || []);
     } catch (error) {
-      console.error('Failed to load price alerts:', error);
+      logger.error('Failed to load price alerts', { error });
     }
   };
 
@@ -146,7 +147,7 @@ export const useShopping = (): UseShoppingReturn => {
       const result = await shoppingApi.getSuggestions();
       setSuggestions(result.suggestions || []);
     } catch (error) {
-      console.error('Failed to load suggestions:', error);
+      logger.error('Failed to load suggestions', { error });
     }
   };
 
@@ -178,7 +179,7 @@ export const useShopping = (): UseShoppingReturn => {
 
       setProducts(result.products || []);
     } catch (error) {
-      console.error('Search failed:', error);
+      logger.error('Search failed', { error });
     } finally {
       setLoading(false);
     }
@@ -189,7 +190,7 @@ export const useShopping = (): UseShoppingReturn => {
       await shoppingApi.stopSearch();
       setLoading(false);
     } catch (error) {
-      console.error('Failed to stop search:', error);
+      logger.error('Failed to stop search', { error });
     }
   }, []);
 
@@ -199,7 +200,7 @@ export const useShopping = (): UseShoppingReturn => {
       loadSavedProducts();
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, isSaved: true } : p));
     } catch (error) {
-      console.error('Failed to save product:', error);
+      logger.error('Failed to save product', { error });
     }
   }, []);
 
@@ -209,7 +210,7 @@ export const useShopping = (): UseShoppingReturn => {
       loadSavedProducts();
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, isSaved: false } : p));
     } catch (error) {
-      console.error('Failed to unsave product:', error);
+      logger.error('Failed to unsave product', { error });
     }
   }, []);
 
@@ -222,7 +223,7 @@ export const useShopping = (): UseShoppingReturn => {
       setPriceAlertModal(null);
       setTargetPriceInput('');
     } catch (error) {
-      console.error('Failed to set price alert:', error);
+      logger.error('Failed to set price alert', { error });
     }
   }, [priceAlertModal, targetPriceInput]);
 

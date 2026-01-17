@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL, SOCKET_URL } from '../config';
+import logger from '../services/logger';
 
 export interface Problem {
   id: string;
@@ -141,7 +142,7 @@ export const useProblems = (): UseProblemsReturn => {
       const data = await response.json();
       setProblems(data.problems || []);
     } catch (error) {
-      console.error('Failed to load problems:', error);
+      logger.error('Failed to load problems', { error });
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +160,7 @@ export const useProblems = (): UseProblemsReturn => {
       const data = await response.json();
       setProblems(data.problems || []);
     } catch (error) {
-      console.error('Search failed:', error);
+      logger.error('Problem search failed', { error });
     } finally {
       setIsLoading(false);
     }
@@ -245,7 +246,7 @@ export const useProblems = (): UseProblemsReturn => {
       });
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        console.error('Chat error:', error);
+        logger.error('Chat error', { error });
         setChatMessages(prev => {
           const updated = [...prev];
           const lastIndex = updated.length - 1;

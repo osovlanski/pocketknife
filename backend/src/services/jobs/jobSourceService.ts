@@ -4,6 +4,7 @@ import israeliJobsService from './israeliJobsService';
 import comeetCareersService from './comeetCareersService';
 import israeliTechCommunityService from './israeliTechCommunityService';
 import israelTechScraperService from './israelTechScraperService';
+import { googleSearchService } from '../core/googleSearchService';
 
 interface JobListing {
   id: string;
@@ -23,13 +24,17 @@ interface JobListing {
   jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship';
 }
 
+type CompanySize = 'startup' | 'midsize' | 'enterprise';
+
 interface SearchOptions {
   query?: string;
   location?: string;
   remoteOnly?: boolean;
   radius?: number; // in km
-  companySize?: 'startup' | 'midsize' | 'enterprise' | 'any';
+  companySize?: CompanySize | 'any';         // Legacy single selection
+  companySizes?: CompanySize[];              // NEW: Multiple company sizes
   industry?: 'fintech' | 'cybersecurity' | 'healthtech' | 'ecommerce' | 'saas' | 'ai' | 'gaming' | 'any';
+  industries?: string[];                     // Multiple industries
   salaryMin?: number;
   salaryMax?: number;
   experienceLevel?: 'junior' | 'mid' | 'senior' | 'any';
@@ -202,16 +207,26 @@ class JobSourceService {
         }
       }
       
-      // Company size filter
-      if (options.companySize && options.companySize !== 'any') {
-        if (!job.companySize || job.companySize !== options.companySize) {
+      // Company size filter - support multiple selections
+      const companySizesToFilter = options.companySizes?.length 
+        ? options.companySizes 
+        : (options.companySize && options.companySize !== 'any' ? [options.companySize] : []);
+      
+      if (companySizesToFilter.length > 0) {
+        // If job has no company size detected, include it (be permissive)
+        // Only exclude if job has a size AND it's not in the filter list
+        if (job.companySize && !companySizesToFilter.includes(job.companySize)) {
           return false;
         }
       }
       
-      // Industry filter
-      if (options.industry && options.industry !== 'any') {
-        if (!job.industry || !job.industry.includes(options.industry)) {
+      // Industry filter - support multiple selections
+      const industriesToFilter = options.industries?.length 
+        ? options.industries 
+        : (options.industry && options.industry !== 'any' ? [options.industry] : []);
+      
+      if (industriesToFilter.length > 0) {
+        if (!job.industry || !job.industry.some(ind => industriesToFilter.includes(ind))) {
           return false;
         }
       }
@@ -709,6 +724,91 @@ class JobSourceService {
   }
 
   /**
+   * Fetch jobs from Google Search
+   * Uses Google Custom Search API to find job listings from LinkedIn, Indeed, Glassdoor, etc.
+   */
+  async fetchGoogleJobs(query: string, location?: string, companySizes?: CompanySize[]): Promise<JobListing[]> {
+    try {
+      console.log('🔍 Fetching jobs from Google Search...');
+      
+      // Build search query with company size keywords for better targeting
+      let searchQuery = `${query} jobs`;
+      
+      if (location) {
+        searchQuery += ` ${location}`;
+      }
+      
+      // Add startup-specific keywords if filtering for startups
+      if (companySizes?.includes('startup')) {
+        searchQuery += ' startup "early stage" OR "series A" OR "series B" OR "seed"';
+      }
+      
+      const results = await googleSearchService.search(searchQuery, 'jobs', {
+        maxResults: 20,
+        geolocation: location
+      });
+      
+      if (!results || results.length === 0) {
+        console.log('⚠️ No results from Google Search');
+        return [];
+      }
+      
+      // Parse Google results into job listings
+      const jobs: JobListing[] = results
+        .filter(result => {
+          // Filter for actual job listings
+          const url = result.link.toLowerCase();
+          return url.includes('/job') || 
+                 url.includes('/career') || 
+                 url.includes('/position') ||
+                 url.includes('drushim') ||
+                 url.includes('alljobs') ||
+                 url.includes('jobmaster') ||
+                 url.includes('linkedin.com/jobs') ||
+                 url.includes('indeed.com') ||
+                 url.includes('glassdoor.com');
+        })
+        .map((result, index) => {
+          // Extract company from title if possible
+          const titleParts = result.title.split(' - ');
+          const title = titleParts[0] || result.title;
+          const company = titleParts[1] || result.displayLink.replace('www.', '').split('.')[0];
+          
+          // Detect company size from snippet
+          let companySize: 'startup' | 'midsize' | 'enterprise' | undefined;
+          const text = `${result.title} ${result.snippet}`.toLowerCase();
+          if (text.match(/startup|early.stage|seed funded|series [abc]/)) {
+            companySize = 'startup';
+          } else if (text.match(/fortune (500|1000)|enterprise|multinational/)) {
+            companySize = 'enterprise';
+          } else if (text.match(/scale.up|growing company|series [def]/)) {
+            companySize = 'midsize';
+          }
+          
+          return {
+            id: `google-${index}-${Date.now()}`,
+            source: `Google (${result.displayLink})`,
+            title: title.substring(0, 100),
+            company: company.substring(0, 50),
+            location: location || 'See job posting',
+            remote: text.includes('remote') || text.includes('work from home'),
+            description: result.snippet,
+            applyUrl: result.link,
+            postedAt: new Date().toISOString(),
+            tags: ['google-search'],
+            companySize
+          };
+        });
+      
+      console.log(`✅ Found ${jobs.length} jobs from Google Search`);
+      return jobs;
+    } catch (error: any) {
+      console.error('❌ Error fetching from Google Search:', error.message);
+      return [];
+    }
+  }
+
+  /**
    * Filter jobs by location
    */
   filterByLocation(jobs: JobListing[], userLocation?: string, remoteOnly?: boolean): JobListing[] {
@@ -988,6 +1088,28 @@ ${[...new Set(jobs.map(j => j.location))].slice(0, 10).map(loc => {
       }
     } else {
       console.log('💡 Tip: Add ADZUNA credentials for US/UK/EU job sources');
+    }
+    
+    // Add Google Search for more comprehensive results (especially for startups)
+    if (googleSearchService.isConfigured) {
+      apiList.push('Google Search');
+      const companySizesToSearch = searchOptions.companySizes?.length 
+        ? searchOptions.companySizes 
+        : (searchOptions.companySize && searchOptions.companySize !== 'any' ? [searchOptions.companySize] : []);
+      
+      promises.push(
+        this.fetchGoogleJobs(finalQuery, searchOptions.location, companySizesToSearch).then(jobs => ({ source: 'Google Search', jobs }))
+      );
+      
+      console.log('🔍 Google Search enabled for additional job sources');
+      if (socketIo) {
+        socketIo.emit('log', { 
+          message: '🔍 Google Search enabled (LinkedIn, Indeed, Glassdoor, Israeli job boards)...', 
+          type: 'info' 
+        });
+      }
+    } else {
+      console.log('💡 Tip: Add GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID for LinkedIn/Indeed/Glassdoor jobs');
     }
     
     // Notify frontend that fetching is in progress

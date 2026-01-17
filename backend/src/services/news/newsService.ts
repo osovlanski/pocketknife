@@ -13,6 +13,7 @@ import { cacheService } from '../core/cacheService';
 import { configService } from '../core/configService';
 import claudeService from '../core/claudeService';
 import { telegramNotificationService } from '../notifications';
+import logger from '../../utils/logger';
 import { discordNotificationService } from '../notifications';
 
 // =============================================================================
@@ -250,7 +251,7 @@ export const newsService = {
       
       return articles;
     } catch (error: any) {
-      console.error('HackerNews search failed:', error.message);
+      logger.fail('HackerNews search failed', { error: error.message });
       return [];
     }
   },
@@ -311,7 +312,7 @@ export const newsService = {
       
       return articles.slice(0, maxResults);
     } catch (error: any) {
-      console.error('Reddit search failed:', error.message);
+      logger.fail('Reddit search failed', { error: error.message });
       return [];
     }
   },
@@ -372,7 +373,7 @@ export const newsService = {
 
       return articles;
     } catch (error: any) {
-      console.error('NewsAPI search failed:', error.message);
+      logger.fail('NewsAPI search failed', { error: error.message });
       return [];
     }
   },
@@ -431,7 +432,7 @@ export const newsService = {
 
       return articles;
     } catch (error: any) {
-      console.error('GNews search failed:', error.message);
+      logger.fail('GNews search failed', { error: error.message });
       return [];
     }
   },
@@ -489,7 +490,7 @@ export const newsService = {
 
       return articles;
     } catch (error: any) {
-      console.error('MediaStack search failed:', error.message);
+      logger.fail('MediaStack search failed', { error: error.message });
       return [];
     }
   },
@@ -566,7 +567,7 @@ export const newsService = {
         countryCode: prefs.countryCode || undefined
       };
     } catch (error) {
-      console.error('Failed to get user preferences:', error);
+      logger.fail('Failed to get user preferences', { error: (error as Error).message });
       return null;
     }
   },
@@ -638,7 +639,7 @@ export const newsService = {
         await newsService.updateTopicWeights(userId, metadata.topics, interactionType, metadata.isPositive);
       }
     } catch (error) {
-      console.error('Failed to record interaction:', error);
+      logger.fail('Failed to record interaction', { error: (error as Error).message });
     }
   },
 
@@ -700,7 +701,7 @@ export const newsService = {
         update: { topicWeights: currentWeights }
       });
     } catch (error) {
-      console.error('Failed to update topic weights:', error);
+      logger.fail('Failed to update topic weights', { error: (error as Error).message });
     }
   },
 
@@ -797,7 +798,7 @@ Format your response as bullet points.`;
         take: 10
       });
 
-      return trends.map(t => ({
+      return trends.map((t) => ({
         topic: t.topic,
         relatedTopics: t.relatedTopics,
         trendScore: t.trendScore,
@@ -805,7 +806,7 @@ Format your response as bullet points.`;
         geoScope: t.geoScope as 'global' | 'domestic' | 'local'
       }));
     } catch (error) {
-      console.error('Failed to get trending topics:', error);
+      logger.fail('Failed to get trending topics', { error: (error as Error).message });
       return [];
     }
   },

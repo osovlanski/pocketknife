@@ -99,7 +99,7 @@ export const getUser = async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database not available' });
     }
 
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -209,7 +209,7 @@ export const updateUser = async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database not available' });
     }
 
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, role, status } = req.body;
 
     // Get current user for audit log
@@ -285,7 +285,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database not available' });
     }
 
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -314,7 +314,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       req.user!.id,
       'delete_user',
       'user',
-      id,
+      id as string,
       user.email,
       { email: user.email, name: user.name, role: user.role },
       null,
@@ -359,7 +359,7 @@ export const getSettings = async (req: Request, res: Response) => {
     });
 
     // Group by category
-    const grouped = settings.reduce((acc, setting) => {
+    const grouped = settings.reduce((acc: Record<string, typeof settings>, setting: typeof settings[0]) => {
       if (!acc[setting.category]) {
         acc[setting.category] = [];
       }
@@ -384,7 +384,7 @@ export const updateSetting = async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database not available' });
     }
 
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { value } = req.body;
 
     const current = await prisma.systemSetting.findUnique({ where: { id } });
@@ -409,7 +409,7 @@ export const updateSetting = async (req: Request, res: Response) => {
       req.user!.id,
       'update_settings',
       'settings',
-      id,
+      id as string,
       undefined,
       { value: current.value },
       { value },
@@ -545,7 +545,7 @@ export const getStats = async (req: Request, res: Response) => {
         savedJobs,
         tripPlans,
         activityToday,
-        activityByAgent: activityByAgent.reduce((acc, { agent, _count }) => {
+        activityByAgent: activityByAgent.reduce((acc: Record<string, number>, { agent, _count }: { agent: string; _count: number }) => {
           acc[agent] = _count;
           return acc;
         }, {} as Record<string, number>)
@@ -783,7 +783,7 @@ export const getExternalApis = async (req: Request, res: Response) => {
  */
 export const getExternalApi = async (req: Request, res: Response) => {
   try {
-    const { name } = req.params;
+    const name = req.params.name as string;
     const api = await externalApiService.getByName(name);
 
     if (!api) {
@@ -802,7 +802,7 @@ export const getExternalApi = async (req: Request, res: Response) => {
  */
 export const updateExternalApi = async (req: Request, res: Response) => {
   try {
-    const { name } = req.params;
+    const name = req.params.name as string;
     const { isEnabled, priority, description } = req.body;
 
     const current = await externalApiService.getByName(name);
@@ -821,7 +821,7 @@ export const updateExternalApi = async (req: Request, res: Response) => {
       req.user!.id,
       'update_api_config',
       'api',
-      name,
+      name as string,
       undefined,
       { isEnabled: current.isEnabled, priority: current.priority },
       { isEnabled, priority, description },
@@ -841,7 +841,7 @@ export const updateExternalApi = async (req: Request, res: Response) => {
  */
 export const toggleExternalApi = async (req: Request, res: Response) => {
   try {
-    const { name } = req.params;
+    const name = req.params.name as string;
 
     const current = await externalApiService.getByName(name);
     if (!current) {
@@ -855,7 +855,7 @@ export const toggleExternalApi = async (req: Request, res: Response) => {
       req.user!.id,
       'toggle_api',
       'api',
-      name,
+      name as string,
       undefined,
       { isEnabled: current.isEnabled },
       { isEnabled: updated?.isEnabled },
@@ -878,7 +878,7 @@ export const toggleExternalApi = async (req: Request, res: Response) => {
  */
 export const testExternalApi = async (req: Request, res: Response) => {
   try {
-    const { name } = req.params;
+    const name = req.params.name as string;
     
     const api = await externalApiService.getByName(name);
     if (!api) {

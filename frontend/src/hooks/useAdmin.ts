@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as adminApi from '../services/adminApi';
 import { getStoredEmail } from '../services/authApi';
+import logger from '../services/logger';
 import type { User, AuditLog, SystemSetting, PlatformStats } from '../services/adminApi';
 
 export interface UseAdminReturn {
@@ -123,7 +124,7 @@ export const useAdmin = (): UseAdminReturn => {
         total: response.pagination.total
       });
     } catch (err) {
-      console.error('Failed to load users:', err);
+      logger.error('Failed to load users', { error: err });
     } finally {
       setUsersLoading(false);
     }
@@ -135,7 +136,7 @@ export const useAdmin = (): UseAdminReturn => {
       const response = await adminApi.getSettings();
       setSettings(response.settings);
     } catch (err) {
-      console.error('Failed to load settings:', err);
+      logger.error('Failed to load settings', { error: err });
     } finally {
       setSettingsLoading(false);
     }
@@ -152,7 +153,7 @@ export const useAdmin = (): UseAdminReturn => {
         total: response.pagination.total
       });
     } catch (err) {
-      console.error('Failed to load audit logs:', err);
+      logger.error('Failed to load audit logs', { error: err });
     } finally {
       setLogsLoading(false);
     }
@@ -164,7 +165,7 @@ export const useAdmin = (): UseAdminReturn => {
       const response = await adminApi.getStats();
       setStats(response.stats);
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      logger.error('Failed to load stats', { error: err });
     } finally {
       setStatsLoading(false);
     }
@@ -182,7 +183,7 @@ export const useAdmin = (): UseAdminReturn => {
       await loadUsers(usersPagination.page);
       return true;
     } catch (err) {
-      console.error('Failed to update user:', err);
+      logger.error('Failed to update user', { error: err });
       return false;
     }
   }, [loadUsers, usersPagination.page]);
@@ -193,7 +194,7 @@ export const useAdmin = (): UseAdminReturn => {
       await loadUsers(usersPagination.page);
       return true;
     } catch (err) {
-      console.error('Failed to delete user:', err);
+      logger.error('Failed to delete user', { error: err });
       return false;
     }
   }, [loadUsers, usersPagination.page]);
@@ -204,7 +205,7 @@ export const useAdmin = (): UseAdminReturn => {
       await loadSettings();
       return true;
     } catch (err) {
-      console.error('Failed to update setting:', err);
+      logger.error('Failed to update setting', { error: err });
       return false;
     }
   }, [loadSettings]);

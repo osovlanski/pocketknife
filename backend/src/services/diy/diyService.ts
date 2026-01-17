@@ -13,6 +13,7 @@
 import { getPrisma } from '../core/databaseService';
 import { cacheService } from '../core/cacheService';
 import { configService } from '../core/configService';
+import logger from '../../utils/logger';
 import claudeService from '../core/claudeService';
 import { israeliShopsService, zapScraperService } from '../shopping';
 
@@ -214,7 +215,7 @@ Be thorough, practical, and prioritize safety. Include specific measurements and
       }
       project = JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Failed to parse AI response:', error);
+      logger.fail('Failed to parse AI response', { error: (error as Error).message });
       throw new Error('Failed to generate project instructions');
     }
 
@@ -407,7 +408,7 @@ Be thorough, practical, and prioritize safety. Include specific measurements and
         }
       });
 
-      return templates.map(t => ({
+      return templates.map((t) => ({
         id: t.id,
         title: t.title,
         description: t.description || '',
@@ -417,7 +418,7 @@ Be thorough, practical, and prioritize safety. Include specific measurements and
         source: 'template'
       }));
     } catch (error) {
-      console.error('Failed to get templates:', error);
+      logger.fail('Failed to get templates', { error: (error as Error).message });
       return [];
     }
   },
@@ -454,7 +455,7 @@ Return as JSON array with this format:
         source: 'ai_suggestion'
       }));
     } catch (error) {
-      console.error('Failed to search DIY ideas:', error);
+      logger.fail('Failed to search DIY ideas', { error: (error as Error).message });
       return [];
     }
   },
@@ -544,7 +545,7 @@ Make them specific, actionable, and exciting!`;
 
       return mappedIdeas;
     } catch (error) {
-      console.error('Failed to get featured ideas:', error);
+      logger.fail('Failed to get featured ideas', { error: (error as Error).message });
       return [];
     }
   },
@@ -605,7 +606,7 @@ Return as JSON with this EXACT format:
         source: 'ai_inspiration'
       };
     } catch (error) {
-      console.error('Failed to get inspiration:', error);
+      logger.fail('Failed to get inspiration', { error: (error as Error).message });
       return null;
     }
   },

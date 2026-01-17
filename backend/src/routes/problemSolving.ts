@@ -12,7 +12,10 @@ import {
   saveSolvedProblem,
   getSolvedProblems,
   getSolvedProblemCode,
-  runTests
+  runTests,
+  getCodingPatterns,
+  getCodingPatternById,
+  getSuggestedProblems
 } from '../controllers/problemSolvingController';
 
 const router = Router();
@@ -55,6 +58,17 @@ router.get('/solved/:problemId/:source?', getSolvedProblemCode);
 
 // Run code against test cases
 router.post('/test', runTests);
+
+// ===== CODING PATTERNS ROUTES =====
+
+// Get all coding patterns (with optional filters)
+router.get('/patterns', getCodingPatterns);
+
+// Get a specific coding pattern by ID
+router.get('/patterns/:patternId', getCodingPatternById);
+
+// Get suggested problems based on user's weak areas
+router.get('/suggestions', getSuggestedProblems);
 
 export default router;
 

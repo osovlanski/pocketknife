@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as todoApi from '../services/todoApi';
-import type { Task, DailyAgenda, RoutinePattern, TaskData } from '../services/todoApi';
+import type { Task, DailyAgenda, RoutinePattern, TaskData, CalendarEvent, CalendarEventImport } from '../services/todoApi';
+import logger from '../services/logger';
 
 export interface UseTodoReturn {
   // State
@@ -47,6 +48,7 @@ export interface UseTodoReturn {
   handleSyncCalendar: () => Promise<void>;
   handleApproveRoutine: (routineId: string) => Promise<void>;
   handleDismissRoutine: (routineId: string) => Promise<void>;
+  handleImportCalendarEvent: (event: CalendarEvent) => Promise<void>;
 }
 
 const DEFAULT_NEW_TASK: TaskData = {
@@ -80,8 +82,36 @@ export const useTodo = (): UseTodoReturn => {
     loadAllData();
   }, [selectedDate]);
 
-  // Data loading functions
-  const loadAllData = async () => {
+  // Data loading functions - use useCallback to ensure stable references and fresh state
+  const loadAgendaData = useCallback(async (dateOverride?: Date) => {
+    try {
+      const targetDate = dateOverride || selectedDate;
+      const result = await todoApi.getDailyAgenda(targetDate.toISOString().split('T')[0]);
+      setAgenda(result.agenda);
+    } catch (error) {
+      logger.error('Failed to load agenda', { error });
+    }
+  }, [selectedDate]);
+
+  const loadTasksData = useCallback(async () => {
+    try {
+      const result = await todoApi.getTasks({ includeCompleted: false });
+      setTasks(result.tasks);
+    } catch (error) {
+      logger.error('Failed to load tasks', { error });
+    }
+  }, []);
+
+  const loadRoutinesData = useCallback(async () => {
+    try {
+      const result = await todoApi.getSuggestedRoutines();
+      setRoutines(result.suggestedRoutines || []);
+    } catch (error) {
+      logger.error('Failed to load routines', { error });
+    }
+  }, []);
+
+  const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([
@@ -92,34 +122,7 @@ export const useTodo = (): UseTodoReturn => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadAgendaData = async () => {
-    try {
-      const result = await todoApi.getDailyAgenda(selectedDate.toISOString().split('T')[0]);
-      setAgenda(result.agenda);
-    } catch (error) {
-      console.error('Failed to load agenda:', error);
-    }
-  };
-
-  const loadTasksData = async () => {
-    try {
-      const result = await todoApi.getTasks({ includeCompleted: false });
-      setTasks(result.tasks);
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
-    }
-  };
-
-  const loadRoutinesData = async () => {
-    try {
-      const result = await todoApi.getSuggestedRoutines();
-      setRoutines(result.suggestedRoutines || []);
-    } catch (error) {
-      console.error('Failed to load routines:', error);
-    }
-  };
+  }, [loadAgendaData, loadTasksData, loadRoutinesData]);
 
   // Actions
   const handleCreateTask = useCallback(async () => {
@@ -136,12 +139,12 @@ export const useTodo = (): UseTodoReturn => {
       setShowAddTask(false);
       await Promise.all([loadAgendaData(), loadTasksData()]);
     } catch (error) {
-      console.error('Failed to create task:', error);
+      logger.error('Failed to create task', { error });
       alert('Failed to create task. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [newTask, selectedDate]);
+  }, [newTask, selectedDate, loadAgendaData, loadTasksData]);
 
   const handleCompleteTask = useCallback(async (taskId: string, currentStatus: string) => {
     try {
@@ -152,18 +155,18 @@ export const useTodo = (): UseTodoReturn => {
       }
       await Promise.all([loadAgendaData(), loadTasksData()]);
     } catch (error) {
-      console.error('Failed to update task:', error);
+      logger.error('Failed to complete task', { error });
     }
-  }, []);
+  }, [loadAgendaData, loadTasksData]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     try {
       await todoApi.deleteTask(taskId);
       await Promise.all([loadAgendaData(), loadTasksData()]);
     } catch (error) {
-      console.error('Failed to delete task:', error);
+      logger.error('Failed to delete task', { error });
     }
-  }, []);
+  }, [loadAgendaData, loadTasksData]);
 
   const handleEditTask = useCallback((task: Task) => {
     setEditingTask(task);
@@ -181,12 +184,12 @@ export const useTodo = (): UseTodoReturn => {
       setShowEditTask(false);
       await Promise.all([loadAgendaData(), loadTasksData()]);
     } catch (error) {
-      console.error('Failed to update task:', error);
+      logger.error('Failed to update task', { error });
       alert('Failed to update task. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [editingTask]);
+  }, [editingTask, loadAgendaData, loadTasksData]);
 
   const handleLearnPatterns = useCallback(async () => {
     try {
@@ -195,11 +198,11 @@ export const useTodo = (): UseTodoReturn => {
       alert(`Learned ${result.patternsLearned} new patterns!`);
       await loadRoutinesData();
     } catch (error) {
-      console.error('Failed to learn patterns:', error);
+      logger.error('Failed to learn patterns', { error });
     } finally {
       setLearningPatterns(false);
     }
-  }, []);
+  }, [loadRoutinesData]);
 
   const handleSyncCalendar = useCallback(async () => {
     try {
@@ -212,33 +215,53 @@ export const useTodo = (): UseTodoReturn => {
       // Refresh agenda to show updated calendar events
       await loadAgendaData();
       
-      // Show success message without blocking
-      console.log(`✅ Synced ${result.synced} tasks with Google Calendar`);
+      // Sync completed - success shown via UI state update
     } catch (error: any) {
-      console.error('Failed to sync calendar:', error);
+      logger.error('Failed to sync calendar', { error: error.message });
       alert(error.response?.data?.error || 'Failed to sync calendar');
     } finally {
       setSyncing(false);
     }
-  }, []);
+  }, [loadAgendaData]);
 
   const handleApproveRoutine = useCallback(async (routineId: string) => {
     try {
       await todoApi.approveRoutine(routineId);
       await loadRoutinesData();
     } catch (error) {
-      console.error('Failed to approve routine:', error);
+      logger.error('Failed to approve routine', { error });
     }
-  }, []);
+  }, [loadRoutinesData]);
 
   const handleDismissRoutine = useCallback(async (routineId: string) => {
     try {
       await todoApi.dismissRoutine(routineId);
       await loadRoutinesData();
     } catch (error) {
-      console.error('Failed to dismiss routine:', error);
+      logger.error('Failed to dismiss routine', { error });
     }
-  }, []);
+  }, [loadRoutinesData]);
+
+  const handleImportCalendarEvent = useCallback(async (event: CalendarEvent) => {
+    try {
+      setLoading(true);
+      const eventData: CalendarEventImport = {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: event.start,
+        end: event.end,
+        isAllDay: event.isAllDay
+      };
+      await todoApi.importCalendarEvent(eventData);
+      await loadAgendaData();
+    } catch (error) {
+      logger.error('Failed to import calendar event', { error });
+      alert('Failed to import calendar event. It may have already been imported.');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAgendaData]);
 
   const navigateDate = useCallback((days: number) => {
     const newDate = new Date(selectedDate);
@@ -299,7 +322,8 @@ export const useTodo = (): UseTodoReturn => {
     handleLearnPatterns,
     handleSyncCalendar,
     handleApproveRoutine,
-    handleDismissRoutine
+    handleDismissRoutine,
+    handleImportCalendarEvent
   };
 };
 

@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2 } from 'lucide-react';
+import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
+import CodingPatternsPanel from './CodingPatternsPanel';
+import logger from '../services/logger';
 
 interface CodingProblem {
   id: string;
@@ -37,6 +39,9 @@ interface CodeHistory {
 }
 
 const ProblemSolvingAgent = () => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'problems' | 'patterns'>('problems');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [problems, setProblems] = useState<CodingProblem[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<CodingProblem | null>(null);
@@ -123,7 +128,7 @@ const ProblemSolvingAgent = () => {
         })));
       }
     } catch (error) {
-      console.error('Test execution failed:', error);
+      logger.error('Test execution failed', { error });
       // Simulate test results
       setLocalTests(prev => prev.map(test => ({
         ...test,
@@ -387,7 +392,7 @@ func main() {
         setHasUnsavedChanges(false);
       }
     } catch (error) {
-      console.error('Failed to generate signature:', error);
+      logger.error('Failed to generate signature', { error });
     } finally {
       setIsGeneratingSignature(false);
     }
@@ -418,7 +423,7 @@ func main() {
         setShowDiffView(true);
       }
     } catch (error) {
-      console.error('Failed to generate improved code:', error);
+      logger.error('Failed to generate improved code', { error });
     } finally {
       setIsGeneratingSuggestion(false);
     }
@@ -602,7 +607,7 @@ func main() {
         setProblems(data.problems || []);
       }
     } catch (error: any) {
-      console.error('Search failed:', error.message);
+      logger.error('Search failed', { error: error.message });
     } finally {
       setIsSearching(false);
     }
@@ -641,7 +646,7 @@ func main() {
           setProblems(prev => prev.map(p => p.id === problem.id ? updatedProblem : p));
         }
       } catch (error) {
-        console.error('Failed to load description:', error);
+        logger.error('Failed to load description', { error });
       } finally {
         setIsLoadingDescription(false);
       }
@@ -712,12 +717,12 @@ func main() {
             setSaveStatus({ type: 'warning', message: saveData.error || 'Could not save solution' });
           }
         } catch (saveError: any) {
-          console.warn('Failed to save solution:', saveError.message);
+          logger.warn('Failed to save solution', { error: saveError.message });
           setSaveStatus({ type: 'warning', message: 'Evaluated but not saved (DB unavailable)' });
         }
       }
     } catch (error: any) {
-      console.error('Failed to evaluate code:', error.message);
+      logger.error('Failed to evaluate code', { error: error.message });
     } finally {
       setIsEvaluating(false);
     }
@@ -760,7 +765,7 @@ func main() {
         setShowHints(true);
       }
     } catch (error: any) {
-      console.error('Failed to generate hints:', error.message);
+      logger.error('Failed to generate hints', { error: error.message });
     } finally {
       setIsGeneratingHints(false);
     }
@@ -839,8 +844,47 @@ func main() {
           💻 Problem Solving Agent
         </h1>
         <p className="text-slate-300">Find coding problems and practice with an integrated IDE</p>
+        
+        {/* Tabs */}
+        <div className="flex justify-center gap-2 mt-4">
+          <button
+            onClick={() => setActiveTab('problems')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'problems'
+                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-white/10 hover:bg-white/20 text-slate-300'
+            }`}
+          >
+            <Code className="w-4 h-4" />
+            Practice Problems
+          </button>
+          <button
+            onClick={() => setActiveTab('patterns')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'patterns'
+                ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                : 'bg-white/10 hover:bg-white/20 text-slate-300'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Patterns & Cheat Sheet
+          </button>
+        </div>
       </div>
 
+      {/* Patterns Tab Content */}
+      {activeTab === 'patterns' && (
+        <CodingPatternsPanel 
+          onSelectProblem={(problem) => {
+            setSearchQuery(problem.title);
+            setActiveTab('problems');
+          }}
+        />
+      )}
+
+      {/* Problems Tab Content */}
+      {activeTab === 'problems' && (
+      <>
       {/* Search Panel */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
         <div className="flex flex-col md:flex-row gap-3 mb-3">
@@ -1498,7 +1542,21 @@ func main() {
               </button>
             ))}
           </div>
+          
+          {/* Quick link to patterns */}
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <p className="text-sm text-slate-500 mb-3">Or explore coding patterns first</p>
+            <button
+              onClick={() => setActiveTab('patterns')}
+              className="inline-flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 px-4 py-2 rounded-lg text-purple-300 transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              View Patterns & Cheat Sheet
+            </button>
+          </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

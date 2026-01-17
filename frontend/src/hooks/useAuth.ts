@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as authApi from '../services/authApi';
+import logger from '../services/logger';
 import type { CurrentUser, AuthStatus } from '../services/authApi';
 
 export interface UseAuthReturn {
@@ -41,7 +42,7 @@ export const useAuth = (): UseAuthReturn => {
       const status = await authApi.getGoogleAuthStatus();
       setGoogleStatus(status);
     } catch (error) {
-      console.error('Failed to load Google status:', error);
+      logger.error('Failed to load Google status', { error });
     }
   };
 
@@ -51,7 +52,7 @@ export const useAuth = (): UseAuthReturn => {
       const user = await authApi.getCurrentUser();
       setCurrentUser(user);
     } catch (error) {
-      console.error('Failed to load user:', error);
+      logger.error('Failed to load user', { error });
       setCurrentUser(null);
     } finally {
       setIsLoading(false);
@@ -68,7 +69,7 @@ export const useAuth = (): UseAuthReturn => {
       const status = await authApi.getGoogleAuthStatus();
       setGoogleStatus(status);
     } catch (error) {
-      console.error('Failed to load Google status:', error);
+      logger.error('Failed to refresh Google status', { error });
     }
   }, []);
 
@@ -81,7 +82,7 @@ export const useAuth = (): UseAuthReturn => {
       }
       return { success: false, error: result.error };
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      logger.error('Sign in error', { error: error.message });
       return { success: false, error: error.message || 'Failed to sign in' };
     }
   }, []);

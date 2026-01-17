@@ -61,18 +61,47 @@ import logger from './utils/logger';
 
 const app = express();
 const server = createServer(app);
+
+// CORS configuration - support multiple frontend origins during development
+// Development origins are loaded from configService, production uses FRONTEND_URL env var only
+const devOrigins: string[] = process.env.NODE_ENV === 'production' 
+  ? [] 
+  : (configService.get('cors.devOrigins') as unknown as string[]) || [];
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  ...devOrigins
+].filter(Boolean) as string[];
+
 export const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 // Make io available to other modules
 app.set('io', io);
 
-// CORS configuration - allow all origins in development
-app.use(cors());
+// CORS configuration - allow configured origins in development
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

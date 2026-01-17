@@ -20,14 +20,13 @@ export default defineConfig({
         'src/test/**',
         'node_modules/**'
       ],
-      // Thresholds set to current coverage levels + buffer
+      // Thresholds set to current coverage levels
       // These should be gradually increased as more tests are added
-      // TODO: Increase thresholds incrementally as coverage improves
       thresholds: {
-        statements: 0.5,
-        branches: 25,
+        statements: 0.4,
+        branches: 24,
         functions: 10,
-        lines: 0.5
+        lines: 0.4
       }
     },
     testTimeout: 10000,

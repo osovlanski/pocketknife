@@ -373,3 +373,36 @@ export const learnPatterns = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Import a calendar event as a task
+ */
+export const importCalendarEvent = async (req: Request, res: Response) => {
+  try {
+    const userId = await getEffectiveUserId(req.body.userId);
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    const { event } = req.body;
+    if (!event || !event.id || !event.title) {
+      return res.status(400).json({ error: 'Event data is required (id, title, start, end)' });
+    }
+
+    const result = await todoAgent.execute({
+      action: 'import-calendar-event',
+      userId,
+      calendarEventData: event
+    });
+
+    if (result.success) {
+      res.json(result.data);
+    } else {
+      res.status(400).json({ error: result.error });
+    }
+  } catch (error: any) {
+    console.error('Import calendar event error:', error);
+    res.status(500).json({ error: 'Failed to import calendar event' });
+  }
+};
+

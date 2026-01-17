@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import * as authApi from '../services/authApi';
+import logger from '../services/logger';
 import type { UserPreferences } from '../services/authApi';
 
 export interface UseSettingsReturn {
@@ -47,10 +48,10 @@ export const useSettings = (onSaveSuccess?: () => void): UseSettingsReturn => {
         return true;
       }
       
-      console.error('Failed to save preferences:', result.error);
+      logger.error('Failed to save preferences', { error: result.error });
       return false;
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      logger.error('Failed to save preferences', { error });
       return false;
     } finally {
       setIsSaving(false);
