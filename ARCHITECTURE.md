@@ -150,11 +150,21 @@ pocketknife/
 │   │   │   ├── problemSolving/           # Problem Solving Agent services
 │   │   │   ├── notifications/            # Cross-cutting notifications
 │   │   │   │
+│   │   │   ├── rules/                    # Rule Engine (dynamic business logic)
+│   │   │   │   ├── types.ts                  # Rule types & interfaces
+│   │   │   │   ├── ruleEngineService.ts      # Rule evaluation engine
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   ├── featureFlags/             # Feature Flag System
+│   │   │   │   ├── types.ts                  # Flag types & interfaces
+│   │   │   │   ├── featureFlagService.ts     # Flag evaluation & management
+│   │   │   │   └── index.ts
+│   │   │   │
 │   │   │   ├── core/                     # Shared core services
 │   │   │   │   ├── claudeService.ts          # AI client wrapper
 │   │   │   │   ├── databaseService.ts        # Prisma database service
 │   │   │   │   ├── cacheService.ts           # Caching service
-│   │   │   │   ├── configService.ts          # Configuration service
+│   │   │   │   ├── configService.ts          # Runtime configuration
 │   │   │   │   ├── processControlService.ts  # Stop/pause control
 │   │   │   │   ├── googleSearchService.ts    # Google CSE + quota management
 │   │   │   │   └── index.ts
@@ -468,6 +478,66 @@ The architecture supports:
 - **Caching**: Token caching for OAuth (Amadeus, Gmail)
 - **Process Control**: Centralized stop/pause mechanism for long operations
 
+## Dynamic Configuration System
+
+Pocketknife uses a three-tier configuration system for runtime flexibility:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Dynamic Configuration Layer                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────────┐ │
+│  │  ConfigService │  │  Rule Engine   │  │  Feature Flags     │ │
+│  │                │  │                │  │                    │ │
+│  │  • Timeouts    │  │  • Scoring     │  │  • Feature toggles │ │
+│  │  • Limits      │  │  • Filtering   │  │  • A/B testing     │ │
+│  │  • API URLs    │  │  • Validation  │  │  • Rollouts        │ │
+│  │  • Thresholds  │  │  • Triggers    │  │  • Kill switches   │ │
+│  └────────────────┘  └────────────────┘  └────────────────────┘ │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration Tiers
+
+| Tier | Service | Database Table | Use Case |
+|------|---------|----------------|----------|
+| **1. Config** | `configService` | `AppConfig` | Simple key-value settings (timeouts, limits) |
+| **2. Rules** | `ruleEngineService` | `BusinessRule` | Conditional business logic (scoring, filtering) |
+| **3. Flags** | `featureFlagService` | `FeatureFlag` | Feature toggles and gradual rollouts |
+
+### Usage Pattern
+
+```typescript
+// 1. Simple values → ConfigService
+const timeout = configService.get('api.timeoutMs', 5000);
+const maxResults = configService.get('jobs.saved.maxResults', 100);
+
+// 2. Business logic → Rule Engine
+const context = { data: { price: 49.99, discount: 50 } };
+const result = await ruleEngineService.evaluate(context, 'scoring');
+const dealScore = result.finalContext.data.dealScore;
+
+// 3. Feature toggles → Feature Flags
+if (await featureFlagService.isEnabled('new_search_algorithm')) {
+  // New implementation
+}
+
+// 4. A/B tests → Feature Flags with variants
+const variant = await featureFlagService.getVariant('ui_experiment', { userId });
+```
+
+### Key Files
+
+| Service | Location | Purpose |
+|---------|----------|---------|
+| ConfigService | `services/core/configService.ts` | Runtime key-value configuration |
+| Rule Engine | `services/rules/ruleEngineService.ts` | Dynamic business rule evaluation |
+| Feature Flags | `services/featureFlags/featureFlagService.ts` | Feature toggles & A/B tests |
+
+For detailed documentation, see `.cursor/rules/dynamic-configuration.mdc` and `backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md`.
+
 ## Future Enhancements
 
 - [x] PostgreSQL database with Prisma ORM
@@ -475,6 +545,7 @@ The architecture supports:
 - [x] Admin platform with RBAC
 - [x] ToDo agent with task management
 - [x] Shopping agent with deal finder
+- [x] Dynamic configuration system (ConfigService, Rule Engine, Feature Flags)
 - [ ] Redis caching for job/travel results
 - [ ] Docker containerization
 - [ ] Kubernetes deployment config
@@ -483,3 +554,4 @@ The architecture supports:
 - [ ] More problem sources (GeeksforGeeks, InterviewBit)
 - [ ] AI-powered routine suggestions (advanced ML)
 - [ ] Multi-user collaboration features
+- [ ] Flipt integration for advanced feature management
