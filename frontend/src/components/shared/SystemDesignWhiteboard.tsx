@@ -188,6 +188,13 @@ const SimpleCanvas: React.FC<{
   // Hovered handle for visual feedback (like webwhiteboard.com)
   const [hoveredHandle, setHoveredHandle] = useState<{ elementId: string; x: number; y: number } | null>(null);
   
+  // Suggested arrow to nearest component (shown when hovering a handle)
+  const [suggestedArrow, setSuggestedArrow] = useState<{
+    fromX: number; fromY: number;
+    toX: number; toY: number;
+    targetElementId: string;
+  } | null>(null);
+  
   // Screen position for text input (not canvas coordinates)
   const [textInputScreenPos, setTextInputScreenPos] = useState({ x: 0, y: 0 });
 
@@ -523,9 +530,46 @@ const SimpleCanvas: React.FC<{
       ctx.globalAlpha = 1;
     }
 
+    // Draw suggested arrow to nearest component (when hovering a handle)
+    if (suggestedArrow && !isDrawingConnection) {
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = '#22c55e'; // Green for suggestion
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(suggestedArrow.fromX, suggestedArrow.fromY);
+      ctx.lineTo(suggestedArrow.toX, suggestedArrow.toY);
+      ctx.stroke();
+      
+      // Draw arrow head
+      ctx.setLineDash([]);
+      const angle = Math.atan2(suggestedArrow.toY - suggestedArrow.fromY, suggestedArrow.toX - suggestedArrow.fromX);
+      const headLen = 10;
+      ctx.beginPath();
+      ctx.moveTo(suggestedArrow.toX, suggestedArrow.toY);
+      ctx.lineTo(
+        suggestedArrow.toX - headLen * Math.cos(angle - Math.PI / 6),
+        suggestedArrow.toY - headLen * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        suggestedArrow.toX - headLen * Math.cos(angle + Math.PI / 6),
+        suggestedArrow.toY - headLen * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#22c55e';
+      ctx.fill();
+      
+      // Draw "Click to connect" hint near the target
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click to connect', suggestedArrow.toX, suggestedArrow.toY - 15);
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
     onElementsChange(elements);
-  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd, hoveredHandle]);
+  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd, hoveredHandle, suggestedArrow]);
 
   // Get accurate mouse position on canvas (in canvas coordinates)
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
@@ -583,7 +627,7 @@ const SimpleCanvas: React.FC<{
   };
 
   // Find closest handle on target element
-  const getClosestHandle = (targetEl: CanvasElement, x: number, y: number): { x: number; y: number } => {
+  const getClosestHandle = (targetEl: CanvasElement, x: number, y: number): { x: number; y: number; position: string } => {
     const handles = getConnectionHandles(targetEl);
     let closest = handles[0];
     let minDist = Infinity;
@@ -594,7 +638,39 @@ const SimpleCanvas: React.FC<{
         closest = handle;
       }
     }
-    return { x: closest.x, y: closest.y };
+    return { x: closest.x, y: closest.y, position: closest.position };
+  };
+
+  // Find the nearest component to a given handle (for arrow suggestion)
+  const findNearestComponent = (sourceElementId: string, handleX: number, handleY: number): { 
+    element: CanvasElement; 
+    handleX: number; 
+    handleY: number;
+    handlePos: string;
+    distance: number;
+  } | null => {
+    let nearest: { element: CanvasElement; handleX: number; handleY: number; handlePos: string; distance: number } | null = null;
+    
+    for (const el of elements) {
+      // Skip the source element and non-component elements
+      if (el.id === sourceElementId || (el.type !== 'rect' && el.type !== 'ellipse')) continue;
+      
+      // Get the closest handle on this element
+      const closestHandle = getClosestHandle(el, handleX, handleY);
+      const dist = Math.sqrt(Math.pow(closestHandle.x - handleX, 2) + Math.pow(closestHandle.y - handleY, 2));
+      
+      if (!nearest || dist < nearest.distance) {
+        nearest = { 
+          element: el, 
+          handleX: closestHandle.x, 
+          handleY: closestHandle.y,
+          handlePos: closestHandle.position,
+          distance: dist 
+        };
+      }
+    }
+    
+    return nearest;
   };
 
   // Find element at position (for selection and dragging)
@@ -675,6 +751,46 @@ const SimpleCanvas: React.FC<{
       return;
     }
     
+    // Quick connect: If hovering a handle with suggested arrow, single click creates the arrow
+    if (suggestedArrow && hoveredHandle) {
+      // Get handle positions for connection tracking
+      const sourceEl = elements.find(el => el.id === hoveredHandle.elementId);
+      const targetEl = elements.find(el => el.id === suggestedArrow.targetElementId);
+      
+      if (sourceEl && targetEl) {
+        const sourceHandles = getConnectionHandles(sourceEl);
+        const targetHandles = getConnectionHandles(targetEl);
+        const sourceHandleInfo = sourceHandles.find(h => 
+          Math.abs(h.x - suggestedArrow.fromX) < 2 && Math.abs(h.y - suggestedArrow.fromY) < 2
+        );
+        const targetHandleInfo = targetHandles.find(h => 
+          Math.abs(h.x - suggestedArrow.toX) < 2 && Math.abs(h.y - suggestedArrow.toY) < 2
+        );
+        
+        const newArrow: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'arrow',
+          x: suggestedArrow.fromX,
+          y: suggestedArrow.fromY,
+          width: suggestedArrow.toX,  // For arrows, width = end X position
+          height: suggestedArrow.toY, // For arrows, height = end Y position
+          color: selectedColor,
+          strokeWidth: strokeWidth,
+          // Store connection info for graph-like behavior
+          sourceElementId: hoveredHandle.elementId,
+          sourceHandlePos: sourceHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left',
+          targetElementId: suggestedArrow.targetElementId,
+          targetHandlePos: targetHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left'
+        };
+        const newElements = [...elements, newArrow];
+        setElements(newElements);
+        saveToHistory(newElements);
+        setSuggestedArrow(null);
+        setHoveredHandle(null);
+        return;
+      }
+    }
+    
     // Text tool - open text input immediately (priority over handles)
     if (selectedTool === 'text') {
       setTextInputPos(pos);
@@ -740,14 +856,59 @@ const SimpleCanvas: React.FC<{
       return;
     }
     
-    // Handle dragging selected element
+    // Handle dragging selected element (with graph-like arrow updates)
     if (isDragging && selectedElementId) {
-      setElements(prev => prev.map(el => {
-        if (el.id === selectedElementId) {
-          return { ...el, x: pos.x - dragOffset.x, y: pos.y - dragOffset.y };
-        }
-        return el;
-      }));
+      setElements(prev => {
+        const draggedElement = prev.find(el => el.id === selectedElementId);
+        if (!draggedElement) return prev;
+        
+        const newX = pos.x - dragOffset.x;
+        const newY = pos.y - dragOffset.y;
+        
+        return prev.map(el => {
+          // Update the dragged element position
+          if (el.id === selectedElementId) {
+            return { ...el, x: newX, y: newY };
+          }
+          
+          // Update arrows connected to the dragged element (graph-like behavior)
+          if (el.type === 'arrow') {
+            const updatedElement = { ...el };
+            let needsUpdate = false;
+            
+            // If this arrow starts from the dragged element
+            if (el.sourceElementId === selectedElementId && el.sourceHandlePos) {
+              const newDraggedEl = { ...draggedElement, x: newX, y: newY };
+              const handles = getConnectionHandles(newDraggedEl);
+              const handle = handles.find(h => h.position === el.sourceHandlePos);
+              if (handle) {
+                // For arrows: x,y = start; width,height = end (absolute)
+                // Keep the end point the same, update start point
+                updatedElement.x = handle.x;
+                updatedElement.y = handle.y;
+                needsUpdate = true;
+              }
+            }
+            
+            // If this arrow ends at the dragged element
+            if (el.targetElementId === selectedElementId && el.targetHandlePos) {
+              const newDraggedEl = { ...draggedElement, x: newX, y: newY };
+              const handles = getConnectionHandles(newDraggedEl);
+              const handle = handles.find(h => h.position === el.targetHandlePos);
+              if (handle) {
+                // For arrows: width,height = end position (absolute)
+                updatedElement.width = handle.x;
+                updatedElement.height = handle.y;
+                needsUpdate = true;
+              }
+            }
+            
+            return needsUpdate ? updatedElement : el;
+          }
+          
+          return el;
+        });
+      });
       return;
     }
     
@@ -756,8 +917,23 @@ const SimpleCanvas: React.FC<{
       const handle = getHandleAtPosition(pos.x, pos.y);
       if (handle) {
         setHoveredHandle({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+        
+        // Find nearest component and show suggested arrow
+        const nearest = findNearestComponent(handle.elementId, handle.handleX, handle.handleY);
+        if (nearest && nearest.distance < 400) { // Only suggest if within reasonable distance
+          setSuggestedArrow({
+            fromX: handle.handleX,
+            fromY: handle.handleY,
+            toX: nearest.handleX,
+            toY: nearest.handleY,
+            targetElementId: nearest.element.id
+          });
+        } else {
+          setSuggestedArrow(null);
+        }
       } else {
         setHoveredHandle(null);
+        setSuggestedArrow(null);
       }
     }
     
@@ -800,6 +976,21 @@ const SimpleCanvas: React.FC<{
       );
       
       if (dist > 30) {
+        // Find source and target element info for graph-like behavior
+        const sourceElement = elements.find(el => el.id === connectionStart.elementId);
+        const sourceHandles = sourceElement ? getConnectionHandles(sourceElement) : [];
+        const sourceHandleInfo = sourceHandles.find(h => 
+          Math.abs(h.x - connectionStart.x) < 2 && Math.abs(h.y - connectionStart.y) < 2
+        );
+        
+        let targetHandleInfo: { position: string } | undefined;
+        if (targetElement) {
+          const targetHandles = getConnectionHandles(targetElement);
+          targetHandleInfo = targetHandles.find(h => 
+            Math.abs(h.x - endX) < 2 && Math.abs(h.y - endY) < 2
+          );
+        }
+        
         const newArrow: CanvasElement = {
           id: `el-${Date.now()}`,
           type: 'arrow',
@@ -809,7 +1000,12 @@ const SimpleCanvas: React.FC<{
           height: endY,
           color: selectedColor,
           strokeWidth: strokeWidth,
-          lineStyle: lineStyle
+          lineStyle: lineStyle,
+          // Store connection info for graph-like behavior
+          sourceElementId: connectionStart.elementId,
+          sourceHandlePos: sourceHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left' | undefined,
+          targetElementId: targetElement?.id,
+          targetHandlePos: targetHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left' | undefined
         };
         const newElements = [...elements, newArrow];
         setElements(newElements);
