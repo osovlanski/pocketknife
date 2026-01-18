@@ -12,7 +12,11 @@ import {
   Clock, DollarSign, Star, ExternalLink, Play, Pause, X, Image as ImageIcon
 } from 'lucide-react';
 import useDIY from '../hooks/useDIY';
-import { DIY_CATEGORIES, SKILL_LEVELS, DIFFICULTY_COLORS, DIYProject, DIYStep } from '../services/diyApi';
+import { 
+  DIY_CATEGORIES, SKILL_LEVELS, DIFFICULTY_COLORS, 
+  DIYProject, DIYStep,
+  DIYCategoryId, SkillLevelId, DifficultyLevel
+} from '../services/diyApi';
 import MarkdownRenderer from './MarkdownRenderer';
 import styles from '../styles/diy.module.css';
 
@@ -100,8 +104,8 @@ const DIYAgent: React.FC = () => {
   // Local state
   const [activeTab, setActiveTab] = useState<'generate' | 'projects' | 'ideas'>('generate');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced' | ''>('');
+  const [category, setCategory] = useState<DIYCategoryId | ''>('');
+  const [skillLevel, setSkillLevel] = useState<SkillLevelId | ''>('');
   const [budgetMin, setBudgetMin] = useState<number | undefined>();
   const [budgetMax, setBudgetMax] = useState<number | undefined>();
   const [timeAvailable, setTimeAvailable] = useState<number | undefined>();
@@ -109,7 +113,7 @@ const DIYAgent: React.FC = () => {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([1]));
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [ideaQuery, setIdeaQuery] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState<'easy' | 'medium' | 'hard' | null>(null);
+  const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | null>(null);
   
   // Time presets for quick selection
   const TIME_PRESETS = [

@@ -11,6 +11,11 @@ import { configService } from '../core/configService';
 import claudeService from '../core/claudeService';
 import axios from 'axios';
 import logger from '../../utils/logger';
+import { 
+  COOKING_CATEGORIES, 
+  CookingCategoryId, 
+  UnitType 
+} from '../../types/constants';
 
 // =============================================================================
 // TYPES
@@ -18,7 +23,7 @@ import logger from '../../utils/logger';
 
 export interface CookingItemData {
   name: string;
-  category?: string;
+  category?: CookingCategoryId | string;
   quantity?: number;
   unit?: string;
   expiryDate?: string;
@@ -31,7 +36,7 @@ export interface CookingItemData {
 
 export interface CookingFilters {
   status?: string;
-  category?: string;
+  category?: CookingCategoryId | string;
   expiringWithinDays?: number;
   lowStock?: boolean;
 }
@@ -71,22 +76,9 @@ interface RecipeIngredient {
 // COOKING CATEGORIES
 // =============================================================================
 
-export const COOKING_CATEGORIES = [
-  'produce',
-  'dairy',
-  'meat',
-  'seafood',
-  'bakery',
-  'pantry',
-  'frozen',
-  'beverages',
-  'snacks',
-  'condiments',
-  'spices',
-  'household',
-  'personal_care',
-  'other'
-] as const;
+// COOKING_CATEGORIES is imported from types/constants.ts
+// Re-export for backward compatibility
+export { COOKING_CATEGORIES } from '../../types/constants';
 
 // =============================================================================
 // SERVICE

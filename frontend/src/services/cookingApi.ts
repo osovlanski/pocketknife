@@ -297,6 +297,12 @@ export const COOKING_CATEGORIES = [
   { value: 'other', label: '📦 Other', color: '#9CA3AF' }
 ] as const;
 
+/** Type-safe cooking category derived from COOKING_CATEGORIES */
+export type CookingCategoryId = typeof COOKING_CATEGORIES[number]['value'];
+
 export const UNITS = [
   'pcs', 'pack', 'kg', 'g', 'lb', 'oz', 'L', 'ml', 'cup', 'tbsp', 'tsp', 'dozen'
 ] as const;
+
+/** Type-safe unit derived from UNITS */
+export type UnitType = typeof UNITS[number];

@@ -15,14 +15,29 @@ import {
   getAllCompanyNames,
   CompanyInterviewProfile 
 } from '../../data/companyMappings';
+import { ProblemDifficulty, PROBLEM_DIFFICULTIES } from '../../types/constants';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/** Problem sources */
+export const PROBLEM_SOURCES = [
+  'LeetCode', 'HackerRank', 'Codeforces', 'Curated', 'Glassdoor', 'Custom'
+] as const;
+export type ProblemSource = typeof PROBLEM_SOURCES[number];
+
+/** Curated lists */
+export const CURATED_LISTS = ['blind75', 'neetcode150', 'grind75'] as const;
+export type CuratedList = typeof CURATED_LISTS[number];
 
 interface CodingProblem {
   id: string;
   title: string;
   titleSlug?: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  source: 'LeetCode' | 'HackerRank' | 'Codeforces' | 'Curated' | 'Glassdoor' | 'Custom';
+  difficulty: ProblemDifficulty;
+  source: ProblemSource;
   url?: string;
   company?: string;
   companies?: string[];
@@ -37,10 +52,10 @@ interface CodingProblem {
 
 interface ProblemSearchOptions {
   query: string;
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: ProblemDifficulty;
   company?: string;
   source?: string[];
-  list?: 'blind75' | 'neetcode150' | 'grind75';
+  list?: CuratedList;
 }
 
 class ProblemSolvingService {

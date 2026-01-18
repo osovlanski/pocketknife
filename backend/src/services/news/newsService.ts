@@ -15,10 +15,19 @@ import claudeService from '../core/claudeService';
 import { telegramNotificationService } from '../notifications';
 import logger from '../../utils/logger';
 import { discordNotificationService } from '../notifications';
+import { NEWS_SOURCES, NEWS_TOPICS, NewsSourceId, NewsTopicId } from '../../types/constants';
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/** Sentiment analysis result */
+export const SENTIMENT_VALUES = ['positive', 'negative', 'neutral'] as const;
+export type SentimentValue = typeof SENTIMENT_VALUES[number];
+
+/** Time range for news search */
+export const TIME_RANGES = ['today', 'week', 'month'] as const;
+export type TimeRange = typeof TIME_RANGES[number];
 
 export interface NewsArticle {
   id: string;
@@ -27,21 +36,21 @@ export interface NewsArticle {
   description: string;
   content?: string;
   author?: string;
-  source: string;
+  source: NewsSourceId | string;
   sourceName: string;
   imageUrl?: string;
   publishedAt: Date;
-  topics: string[];
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  topics: (NewsTopicId | string)[];
+  sentiment?: SentimentValue;
   readingTime?: number;
   relevanceScore?: number;
 }
 
 export interface NewsSearchParams {
   query?: string;
-  topics?: string[];
-  sources?: string[];
-  timeRange?: 'today' | 'week' | 'month';
+  topics?: (NewsTopicId | string)[];
+  sources?: (NewsSourceId | string)[];
+  timeRange?: TimeRange;
   geoLocation?: string;
   countryCode?: string;
   includeGlobal?: boolean;
@@ -49,8 +58,8 @@ export interface NewsSearchParams {
 }
 
 export interface UserNewsPreferences {
-  topicWeights: Record<string, number>;
-  preferredSources: string[];
+  topicWeights: Record<NewsTopicId | string, number>;
+  preferredSources: (NewsSourceId | string)[];
   geoLocation?: string;
   countryCode?: string;
 }

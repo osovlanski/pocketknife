@@ -8,6 +8,7 @@
 import { Request, Response } from 'express';
 import { diyAgent } from '../agents';
 import { getUserIdFromRequest } from '../utils/controllerHelpers';
+import type { SkillLevelId, DifficultyLevel, DIYCategoryId } from '../types/constants';
 
 // Alias for backward compatibility with local code
 const getUserId = getUserIdFromRequest;
@@ -339,8 +340,8 @@ export const getFeaturedIdeas = async (req: Request, res: Response) => {
     const result = await diyAgent.execute({
       action: 'get-featured-ideas',
       category: category as string,
-      difficulty: difficulty as 'easy' | 'medium' | 'hard',
-      skillLevel: skillLevel as 'beginner' | 'intermediate' | 'advanced',
+      difficulty: difficulty as DifficultyLevel,
+      skillLevel: skillLevel as SkillLevelId,
       timeAvailable: timeAvailable ? Number(timeAvailable) : undefined,
       count: count ? Number(count) : undefined
     });
@@ -365,8 +366,8 @@ export const getInspiration = async (req: Request, res: Response) => {
 
     const result = await diyAgent.execute({
       action: 'get-inspiration',
-      skillLevel: skillLevel as 'beginner' | 'intermediate' | 'advanced',
-      excludeCategories: excludeCategories ? (excludeCategories as string).split(',') : undefined
+      skillLevel: skillLevel as SkillLevelId,
+      excludeCategories: excludeCategories ? (excludeCategories as string).split(',') as DIYCategoryId[] : undefined
     });
 
     if (!result.success) {

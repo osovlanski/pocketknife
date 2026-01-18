@@ -1,3 +1,6 @@
+// Re-export shared constants and types
+export * from './constants';
+
 export interface Email {
   id: string;
   subject: string;

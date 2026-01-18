@@ -23,30 +23,33 @@ import {
   israeliShopsService,
   UnifiedProduct
 } from '../services/shopping';
+import { ShoppingSource, InterestType, SHOPPING_SOURCES, INTEREST_TYPES } from '../types/constants';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/** Available actions for the Shopping Agent */
+export const SHOPPING_ACTIONS = [
+  'search-products', 'search-by-hobby', 'get-deals', 'save-product', 
+  'unsave-product', 'get-saved-products', 'set-price-alert', 
+  'get-price-alerts', 'update-interests', 'get-suggestions'
+] as const;
+export type ShoppingAction = typeof SHOPPING_ACTIONS[number];
 
 interface ShoppingParams extends AgentParams {
-  action: 
-    | 'search-products'
-    | 'search-by-hobby'
-    | 'get-deals'
-    | 'save-product'
-    | 'unsave-product'
-    | 'get-saved-products'
-    | 'set-price-alert'
-    | 'get-price-alerts'
-    | 'update-interests'
-    | 'get-suggestions';
+  action: ShoppingAction;
   query?: string;
   hobbies?: string[];
   productId?: string;
   targetPrice?: number;
   interests?: UserInterest[];
-  sources?: string[];
+  sources?: (ShoppingSource | string)[];
   filters?: ProductFilters;
 }
 
 interface UserInterest {
-  type: 'hobby' | 'category' | 'brand' | 'keyword';
+  type: InterestType;
   value: string;
   weight?: number;
 }
@@ -55,7 +58,7 @@ interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   category?: string;
-  source?: string;
+  source?: ShoppingSource | string;
   minDiscount?: number;
   minDealScore?: number;
 }
@@ -77,7 +80,7 @@ interface Product {
   originalPrice?: number | null;
   currency: string;
   discount?: number | null;
-  source: string;
+  source: ShoppingSource | string;
   sourceUrl: string;
   sourceId?: string | null;
   imageUrl?: string | null;

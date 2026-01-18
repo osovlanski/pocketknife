@@ -12,6 +12,33 @@ shoppingAxios.interceptors.request.use((config) => {
   return config;
 });
 
+// =============================================================================
+// CONSTANTS & DERIVED TYPES
+// =============================================================================
+
+export const SHOPPING_SOURCES = [
+  'ebay', 'amazon', 'aliexpress', 'israeli_shops', 'zap', 'ksp', 'ivory', 'bug'
+] as const;
+
+/** Type-safe shopping source derived from SHOPPING_SOURCES */
+export type ShoppingSource = typeof SHOPPING_SOURCES[number];
+
+export const INTEREST_TYPES = ['hobby', 'category', 'brand', 'keyword'] as const;
+
+/** Type-safe interest type derived from INTEREST_TYPES */
+export type InterestType = typeof INTEREST_TYPES[number];
+
+export const DEAL_SCORE_THRESHOLDS = {
+  excellent: 80,
+  good: 60,
+  fair: 40,
+  poor: 20
+} as const;
+
+// =============================================================================
+// INTERFACES
+// =============================================================================
+
 export interface Product {
   id: string;
   title: string;
@@ -51,7 +78,7 @@ export interface PriceAlert {
 }
 
 export interface UserInterest {
-  type: 'hobby' | 'category' | 'brand' | 'keyword';
+  type: InterestType;
   value: string;
   weight?: number;
 }

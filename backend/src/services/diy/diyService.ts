@@ -16,6 +16,14 @@ import { configService } from '../core/configService';
 import logger from '../../utils/logger';
 import claudeService from '../core/claudeService';
 import { israeliShopsService, zapScraperService } from '../shopping';
+import { 
+  DIY_CATEGORIES, 
+  SKILL_LEVELS, 
+  DIFFICULTY_LEVELS,
+  SkillLevelId, 
+  DifficultyLevel,
+  DIYCategoryId
+} from '../../types/constants';
 
 // =============================================================================
 // TYPES
@@ -23,10 +31,10 @@ import { israeliShopsService, zapScraperService } from '../shopping';
 
 export interface DIYProjectRequest {
   description: string;
-  category?: string;
+  category?: DIYCategoryId | string;
   budget?: number;
   currency?: string;
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   timeAvailable?: number; // hours
   existingTools?: string[];
 }
@@ -64,8 +72,8 @@ export interface DIYProject {
   id?: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: DIYCategoryId | string;
+  difficulty: DifficultyLevel;
   estimatedTime: number; // minutes
   estimatedCost: {
     min: number;
@@ -85,8 +93,8 @@ export interface DIYSearchResult {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: string;
+  category: DIYCategoryId | string;
+  difficulty: DifficultyLevel | string;
   estimatedTime: number;
   estimatedCostMin?: number;
   estimatedCostMax?: number;
@@ -98,25 +106,8 @@ export interface DIYSearchResult {
 }
 
 // =============================================================================
-// CATEGORIES & TEMPLATES
+// TEMPLATES (categories are imported from types/constants.ts)
 // =============================================================================
-
-const DIY_CATEGORIES = [
-  'home_improvement',
-  'electronics',
-  'crafts',
-  'automotive',
-  'gardening',
-  'furniture',
-  'plumbing',
-  'electrical',
-  'painting',
-  'flooring',
-  'woodworking',
-  'metalworking',
-  'sewing',
-  'jewelry'
-] as const;
 
 const DIFFICULTY_DESCRIPTIONS = {
   easy: 'Suitable for beginners with basic tools',
