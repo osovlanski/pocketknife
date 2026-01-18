@@ -94,8 +94,11 @@ const ProblemSolvingAgent = () => {
   // Hint levels
   const [hintLevel, setHintLevel] = useState(0); // 0-3, 0 means no hints shown
   
-  // Evaluation panel collapsed state
-  const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(false);
+  // Evaluation panel collapsed state - start collapsed to keep code editor large
+  const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
+  
+  // Local tests panel collapsed state
+  const [isLocalTestsCollapsed, setIsLocalTestsCollapsed] = useState(false);
 
   // Run local tests (simulated - in browser execution)
   const handleRunLocalTests = async () => {
@@ -584,6 +587,53 @@ func main() {
     );
   };
 
+  // Extract test cases from problem examples
+  const extractTestsFromExamples = () => {
+    if (!selectedProblem?.description) return;
+    
+    const description = selectedProblem.description;
+    const tests: Array<{ input: string; expected: string }> = [];
+    
+    // Split by example sections
+    const exampleRegex = /example\s*\d*:?/gi;
+    const parts = description.split(exampleRegex);
+    
+    // Process each example section
+    parts.forEach(part => {
+      const inputMatch = part.match(/input:\s*(.+?)(?=output:|explanation:|example|\n\n|$)/is);
+      const outputMatch = part.match(/output:\s*(.+?)(?=explanation:|example|\n\n|$)/is);
+      
+      if (inputMatch && outputMatch) {
+        const input = inputMatch[1].trim().replace(/\n/g, ', ');
+        const expected = outputMatch[1].trim().replace(/\n/g, ', ');
+        
+        if (input && expected) {
+          tests.push({ input, expected });
+        }
+      }
+    });
+    
+    // If we found tests, update the state
+    if (tests.length > 0) {
+      setLocalTests(tests);
+    } else {
+      // Try a simpler pattern - look for Input/Output anywhere
+      const simpleInputs = description.match(/input:\s*([^\n]+)/gi) || [];
+      const simpleOutputs = description.match(/output:\s*([^\n]+)/gi) || [];
+      
+      const minLength = Math.min(simpleInputs.length, simpleOutputs.length);
+      if (minLength > 0) {
+        const extracted = [];
+        for (let i = 0; i < minLength; i++) {
+          const input = simpleInputs[i].replace(/^input:\s*/i, '').trim();
+          const expected = simpleOutputs[i].replace(/^output:\s*/i, '').trim();
+          extracted.push({ input, expected });
+        }
+        setLocalTests(extracted);
+      }
+    }
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim() && !selectedList) return;
 
@@ -627,6 +677,8 @@ func main() {
     setEvaluation(null);
     setShowDiffView(false);
     setShowSwitchConfirm(null);
+    // Reset local tests when switching problems
+    setLocalTests([{ input: '', expected: '' }]);
     
     // Check if we have saved code for this problem
     const savedCode = getSavedCode(problem.id, language);
@@ -1319,22 +1371,52 @@ func main() {
                   </div>
                 </div>
                 
-                {/* Local Tests Panel */}
-                <div className="bg-slate-800/50 border-t border-white/10 px-4 py-2 max-h-64 overflow-y-auto">
-                  <div className="flex items-center justify-between mb-2">
+                {/* Local Tests Panel - Collapsible */}
+                <div className="bg-slate-800/50 border-t border-white/10 flex-shrink-0">
+                  {/* Header - Always visible */}
+                  <div 
+                    className="px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                    onClick={() => setIsLocalTestsCollapsed(!isLocalTestsCollapsed)}
+                  >
                     <div className="flex items-center gap-2">
+                      <ChevronRight className={`w-3 h-3 text-slate-400 transition-transform ${isLocalTestsCollapsed ? '' : 'rotate-90'}`} />
                       <h4 className="text-xs font-semibold text-slate-400">Local Tests</h4>
-                      <span className="text-[10px] text-slate-500" title="Use JSON format for arrays/objects, comma-separated for multiple params">
-                        (JSON or comma-separated)
+                      <span className="text-[10px] text-slate-500">
+                        ({localTests.filter(t => t.input.trim()).length} test{localTests.filter(t => t.input.trim()).length !== 1 ? 's' : ''})
                       </span>
+                      {localTests.some(t => t.passed === true) && (
+                        <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 rounded">
+                          {localTests.filter(t => t.passed === true).length} passed
+                        </span>
+                      )}
+                      {localTests.some(t => t.passed === false) && (
+                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 rounded">
+                          {localTests.filter(t => t.passed === false).length} failed
+                        </span>
+                      )}
                     </div>
-                    <button
-                      onClick={() => setLocalTests([...localTests, { input: '', expected: '' }])}
-                      className="text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      + Add Test
-                    </button>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={extractTestsFromExamples}
+                        disabled={!selectedProblem?.description}
+                        className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Extract test cases from problem examples"
+                      >
+                        <BookOpen className="w-3 h-3" />
+                        Extract
+                      </button>
+                      <button
+                        onClick={() => setLocalTests([...localTests, { input: '', expected: '' }])}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        + Add Test
+                      </button>
+                    </div>
                   </div>
+                  
+                  {/* Expandable Content */}
+                  {!isLocalTestsCollapsed && (
+                  <div className="px-4 pb-2 max-h-48 overflow-y-auto">
                   <div className="space-y-3">
                     {localTests.map((test, idx) => (
                       <div key={idx} className="bg-slate-900/50 rounded-lg p-2 border border-white/5">
@@ -1381,18 +1463,41 @@ func main() {
                               }}
                               placeholder="e.g. [0,1]&#10;or true"
                               rows={2}
-                              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-500 resize-none"
+                              className={`w-full bg-white/5 border rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-500 resize-none ${
+                                test.passed === false ? 'border-red-500/50' : 'border-white/10'
+                              }`}
                             />
                           </div>
                         </div>
+                        {/* Show expected vs actual when test fails */}
+                        {test.passed === false && test.actual !== undefined && (
+                          <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-red-400 font-medium">Expected:</span>
+                                <pre className="mt-1 text-slate-300 font-mono bg-black/20 rounded p-1.5 overflow-x-auto whitespace-pre-wrap">
+                                  {test.expected || '(empty)'}
+                                </pre>
+                              </div>
+                              <div>
+                                <span className="text-amber-400 font-medium">Actual:</span>
+                                <pre className="mt-1 text-slate-300 font-mono bg-black/20 rounded p-1.5 overflow-x-auto whitespace-pre-wrap">
+                                  {test.actual || '(empty)'}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     {localTests.length === 0 && (
                       <div className="text-center text-slate-500 text-xs py-2">
-                        No tests added. Click "+ Add Test" to create test cases.
+                        No tests added. Click "+ Add Test" or "Extract" to create test cases.
                       </div>
                     )}
                   </div>
+                  </div>
+                  )}
                 </div>
                 <div className="flex-1 min-h-0">
                   {showDiffView ? (
