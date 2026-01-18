@@ -134,6 +134,11 @@ interface CanvasElement {
   lineStyle?: LineStyle;
   points?: { x: number; y: number }[];
   fontSize?: number;
+  // Connection info for arrows (graph-like behavior)
+  sourceElementId?: string;    // ID of source component
+  sourceHandlePos?: 'top' | 'right' | 'bottom' | 'left';
+  targetElementId?: string;    // ID of target component
+  targetHandlePos?: 'top' | 'right' | 'bottom' | 'left';
 }
 
 // Pending component for drag-and-drop
@@ -913,9 +918,6 @@ const SimpleCanvas: React.FC<{
     setIsDrawing(false);
   };
 
-  // Track if text input has been focused at least once
-  const [textInputFocused, setTextInputFocused] = useState(false);
-
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
       const newElement: CanvasElement = {
@@ -933,17 +935,11 @@ const SimpleCanvas: React.FC<{
     }
     setShowTextInput(false);
     setTextInputValue('');
-    setTextInputFocused(false);
   };
 
-  // Handle blur - only submit if the input was actually focused first
-  const handleTextBlur = () => {
-    // Use a small delay to allow focus to settle
-    setTimeout(() => {
-      if (textInputFocused) {
-        handleTextSubmit();
-      }
-    }, 100);
+  const handleTextCancel = () => {
+    setShowTextInput(false);
+    setTextInputValue('');
   };
 
   // Delete selected element
@@ -1206,34 +1202,51 @@ const SimpleCanvas: React.FC<{
           onMouseLeave={() => { setIsDrawing(false); setGhostPosition(null); }}
         />
         
-        {/* Text Input Overlay */}
+        {/* Text Input Overlay with backdrop */}
         {showTextInput && (
-          <div
-            className="absolute z-50 pointer-events-auto"
-            style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
-          >
-            <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
-              <input
-                ref={textInputRef}
-                type="text"
-                value={textInputValue}
-                onChange={(e) => setTextInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTextSubmit();
-                  if (e.key === 'Escape') { setShowTextInput(false); setTextInputFocused(false); }
-                }}
-                onFocus={() => setTextInputFocused(true)}
-                onBlur={handleTextBlur}
-                className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] focus:border-blue-500"
-                placeholder="Type your text here..."
-                style={{ color: selectedColor }}
-                autoFocus
-              />
-              <div className="text-xs text-slate-500 mt-1 px-1">
-                Press Enter to add • Escape to cancel
+          <>
+            {/* Invisible backdrop to catch clicks outside */}
+            <div 
+              className="absolute inset-0 z-40"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTextSubmit(); // Submit on click outside
+              }}
+            />
+            {/* Text input popup */}
+            <div
+              className="absolute z-50"
+              style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
+              onClick={(e) => e.stopPropagation()} // Prevent backdrop click
+            >
+              <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
+                <input
+                  ref={textInputRef}
+                  type="text"
+                  value={textInputValue}
+                  onChange={(e) => setTextInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation(); // Prevent global keyboard shortcuts
+                    if (e.key === 'Enter') handleTextSubmit();
+                    if (e.key === 'Escape') handleTextCancel();
+                  }}
+                  className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] focus:border-blue-500"
+                  placeholder="Type your text here..."
+                  style={{ color: selectedColor }}
+                  autoFocus
+                />
+                <div className="text-xs text-slate-500 mt-1 px-1 flex items-center justify-between">
+                  <span>Enter to add • Escape to cancel</span>
+                  <button 
+                    onClick={handleTextSubmit}
+                    className="text-blue-400 hover:text-blue-300 px-2"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
