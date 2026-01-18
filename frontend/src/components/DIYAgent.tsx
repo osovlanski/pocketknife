@@ -21,6 +21,18 @@ import MarkdownRenderer from './MarkdownRenderer';
 import styles from '../styles/diy.module.css';
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+/** 
+ * Get difficulty badge color with type-safe fallback
+ * Handles cases where difficulty might be a string from API
+ */
+const getDifficultyColor = (difficulty: DifficultyLevel | string): string => {
+  return DIFFICULTY_COLORS[difficulty as DifficultyLevel] || '#666';
+};
+
+// =============================================================================
 // SUBCOMPONENTS
 // =============================================================================
 
@@ -368,7 +380,7 @@ const DIYAgent: React.FC = () => {
                   <div className={styles.stat}>
                     <span 
                       className={styles.difficultyBadge}
-                      style={{ background: DIFFICULTY_COLORS[diy.currentProject.difficulty] }}
+                      style={{ background: getDifficultyColor(diy.currentProject.difficulty) }}
                     >
                       {diy.currentProject.difficulty}
                     </span>
@@ -507,7 +519,7 @@ const DIYAgent: React.FC = () => {
                     <div className={styles.projectCardMeta}>
                       <span 
                         className={styles.difficultyBadge}
-                        style={{ background: DIFFICULTY_COLORS[project.difficulty] }}
+                        style={{ background: getDifficultyColor(project.difficulty) }}
                       >
                         {project.difficulty}
                       </span>
@@ -544,7 +556,7 @@ const DIYAgent: React.FC = () => {
                   ))}
                 </select>
                 <button 
-                  onClick={() => diy.handleGetInspiration({ skillLevel: skillLevel || undefined })}
+                  onClick={() => diy.handleGetInspiration({ skillLevel })}
                   disabled={diy.loadingInspiration}
                   className={styles.inspireButton}
                 >
@@ -567,7 +579,7 @@ const DIYAgent: React.FC = () => {
                   <div className={styles.inspirationMeta}>
                     <span 
                       className={styles.difficultyBadge}
-                      style={{ background: DIFFICULTY_COLORS[diy.inspiration.difficulty as DifficultyLevel] || '#666' }}
+                      style={{ background: getDifficultyColor(diy.inspiration.difficulty) }}
                     >
                       {diy.inspiration.difficulty}
                     </span>
@@ -624,9 +636,9 @@ const DIYAgent: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => diy.handleGetFeaturedIdeas({ 
-                    category: category || undefined, 
-                    difficulty: difficultyFilter || undefined,
-                    skillLevel: skillLevel || undefined 
+                    category, 
+                    difficulty: difficultyFilter,
+                    skillLevel 
                   })}
                   disabled={diy.loadingFeatured}
                   className={styles.loadButton}
@@ -673,7 +685,7 @@ const DIYAgent: React.FC = () => {
                     <div className={styles.cardHeader}>
                       <span 
                         className={styles.difficultyBadge}
-                        style={{ background: DIFFICULTY_COLORS[idea.difficulty as DifficultyLevel] || '#666' }}
+                        style={{ background: getDifficultyColor(idea.difficulty) }}
                       >
                         {idea.difficulty}
                       </span>
@@ -734,7 +746,7 @@ const DIYAgent: React.FC = () => {
                       <div className={styles.ideaMeta}>
                         <span 
                           className={styles.difficultyBadge}
-                          style={{ background: DIFFICULTY_COLORS[idea.difficulty as DifficultyLevel] || '#666' }}
+                          style={{ background: getDifficultyColor(idea.difficulty) }}
                         >
                           {idea.difficulty}
                         </span>
@@ -755,7 +767,7 @@ const DIYAgent: React.FC = () => {
                     key={cat.id}
                     onClick={() => {
                       setCategory(cat.id);
-                      diy.handleGetFeaturedIdeas({ category: cat.id, skillLevel: skillLevel || undefined });
+                      diy.handleGetFeaturedIdeas({ category: cat.id, skillLevel });
                     }}
                     className={styles.categoryCard}
                   >

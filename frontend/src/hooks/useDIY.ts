@@ -17,6 +17,21 @@ import type {
   DifficultyLevel
 } from '../services/diyApi';
 
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Converts empty strings to undefined for optional parameters.
+ * This centralizes the pattern used when passing form values to API calls.
+ */
+const toOptional = <T>(value: T | '' | null | undefined): T | undefined => {
+  if (value === '' || value === null || value === undefined) {
+    return undefined;
+  }
+  return value;
+};
+
 export interface UseDIYReturn {
   // State
   currentProject: DIYProject | null;
@@ -48,13 +63,13 @@ export interface UseDIYReturn {
   handleCreateShoppingList: (projectId: string, materials: DIYMaterial[]) => Promise<string | null>;
   handleSearchIdeas: (query: string) => Promise<void>;
   handleGetFeaturedIdeas: (options?: {
-    category?: DIYCategoryId | string;
-    difficulty?: DifficultyLevel;
-    skillLevel?: SkillLevelId;
+    category?: DIYCategoryId | string | '';
+    difficulty?: DifficultyLevel | null;
+    skillLevel?: SkillLevelId | '';
     timeAvailable?: number;
   }) => Promise<void>;
   handleGetInspiration: (options?: {
-    skillLevel?: SkillLevelId;
+    skillLevel?: SkillLevelId | '';
   }) => Promise<void>;
   handleGetTemplates: (category?: string) => Promise<void>;
   setCurrentProject: (project: DIYProject | null) => void;
@@ -252,15 +267,21 @@ export const useDIY = (): UseDIYReturn => {
 
   // Get featured ideas
   const handleGetFeaturedIdeas = useCallback(async (options?: {
-    category?: DIYCategoryId | string;
-    difficulty?: DifficultyLevel;
-    skillLevel?: SkillLevelId;
+    category?: DIYCategoryId | string | '';
+    difficulty?: DifficultyLevel | null;
+    skillLevel?: SkillLevelId | '';
     timeAvailable?: number;
   }) => {
     try {
       setLoadingFeatured(true);
       setError(null);
-      const result = await diyApi.getFeaturedIdeas(options);
+      // Convert empty strings to undefined for API compatibility
+      const result = await diyApi.getFeaturedIdeas({
+        category: toOptional(options?.category),
+        difficulty: toOptional(options?.difficulty),
+        skillLevel: toOptional(options?.skillLevel),
+        timeAvailable: options?.timeAvailable
+      });
       setFeaturedIdeas(result.ideas || []);
     } catch (err: any) {
       logger.error('Get featured ideas failed', { error: err });
@@ -272,12 +293,15 @@ export const useDIY = (): UseDIYReturn => {
 
   // Get random inspiration
   const handleGetInspiration = useCallback(async (options?: {
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    skillLevel?: SkillLevelId | '';
   }) => {
     try {
       setLoadingInspiration(true);
       setError(null);
-      const result = await diyApi.getInspiration(options);
+      // Convert empty strings to undefined for API compatibility
+      const result = await diyApi.getInspiration({
+        skillLevel: toOptional(options?.skillLevel)
+      });
       setInspiration(result.inspiration || null);
     } catch (err: any) {
       logger.error('Get inspiration failed', { error: err });
