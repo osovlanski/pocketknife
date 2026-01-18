@@ -101,6 +101,19 @@ export class DIYAgent extends AbstractAgent {
     color: '#F59E0B' // Amber
   };
 
+  constructor() {
+    super({
+      // DIY projects require longer timeouts due to complex AI generation
+      defaultTimeoutMs: configService.get('diy.agent.timeoutMs', 120000), // 2 minutes
+      actionTimeouts: {
+        'generate': configService.get('diy.agent.generateTimeoutMs', 180000), // 3 minutes for project generation
+        'get-featured-ideas': 60000,
+        'get-inspiration': 60000
+      },
+      circuitBreakerThreshold: 5 // Allow more failures before circuit breaks
+    });
+  }
+
   protected async run(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
     const { action } = params;
 

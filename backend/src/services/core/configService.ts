@@ -225,6 +225,8 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   // DIY AGENT
   // ==========================================================================
+  'diy.agent.timeoutMs': 120000, // 2 minutes for AI project generation
+  'diy.agent.generateTimeoutMs': 180000, // 3 minutes for complex projects
   'diy.search.maxResults': 20,
   'diy.ai.maxTokens': 3000,
   'diy.cache.ttlSeconds': 86400,

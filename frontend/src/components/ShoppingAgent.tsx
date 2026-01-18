@@ -588,8 +588,8 @@ const ShoppingAgent: React.FC = () => {
             Personalized Suggestions
           </h3>
           <div className={styles.productGrid}>
-            {shop.suggestions.map((suggestion) => (
-              <div key={`suggestion-${suggestion.product.title}-${suggestion.matchScore}`} className={styles.productCard}>
+            {shop.suggestions.map((suggestion, index) => (
+              <div key={`suggestion-${suggestion.product.id || index}-${suggestion.matchScore}`} className={styles.productCard}>
                 <div className={styles.productContent}>
                   <h3 className={styles.productTitle}>{suggestion.product.title}</h3>
                   <p className={styles.productReason}>{suggestion.reason}</p>
