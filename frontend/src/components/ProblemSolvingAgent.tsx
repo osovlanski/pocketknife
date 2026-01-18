@@ -495,6 +495,77 @@ func main() {
     setHasUnsavedChanges(true);
   };
 
+  // Helper to render inline markdown (bold, italic, code)
+  const renderInlineMarkdown = (text: string, keyPrefix: string): React.ReactNode => {
+    const parts: React.ReactNode[] = [];
+    let remaining = text;
+    let partIndex = 0;
+
+    // Process inline code first (backticks)
+    const processText = (input: string): React.ReactNode[] => {
+      const result: React.ReactNode[] = [];
+      let current = input;
+      let idx = 0;
+
+      while (current.length > 0) {
+        // Match inline code
+        const codeMatch = current.match(/`([^`]+)`/);
+        // Match bold
+        const boldMatch = current.match(/\*\*([^*]+)\*\*/);
+        // Match italic (single *)
+        const italicMatch = current.match(/(?<!\*)\*([^*]+)\*(?!\*)/);
+
+        // Find earliest match
+        const matches = [
+          codeMatch ? { type: 'code', match: codeMatch, index: current.indexOf(codeMatch[0]) } : null,
+          boldMatch ? { type: 'bold', match: boldMatch, index: current.indexOf(boldMatch[0]) } : null,
+          italicMatch ? { type: 'italic', match: italicMatch, index: current.indexOf(italicMatch[0]) } : null,
+        ].filter(Boolean).sort((a, b) => a!.index - b!.index);
+
+        if (matches.length === 0 || matches[0]!.index === -1) {
+          if (current.length > 0) {
+            result.push(<span key={`${keyPrefix}-text-${idx++}`}>{current}</span>);
+          }
+          break;
+        }
+
+        const firstMatch = matches[0]!;
+        
+        // Add text before match
+        if (firstMatch.index > 0) {
+          result.push(<span key={`${keyPrefix}-text-${idx++}`}>{current.slice(0, firstMatch.index)}</span>);
+        }
+
+        // Add formatted element
+        if (firstMatch.type === 'code') {
+          result.push(
+            <code key={`${keyPrefix}-code-${idx++}`} className="bg-slate-700/50 text-pink-300 px-1.5 py-0.5 rounded text-xs font-mono">
+              {firstMatch.match[1]}
+            </code>
+          );
+        } else if (firstMatch.type === 'bold') {
+          result.push(
+            <strong key={`${keyPrefix}-bold-${idx++}`} className="text-white font-semibold">
+              {firstMatch.match[1]}
+            </strong>
+          );
+        } else if (firstMatch.type === 'italic') {
+          result.push(
+            <em key={`${keyPrefix}-italic-${idx++}`} className="text-slate-300 italic">
+              {firstMatch.match[1]}
+            </em>
+          );
+        }
+
+        current = current.slice(firstMatch.index + firstMatch.match[0].length);
+      }
+
+      return result;
+    };
+
+    return processText(text);
+  };
+
   // Format problem description with better styling
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
@@ -503,25 +574,50 @@ func main() {
     const lines = description.split('\n');
     const elements: React.ReactNode[] = [];
     let currentList: string[] = [];
-    let isInExample = false;
+    let isInCodeBlock = false;
+    let codeBlockContent: string[] = [];
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
+      
+      // Handle code blocks (```)
+      if (trimmedLine.startsWith('```')) {
+        if (isInCodeBlock) {
+          // End code block
+          elements.push(
+            <pre key={`code-block-${index}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3 my-2 overflow-x-auto">
+              <code className="text-green-300 text-xs font-mono whitespace-pre">
+                {codeBlockContent.join('\n')}
+              </code>
+            </pre>
+          );
+          codeBlockContent = [];
+          isInCodeBlock = false;
+        } else {
+          // Start code block
+          isInCodeBlock = true;
+        }
+        return;
+      }
+
+      if (isInCodeBlock) {
+        codeBlockContent.push(line);
+        return;
+      }
       
       // Detect example sections
       if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:/i)) {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
             </ul>
           );
           currentList = [];
         }
-        isInExample = true;
         elements.push(
-          <div key={`example-header-${index}`} className="mt-4 mb-2">
-            <span className="text-cyan-400 font-semibold text-sm">{trimmedLine}</span>
+          <div key={`example-header-${index}`} className="mt-4 mb-2 flex items-center gap-2">
+            <span className="text-cyan-400 font-semibold text-sm">💡 {trimmedLine}</span>
           </div>
         );
         return;
@@ -530,8 +626,8 @@ func main() {
       // Detect Input/Output in examples
       if (trimmedLine.toLowerCase().startsWith('input:')) {
         elements.push(
-          <div key={`input-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-green-400">Input: </span>
+          <div key={`input-${index}`} className="bg-slate-800/60 border-l-2 border-green-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
+            <span className="text-green-400 font-semibold">Input: </span>
             <span className="text-slate-200">{trimmedLine.replace(/^input:\s*/i, '')}</span>
           </div>
         );
@@ -540,8 +636,8 @@ func main() {
 
       if (trimmedLine.toLowerCase().startsWith('output:')) {
         elements.push(
-          <div key={`output-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-blue-400">Output: </span>
+          <div key={`output-${index}`} className="bg-slate-800/60 border-l-2 border-blue-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
+            <span className="text-blue-400 font-semibold">Output: </span>
             <span className="text-slate-200">{trimmedLine.replace(/^output:\s*/i, '')}</span>
           </div>
         );
@@ -550,8 +646,8 @@ func main() {
 
       if (trimmedLine.toLowerCase().startsWith('explanation:')) {
         elements.push(
-          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-2 border-l-2 border-slate-600">
-            {trimmedLine.replace(/^explanation:\s*/i, '')}
+          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-3 border-l-2 border-slate-500 bg-slate-800/30 py-1 rounded-r">
+            💬 {trimmedLine.replace(/^explanation:\s*/i, '')}
           </div>
         );
         return;
@@ -562,7 +658,7 @@ func main() {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
             </ul>
           );
           currentList = [];
@@ -579,10 +675,10 @@ func main() {
       if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
         const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
         // Check if it's a constraint (contains comparison operators)
-        if (content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
+        if (content.match(/[<>≤≥]/) || content.match(/\d+\s*(<=|>=|<|>|==)/) || content.match(/^\d+\s*[<>=]/)) {
           elements.push(
-            <div key={`constraint-${index}`} className="bg-slate-800/30 rounded px-3 py-1 my-1 font-mono text-xs text-slate-300">
-              {content}
+            <div key={`constraint-${index}`} className="bg-slate-800/40 border border-slate-700/50 rounded px-3 py-1 my-1 font-mono text-xs text-amber-200">
+              ⚡ {content}
             </div>
           );
         } else {
@@ -596,14 +692,14 @@ func main() {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
             </ul>
           );
           currentList = [];
         }
         elements.push(
           <p key={`para-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
-            {trimmedLine}
+            {renderInlineMarkdown(trimmedLine, `para-${index}`)}
           </p>
         );
       }
@@ -613,7 +709,7 @@ func main() {
     if (currentList.length > 0) {
       elements.push(
         <ul key="list-final" className="list-disc list-inside space-y-1 my-2 text-slate-300">
-          {currentList.map((item, i) => <li key={i}>{item}</li>)}
+          {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-final-${i}`)}</li>)}
         </ul>
       );
     }
