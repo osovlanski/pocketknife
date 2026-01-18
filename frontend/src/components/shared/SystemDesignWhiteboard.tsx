@@ -197,6 +197,9 @@ const SimpleCanvas: React.FC<{
   
   // Screen position for text input (not canvas coordinates)
   const [textInputScreenPos, setTextInputScreenPos] = useState({ x: 0, y: 0 });
+  
+  // Track which text element is being edited (null = creating new)
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   // Save to history when elements change
   const saveToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -791,11 +794,26 @@ const SimpleCanvas: React.FC<{
       }
     }
     
-    // Text tool - open text input immediately (priority over handles)
+    // Text tool - check if clicking on existing text to edit, or create new
     if (selectedTool === 'text') {
+      // Check if clicking on an existing text element
+      const clickedElement = getElementAtPosition(pos.x, pos.y);
+      if (clickedElement && clickedElement.type === 'text') {
+        // Edit existing text
+        setTextInputPos({ x: clickedElement.x, y: clickedElement.y });
+        setTextInputScreenPos(screenPos);
+        setTextInputValue(clickedElement.text || '');
+        setEditingTextId(clickedElement.id);
+        setShowTextInput(true);
+        setTimeout(() => textInputRef.current?.focus(), 50);
+        return;
+      }
+      
+      // Create new text
       setTextInputPos(pos);
-      setTextInputScreenPos(screenPos); // Store screen position for overlay
+      setTextInputScreenPos(screenPos);
       setTextInputValue('');
+      setEditingTextId(null);
       setShowTextInput(true);
       setTimeout(() => textInputRef.current?.focus(), 50);
       return;
@@ -1116,26 +1134,44 @@ const SimpleCanvas: React.FC<{
 
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
-      const newElement: CanvasElement = {
-        id: `el-${Date.now()}`,
-        type: 'text',
-        x: textInputPos.x,
-        y: textInputPos.y,
-        text: textInputValue,
-        color: selectedColor,
-        fontSize: 16
-      };
-      const newElements = [...elements, newElement];
-      setElements(newElements);
-      saveToHistory(newElements);
+      if (editingTextId) {
+        // Editing existing text
+        const newElements = elements.map(el => 
+          el.id === editingTextId 
+            ? { ...el, text: textInputValue }
+            : el
+        );
+        setElements(newElements);
+        saveToHistory(newElements);
+      } else {
+        // Creating new text
+        const newElement: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'text',
+          x: textInputPos.x,
+          y: textInputPos.y,
+          text: textInputValue,
+          color: selectedColor,
+          fontSize: 16
+        };
+        const newElements = [...elements, newElement];
+        setElements(newElements);
+        saveToHistory(newElements);
+      }
     }
     setShowTextInput(false);
     setTextInputValue('');
+    setEditingTextId(null);
+    // Auto-switch to select tool after adding/editing text (better UX)
+    setSelectedTool('select');
   };
 
   const handleTextCancel = () => {
     setShowTextInput(false);
     setTextInputValue('');
+    setEditingTextId(null);
+    // Also switch to select on cancel
+    setSelectedTool('select');
   };
 
   // Delete selected element
@@ -1396,6 +1432,20 @@ const SimpleCanvas: React.FC<{
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={() => { setIsDrawing(false); setGhostPosition(null); }}
+          onDoubleClick={(e) => {
+            // Double-click to edit text elements (any tool)
+            const pos = getMousePos(e);
+            const clickedElement = getElementAtPosition(pos.x, pos.y);
+            if (clickedElement && clickedElement.type === 'text') {
+              const screenPos = getScreenPos(e);
+              setTextInputPos({ x: clickedElement.x, y: clickedElement.y });
+              setTextInputScreenPos(screenPos);
+              setTextInputValue(clickedElement.text || '');
+              setEditingTextId(clickedElement.id);
+              setShowTextInput(true);
+              setTimeout(() => textInputRef.current?.focus(), 50);
+            }
+          }}
         />
         
         {/* Text Input Overlay with backdrop */}
@@ -1432,12 +1482,12 @@ const SimpleCanvas: React.FC<{
                   autoFocus
                 />
                 <div className="text-xs text-slate-500 mt-1 px-1 flex items-center justify-between">
-                  <span>Enter to add • Escape to cancel</span>
+                  <span>Enter to {editingTextId ? 'save' : 'add'} • Escape to cancel</span>
                   <button 
                     onClick={handleTextSubmit}
                     className="text-blue-400 hover:text-blue-300 px-2"
                   >
-                    Add
+                    {editingTextId ? 'Save' : 'Add'}
                   </button>
                 </div>
               </div>
