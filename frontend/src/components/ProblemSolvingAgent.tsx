@@ -496,10 +496,15 @@ func main() {
   };
 
   /**
-   * Clean text by removing markdown bold markers and trimming
+   * Clean text by removing markdown markers and trimming
    */
   const cleanMarkdown = (text: string): string => {
-    return text.replace(/\*\*/g, '').trim();
+    return text
+      .replace(/\*\*/g, '')      // Remove bold markers
+      .replace(/^\*\s*$/g, '')   // Remove lone asterisks
+      .replace(/^\*\s+/g, '')    // Remove leading asterisk + space
+      .replace(/\s+\*$/g, '')    // Remove trailing asterisk
+      .trim();
   };
 
   /**
@@ -608,19 +613,49 @@ func main() {
     const exampleSections = text.split(/(?=\*?\*?Example\s*\d*:?\*?\*?)/i).filter(s => s.trim());
 
     exampleSections.forEach((section, sectionIdx) => {
-      const lines = section.split('\n').map(l => l.trim()).filter(l => l);
+      const lines = section.split('\n').map(l => l.trim()).filter(l => l && cleanMarkdown(l));
+      
+      // Track context: after Output, remaining lines are explanation content
+      let afterOutput = false;
+      let explanationLines: string[] = [];
+      
+      const flushExplanation = (key: string) => {
+        if (explanationLines.length > 0) {
+          elements.push(
+            <div key={key} className="my-2 ml-2 pl-3 border-l-2 border-slate-600 bg-slate-800/30 py-2 rounded-r">
+              <div className="text-slate-400 text-xs space-y-1">
+                {explanationLines.map((expLine, i) => (
+                  <p key={`${key}-exp-${i}`} className="leading-relaxed">
+                    {i === 0 && <span className="mr-1">💬</span>}
+                    {renderText(expLine, `${key}-exp-${i}`)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          );
+          explanationLines = [];
+        }
+      };
       
       lines.forEach((line, lineIdx) => {
-        const cleanLine = cleanMarkdown(line).toLowerCase();
+        const cleanedLine = cleanMarkdown(line);
+        const cleanLine = cleanedLine.toLowerCase();
         const key = `sec-${sectionIdx}-${lineIdx}`;
 
-        // Example header
+        // Skip empty or asterisk-only lines
+        if (!cleanedLine || cleanedLine === '*') {
+          return;
+        }
+
+        // Example header - flush any pending explanation
         if (cleanLine.match(/^example\s*\d*:?$/i)) {
+          flushExplanation(`${key}-pre`);
+          afterOutput = false;
           elements.push(
             <div key={key} className="mt-5 mb-2 pb-1 border-b border-cyan-500/30">
               <span className="text-cyan-400 font-bold text-sm flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
-                {cleanMarkdown(line)}
+                {cleanedLine}
               </span>
             </div>
           );
@@ -629,12 +664,14 @@ func main() {
 
         // Input line
         if (cleanLine.startsWith('input:')) {
-          const value = line.replace(/^\*?\*?Input:\*?\*?\s*/i, '');
+          flushExplanation(`${key}-pre`);
+          afterOutput = false;
+          const value = cleanedLine.replace(/^input:\s*/i, '');
           elements.push(
             <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
-              <span className="text-green-400 font-semibold text-xs min-w-[50px]">Input:</span>
+              <span className="text-green-400 font-semibold text-xs min-w-[55px]">Input:</span>
               <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
-                {cleanMarkdown(value)}
+                {value}
               </code>
             </div>
           );
@@ -643,33 +680,34 @@ func main() {
 
         // Output line
         if (cleanLine.startsWith('output:')) {
-          const value = line.replace(/^\*?\*?Output:\*?\*?\s*/i, '');
+          flushExplanation(`${key}-pre`);
+          afterOutput = true; // Lines after output are explanation
+          const value = cleanedLine.replace(/^output:\s*/i, '');
           elements.push(
             <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
-              <span className="text-blue-400 font-semibold text-xs min-w-[50px]">Output:</span>
+              <span className="text-blue-400 font-semibold text-xs min-w-[55px]">Output:</span>
               <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
-                {cleanMarkdown(value)}
+                {value}
               </code>
             </div>
           );
           return;
         }
 
-        // Explanation line
+        // Explicit Explanation line
         if (cleanLine.startsWith('explanation:')) {
-          const value = line.replace(/^\*?\*?Explanation:\*?\*?\s*/i, '');
-          elements.push(
-            <div key={key} className="my-1.5 ml-2 pl-3 border-l-2 border-slate-600 bg-slate-800/30 py-1.5 rounded-r">
-              <span className="text-slate-400 text-xs italic">
-                💬 {renderText(cleanMarkdown(value), key)}
-              </span>
-            </div>
-          );
+          afterOutput = true;
+          const value = cleanedLine.replace(/^explanation:\s*/i, '');
+          if (value) {
+            explanationLines.push(value);
+          }
           return;
         }
 
-        // Constraints header
+        // Constraints header - flush explanation and reset context
         if (cleanLine.match(/^constraints:?$/i)) {
+          flushExplanation(`${key}-pre`);
+          afterOutput = false;
           elements.push(
             <div key={key} className="mt-5 mb-2 pb-1 border-b border-amber-500/30">
               <span className="text-amber-400 font-bold text-sm flex items-center gap-2">
@@ -682,8 +720,10 @@ func main() {
         }
 
         // Constraint item (bullet point with comparison operators)
-        if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\s*[<>=≤≥]/)) {
-          const content = cleanMarkdown(line).replace(/^[-•*]\s*/, '');
+        if (cleanLine.match(/^[-•]\s/) || cleanLine.match(/^\d+\s*[<>=≤≥]/) || cleanLine.match(/[<>=≤≥]/)) {
+          flushExplanation(`${key}-pre`);
+          afterOutput = false;
+          const content = cleanedLine.replace(/^[-•]\s*/, '');
           elements.push(
             <div key={key} className="flex items-center gap-2 my-1 ml-4">
               <span className="text-amber-500 text-xs">⚡</span>
@@ -693,15 +733,24 @@ func main() {
           return;
         }
 
-        // Regular text (explanation continuation or other content)
-        if (cleanLine.length > 0 && !cleanLine.match(/^example\s*\d/i)) {
+        // Content after Output = explanation continuation
+        if (afterOutput && cleanedLine.length > 0) {
+          explanationLines.push(cleanedLine);
+          return;
+        }
+
+        // Regular text (before any example structure)
+        if (cleanedLine.length > 0 && !cleanLine.match(/^example\s*\d/i)) {
           elements.push(
             <p key={key} className="text-slate-300 text-xs leading-relaxed ml-2 my-1">
-              {renderText(cleanMarkdown(line), key)}
+              {renderText(cleanedLine, key)}
             </p>
           );
         }
       });
+      
+      // Flush any remaining explanation at end of section
+      flushExplanation(`sec-${sectionIdx}-final`);
     });
 
     // Handle case where there are no examples (pure constraints or simple description)
