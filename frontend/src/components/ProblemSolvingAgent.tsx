@@ -807,6 +807,11 @@ func main() {
           const saveData = await saveResponse.json();
           if (saveData.success) {
             setSaveStatus({ type: 'success', message: 'Solution saved!' });
+            // Mark as saved - update baseline so no "unsaved changes" prompt
+            setLoadedCode(code);
+            setHasUnsavedChanges(false);
+            // Also save to local history
+            saveCodeToHistory();
             // Clear status after 3 seconds
             setTimeout(() => setSaveStatus(null), 3000);
           } else {
@@ -815,6 +820,10 @@ func main() {
         } catch (saveError: any) {
           logger.warn('Failed to save solution', { error: saveError.message });
           setSaveStatus({ type: 'warning', message: 'Evaluated but not saved (DB unavailable)' });
+          // Still mark as "saved" locally since evaluation succeeded
+          setLoadedCode(code);
+          setHasUnsavedChanges(false);
+          saveCodeToHistory();
         }
       }
     } catch (error: any) {
