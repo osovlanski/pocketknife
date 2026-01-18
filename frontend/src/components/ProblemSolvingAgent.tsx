@@ -579,6 +579,9 @@ func main() {
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
+      // Strip markdown bold wrapper if present (e.g., **Example 1:** → Example 1:)
+      const cleanLine = trimmedLine.replace(/^\*\*(.+?)\*\*$/, '$1').replace(/^\*\*/, '').replace(/\*\*$/, '');
+      const cleanLineLower = cleanLine.toLowerCase();
       
       // Handle code blocks (```)
       if (trimmedLine.startsWith('```')) {
@@ -605,8 +608,8 @@ func main() {
         return;
       }
       
-      // Detect example sections
-      if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:/i)) {
+      // Detect example sections (handles both "Example 1:" and "**Example 1:**")
+      if (cleanLineLower.startsWith('example') || cleanLine.match(/^example\s*\d*:?/i)) {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
@@ -617,44 +620,47 @@ func main() {
         }
         elements.push(
           <div key={`example-header-${index}`} className="mt-4 mb-2 flex items-center gap-2">
-            <span className="text-cyan-400 font-semibold text-sm">💡 {trimmedLine}</span>
+            <span className="text-cyan-400 font-semibold text-sm">💡 {cleanLine}</span>
           </div>
         );
         return;
       }
 
-      // Detect Input/Output in examples
-      if (trimmedLine.toLowerCase().startsWith('input:')) {
+      // Detect Input/Output in examples (handles both "Input:" and "**Input:**")
+      if (cleanLineLower.startsWith('input:')) {
+        const value = cleanLine.replace(/^input:\s*/i, '');
         elements.push(
           <div key={`input-${index}`} className="bg-slate-800/60 border-l-2 border-green-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
             <span className="text-green-400 font-semibold">Input: </span>
-            <span className="text-slate-200">{trimmedLine.replace(/^input:\s*/i, '')}</span>
+            <span className="text-slate-200">{value}</span>
           </div>
         );
         return;
       }
 
-      if (trimmedLine.toLowerCase().startsWith('output:')) {
+      if (cleanLineLower.startsWith('output:')) {
+        const value = cleanLine.replace(/^output:\s*/i, '');
         elements.push(
           <div key={`output-${index}`} className="bg-slate-800/60 border-l-2 border-blue-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
             <span className="text-blue-400 font-semibold">Output: </span>
-            <span className="text-slate-200">{trimmedLine.replace(/^output:\s*/i, '')}</span>
+            <span className="text-slate-200">{value}</span>
           </div>
         );
         return;
       }
 
-      if (trimmedLine.toLowerCase().startsWith('explanation:')) {
+      if (cleanLineLower.startsWith('explanation:')) {
+        const value = cleanLine.replace(/^explanation:\s*/i, '');
         elements.push(
           <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-3 border-l-2 border-slate-500 bg-slate-800/30 py-1 rounded-r">
-            💬 {trimmedLine.replace(/^explanation:\s*/i, '')}
+            💬 {value}
           </div>
         );
         return;
       }
 
-      // Detect constraints section
-      if (trimmedLine.toLowerCase().startsWith('constraints:') || trimmedLine.toLowerCase() === 'constraints') {
+      // Detect constraints section (handles both "Constraints:" and "**Constraints:**")
+      if (cleanLineLower.startsWith('constraints:') || cleanLineLower === 'constraints') {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
@@ -672,8 +678,8 @@ func main() {
       }
 
       // Detect bullet points or numbered lists
-      if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
+      if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\.\s/)) {
+        const content = cleanLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
         // Check if it's a constraint (contains comparison operators)
         if (content.match(/[<>≤≥]/) || content.match(/\d+\s*(<=|>=|<|>|==)/) || content.match(/^\d+\s*[<>=]/)) {
           elements.push(
@@ -687,8 +693,8 @@ func main() {
         return;
       }
 
-      // Regular paragraph
-      if (trimmedLine.length > 0) {
+      // Regular paragraph - render with inline markdown support
+      if (cleanLine.length > 0) {
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
@@ -699,7 +705,7 @@ func main() {
         }
         elements.push(
           <p key={`para-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
-            {renderInlineMarkdown(trimmedLine, `para-${index}`)}
+            {renderInlineMarkdown(cleanLine, `para-${index}`)}
           </p>
         );
       }
