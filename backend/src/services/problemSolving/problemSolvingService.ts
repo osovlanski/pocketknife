@@ -513,14 +513,30 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       
       if (content) {
         // Strip HTML tags and clean up the content
+        // First decode HTML entities, then remove actual HTML tags
         const cleanContent = content
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          // Decode HTML entities FIRST (before removing tags)
           .replace(/&nbsp;/g, ' ')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&amp;/g, '&')
           .replace(/&quot;/g, '"')
-          .replace(/\n\s*\n/g, '\n\n') // Clean up multiple newlines
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          // Remove actual HTML tags (only match tags with valid tag names)
+          // This regex matches <tagname ...> or </tagname> but not things like "a < b > c"
+          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?\/?>/g, '')
+          // Handle self-closing tags
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<p\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<li\s*\/?>/gi, '\n• ')
+          .replace(/<\/li>/gi, '')
+          // Clean up any remaining angle brackets that are clearly HTML (with attributes)
+          .replace(/<[a-zA-Z]+\s+[^>]+>/g, '')
+          .replace(/<\/[a-zA-Z]+>/g, '')
+          // Clean up multiple newlines
+          .replace(/\n\s*\n\s*\n/g, '\n\n')
           .trim();
         
         return cleanContent;
