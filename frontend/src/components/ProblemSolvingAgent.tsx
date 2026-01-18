@@ -516,51 +516,88 @@ func main() {
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
         .replace(/&nbsp;/g, ' ')
+        // Remove all ** markdown bold markers completely
+        .replace(/\*\*/g, '')
         // Normalize line endings
         .replace(/\r\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      // STEP 1: Extract and format Examples
-      // Match patterns like "Example 1:" or "**Example 1:**" (with or without bold markers)
-      result = result.replace(/\*?\*?Example\s*(\d+):?\*?\*?/gi, '\n\n---EXAMPLE_$1---\n');
+      // Split into lines and process each one
+      const lines = result.split('\n');
+      const processedLines: string[] = [];
+      let inConstraints = false;
       
-      // STEP 2: Extract and format Constraints
-      result = result.replace(/\*?\*?Constraints:?\*?\*?/gi, '\n\n---CONSTRAINTS---\n');
-      
-      // STEP 3: Format Input/Output/Explanation with proper line breaks
-      // Handle both **Input:** and Input: patterns
-      result = result.replace(/\s*\*?\*?Input:?\*?\*?\s*/gi, '\n\n**🔹 Input:** ');
-      result = result.replace(/\s*\*?\*?Output:?\*?\*?\s*/gi, '\n\n**🔸 Output:** ');
-      result = result.replace(/\s*\*?\*?Explanation:?\*?\*?\s*/gi, '\n\n**💬 Explanation:** ');
-      
-      // STEP 4: Now convert our markers to proper styled sections
-      result = result.replace(/---EXAMPLE_(\d+)---/g, '### 💡 Example $1');
-      result = result.replace(/---CONSTRAINTS---/g, '### ⚡ Constraints');
-      
-      // STEP 5: Format constraint items with bullet points
-      // Look for constraint patterns like "1 <= nums.length <= 10^5"
-      // Split after Constraints heading and add bullets to each line
-      const constraintsMatch = result.match(/(### ⚡ Constraints[\s\S]*?)($|### |$)/);
-      if (constraintsMatch) {
-        const constraintsSection = constraintsMatch[1];
-        const formattedConstraints = constraintsSection
-          .split('\n')
-          .map(line => {
-            const trimmed = line.trim();
-            // Skip the heading and empty lines
-            if (trimmed.startsWith('###') || !trimmed) return line;
-            // Add bullet if it's a constraint (contains comparison operators or digits)
-            if (trimmed.match(/[<>=≤≥]/) || trimmed.match(/^\d/) || trimmed.match(/^-?\d/)) {
-              return `- ⚡ ${trimmed}`;
-            }
-            return line;
-          })
-          .join('\n');
-        result = result.replace(constraintsSection, formattedConstraints);
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        
+        // Skip empty lines but preserve spacing
+        if (!line) {
+          processedLines.push('');
+          continue;
+        }
+        
+        // Detect Example headers: "Example 1:", "Example 2", etc.
+        const exampleMatch = line.match(/^Example\s*(\d+):?$/i);
+        if (exampleMatch) {
+          inConstraints = false;
+          processedLines.push(''); // blank line before
+          processedLines.push(`SECTION_EXAMPLE_${exampleMatch[1]}`);
+          continue;
+        }
+        
+        // Detect Constraints header
+        if (line.match(/^Constraints:?$/i)) {
+          inConstraints = true;
+          processedLines.push('');
+          processedLines.push('SECTION_CONSTRAINTS');
+          continue;
+        }
+        
+        // Detect Input: line
+        const inputMatch = line.match(/^Input:?\s*(.*)$/i);
+        if (inputMatch) {
+          processedLines.push('');
+          processedLines.push(`LABEL_INPUT ${inputMatch[1]}`);
+          continue;
+        }
+        
+        // Detect Output: line
+        const outputMatch = line.match(/^Output:?\s*(.*)$/i);
+        if (outputMatch) {
+          processedLines.push('');
+          processedLines.push(`LABEL_OUTPUT ${outputMatch[1]}`);
+          continue;
+        }
+        
+        // Detect Explanation: line
+        const explainMatch = line.match(/^Explanation:?\s*(.*)$/i);
+        if (explainMatch) {
+          processedLines.push('');
+          processedLines.push(`LABEL_EXPLAIN ${explainMatch[1]}`);
+          continue;
+        }
+        
+        // If in constraints section and line has comparison operators, mark it
+        if (inConstraints && (line.match(/[<>=≤≥]/) || line.match(/^\d/) || line.match(/^-\d/))) {
+          processedLines.push(`CONSTRAINT_ITEM ${line}`);
+          continue;
+        }
+        
+        // Regular line
+        processedLines.push(line);
       }
       
-      // Clean up: normalize multiple newlines
+      // Now convert markers to final format
+      result = processedLines.join('\n')
+        .replace(/SECTION_EXAMPLE_(\d+)/g, '### 💡 Example $1')
+        .replace(/SECTION_CONSTRAINTS/g, '### ⚡ Constraints')
+        .replace(/LABEL_INPUT\s*/g, '🔹 **Input:** ')
+        .replace(/LABEL_OUTPUT\s*/g, '🔸 **Output:** ')
+        .replace(/LABEL_EXPLAIN\s*/g, '💬 **Explanation:** ')
+        .replace(/CONSTRAINT_ITEM\s*/g, '⚡ ');
+      
+      // Clean up multiple newlines
       result = result.replace(/\n{3,}/g, '\n\n');
       
       return result.trim();
@@ -617,34 +654,63 @@ func main() {
         }
         return <h3 className="text-sm font-semibold text-slate-300 mt-3 mb-1">{children}</h3>;
       },
-      // Paragraphs - check for Input/Output content patterns
+      // Paragraphs - style based on content
       p: ({ children }: { children?: React.ReactNode }) => {
         const text = String(children || '');
-        // Check if this is an Input/Output line with code-like content
-        if (text.match(/^\s*(Input:|Output:)/i) || text.match(/^\s*\[.*\]/) || text.match(/^\s*\d+$/) || text.match(/=\s*\[/)) {
+        
+        // Constraint items (starts with ⚡)
+        if (text.startsWith('⚡')) {
           return (
-            <p className="text-slate-200 text-xs leading-relaxed mb-1 ml-2 font-mono bg-slate-800/30 px-2 py-1 rounded">
+            <p className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
               {children}
             </p>
           );
         }
+        
+        // Input line (starts with 🔹)
+        if (text.startsWith('🔹')) {
+          return (
+            <p className="text-slate-200 text-xs leading-relaxed mb-1 font-mono bg-slate-800/30 px-2 py-1 rounded">
+              {children}
+            </p>
+          );
+        }
+        
+        // Output line (starts with 🔸)
+        if (text.startsWith('🔸')) {
+          return (
+            <p className="text-slate-200 text-xs leading-relaxed mb-1 font-mono bg-slate-800/30 px-2 py-1 rounded">
+              {children}
+            </p>
+          );
+        }
+        
+        // Explanation line (starts with 💬)
+        if (text.startsWith('💬')) {
+          return (
+            <p className="text-slate-400 text-xs leading-relaxed mb-2 pl-2 border-l-2 border-slate-600">
+              {children}
+            </p>
+          );
+        }
+        
         return <p className="text-slate-200 text-sm leading-relaxed mb-2">{children}</p>;
       },
       // Strong/Bold - Style Input:/Output:/Explanation: labels
       strong: ({ children }: { children?: React.ReactNode }) => {
         const text = String(children || '').toLowerCase().trim();
         
-        // Input with icon
+        // Input label
         if (text.includes('input')) {
-          return <span className="text-green-400 font-semibold text-xs inline-block mb-1">{children}</span>;
+          return <span className="text-green-400 font-semibold">{children}</span>;
         }
-        // Output with icon  
+        // Output label
         if (text.includes('output')) {
-          return <span className="text-blue-400 font-semibold text-xs inline-block mb-1">{children}</span>;
+          return <span className="text-blue-400 font-semibold">{children}</span>;
         }
-        // Explanation with icon
+        // Explanation label
         if (text.includes('explanation')) {
-          return <span className="text-slate-400 font-semibold text-xs inline-block mb-1">{children}</span>;
+          return <span className="text-slate-400 font-semibold">{children}</span>;
         }
         return <strong className="text-white font-semibold">{children}</strong>;
       },
@@ -682,18 +748,9 @@ func main() {
       ol: ({ children }: { children?: React.ReactNode }) => (
         <ol className="list-decimal list-inside space-y-1 my-2 ml-2 text-slate-300 text-sm">{children}</ol>
       ),
-      li: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '');
-        // Constraint items - already prefixed with ⚡ in preprocessing
-        if (text.includes('⚡') || text.match(/[<>=≤≥]/) || text.match(/^\d+\s*[<>=]/)) {
-          return (
-            <li className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1 list-none">
-              {children}
-            </li>
-          );
-        }
-        return <li className="text-slate-300">{children}</li>;
-      },
+      li: ({ children }: { children?: React.ReactNode }) => (
+        <li className="text-slate-300 text-sm">{children}</li>
+      ),
       // Horizontal rules
       hr: () => <hr className="border-slate-700 my-4" />,
       // Blockquotes (used for explanations)
