@@ -121,28 +121,38 @@ export abstract class AbstractAgent implements IPersistentAgent {
   protected validationSchemas: Record<string, z.ZodSchema> = {};
 
   constructor(config?: AgentConfig) {
-    // Set defaults with optional config overrides
+    // Get defaults from configService, then apply config overrides
+    const defaultRateLimit = configService.get('agent.default.rateLimit', 60);
+    const defaultTimeoutMs = configService.get('agent.default.timeoutMs', 30000);
+    const defaultCircuitBreakerThreshold = configService.get('agent.default.circuitBreakerThreshold', 5);
+    const defaultCircuitBreakerResetMs = configService.get('agent.default.circuitBreakerResetMs', 60000);
+    const defaultRetryMaxAttempts = configService.get('agent.default.retryMaxAttempts', 3);
+    const defaultRetryInitialDelayMs = configService.get('agent.default.retryInitialDelayMs', 1000);
+    const defaultRetryMaxDelayMs = configService.get('agent.default.retryMaxDelayMs', 30000);
+    const defaultRetryBackoffMultiplier = configService.get('agent.default.retryBackoffMultiplier', 2);
+    
     this.config = {
-      rateLimit: config?.rateLimit || 60,
-      defaultTimeoutMs: config?.defaultTimeoutMs || 30000,
+      rateLimit: config?.rateLimit || defaultRateLimit,
+      defaultTimeoutMs: config?.defaultTimeoutMs || defaultTimeoutMs,
       actionTimeouts: config?.actionTimeouts || {},
       metricsEnabled: config?.metricsEnabled ?? true,
-      circuitBreakerThreshold: config?.circuitBreakerThreshold || 5,
-      circuitBreakerResetMs: config?.circuitBreakerResetMs || 60000,
+      circuitBreakerThreshold: config?.circuitBreakerThreshold || defaultCircuitBreakerThreshold,
+      circuitBreakerResetMs: config?.circuitBreakerResetMs || defaultCircuitBreakerResetMs,
       retryOptions: {
-        maxRetries: 3,
-        initialDelayMs: 1000,
-        maxDelayMs: 30000,
-        backoffMultiplier: 2,
+        maxRetries: defaultRetryMaxAttempts,
+        initialDelayMs: defaultRetryInitialDelayMs,
+        maxDelayMs: defaultRetryMaxDelayMs,
+        backoffMultiplier: defaultRetryBackoffMultiplier,
         jitter: true,
         ...config?.retryOptions
       }
     };
     
     // Initialize rate limiter (tokens per minute)
+    const rateLimitRefillMs = configService.get('agent.default.circuitBreakerResetMs', 60000);
     this.rateLimiter = new RateLimiter(
       this.config.rateLimit!,
-      60000 // 1 minute refill
+      rateLimitRefillMs
     );
     
     // Initialize circuit breaker
@@ -173,7 +183,7 @@ export abstract class AbstractAgent implements IPersistentAgent {
     if (action && this.config.actionTimeouts?.[action]) {
       return this.config.actionTimeouts[action];
     }
-    return this.config.defaultTimeoutMs || 30000;
+    return this.config.defaultTimeoutMs || configService.get('agent.default.timeoutMs', 30000);
   }
 
   /**

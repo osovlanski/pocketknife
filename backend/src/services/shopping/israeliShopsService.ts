@@ -11,6 +11,7 @@
 import { googleSearchService, quotaManager } from '../core/googleSearchService';
 import { zapScraperService } from './zapScraperService';
 import claudeService from '../core/claudeService';
+import { configService } from '../core/configService';
 
 interface Product {
   title: string;
@@ -141,7 +142,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   ]
 }`;
 
-      const response = await claudeService.generateText(prompt, 2000);
+      const aiMaxTokens = configService.get('shopping.ai.maxTokens', 2000);
+      const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(cleanResponse);
 

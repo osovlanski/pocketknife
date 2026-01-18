@@ -7,6 +7,7 @@
 
 import axios from 'axios';
 import claudeService from '../core/claudeService';
+import { configService } from '../core/configService';
 
 interface Product {
   title: string;
@@ -117,7 +118,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 
 If no products found, return: {"products": []}`;
 
-      const response = await claudeService.generateText(prompt, 2500);
+      const aiMaxTokens = configService.get('shopping.ai.maxTokens', 2500);
+      const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       
       let parsed;

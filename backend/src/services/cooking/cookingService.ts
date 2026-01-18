@@ -882,7 +882,8 @@ Respond ONLY with valid JSON:
 }`;
 
     try {
-      const response = await claudeService.generateText(prompt, 2000);
+      const aiMaxTokens = configService.get('cooking.ai.maxTokens', 2000);
+      const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       const data = JSON.parse(cleanResponse);
 
