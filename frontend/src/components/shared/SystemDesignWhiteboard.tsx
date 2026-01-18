@@ -63,11 +63,28 @@ export interface DiagramSubmission {
   elapsedTime: number;
 }
 
+export type WhiteboardMode = 'sandbox' | 'system-design';
+
+export interface SavedCanvas {
+  id: string;
+  name: string;
+  elements: CanvasElement[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SystemDesignWhiteboardProps {
   isOpen: boolean;
   onClose: () => void;
-  question: SystemDesignQuestion;
-  onSubmit: (result: DiagramSubmission) => void;
+  // For system-design mode
+  question?: SystemDesignQuestion;
+  onSubmit?: (result: DiagramSubmission) => void;
+  // Mode control
+  mode?: WhiteboardMode;
+  // For sandbox mode - save/load
+  initialElements?: CanvasElement[];
+  canvasName?: string;
+  onSave?: (elements: CanvasElement[], name: string) => void;
 }
 
 // =============================================================================
@@ -1635,16 +1652,32 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
   onClose,
   question,
   onSubmit,
+  mode = 'system-design',
+  initialElements = [],
+  canvasName: initialCanvasName = '',
+  onSave,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
+  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>(initialElements);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['requirements']));
   const [currentHintIndex, setCurrentHintIndex] = useState(-1);
   
+  // Sandbox mode state
+  const [canvasName, setCanvasName] = useState(initialCanvasName);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
   // Pending component for drag-and-drop placement
   const [pendingComponent, setPendingComponent] = useState<PendingComponent | null>(null);
+  
+  // Reset elements when initialElements change (for loading saved canvases)
+  useEffect(() => {
+    if (initialElements.length > 0) {
+      setCanvasElements(initialElements);
+    }
+  }, [initialElements]);
 
   // Handle component selection from sidebar
   const handleComponentSelect = useCallback((template: ComponentTemplate) => {
@@ -1690,10 +1723,24 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
 
   // Get next hint
   const handleGetHint = useCallback(() => {
-    if (question.hints && currentHintIndex < question.hints.length - 1) {
+    if (question?.hints && currentHintIndex < question.hints.length - 1) {
       setCurrentHintIndex(prev => prev + 1);
     }
-  }, [question.hints, currentHintIndex]);
+  }, [question?.hints, currentHintIndex]);
+
+  // Handle save (sandbox mode)
+  const handleSave = useCallback(async () => {
+    if (!onSave) return;
+    
+    const name = canvasName.trim() || `Canvas ${new Date().toLocaleDateString()}`;
+    setIsSaving(true);
+    try {
+      await onSave(canvasElements, name);
+      setShowSaveDialog(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canvasElements, canvasName, onSave]);
 
   // Export canvas to image
   const exportToImage = useCallback(async (): Promise<string> => {
@@ -1722,7 +1769,7 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
         elapsedTime,
       };
 
-      onSubmit(submission);
+      onSubmit?.(submission);
     } finally {
       setIsSubmitting(false);
     }
@@ -1736,151 +1783,210 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-800/50">
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <Layers className="w-5 h-5 text-cyan-400" />
+            <div className={`p-2 rounded-lg ${mode === 'sandbox' ? 'bg-purple-500/20' : 'bg-cyan-500/20'}`}>
+              <Layers className={`w-5 h-5 ${mode === 'sandbox' ? 'text-purple-400' : 'text-cyan-400'}`} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">{question.title}</h2>
-              <div className="flex items-center gap-3 mt-1">
-                {question.category && (
-                  <span className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full">
-                    {question.category}
-                  </span>
-                )}
-                <span className="text-xs text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTime(elapsedTime)}
-                </span>
-              </div>
+              {mode === 'sandbox' ? (
+                <>
+                  <h2 className="text-lg font-semibold text-white">
+                    {canvasName || 'Untitled Canvas'}
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">Free drawing canvas • Auto-saved to browser</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-lg font-semibold text-white">{question?.title}</h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    {question?.category && (
+                      <span className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full">
+                        {question.category}
+                      </span>
+                    )}
+                    <span className="text-xs text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatTime(elapsedTime)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Close whiteboard"
-          >
-            <X className="w-5 h-5 text-slate-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Save button for sandbox mode */}
+            {mode === 'sandbox' && onSave && (
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <HardDrive className="w-4 h-4" />
+                Save
+              </button>
+            )}
+            
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Close whiteboard"
+            >
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Question Details */}
+          {/* Left Panel - Question Details (system-design) or Instructions (sandbox) */}
           <div className="w-80 border-r border-white/10 overflow-y-auto p-4 space-y-4">
-            {/* Description */}
-            <div className="bg-white/5 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection('description')}
-                className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-              >
-                <span className="text-sm font-medium text-slate-300">Description</span>
-                {expandedSections.has('description') ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-              {expandedSections.has('description') && (
-                <div className="p-3 pt-0">
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                    {question.description}
+            {mode === 'sandbox' ? (
+              /* Sandbox mode - simple instructions */
+              <>
+                <div className="bg-purple-500/10 rounded-lg p-4 border border-purple-500/20">
+                  <h3 className="text-sm font-semibold text-purple-300 mb-2">🎨 Free Canvas</h3>
+                  <p className="text-xs text-slate-400">
+                    Use this canvas to sketch diagrams, architecture, or any visual ideas.
                   </p>
                 </div>
-              )}
-            </div>
-
-            {/* Requirements */}
-            <div className="bg-white/5 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection('requirements')}
-                className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-              >
-                <span className="text-sm font-medium text-slate-300">
-                  Requirements ({question.requirements.length})
-                </span>
-                {expandedSections.has('requirements') ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-              {expandedSections.has('requirements') && (
-                <div className="p-3 pt-0">
-                  <ul className="space-y-2">
-                    {question.requirements.map((req, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                        <span className="text-cyan-400 font-bold">{idx + 1}.</span>
-                        {req}
-                      </li>
-                    ))}
+                
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Tips</h4>
+                  <ul className="space-y-2 text-xs text-slate-400">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Use number keys <kbd className="bg-slate-700 px-1 rounded">1-0</kbd> for quick component placement
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Hover component handles to see suggested connections
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Press <kbd className="bg-slate-700 px-1 rounded">T</kbd> for text tool
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      <kbd className="bg-slate-700 px-1 rounded">Ctrl+Z</kbd> to undo
+                    </li>
                   </ul>
                 </div>
-              )}
-            </div>
-
-            {/* Constraints */}
-            {question.constraints && question.constraints.length > 0 && (
-              <div className="bg-white/5 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => toggleSection('constraints')}
-                  className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-                >
-                  <span className="text-sm font-medium text-slate-300">
-                    Constraints ({question.constraints.length})
-                  </span>
-                  {expandedSections.has('constraints') ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+              </>
+            ) : (
+              /* System-design mode - question details */
+              <>
+                {/* Description */}
+                <div className="bg-white/5 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('description')}
+                    className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                  >
+                    <span className="text-sm font-medium text-slate-300">Description</span>
+                    {expandedSections.has('description') ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {expandedSections.has('description') && (
+                    <div className="p-3 pt-0">
+                      <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                        {question?.description}
+                      </p>
+                    </div>
                   )}
-                </button>
-                {expandedSections.has('constraints') && (
-                  <div className="p-3 pt-0">
-                    <ul className="space-y-2">
-                      {question.constraints.map((constraint, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-orange-300">
-                          <span className="text-orange-400">⚡</span>
-                          {constraint}
-                        </li>
-                      ))}
-                    </ul>
+                </div>
+
+                {/* Requirements */}
+                <div className="bg-white/5 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('requirements')}
+                    className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                  >
+                    <span className="text-sm font-medium text-slate-300">
+                      Requirements ({question?.requirements?.length || 0})
+                    </span>
+                    {expandedSections.has('requirements') ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {expandedSections.has('requirements') && (
+                    <div className="p-3 pt-0">
+                      <ul className="space-y-2">
+                        {question?.requirements?.map((req, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-cyan-400 font-bold">{idx + 1}.</span>
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Constraints */}
+                {question?.constraints && question.constraints.length > 0 && (
+                  <div className="bg-white/5 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleSection('constraints')}
+                      className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                    >
+                      <span className="text-sm font-medium text-slate-300">
+                        Constraints ({question.constraints.length})
+                      </span>
+                      {expandedSections.has('constraints') ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                    {expandedSections.has('constraints') && (
+                      <div className="p-3 pt-0">
+                        <ul className="space-y-2">
+                          {question.constraints.map((constraint, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-orange-300">
+                              <span className="text-orange-400">⚡</span>
+                              {constraint}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Hints */}
-            {question.hints && question.hints.length > 0 && (
-              <div className="bg-white/5 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => toggleSection('hints')}
-                  className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-                >
-                  <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    💡 Hints
-                    {currentHintIndex >= 0 && (
-                      <span className="text-xs text-slate-500">
-                        ({currentHintIndex + 1}/{question.hints.length})
+                {/* Hints */}
+                {question?.hints && question.hints.length > 0 && (
+                  <div className="bg-white/5 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleSection('hints')}
+                      className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                    >
+                      <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        💡 Hints
+                        {currentHintIndex >= 0 && (
+                          <span className="text-xs text-slate-500">
+                            ({currentHintIndex + 1}/{question.hints.length})
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  {expandedSections.has('hints') ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
-                {expandedSections.has('hints') && (
-                  <div className="p-3 pt-0 space-y-2">
-                    {currentHintIndex >= 0 ? (
-                      question.hints.slice(0, currentHintIndex + 1).map((hint, idx) => (
-                        <div key={idx} className="text-sm text-yellow-200/80 bg-yellow-500/10 p-2 rounded">
-                          💡 {hint}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-500">Click button below to reveal hints</p>
+                      {expandedSections.has('hints') ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                    {expandedSections.has('hints') && (
+                      <div className="p-3 pt-0 space-y-2">
+                        {currentHintIndex >= 0 ? (
+                          question.hints.slice(0, currentHintIndex + 1).map((hint, idx) => (
+                            <div key={idx} className="text-sm text-yellow-200/80 bg-yellow-500/10 p-2 rounded">
+                              💡 {hint}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-slate-500">Click button below to reveal hints</p>
                     )}
                     {currentHintIndex < question.hints.length - 1 && (
                       <button
@@ -1894,9 +2000,11 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
                   </div>
                 )}
               </div>
+                )}
+              </>
             )}
 
-            {/* Component Palette - Drag to Canvas */}
+            {/* Component Palette - Drag to Canvas (shown in both modes) */}
             <div className="bg-white/5 rounded-lg p-3">
               <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                 🧩 Components
@@ -1940,33 +2048,75 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
             {/* Actions */}
             <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-400">
-                <span>Components: {canvasElements.filter(e => e.type === 'rect').length}</span>
+                <span>Components: {canvasElements.filter(e => e.type === 'rect' || e.type === 'component').length}</span>
                 <span>•</span>
                 <span>Connections: {canvasElements.filter(e => e.type === 'arrow').length}</span>
+                <span>•</span>
+                <span>Text: {canvasElements.filter(e => e.type === 'text').length}</span>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || canvasElements.length === 0}
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg
-                           hover:bg-green-500 transition-colors disabled:opacity-50 font-medium"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  Submit Design
-                </button>
+                {mode === 'system-design' && onSubmit && (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || canvasElements.length === 0}
+                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg
+                             hover:bg-green-500 transition-colors disabled:opacity-50 font-medium"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    Submit Design
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Save Dialog (sandbox mode) */}
+        {showSaveDialog && mode === 'sandbox' && (
+          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center">
+            <div className="bg-slate-800 rounded-xl border border-white/10 p-6 w-96 shadow-2xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Save Canvas</h3>
+              <input
+                type="text"
+                value={canvasName}
+                onChange={(e) => setCanvasName(e.target.value)}
+                placeholder="Enter canvas name..."
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 
+                         focus:border-purple-500 focus:outline-none mb-4"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveDialog(false)}
+                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white 
+                           rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+// Export types for external use
+export type { CanvasElement };
 
 export default SystemDesignWhiteboard;
 

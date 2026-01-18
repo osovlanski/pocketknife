@@ -10,7 +10,7 @@ import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, Mountain, Square, Utensils,
-  Newspaper, Wrench, MapPin, MessageCircle
+  Newspaper, Wrench, MapPin, MessageCircle, PenTool
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -50,6 +50,7 @@ import ShoppingAgent from './components/ShoppingAgent';
 import CookingAgent from './components/CookingAgent';
 import NewsAgent from './components/NewsAgent';
 import DIYAgent from './components/DIYAgent';
+import CanvasTool from './components/CanvasTool';
 
 // Activity Log
 import ActivityLog from './components/ActivityLog';
@@ -90,7 +91,8 @@ const agentTabs: TabConfig[] = [
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
   { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' },
   { id: 'news', label: 'News', icon: Newspaper, color: 'red', path: '/agents/news' },
-  { id: 'diy', label: 'DIY', icon: Wrench, color: 'amber', path: '/agents/diy' }
+  { id: 'diy', label: 'DIY', icon: Wrench, color: 'amber', path: '/agents/diy' },
+  { id: 'canvas', label: 'Canvas', icon: PenTool, color: 'indigo', path: '/tools/canvas' }
 ];
 
 // =============================================================================
@@ -98,12 +100,19 @@ const agentTabs: TabConfig[] = [
 // =============================================================================
 
 const getActiveTabFromPath = (pathname: string): string | null => {
-  const match = pathname.match(/^\/agents\/(\w+)/);
-  return match ? match[1] : null;
+  // Check agents routes
+  const agentMatch = pathname.match(/^\/agents\/(\w+)/);
+  if (agentMatch) return agentMatch[1];
+  
+  // Check tools routes
+  const toolMatch = pathname.match(/^\/tools\/(\w+)/);
+  if (toolMatch) return toolMatch[1];
+  
+  return null;
 };
 
 const isAgentRoute = (pathname: string): boolean => {
-  return pathname.startsWith('/agents/');
+  return pathname.startsWith('/agents/') || pathname.startsWith('/tools/');
 };
 
 // =============================================================================
@@ -687,6 +696,17 @@ const App: React.FC = () => {
 
           {/* DIY Agent */}
           <Route path="/agents/diy" element={<DIYAgent />} />
+
+          {/* Canvas Tool */}
+          <Route path="/tools/canvas" element={
+            <AgentLayout
+              title="Canvas Tool"
+              subtitle="Create visual diagrams and architecture sketches"
+              gradient="linear-gradient(to right, #818cf8, #6366f1)"
+            >
+              <CanvasTool />
+            </AgentLayout>
+          } />
 
           {/* Catch-all redirect to home */}
           <Route path="*" element={
