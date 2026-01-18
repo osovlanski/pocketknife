@@ -579,8 +579,8 @@ func main() {
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
-      // Strip markdown bold wrapper if present (e.g., **Example 1:** → Example 1:)
-      const cleanLine = trimmedLine.replace(/^\*\*(.+?)\*\*$/, '$1').replace(/^\*\*/, '').replace(/\*\*$/, '');
+      // Strip ALL markdown bold markers for pattern matching (e.g., **Input:** value → Input: value)
+      const cleanLine = trimmedLine.replace(/\*\*/g, '');
       const cleanLineLower = cleanLine.toLowerCase();
       
       // Handle code blocks (```)
