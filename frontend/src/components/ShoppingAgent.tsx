@@ -27,6 +27,7 @@ import {
   Bookmark,
   BookmarkCheck
 } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 import useShopping from '../hooks/useShopping';
 import type { Product, ProductSuggestion, PriceAlert } from '../services/shoppingApi';
 import styles from '../styles/shopping.module.css';
@@ -332,6 +333,12 @@ const ShoppingAgent: React.FC = () => {
                 onChange={(e) => shop.setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && shop.handleSearch()}
                 className={styles.searchInput}
+              />
+              <VoiceInputButton
+                onTranscript={(text) => shop.setSearchQuery(text)}
+                size="md"
+                title="Speak to search products"
+                ariaLabel="Voice search for products"
               />
               {shop.loading ? (
                 <button onClick={shop.handleStopSearch} className={`${styles.searchButton} ${styles.searchButtonStop}`}>

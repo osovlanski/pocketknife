@@ -12,6 +12,7 @@ export { default as Header } from './Header';
 export { default as NavTabs } from './NavTabs';
 export { default as UserMenu } from './UserMenu';
 export { default as MobileNav } from './MobileNav';
+export { default as VoiceInputButton } from './VoiceInputButton';
 
 
 

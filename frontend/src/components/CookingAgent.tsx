@@ -26,6 +26,7 @@ import {
   RefreshCw,
   Star
 } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 import useCooking from '../hooks/useCooking';
 import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
 import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe } from '../services/cookingApi';
@@ -708,14 +709,22 @@ const CookingAgent: React.FC = () => {
               </select>
 
               {recipeSearchMode === 'custom' && (
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  style={{ flex: 1 }}
-                  placeholder="Enter ingredients (comma separated)"
-                  value={customIngredients}
-                  onChange={(e) => setCustomIngredients(e.target.value)}
-                />
+                <>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    style={{ flex: 1 }}
+                    placeholder="Enter ingredients (comma separated)"
+                    value={customIngredients}
+                    onChange={(e) => setCustomIngredients(e.target.value)}
+                  />
+                  <VoiceInputButton
+                    onTranscript={(text) => setCustomIngredients(prev => prev ? `${prev}, ${text}` : text)}
+                    size="md"
+                    title="Speak ingredients"
+                    ariaLabel="Voice input for ingredients"
+                  />
+                </>
               )}
 
               <button
@@ -851,13 +860,23 @@ const CookingAgent: React.FC = () => {
 
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Describe what you need (optional)</label>
-              <textarea
-                className={styles.formInput}
-                style={{ minHeight: '80px', resize: 'vertical' }}
-                placeholder="e.g., I'm planning a BBQ for 10 people, or I want to make Italian food this week..."
-                value={generatePrompt}
-                onChange={(e) => setGeneratePrompt(e.target.value)}
-              />
+              <div className="relative">
+                <textarea
+                  className={styles.formInput}
+                  style={{ minHeight: '80px', resize: 'vertical', paddingRight: '3rem' }}
+                  placeholder="e.g., I'm planning a BBQ for 10 people, or I want to make Italian food this week..."
+                  value={generatePrompt}
+                  onChange={(e) => setGeneratePrompt(e.target.value)}
+                />
+                <div className="absolute top-2 right-2">
+                  <VoiceInputButton
+                    onTranscript={(text) => setGeneratePrompt(prev => prev ? `${prev} ${text}` : text)}
+                    size="sm"
+                    title="Speak your meal plan"
+                    ariaLabel="Voice input for shopping list description"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className={styles.formGroup}>

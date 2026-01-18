@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plane, Calendar, Users, DollarSign, CalendarRange, TrendingDown } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 
 interface TravelSearchPanelProps {
   onSearch: (query: TravelSearchQuery) => void;
@@ -87,29 +88,49 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">From (Origin)</label>
-            <input
-              type="text"
-              value={query.origin}
-              onChange={(e) => setQuery({ ...query, origin: e.target.value.toUpperCase() })}
-              placeholder="TLV"
-              maxLength={3}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={query.origin}
+                onChange={(e) => setQuery({ ...query, origin: e.target.value.toUpperCase() })}
+                placeholder="TLV"
+                maxLength={3}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <VoiceInputButton
+                  onTranscript={(text) => setQuery({ ...query, origin: text.toUpperCase().substring(0, 3) })}
+                  size="sm"
+                  title="Speak origin airport"
+                  ariaLabel="Voice input for origin airport"
+                />
+              </div>
+            </div>
             <p className="text-xs text-slate-500 mt-1">3-letter airport code (e.g., TLV for Tel Aviv)</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-2">To (Destination)</label>
-            <input
-              type="text"
-              value={query.destination}
-              onChange={(e) => setQuery({ ...query, destination: e.target.value.toUpperCase() })}
-              placeholder="BCN"
-              maxLength={3}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={query.destination}
+                onChange={(e) => setQuery({ ...query, destination: e.target.value.toUpperCase() })}
+                placeholder="BCN"
+                maxLength={3}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <VoiceInputButton
+                  onTranscript={(text) => setQuery({ ...query, destination: text.toUpperCase().substring(0, 3) })}
+                  size="sm"
+                  title="Speak destination airport"
+                  ariaLabel="Voice input for destination airport"
+                />
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {popularDestinations.map(dest => (
                 <button

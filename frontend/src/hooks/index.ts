@@ -19,6 +19,7 @@ export { default as useProblems } from './useProblems';
 export { default as useCooking } from './useCooking';
 export { default as useNews } from './useNews';
 export { default as useDIY } from './useDIY';
+export { default as useVoiceInput } from './useVoiceInput';
 
 // Re-export types
 export type { UseAuthReturn } from './useAuth';
@@ -33,3 +34,4 @@ export type { UseProblemsReturn } from './useProblems';
 export type { UseCookingReturn } from './useCooking';
 export type { UseNewsReturn } from './useNews';
 export type { UseDIYReturn } from './useDIY';
+export type { UseVoiceInputReturn, UseVoiceInputOptions } from './useVoiceInput';

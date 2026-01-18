@@ -14581,3 +14581,278 @@ diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-
 [2026-01-18T19:32:51.376Z] 
 [2026-01-18T19:32:51.378Z] BLOCKED - Automated score: 30/100 (min: 80)
 [2026-01-18T21:32:51+02:00] Push BLOCKED - Exit code: 1
+[2026-01-18T21:35:46+02:00] Pre-push hook triggered
+[2026-01-18T19:35:47.484Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-18T19:35:47.500Z] 📋 Minimum passing score: 80/100
+[2026-01-18T19:35:47.502Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-18T19:35:47.506Z] 
+[2026-01-18T19:35:47.507Z] ════════════════════════════════════════════════════════════
+[2026-01-18T19:35:47.509Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-18T19:35:47.510Z] ════════════════════════════════════════════════════════════
+[2026-01-18T19:35:47.512Z] 
+[2026-01-18T19:35:47.543Z] 📅 Review started at: 1/18/2026, 9:35:47 PM
+[2026-01-18T19:35:47.544Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-18T19:35:47.546Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-18T19:35:47.546Z] ────────────────────────────────────────
+[2026-01-18T19:35:48.004Z] ✅ Git repository detected
+[2026-01-18T19:35:48.006Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-18T19:35:48.008Z] ────────────────────────────────────────
+[2026-01-18T19:35:48.471Z] 📍 Current branch: feature/multi-agent-fixes
+[2026-01-18T19:35:48.472Z] 🎯 Comparing against: main
+[2026-01-18T19:35:48.887Z] ✅ Base branch 'main' exists
+[2026-01-18T19:35:48.889Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-18T19:35:48.890Z] ────────────────────────────────────────
+[2026-01-18T19:35:51.652Z] 
+▶ Step 4: Change Summary
+[2026-01-18T19:35:51.654Z] ────────────────────────────────────────
+[2026-01-18T19:35:51.655Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/core/configService.ts         |   84 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  115 +-
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  135 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   30 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  103 +-
+ frontend/src/components/DIYAgent.tsx               |  213 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |   59 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |   59 +-
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ review-log.txt                                     |  535 +++
+ 64 files changed, 13194 insertions(+), 2173 deletions(-)
+
+[2026-01-18T19:35:51.658Z] 📊 Files changed: 64
+[2026-01-18T19:35:51.659Z] ➕ Lines added: 13194
+[2026-01-18T19:35:51.661Z] ➖ Lines removed: 2173
+[2026-01-18T19:35:51.662Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-18T19:35:51.663Z] ────────────────────────────────────────
+[2026-01-18T19:35:51.668Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-18T19:35:51.669Z] index f4d90a8..365eb7e 100644
+[2026-01-18T19:35:51.671Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-18T19:35:51.672Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-18T19:35:51.673Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-18T19:35:51.675Z]  
+[2026-01-18T19:35:51.676Z]  ---
+[2026-01-18T19:35:51.678Z]  
+[2026-01-18T19:35:51.679Z] -## Step 6: Configuration
+[2026-01-18T19:35:51.680Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-18T19:35:51.682Z]  
+[2026-01-18T19:35:51.683Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-18T19:35:51.684Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-18T19:35:51.685Z] +
+[2026-01-18T19:35:51.686Z] +### 6a. Config Service (Simple Values)
+[2026-01-18T19:35:51.687Z] +
+[2026-01-18T19:35:51.688Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-18T19:35:51.690Z]  
+[2026-01-18T19:35:51.691Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-18T19:35:51.692Z]  
+[2026-01-18T19:35:51.693Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-18T19:35:51.694Z]    'yourAgent.maxResults': 20,
+[2026-01-18T19:35:51.695Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-18T19:35:51.695Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-18T19:35:51.697Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-18T19:35:51.697Z]    'yourAgent.feature.enabled': true,
+[2026-01-18T19:35:51.698Z]  } as const;
+[2026-01-18T19:35:51.700Z]  ```
+[2026-01-18T19:35:51.701Z]  
+[2026-01-18T19:35:51.702Z] +### 6b. Using Config in Your Agent
+[2026-01-18T19:35:51.703Z] +
+[2026-01-18T19:35:51.704Z] +```typescript
+[2026-01-18T19:35:51.705Z] +// In your agent or service
+[2026-01-18T19:35:51.707Z] +import { configService } from '../services/core/configService';
+[2026-01-18T19:35:51.708Z] +
+[2026-01-18T19:35:51.710Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-18T19:35:51.711Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-18T19:35:51.712Z] +```
+[2026-01-18T19:35:51.713Z] +
+[2026-01-18T19:35:51.714Z] +### 6c. Business Rules (Optional)
+[2026-01-18T19:35:51.716Z] +
+[2026-01-18T19:35:51.717Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-18T19:35:51.718Z] +
+[2026-01-18T19:35:51.719Z] +```typescript
+[2026-01-18T19:35:51.720Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-18T19:35:51.722Z] +
+[2026-01-18T19:35:51.723Z] +const context: RuleContext = {
+[2026-01-18T19:35:51.724Z] +  agentId: 'your-agent',
+[2026-01-18T19:35:51.726Z] +  action: 'score-item',
+[2026-01-18T19:35:51.727Z] +  data: { price: item.price, category: item.category }
+[2026-01-18T19:35:51.729Z] +};
+[2026-01-18T19:35:51.730Z] +
+[2026-01-18T19:35:51.732Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-18T19:35:51.733Z] +const score = result.finalContext.data.score;
+[2026-01-18T19:35:51.734Z] +```
+[2026-01-18T19:35:51.736Z] +
+[2026-01-18T19:35:51.737Z] +### 6d. Feature Flags (Optional)
+[2026-01-18T19:35:51.738Z] +
+[2026-01-18T19:35:51.740Z] +For feature toggles or A/B tests:
+[2026-01-18T19:35:51.741Z] +
+[2026-01-18T19:35:51.742Z] +```typescript
+[2026-01-18T19:35:51.743Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-18T19:35:51.745Z] +
+[2026-01-18T19:35:51.746Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-18T19:35:51.747Z] +  // New implementation
+[2026-01-18T19:35:51.748Z] +}
+[2026-01-18T19:35:51.749Z] +```
+[2026-01-18T19:35:51.750Z] +
+[2026-01-18T19:35:51.751Z]  ---
+[2026-01-18T19:35:51.752Z]  
+[2026-01-18T19:35:51.753Z]  ## Step 7: Frontend API Service
+[2026-01-18T19:35:51.754Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-18T19:35:51.755Z] index 03c1829..c6f8771 100644
+[2026-01-18T19:35:51.757Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-18T19:35:51.758Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-18T19:35:51.759Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-18T19:35:51.760Z]  ]);
+[2026-01-18T19:35:51.762Z]  ```
+[2026-01-18T19:35:51.763Z]  
+[2026-01-18T19:35:51.764Z] -### Configuration Management
+[2026-01-18T19:35:51.765Z] +### Configuration Management (Three-Tier System)
+[2026-01-18T19:35:51.767Z] +
+[2026-01-18T19:35:51.768Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-18T19:35:51.769Z] +
+[2026-01-18T19:35:51.770Z] +| Tier | Service | Use For |
+[2026-01-18T19:35:51.771Z] +| :--- | :--- | :--- |
+[2026-01-18T19:35:51.772Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-18T19:35:51.773Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-18T19:35:51.775Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-18T19:35:51.776Z]  
+[2026-01-18T19:35:51.778Z]  ```typescript
+[2026-01-18T19:35:51.780Z] -// NEVER hardcode values
+[2026-01-18T19:35:51.781Z] -// Bad
+[2026-01-18T19:35:51.783Z] +// ❌ BAD - Hardcoded values
+[2026-01-18T19:35:51.786Z]  const timeout = 5000;
+[2026-01-18T19:35:51.787Z]  const apiUrl = 'https://api.example.com';
+[2026-01-18T19:35:51.788Z] +const maxResults = 100;
+[2026-01-18T19:35:51.789Z] +if (score > 80) { /* ... */ }
+[2026-01-18T19:35:51.790Z]  
+[2026-01-18T19:35:51.792Z] -// Good - use configService or environment variables
+[2026-01-18T19:35:51.801Z] 
+... and 17900 more lines
+[2026-01-18T19:35:51.803Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-18T19:35:51.805Z] ────────────────────────────────────────
+[2026-01-18T19:35:51.806Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-18T19:35:51.807Z]    Checking backend types...
+[2026-01-18T19:36:37.438Z]    ✅ Backend type check passed
+[2026-01-18T19:36:37.442Z]    Checking frontend types...
+[2026-01-18T19:37:04.982Z]    ✅ Frontend type check passed
+[2026-01-18T19:37:04.986Z] ✅ All type checks passed!
+[2026-01-18T19:37:04.988Z] 
+▶ Step 7: Running Tests
+[2026-01-18T19:37:04.989Z] ────────────────────────────────────────
+[2026-01-18T19:37:04.990Z] 🧪 Running test suites...
+[2026-01-18T19:37:04.991Z]    Running backend tests...
+[2026-01-18T19:37:41.694Z]    ✅ Backend tests passed
+[2026-01-18T19:37:41.699Z]    Running frontend tests...
+[2026-01-18T19:38:25.032Z]    ✅ Frontend tests passed
+[2026-01-18T19:38:25.035Z] ✅ All tests passed!
+[2026-01-18T19:38:25.036Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-18T19:38:25.037Z] ────────────────────────────────────────
+[2026-01-18T19:38:25.114Z] 
+🔴 Critical Issues Found:
+[2026-01-18T19:38:25.117Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-18T19:38:25.119Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-18T19:38:25.120Z]    🔴 Hardcoded external URL: Found 2 instance(s)
+[2026-01-18T19:38:25.121Z] 
+🟡 Warnings:
+[2026-01-18T19:38:25.123Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-18T19:38:25.124Z]    🟡 'any' type usage: 29 instance(s) - Prefer explicit types
+[2026-01-18T19:38:25.126Z] 
+📊 Automated Pre-Score: 60/100
+[2026-01-18T19:38:25.128Z] 
+▶ Step 9: Manual Review Required
+[2026-01-18T19:38:25.129Z] ────────────────────────────────────────
+[2026-01-18T19:38:25.130Z] 
+[2026-01-18T19:38:25.132Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-18T19:38:25.133Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-18T19:38:25.134Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-18T19:38:25.136Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-18T19:38:25.137Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-18T19:38:25.139Z] 
+[2026-01-18T19:38:25.140Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-18T19:38:25.141Z] 
+[2026-01-18T19:38:25.143Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-18T19:38:25.144Z] 
+[2026-01-18T19:38:25.146Z] 
+▶ Step 10: Push Confirmation
+[2026-01-18T19:38:25.147Z] ────────────────────────────────────────
+[2026-01-18T19:38:25.151Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-18T19:38:25.153Z] 📝 Pre-push automated score: 60
+[2026-01-18T19:38:25.155Z] 
+[2026-01-18T19:38:25.156Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-18T19:38:25.158Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-18T19:38:25.160Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-18T19:38:25.161Z] 
+[2026-01-18T19:38:25.162Z]    Score: 60/100 (Minimum required: 80)
+[2026-01-18T19:38:25.164Z] 
+[2026-01-18T19:38:25.165Z]    Fix the following issues before pushing:
+[2026-01-18T19:38:25.166Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-18T19:38:25.168Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-18T19:38:25.169Z]    🔴 Hardcoded external URL: Found 2 instance(s)
+[2026-01-18T19:38:25.170Z] 
+[2026-01-18T19:38:25.172Z]    Also consider fixing these warnings:
+[2026-01-18T19:38:25.173Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-18T19:38:25.175Z]    🟡 'any' type usage: 29 instance(s) - Prefer explicit types
+[2026-01-18T19:38:25.176Z] 
+[2026-01-18T19:38:25.178Z]    After fixing, run: git push
+[2026-01-18T19:38:25.179Z] 
+[2026-01-18T19:38:25.180Z] BLOCKED - Automated score: 60/100 (min: 80)
+[2026-01-18T21:38:25+02:00] Push BLOCKED - Exit code: 1

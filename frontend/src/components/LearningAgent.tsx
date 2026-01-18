@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -379,8 +380,16 @@ const LearningAgent = () => {
               onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search for topics (e.g., 'TypeScript best practices', 'system design')"
-              className="w-full bg-white/5 border border-white/20 rounded-xl pl-12 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+              className="w-full bg-white/5 border border-white/20 rounded-xl pl-12 pr-12 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
             />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <VoiceInputButton
+                onTranscript={(text) => setSearchQuery(text)}
+                size="sm"
+                title="Speak to search"
+                ariaLabel="Voice search for learning topics"
+              />
+            </div>
             
             {/* Autocomplete dropdown */}
             {showAutocomplete && filteredSuggestions.length > 0 && (

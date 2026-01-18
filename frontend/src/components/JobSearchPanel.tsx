@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 import { extractTextFromFile } from '../utils/fileParser';
 import { JobSearchFilters, IndustryType, CompanySizeType } from '../types';
 import { API_BASE_URL } from '../config';
@@ -260,12 +261,22 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
 
           <div className="text-center text-sm text-slate-400">OR</div>
 
-          <textarea
-            value={cvText}
-            onChange={(e) => setCVText(e.target.value)}
-            placeholder="Paste your CV text here...&#10;&#10;Include:&#10;- Name and contact info&#10;- Skills (Node.js, React, Python, etc.)&#10;- Work experience&#10;- Education"
-            className="w-full h-48 bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={cvText}
+              onChange={(e) => setCVText(e.target.value)}
+              placeholder="Paste your CV text here...&#10;&#10;Include:&#10;- Name and contact info&#10;- Skills (Node.js, React, Python, etc.)&#10;- Work experience&#10;- Education"
+              className="w-full h-48 bg-white/5 border border-white/20 rounded-lg px-4 py-3 pr-14 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 resize-none"
+            />
+            <div className="absolute top-3 right-3">
+              <VoiceInputButton
+                onTranscript={(text) => setCVText(prev => prev ? `${prev} ${text}` : text)}
+                size="sm"
+                title="Speak to add CV content"
+                ariaLabel="Voice input for CV"
+              />
+            </div>
+          </div>
 
           {error && (
             <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
@@ -358,6 +369,12 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Location (e.g., Tel Aviv, Israel)"
               className="flex-1 bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400"
+            />
+            <VoiceInputButton
+              onTranscript={(text) => setLocation(text)}
+              size="sm"
+              title="Speak location"
+              ariaLabel="Voice input for location"
             />
             <button
               onClick={getLocationFromGPS}
