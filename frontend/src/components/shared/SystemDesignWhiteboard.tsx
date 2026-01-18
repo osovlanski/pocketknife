@@ -1777,6 +1777,15 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
     }
   }, [canvasElements, canvasName, onSave]);
 
+  // Handle close - save state for system-design mode before closing
+  const handleClose = useCallback(() => {
+    // For system-design mode, auto-save elements so user can resume
+    if (mode === 'system-design' && onSave && canvasElements.length > 0) {
+      onSave(canvasElements, question?.title || 'design');
+    }
+    onClose();
+  }, [mode, onSave, canvasElements, onClose, question?.title]);
+
   // Export canvas to image
   const exportToImage = useCallback(async (): Promise<string> => {
     const canvas = document.querySelector('canvas');
@@ -1861,7 +1870,7 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
             )}
             
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               aria-label="Close whiteboard"
             >

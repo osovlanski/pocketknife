@@ -78,7 +78,8 @@ class SystemDesignEvaluationService {
       
       if (request.imageBase64) {
         // Use vision capabilities if image is provided
-        response = await claudeService.analyzeImage(request.imageBase64, prompt);
+        // Canvas exports as PNG, so we use image/png as the media type
+        response = await claudeService.analyzeImage(request.imageBase64, prompt, 'image/png');
       } else {
         // Fallback to text-only analysis
         const maxTokens = configService.get('mockInterview.ai.systemDesignMaxTokens', 2000);

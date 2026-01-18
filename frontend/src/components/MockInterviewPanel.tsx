@@ -87,6 +87,9 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
   const [systemDesignQuestions, setSystemDesignQuestions] = useState<SystemDesignQuestion[]>([]);
   const [designEvaluation, setDesignEvaluation] = useState<SystemDesignEvaluation | null>(null);
   
+  // Persist whiteboard elements per question (key: question title)
+  const [whiteboardElements, setWhiteboardElements] = useState<Map<string, any[]>>(new Map());
+  
   
   // Context for answer generation
   const [role, setRole] = useState('Software Developer');
@@ -1113,6 +1116,16 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
           onClose={() => setWhiteboardOpen(false)}
           question={currentDesignQuestion}
           onSubmit={handleDesignSubmit}
+          mode="system-design"
+          initialElements={whiteboardElements.get(currentDesignQuestion.title) || []}
+          onSave={(elements) => {
+            // Persist elements when closing/saving
+            setWhiteboardElements(prev => {
+              const updated = new Map(prev);
+              updated.set(currentDesignQuestion.title, elements);
+              return updated;
+            });
+          }}
         />
       )}
     </div>
