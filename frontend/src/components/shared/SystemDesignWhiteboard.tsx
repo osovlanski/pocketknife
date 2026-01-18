@@ -39,7 +39,18 @@ import {
   ZoomOut,
   Move,
   Minus,
-  Circle
+  Circle,
+  // Additional component icons
+  Monitor,
+  Smartphone,
+  Wifi,
+  Lock,
+  Search,
+  Bell,
+  FileText,
+  GitBranch,
+  Activity,
+  Zap
 } from 'lucide-react';
 
 // =============================================================================
@@ -101,16 +112,29 @@ interface ComponentTemplate {
 }
 
 const COMPONENT_TEMPLATES: ComponentTemplate[] = [
-  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, iconName: 'network', color: '#22c55e', description: 'Distributes traffic', shortcut: '1' },
-  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, iconName: 'globe', color: '#3b82f6', description: 'Handles HTTP requests', shortcut: '2' },
-  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, iconName: 'shield', color: '#a855f7', description: 'API routing & auth', shortcut: '3' },
-  { name: 'Database', icon: <Database className="w-4 h-4" />, iconName: 'database', color: '#f59e0b', description: 'Data storage', shortcut: '4' },
-  { name: 'Cache', icon: <Cpu className="w-4 h-4" />, iconName: 'cpu', color: '#ef4444', description: 'Redis/Memcached', shortcut: '5' },
-  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, iconName: 'message', color: '#06b6d4', description: 'Kafka/RabbitMQ', shortcut: '6' },
-  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, iconName: 'cloud', color: '#8b5cf6', description: 'Content delivery', shortcut: '7' },
-  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, iconName: 'storage', color: '#64748b', description: 'S3/Blob storage', shortcut: '8' },
-  { name: 'Microservice', icon: <Server className="w-4 h-4" />, iconName: 'server', color: '#10b981', description: 'Service container', shortcut: '9' },
-  { name: 'Worker', icon: <Layers className="w-4 h-4" />, iconName: 'layers', color: '#f97316', description: 'Background jobs', shortcut: '0' },
+  // Core Infrastructure (1-5)
+  { name: 'Client', icon: <Monitor className="w-4 h-4" />, iconName: 'client', color: '#60a5fa', description: 'Web/Desktop client', shortcut: '1' },
+  { name: 'Mobile App', icon: <Smartphone className="w-4 h-4" />, iconName: 'mobile', color: '#818cf8', description: 'Mobile application', shortcut: '2' },
+  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, iconName: 'network', color: '#22c55e', description: 'Distributes traffic', shortcut: '3' },
+  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, iconName: 'shield', color: '#a855f7', description: 'API routing & auth', shortcut: '4' },
+  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, iconName: 'globe', color: '#3b82f6', description: 'Handles HTTP', shortcut: '5' },
+  
+  // Data Layer (6-9, 0)
+  { name: 'Database', icon: <Database className="w-4 h-4" />, iconName: 'database', color: '#f59e0b', description: 'SQL/NoSQL DB', shortcut: '6' },
+  { name: 'Cache', icon: <Zap className="w-4 h-4" />, iconName: 'cache', color: '#ef4444', description: 'Redis/Memcached', shortcut: '7' },
+  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, iconName: 'message', color: '#06b6d4', description: 'Kafka/RabbitMQ', shortcut: '8' },
+  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, iconName: 'storage', color: '#64748b', description: 'S3/Blob storage', shortcut: '9' },
+  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, iconName: 'cloud', color: '#8b5cf6', description: 'Content delivery', shortcut: '0' },
+  
+  // Services (no shortcuts - click to use)
+  { name: 'Microservice', icon: <Server className="w-4 h-4" />, iconName: 'server', color: '#10b981', description: 'Service container', shortcut: '' },
+  { name: 'Worker', icon: <Layers className="w-4 h-4" />, iconName: 'layers', color: '#f97316', description: 'Background jobs', shortcut: '' },
+  { name: 'Auth Service', icon: <Lock className="w-4 h-4" />, iconName: 'auth', color: '#dc2626', description: 'Authentication', shortcut: '' },
+  { name: 'Search', icon: <Search className="w-4 h-4" />, iconName: 'search', color: '#0891b2', description: 'Elasticsearch', shortcut: '' },
+  { name: 'Notification', icon: <Bell className="w-4 h-4" />, iconName: 'notification', color: '#eab308', description: 'Push/Email/SMS', shortcut: '' },
+  { name: 'Logging', icon: <FileText className="w-4 h-4" />, iconName: 'logging', color: '#78716c', description: 'Log aggregation', shortcut: '' },
+  { name: 'DNS', icon: <Wifi className="w-4 h-4" />, iconName: 'dns', color: '#14b8a6', description: 'Domain resolution', shortcut: '' },
+  { name: 'Monitoring', icon: <Activity className="w-4 h-4" />, iconName: 'monitoring', color: '#f43f5e', description: 'Metrics/Alerts', shortcut: '' },
 ];
 
 // =============================================================================
@@ -440,16 +464,24 @@ const SimpleCanvas: React.FC<{
         
         // Icon mapping for canvas rendering
         const iconEmojis: Record<string, string> = {
+          'client': '💻',
+          'mobile': '📱',
           'network': '🔀',
           'globe': '🌐',
           'shield': '🛡️',
           'database': '🗄️',
-          'cpu': '⚡',
+          'cache': '⚡',
           'message': '📨',
           'cloud': '☁️',
           'storage': '💾',
           'server': '📦',
-          'layers': '⚙️'
+          'layers': '⚙️',
+          'auth': '🔐',
+          'search': '🔍',
+          'notification': '🔔',
+          'logging': '📝',
+          'dns': '📡',
+          'monitoring': '📊'
         };
         
         // Draw rounded rectangle background
@@ -619,9 +651,11 @@ const SimpleCanvas: React.FC<{
       
       // Icon mapping
       const iconEmojis: Record<string, string> = {
-        'network': '🔀', 'globe': '🌐', 'shield': '🛡️', 'database': '🗄️',
-        'cpu': '⚡', 'message': '📨', 'cloud': '☁️', 'storage': '💾',
-        'server': '📦', 'layers': '⚙️'
+        'client': '💻', 'mobile': '📱', 'network': '🔀', 'globe': '🌐',
+        'shield': '🛡️', 'database': '🗄️', 'cache': '⚡', 'message': '📨',
+        'cloud': '☁️', 'storage': '💾', 'server': '📦', 'layers': '⚙️',
+        'auth': '🔐', 'search': '🔍', 'notification': '🔔', 'logging': '📝',
+        'dns': '📡', 'monitoring': '📊'
       };
       
       ctx.globalAlpha = 0.6;
@@ -1606,7 +1640,7 @@ const SimpleCanvas: React.FC<{
               style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
               onClick={(e) => e.stopPropagation()} // Prevent backdrop click
             >
-              <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
+              <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-3">
                 <textarea
                   ref={textInputRef}
                   value={textInputValue}
@@ -1619,17 +1653,18 @@ const SimpleCanvas: React.FC<{
                     }
                     if (e.key === 'Escape') handleTextCancel();
                   }}
-                  className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] min-h-[60px] resize-none focus:border-blue-500"
-                  placeholder="Type your text here..."
+                  className="bg-slate-700 text-white px-4 py-3 rounded border border-slate-600 outline-none text-sm 
+                           w-[320px] min-h-[120px] resize focus:border-blue-500 leading-relaxed"
+                  placeholder="Type your text here...&#10;Use Shift+Enter for new lines"
                   style={{ color: selectedColor }}
                   autoFocus
-                  rows={3}
+                  rows={5}
                 />
-                <div className="text-xs text-slate-500 mt-1 px-1 flex items-center justify-between">
-                  <span>Enter to {editingTextId ? 'save' : 'add'} • Shift+Enter for newline • Esc to cancel</span>
+                <div className="text-xs text-slate-500 mt-2 px-1 flex items-center justify-between">
+                  <span>Enter to {editingTextId ? 'save' : 'add'} • Shift+Enter newline • Drag corner to resize</span>
                   <button 
                     onClick={handleTextSubmit}
-                    className="text-blue-400 hover:text-blue-300 px-2"
+                    className="text-blue-400 hover:text-blue-300 px-3 py-1 bg-blue-500/10 rounded"
                   >
                     {editingTextId ? 'Save' : 'Add'}
                   </button>
