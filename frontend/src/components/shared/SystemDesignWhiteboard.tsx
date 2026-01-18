@@ -212,6 +212,11 @@ const SimpleCanvas: React.FC<{
     }
   }, [historyIndex, history]);
 
+  // Debug: log when showTextInput changes
+  React.useEffect(() => {
+    console.log('showTextInput changed to:', showTextInput, 'at pos:', textInputScreenPos);
+  }, [showTextInput, textInputScreenPos]);
+
   // Resize canvas to match container
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -647,6 +652,8 @@ const SimpleCanvas: React.FC<{
     const pos = getMousePos(e);
     const screenPos = getScreenPos(e);
     
+    console.log('handleMouseDown - selectedTool:', selectedTool, 'pos:', pos);
+    
     // If there's a pending component, place it
     if (pendingComponent) {
       const newElement: CanvasElement = {
@@ -672,11 +679,15 @@ const SimpleCanvas: React.FC<{
     
     // Text tool - open text input immediately (priority over handles)
     if (selectedTool === 'text') {
+      console.log('Text tool clicked at:', pos, 'screen:', screenPos);
       setTextInputPos(pos);
       setTextInputScreenPos(screenPos); // Store screen position for overlay
       setTextInputValue('');
       setShowTextInput(true);
-      setTimeout(() => textInputRef.current?.focus(), 10);
+      setTimeout(() => {
+        console.log('Focusing text input, ref:', textInputRef.current);
+        textInputRef.current?.focus();
+      }, 10);
       return;
     }
     
@@ -1195,7 +1206,7 @@ const SimpleCanvas: React.FC<{
         {/* Text Input Overlay */}
         {showTextInput && (
           <div
-            className="absolute z-50"
+            className="absolute z-50 pointer-events-auto"
             style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
           >
             <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
