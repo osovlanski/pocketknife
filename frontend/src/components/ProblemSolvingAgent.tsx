@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
 import logger from '../services/logger';
@@ -496,280 +498,141 @@ func main() {
   };
 
   /**
-   * Clean text by removing markdown markers and trimming
-   */
-  const cleanMarkdown = (text: string): string => {
-    return text
-      .replace(/\*\*/g, '')      // Remove bold markers
-      .replace(/^\*\s*$/g, '')   // Remove lone asterisks
-      .replace(/^\*\s+/g, '')    // Remove leading asterisk + space
-      .replace(/\s+\*$/g, '')    // Remove trailing asterisk
-      .replace(/^-{2,}$/g, '')   // Remove horizontal rules (---, ----, etc.)
-      .replace(/^_{2,}$/g, '')   // Remove horizontal rules (___, ____, etc.)
-      .replace(/^={2,}$/g, '')   // Remove horizontal rules (===, ====, etc.)
-      .replace(/^[●•]\s*/g, '')  // Remove bullet markers at start
-      .trim();
-  };
-
-  /**
-   * Render inline formatting (code, bold, italic)
-   */
-  const renderText = (text: string, key: string): React.ReactNode => {
-    if (!text) return null;
-    
-    const elements: React.ReactNode[] = [];
-    let remaining = text;
-    let idx = 0;
-
-    while (remaining.length > 0) {
-      // Find the earliest match of any pattern
-      const patterns = [
-        { regex: /`([^`]+)`/, type: 'code' },
-        { regex: /\*\*([^*]+)\*\*/, type: 'bold' },
-        { regex: /(?<!\*)\*([^*]+)\*(?!\*)/, type: 'italic' },
-      ];
-
-      let earliest: { index: number; length: number; content: string; type: string } | null = null;
-
-      for (const { regex, type } of patterns) {
-        const match = remaining.match(regex);
-        if (match && match.index !== undefined) {
-          if (!earliest || match.index < earliest.index) {
-            earliest = { index: match.index, length: match[0].length, content: match[1], type };
-          }
-        }
-      }
-
-      if (!earliest) {
-        elements.push(<span key={`${key}-${idx++}`}>{remaining}</span>);
-        break;
-      }
-
-      // Add text before match
-      if (earliest.index > 0) {
-        elements.push(<span key={`${key}-${idx++}`}>{remaining.slice(0, earliest.index)}</span>);
-      }
-
-      // Add formatted element
-      if (earliest.type === 'code') {
-        elements.push(
-          <code key={`${key}-${idx++}`} className="bg-slate-700/60 text-emerald-300 px-1.5 py-0.5 rounded text-xs font-mono">
-            {earliest.content}
-          </code>
-        );
-      } else if (earliest.type === 'bold') {
-        elements.push(
-          <strong key={`${key}-${idx++}`} className="text-white font-semibold">
-            {earliest.content}
-          </strong>
-        );
-      } else if (earliest.type === 'italic') {
-        elements.push(
-          <em key={`${key}-${idx++}`} className="text-slate-300 italic">
-            {earliest.content}
-          </em>
-        );
-      }
-
-      remaining = remaining.slice(earliest.index + earliest.length);
-    }
-
-    return elements.length === 1 ? elements[0] : elements;
-  };
-
-  /**
-   * Parse and format problem description using section-based approach
-   * This handles inconsistent newlines and markdown formatting
+   * Format problem description using react-markdown
+   * This is a robust, scalable solution that properly parses all markdown syntax
    */
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    const elements: React.ReactNode[] = [];
-    let elementIndex = 0;
-
-    // Normalize the text: replace multiple spaces/newlines, trim
-    let text = description
+    // Pre-process: clean up any HTML artifacts and normalize whitespace
+    const cleanedDescription = description
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
 
-    // Extract main description (before first Example)
-    const firstExampleMatch = text.match(/\*?\*?Example\s*\d*:?\*?\*/i);
-    if (firstExampleMatch && firstExampleMatch.index !== undefined && firstExampleMatch.index > 0) {
-      const mainDesc = text.slice(0, firstExampleMatch.index).trim();
-      if (mainDesc) {
-        // Split main description into paragraphs
-        mainDesc.split(/\n\n+/).forEach((para, i) => {
-          const cleanPara = para.replace(/\n/g, ' ').trim();
-          if (cleanPara) {
-            elements.push(
-              <p key={`desc-${i}`} className="text-slate-200 text-sm leading-relaxed mb-3">
-                {renderText(cleanMarkdown(cleanPara), `desc-${i}`)}
-              </p>
-            );
-          }
-        });
-      }
-      text = text.slice(firstExampleMatch.index);
-    }
-
-    // Split by Example sections (handles **Example 1:** or Example 1:)
-    const exampleSections = text.split(/(?=\*?\*?Example\s*\d*:?\*?\*?)/i).filter(s => s.trim());
-
-    exampleSections.forEach((section, sectionIdx) => {
-      const lines = section.split('\n').map(l => l.trim()).filter(l => l && cleanMarkdown(l));
-      
-      // Track context: after Output, remaining lines are explanation content
-      let afterOutput = false;
-      let explanationLines: string[] = [];
-      
-      const flushExplanation = (key: string) => {
-        if (explanationLines.length > 0) {
-          elements.push(
-            <div key={key} className="my-2 ml-2 pl-3 border-l-2 border-slate-600 bg-slate-800/30 py-2 rounded-r">
-              <div className="text-slate-400 text-xs space-y-1">
-                {explanationLines.map((expLine, i) => (
-                  <p key={`${key}-exp-${i}`} className="leading-relaxed">
-                    {i === 0 && <span className="mr-1">💬</span>}
-                    {renderText(expLine, `${key}-exp-${i}`)}
-                  </p>
-                ))}
-              </div>
-            </div>
-          );
-          explanationLines = [];
-        }
-      };
-      
-      lines.forEach((line, lineIdx) => {
-        const cleanedLine = cleanMarkdown(line);
-        const cleanLine = cleanedLine.toLowerCase();
-        const key = `sec-${sectionIdx}-${lineIdx}`;
-
-        // Skip empty, marker-only, or separator lines
-        if (!cleanedLine || cleanedLine === '*' || cleanedLine === '●' || /^[-_=•]{1,}$/.test(cleanedLine)) {
-          return;
-        }
-
-        // Example header - flush any pending explanation
-        if (cleanLine.match(/^example\s*\d*:?$/i)) {
-          flushExplanation(`${key}-pre`);
-          afterOutput = false;
-          elements.push(
-            <div key={key} className="mt-5 mb-2 pb-1 border-b border-cyan-500/30">
-              <span className="text-cyan-400 font-bold text-sm flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
-                {cleanedLine}
-              </span>
-            </div>
-          );
-          return;
-        }
-
-        // Input line
-        if (cleanLine.startsWith('input:')) {
-          flushExplanation(`${key}-pre`);
-          afterOutput = false;
-          const value = cleanedLine.replace(/^input:\s*/i, '');
-          elements.push(
-            <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
-              <span className="text-green-400 font-semibold text-xs min-w-[55px]">Input:</span>
-              <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
-                {value}
-              </code>
-            </div>
-          );
-          return;
-        }
-
-        // Output line
-        if (cleanLine.startsWith('output:')) {
-          flushExplanation(`${key}-pre`);
-          afterOutput = true; // Lines after output are explanation
-          const value = cleanedLine.replace(/^output:\s*/i, '');
-          elements.push(
-            <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
-              <span className="text-blue-400 font-semibold text-xs min-w-[55px]">Output:</span>
-              <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
-                {value}
-              </code>
-            </div>
-          );
-          return;
-        }
-
-        // Explicit Explanation line
-        if (cleanLine.startsWith('explanation:')) {
-          afterOutput = true;
-          const value = cleanedLine.replace(/^explanation:\s*/i, '');
-          if (value) {
-            explanationLines.push(value);
-          }
-          return;
-        }
-
-        // Constraints header - flush explanation and reset context
-        if (cleanLine.match(/^constraints:?$/i)) {
-          flushExplanation(`${key}-pre`);
-          afterOutput = false;
-          elements.push(
-            <div key={key} className="mt-5 mb-2 pb-1 border-b border-amber-500/30">
-              <span className="text-amber-400 font-bold text-sm flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
-                Constraints
-              </span>
-            </div>
-          );
-          return;
-        }
-
-        // Constraint item (bullet point with comparison operators)
-        if (cleanLine.match(/^[-•]\s/) || cleanLine.match(/^\d+\s*[<>=≤≥]/) || cleanLine.match(/[<>=≤≥]/)) {
-          flushExplanation(`${key}-pre`);
-          afterOutput = false;
-          const content = cleanedLine.replace(/^[-•]\s*/, '');
-          elements.push(
-            <div key={key} className="flex items-center gap-2 my-1 ml-4">
-              <span className="text-amber-500 text-xs">⚡</span>
-              <code className="text-amber-200/90 text-xs font-mono">{content}</code>
-            </div>
-          );
-          return;
-        }
-
-        // Content after Output = explanation continuation
-        if (afterOutput && cleanedLine.length > 0) {
-          explanationLines.push(cleanedLine);
-          return;
-        }
-
-        // Regular text (before any example structure)
-        if (cleanedLine.length > 0 && !cleanLine.match(/^example\s*\d/i)) {
-          elements.push(
-            <p key={key} className="text-slate-300 text-xs leading-relaxed ml-2 my-1">
-              {renderText(cleanedLine, key)}
-            </p>
+    // Custom components for styled markdown rendering
+    const markdownComponents = {
+      // Headings
+      h1: ({ children }: { children?: React.ReactNode }) => (
+        <h1 className="text-lg font-bold text-white mb-3">{children}</h1>
+      ),
+      h2: ({ children }: { children?: React.ReactNode }) => (
+        <h2 className="text-base font-bold text-cyan-400 mt-4 mb-2 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
+          {children}
+        </h2>
+      ),
+      h3: ({ children }: { children?: React.ReactNode }) => (
+        <h3 className="text-sm font-semibold text-amber-400 mt-3 mb-1">{children}</h3>
+      ),
+      // Paragraphs
+      p: ({ children }: { children?: React.ReactNode }) => (
+        <p className="text-slate-200 text-sm leading-relaxed mb-2">{children}</p>
+      ),
+      // Strong/Bold
+      strong: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '').toLowerCase();
+        // Style "Example X:", "Input:", "Output:", "Explanation:", "Constraints:" specially
+        if (text.match(/^example\s*\d*:?$/i)) {
+          return (
+            <span className="text-cyan-400 font-bold text-sm flex items-center gap-2 mt-4 mb-2 pb-1 border-b border-cyan-500/30">
+              <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
+              {children}
+            </span>
           );
         }
-      });
-      
-      // Flush any remaining explanation at end of section
-      flushExplanation(`sec-${sectionIdx}-final`);
-    });
-
-    // Handle case where there are no examples (pure constraints or simple description)
-    if (elements.length === 0) {
-      const lines = text.split('\n').filter(l => l.trim());
-      lines.forEach((line, i) => {
-        elements.push(
-          <p key={`fallback-${i}`} className="text-slate-200 text-sm leading-relaxed mb-2">
-            {renderText(cleanMarkdown(line), `fallback-${i}`)}
-          </p>
+        if (text === 'input:') {
+          return <span className="text-green-400 font-semibold">{children}</span>;
+        }
+        if (text === 'output:') {
+          return <span className="text-blue-400 font-semibold">{children}</span>;
+        }
+        if (text === 'explanation:') {
+          return <span className="text-slate-400 font-semibold">💬 {children}</span>;
+        }
+        if (text.match(/^constraints:?$/i)) {
+          return (
+            <span className="text-amber-400 font-bold text-sm flex items-center gap-2 mt-4 mb-2 pb-1 border-b border-amber-500/30">
+              <span className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
+              {children}
+            </span>
+          );
+        }
+        return <strong className="text-white font-semibold">{children}</strong>;
+      },
+      // Emphasis/Italic
+      em: ({ children }: { children?: React.ReactNode }) => (
+        <em className="text-slate-300 italic">{children}</em>
+      ),
+      // Inline code
+      code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+        // Check if it's a code block (has language class) or inline code
+        const isCodeBlock = className?.startsWith('language-');
+        if (isCodeBlock) {
+          return (
+            <code className="block bg-slate-900 text-green-300 p-3 rounded-lg font-mono text-xs overflow-x-auto my-2">
+              {children}
+            </code>
+          );
+        }
+        return (
+          <code className="bg-slate-700/60 text-emerald-300 px-1.5 py-0.5 rounded text-xs font-mono">
+            {children}
+          </code>
         );
-      });
-    }
+      },
+      // Code blocks
+      pre: ({ children }: { children?: React.ReactNode }) => (
+        <pre className="bg-slate-900 border border-slate-700 rounded-lg p-3 my-2 overflow-x-auto text-xs">
+          {children}
+        </pre>
+      ),
+      // Lists
+      ul: ({ children }: { children?: React.ReactNode }) => (
+        <ul className="list-disc list-inside space-y-1 my-2 ml-2 text-slate-300 text-sm">{children}</ul>
+      ),
+      ol: ({ children }: { children?: React.ReactNode }) => (
+        <ol className="list-decimal list-inside space-y-1 my-2 ml-2 text-slate-300 text-sm">{children}</ol>
+      ),
+      li: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '');
+        // Constraint items with comparison operators
+        if (text.match(/[<>=≤≥]/) || text.match(/^\d+\s*[<>=]/)) {
+          return (
+            <li className="flex items-center gap-2 my-1">
+              <span className="text-amber-500 text-xs">⚡</span>
+              <code className="text-amber-200/90 text-xs font-mono">{children}</code>
+            </li>
+          );
+        }
+        return <li className="text-slate-300">{children}</li>;
+      },
+      // Horizontal rules
+      hr: () => <hr className="border-slate-700 my-4" />,
+      // Blockquotes (for explanations)
+      blockquote: ({ children }: { children?: React.ReactNode }) => (
+        <blockquote className="border-l-2 border-slate-600 bg-slate-800/30 pl-3 py-2 my-2 rounded-r text-slate-400 text-xs italic">
+          {children}
+        </blockquote>
+      ),
+      // Links
+      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+        <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+          {children}
+        </a>
+      ),
+    };
 
-    return <div className="space-y-1">{elements}</div>;
+    return (
+      <div className="prose prose-invert prose-sm max-w-none">
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={markdownComponents}
+        >
+          {cleanedDescription}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   // Extract test cases from problem examples
