@@ -101,7 +101,7 @@ const DIYAgent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generate' | 'projects' | 'ideas'>('generate');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
+  const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced' | ''>('');
   const [budgetMin, setBudgetMin] = useState<number | undefined>();
   const [budgetMax, setBudgetMax] = useState<number | undefined>();
   const [timeAvailable, setTimeAvailable] = useState<number | undefined>();
@@ -141,7 +141,7 @@ const DIYAgent: React.FC = () => {
     await diy.handleGenerate({
       description,
       category: category || undefined,
-      skillLevel,
+      skillLevel: skillLevel || undefined,
       budget: effectiveBudget,
       budgetMin,
       budgetMax,
@@ -244,6 +244,7 @@ const DIYAgent: React.FC = () => {
                     onChange={(e) => setSkillLevel(e.target.value as any)}
                     className={styles.selectInput}
                   >
+                    <option value="">Auto-detect</option>
                     {SKILL_LEVELS.map(level => (
                       <option key={level.id} value={level.id}>
                         {level.label}
