@@ -91,6 +91,8 @@ export interface DIYProjectRequest {
   description: string;
   category?: string;
   budget?: number;
+  budgetMin?: number;
+  budgetMax?: number;
   currency?: string;
   skillLevel?: 'beginner' | 'intermediate' | 'advanced';
   timeAvailable?: number;

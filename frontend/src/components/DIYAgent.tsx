@@ -102,22 +102,49 @@ const DIYAgent: React.FC = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
-  const [budget, setBudget] = useState<number | undefined>();
+  const [budgetMin, setBudgetMin] = useState<number | undefined>();
+  const [budgetMax, setBudgetMax] = useState<number | undefined>();
   const [timeAvailable, setTimeAvailable] = useState<number | undefined>();
+  const [selectedTimePreset, setSelectedTimePreset] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([1]));
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [ideaQuery, setIdeaQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<'easy' | 'medium' | 'hard' | null>(null);
+  
+  // Time presets for quick selection
+  const TIME_PRESETS = [
+    { id: '1h', label: '~1 hour', value: 1 },
+    { id: '2-4h', label: '2-4 hours', value: 3 },
+    { id: 'half-day', label: 'Half day', value: 5 },
+    { id: 'full-day', label: 'Full day', value: 8 },
+    { id: 'weekend', label: 'Weekend', value: 16 },
+    { id: 'multi-day', label: 'Multi-day', value: 24 },
+  ];
+
+  const handleTimePresetClick = (presetId: string, value: number) => {
+    if (selectedTimePreset === presetId) {
+      setSelectedTimePreset(null);
+      setTimeAvailable(undefined);
+    } else {
+      setSelectedTimePreset(presetId);
+      setTimeAvailable(value);
+    }
+  };
 
   // Handlers
   const handleGenerate = useCallback(async () => {
     if (!description.trim()) return;
     
+    // Use budgetMax as the budget constraint if set, otherwise budgetMin
+    const effectiveBudget = budgetMax || budgetMin;
+    
     await diy.handleGenerate({
       description,
       category: category || undefined,
       skillLevel,
-      budget,
+      budget: effectiveBudget,
+      budgetMin,
+      budgetMax,
       timeAvailable,
       currency: 'USD'
     });
@@ -125,7 +152,7 @@ const DIYAgent: React.FC = () => {
     // Reset step states for new project
     setExpandedSteps(new Set([1]));
     setCompletedSteps(new Set());
-  }, [diy, description, category, skillLevel, budget, timeAvailable]);
+  }, [diy, description, category, skillLevel, budgetMin, budgetMax, timeAvailable]);
 
   const handleToggleStep = (stepNum: number) => {
     setExpandedSteps(prev => {
@@ -226,27 +253,62 @@ const DIYAgent: React.FC = () => {
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label htmlFor="budget">Budget (USD)</label>
-                  <input
-                    id="budget"
-                    type="number"
-                    placeholder="Optional"
-                    value={budget || ''}
-                    onChange={(e) => setBudget(e.target.value ? Number(e.target.value) : undefined)}
-                    className={styles.numberInput}
-                  />
+                  <label>Budget Range (USD)</label>
+                  <div className={styles.rangeInputs}>
+                    <input
+                      id="budgetMin"
+                      type="number"
+                      placeholder="Min"
+                      min="0"
+                      value={budgetMin || ''}
+                      onChange={(e) => setBudgetMin(e.target.value ? Number(e.target.value) : undefined)}
+                      className={styles.rangeInput}
+                      aria-label="Minimum budget"
+                    />
+                    <span className={styles.rangeSeparator}>to</span>
+                    <input
+                      id="budgetMax"
+                      type="number"
+                      placeholder="Max"
+                      min="0"
+                      value={budgetMax || ''}
+                      onChange={(e) => setBudgetMax(e.target.value ? Number(e.target.value) : undefined)}
+                      className={styles.rangeInput}
+                      aria-label="Maximum budget"
+                    />
+                  </div>
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label htmlFor="time">Time Available (hours)</label>
-                  <input
-                    id="time"
-                    type="number"
-                    placeholder="Optional"
-                    value={timeAvailable || ''}
-                    onChange={(e) => setTimeAvailable(e.target.value ? Number(e.target.value) : undefined)}
-                    className={styles.numberInput}
-                  />
+                  <label>Time Available</label>
+                  <div className={styles.timePresets}>
+                    {TIME_PRESETS.map(preset => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleTimePresetClick(preset.id, preset.value)}
+                        className={`${styles.timePresetButton} ${selectedTimePreset === preset.id ? styles.active : ''}`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.customTimeInput}>
+                    <input
+                      id="time"
+                      type="number"
+                      placeholder="Or enter custom hours"
+                      min="0.5"
+                      step="0.5"
+                      value={selectedTimePreset ? '' : (timeAvailable || '')}
+                      onChange={(e) => {
+                        setSelectedTimePreset(null);
+                        setTimeAvailable(e.target.value ? Number(e.target.value) : undefined);
+                      }}
+                      className={styles.numberInput}
+                      aria-label="Custom time in hours"
+                    />
+                  </div>
                 </div>
               </div>
 
