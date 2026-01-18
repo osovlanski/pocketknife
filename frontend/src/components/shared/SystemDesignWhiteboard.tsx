@@ -420,36 +420,35 @@ const SimpleCanvas: React.FC<{
       }
     }
 
-    // Draw connection handles on all rect/ellipse elements (when in select mode)
-    if (selectedTool === 'select') {
-      elements.forEach(el => {
-        if (el.type !== 'rect' && el.type !== 'ellipse') return;
+    // Draw connection handles on all rect/ellipse elements (always visible for easy arrow creation)
+    // This mimics draw.io/Miro behavior where you can always drag from handles to create connections
+    elements.forEach(el => {
+      if (el.type !== 'rect' && el.type !== 'ellipse') return;
+      
+      const width = el.width || 130;
+      const height = el.height || 70;
+      const handles = [
+        { x: el.x + width / 2, y: el.y },           // top
+        { x: el.x + width, y: el.y + height / 2 },  // right
+        { x: el.x + width / 2, y: el.y + height },  // bottom
+        { x: el.x, y: el.y + height / 2 }           // left
+      ];
+      
+      ctx.setLineDash([]);
+      handles.forEach(h => {
+        // Outer circle (border)
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 8, 0, Math.PI * 2);
+        ctx.fill();
         
-        const width = el.width || 130;
-        const height = el.height || 70;
-        const handles = [
-          { x: el.x + width / 2, y: el.y },           // top
-          { x: el.x + width, y: el.y + height / 2 },  // right
-          { x: el.x + width / 2, y: el.y + height },  // bottom
-          { x: el.x, y: el.y + height / 2 }           // left
-        ];
-        
-        ctx.setLineDash([]);
-        handles.forEach(h => {
-          // Outer circle (border)
-          ctx.fillStyle = '#1e293b';
-          ctx.beginPath();
-          ctx.arc(h.x, h.y, 7, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Inner circle
-          ctx.fillStyle = '#00d4ff';
-          ctx.beginPath();
-          ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
-          ctx.fill();
-        });
+        // Inner circle - cyan color
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
+        ctx.fill();
       });
-    }
+    });
 
     // Draw connection preview while dragging
     if (isDrawingConnection && connectionStart && connectionEnd) {
@@ -650,8 +649,9 @@ const SimpleCanvas: React.FC<{
     }
     
     // Check if clicking on a connection handle (to start drawing an arrow)
+    // Works with any tool - allows quick arrow creation from handles
     const handle = getHandleAtPosition(pos.x, pos.y);
-    if (handle && selectedTool === 'select') {
+    if (handle) {
       setIsDrawingConnection(true);
       setConnectionStart({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
       setConnectionEnd(pos);
@@ -1063,7 +1063,7 @@ const SimpleCanvas: React.FC<{
         </button>
       </div>
 
-      {/* Component Templates Bar - Now renders instruction when pending */}
+      {/* Instruction banners for different modes */}
       {pendingComponent && (
         <div className="flex items-center justify-center gap-2 p-2 bg-cyan-500/20 border-b border-cyan-500/30">
           <span className="text-sm text-cyan-300 font-medium">
@@ -1075,6 +1075,22 @@ const SimpleCanvas: React.FC<{
           >
             Cancel
           </button>
+        </div>
+      )}
+      
+      {/* Text tool instruction */}
+      {selectedTool === 'text' && !showTextInput && !pendingComponent && (
+        <div className="flex items-center justify-center gap-2 p-2 bg-purple-500/20 border-b border-purple-500/30">
+          <span className="text-sm text-purple-300 font-medium">
+            📝 Click anywhere on the canvas to add text
+          </span>
+        </div>
+      )}
+      
+      {/* Connection hint */}
+      {!pendingComponent && selectedTool !== 'text' && (
+        <div className="flex items-center justify-center gap-1 py-1 bg-slate-800/50 border-b border-white/5 text-xs text-slate-500">
+          <span>💡 Drag from the cyan dots on components to create arrows</span>
         </div>
       )}
 

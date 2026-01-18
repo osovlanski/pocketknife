@@ -509,30 +509,59 @@ func main() {
     // We need to convert this to structured markdown with proper line breaks
     const preprocessDescription = (text: string): string => {
       let result = text
+        // Decode HTML entities first
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
         // Normalize line endings
         .replace(/\r\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      // Convert **Example X:** to ## heading with line break after
-      result = result.replace(/\*\*Example\s*(\d+):?\*\*/gi, '\n\n## 💡 Example $1\n');
+      // STEP 1: Extract and format Examples
+      // Match patterns like "Example 1:" or "**Example 1:**" (with or without bold markers)
+      result = result.replace(/\*?\*?Example\s*(\d+):?\*?\*?/gi, '\n\n---EXAMPLE_$1---\n');
       
-      // Convert **Constraints:** to ## heading
-      result = result.replace(/\*\*Constraints:?\*\*/gi, '\n\n## 📋 Constraints\n');
+      // STEP 2: Extract and format Constraints
+      result = result.replace(/\*?\*?Constraints:?\*?\*?/gi, '\n\n---CONSTRAINTS---\n');
       
-      // Force line breaks before **Input:**, **Output:**, **Explanation:**
-      result = result.replace(/\s*\*\*Input:?\*\*\s*/gi, '\n\n**Input:** ');
-      result = result.replace(/\s*\*\*Output:?\*\*\s*/gi, '\n\n**Output:** ');
-      result = result.replace(/\s*\*\*Explanation:?\*\*\s*/gi, '\n\n> **Explanation:** ');
+      // STEP 3: Format Input/Output/Explanation with proper line breaks
+      // Handle both **Input:** and Input: patterns
+      result = result.replace(/\s*\*?\*?Input:?\*?\*?\s*/gi, '\n\n**🔹 Input:** ');
+      result = result.replace(/\s*\*?\*?Output:?\*?\*?\s*/gi, '\n\n**🔸 Output:** ');
+      result = result.replace(/\s*\*?\*?Explanation:?\*?\*?\s*/gi, '\n\n**💬 Explanation:** ');
       
-      // Clean up: normalize multiple newlines but preserve structure
+      // STEP 4: Now convert our markers to proper styled sections
+      result = result.replace(/---EXAMPLE_(\d+)---/g, '### 💡 Example $1');
+      result = result.replace(/---CONSTRAINTS---/g, '### ⚡ Constraints');
+      
+      // STEP 5: Format constraint items with bullet points
+      // Look for constraint patterns like "1 <= nums.length <= 10^5"
+      // Split after Constraints heading and add bullets to each line
+      const constraintsMatch = result.match(/(### ⚡ Constraints[\s\S]*?)($|### |$)/);
+      if (constraintsMatch) {
+        const constraintsSection = constraintsMatch[1];
+        const formattedConstraints = constraintsSection
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            // Skip the heading and empty lines
+            if (trimmed.startsWith('###') || !trimmed) return line;
+            // Add bullet if it's a constraint (contains comparison operators or digits)
+            if (trimmed.match(/[<>=≤≥]/) || trimmed.match(/^\d/) || trimmed.match(/^-?\d/)) {
+              return `- ⚡ ${trimmed}`;
+            }
+            return line;
+          })
+          .join('\n');
+        result = result.replace(constraintsSection, formattedConstraints);
+      }
+      
+      // Clean up: normalize multiple newlines
       result = result.replace(/\n{3,}/g, '\n\n');
-      
-      // Ensure constraint list items are on separate lines
-      // Look for patterns like "1 <= nums.length" and ensure they're on their own line
-      result = result.replace(/([.。])\s*(\d+\s*[<>=≤≥])/g, '$1\n\n- $2');
-      result = result.replace(/\n(\d+\s*[<>=≤≥])/g, '\n- $1');
-      result = result.replace(/\n(-?\d+\s*[<>=≤≥])/g, '\n- $1');
       
       return result.trim();
     };
@@ -568,9 +597,26 @@ func main() {
           <h2 className="text-base font-bold text-white mt-4 mb-2">{children}</h2>
         );
       },
-      h3: ({ children }: { children?: React.ReactNode }) => (
-        <h3 className="text-sm font-semibold text-slate-300 mt-3 mb-1">{children}</h3>
-      ),
+      h3: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '');
+        // Example headers
+        if (text.includes('Example')) {
+          return (
+            <h3 className="text-sm font-bold text-cyan-400 mt-5 mb-2 pb-1 border-b border-cyan-500/30">
+              {children}
+            </h3>
+          );
+        }
+        // Constraints header
+        if (text.includes('Constraints')) {
+          return (
+            <h3 className="text-sm font-bold text-amber-400 mt-5 mb-2 pb-1 border-b border-amber-500/30">
+              {children}
+            </h3>
+          );
+        }
+        return <h3 className="text-sm font-semibold text-slate-300 mt-3 mb-1">{children}</h3>;
+      },
       // Paragraphs - check for Input/Output content patterns
       p: ({ children }: { children?: React.ReactNode }) => {
         const text = String(children || '');
@@ -588,14 +634,17 @@ func main() {
       strong: ({ children }: { children?: React.ReactNode }) => {
         const text = String(children || '').toLowerCase().trim();
         
-        if (text === 'input:') {
-          return <span className="text-green-400 font-semibold text-xs">{children}</span>;
+        // Input with icon
+        if (text.includes('input')) {
+          return <span className="text-green-400 font-semibold text-xs inline-block mb-1">{children}</span>;
         }
-        if (text === 'output:') {
-          return <span className="text-blue-400 font-semibold text-xs">{children}</span>;
+        // Output with icon  
+        if (text.includes('output')) {
+          return <span className="text-blue-400 font-semibold text-xs inline-block mb-1">{children}</span>;
         }
-        if (text === 'explanation:') {
-          return <span className="text-slate-400 font-semibold text-xs">💬 Explanation:</span>;
+        // Explanation with icon
+        if (text.includes('explanation')) {
+          return <span className="text-slate-400 font-semibold text-xs inline-block mb-1">{children}</span>;
         }
         return <strong className="text-white font-semibold">{children}</strong>;
       },
@@ -635,12 +684,11 @@ func main() {
       ),
       li: ({ children }: { children?: React.ReactNode }) => {
         const text = String(children || '');
-        // Constraint items with comparison operators
-        if (text.match(/[<>=≤≥]/) || text.match(/^\d+\s*[<>=]/)) {
+        // Constraint items - already prefixed with ⚡ in preprocessing
+        if (text.includes('⚡') || text.match(/[<>=≤≥]/) || text.match(/^\d+\s*[<>=]/)) {
           return (
-            <li className="flex items-center gap-2 my-1">
-              <span className="text-amber-500 text-xs">⚡</span>
-              <code className="text-amber-200/90 text-xs font-mono">{children}</code>
+            <li className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1 list-none">
+              {children}
             </li>
           );
         }
