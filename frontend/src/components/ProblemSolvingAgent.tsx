@@ -504,11 +504,40 @@ func main() {
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    // Pre-process: clean up any HTML artifacts and normalize whitespace
-    const cleanedDescription = description
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+    // Pre-process: Convert LeetCode's non-standard format to proper markdown
+    // LeetCode uses: **Example 1:** **Input:** nums = [...] all on one line
+    // We need to convert this to structured markdown with proper line breaks
+    const preprocessDescription = (text: string): string => {
+      let result = text
+        // Normalize line endings
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      // Convert **Example X:** to ## heading with line break after
+      result = result.replace(/\*\*Example\s*(\d+):?\*\*/gi, '\n\n## 💡 Example $1\n');
+      
+      // Convert **Constraints:** to ## heading
+      result = result.replace(/\*\*Constraints:?\*\*/gi, '\n\n## 📋 Constraints\n');
+      
+      // Force line breaks before **Input:**, **Output:**, **Explanation:**
+      result = result.replace(/\s*\*\*Input:?\*\*\s*/gi, '\n\n**Input:** ');
+      result = result.replace(/\s*\*\*Output:?\*\*\s*/gi, '\n\n**Output:** ');
+      result = result.replace(/\s*\*\*Explanation:?\*\*\s*/gi, '\n\n> **Explanation:** ');
+      
+      // Clean up: normalize multiple newlines but preserve structure
+      result = result.replace(/\n{3,}/g, '\n\n');
+      
+      // Ensure constraint list items are on separate lines
+      // Look for patterns like "1 <= nums.length" and ensure they're on their own line
+      result = result.replace(/([.。])\s*(\d+\s*[<>=≤≥])/g, '$1\n\n- $2');
+      result = result.replace(/\n(\d+\s*[<>=≤≥])/g, '\n- $1');
+      result = result.replace(/\n(-?\d+\s*[<>=≤≥])/g, '\n- $1');
+      
+      return result.trim();
+    };
+
+    const cleanedDescription = preprocessDescription(description);
 
     // Custom components for styled markdown rendering
     const markdownComponents = {
@@ -516,47 +545,57 @@ func main() {
       h1: ({ children }: { children?: React.ReactNode }) => (
         <h1 className="text-lg font-bold text-white mb-3">{children}</h1>
       ),
-      h2: ({ children }: { children?: React.ReactNode }) => (
-        <h2 className="text-base font-bold text-cyan-400 mt-4 mb-2 flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
-          {children}
-        </h2>
-      ),
-      h3: ({ children }: { children?: React.ReactNode }) => (
-        <h3 className="text-sm font-semibold text-amber-400 mt-3 mb-1">{children}</h3>
-      ),
-      // Paragraphs
-      p: ({ children }: { children?: React.ReactNode }) => (
-        <p className="text-slate-200 text-sm leading-relaxed mb-2">{children}</p>
-      ),
-      // Strong/Bold
-      strong: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '').toLowerCase();
-        // Style "Example X:", "Input:", "Output:", "Explanation:", "Constraints:" specially
-        if (text.match(/^example\s*\d*:?$/i)) {
+      h2: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '');
+        // Check if it's an Example or Constraints heading
+        if (text.includes('Example')) {
           return (
-            <span className="text-cyan-400 font-bold text-sm flex items-center gap-2 mt-4 mb-2 pb-1 border-b border-cyan-500/30">
-              <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
-              {children}
-            </span>
+            <h2 className="text-sm font-bold text-cyan-400 mt-5 mb-2 pb-1 border-b border-cyan-500/30 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
+              <span>{text.replace(/💡\s*/, '')}</span>
+            </h2>
           );
         }
+        if (text.includes('Constraint')) {
+          return (
+            <h2 className="text-sm font-bold text-amber-400 mt-5 mb-2 pb-1 border-b border-amber-500/30 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
+              <span>{text.replace(/📋\s*/, '')}</span>
+            </h2>
+          );
+        }
+        return (
+          <h2 className="text-base font-bold text-white mt-4 mb-2">{children}</h2>
+        );
+      },
+      h3: ({ children }: { children?: React.ReactNode }) => (
+        <h3 className="text-sm font-semibold text-slate-300 mt-3 mb-1">{children}</h3>
+      ),
+      // Paragraphs - check for Input/Output content patterns
+      p: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '');
+        // Check if this is an Input/Output line with code-like content
+        if (text.match(/^\s*(Input:|Output:)/i) || text.match(/^\s*\[.*\]/) || text.match(/^\s*\d+$/) || text.match(/=\s*\[/)) {
+          return (
+            <p className="text-slate-200 text-xs leading-relaxed mb-1 ml-2 font-mono bg-slate-800/30 px-2 py-1 rounded">
+              {children}
+            </p>
+          );
+        }
+        return <p className="text-slate-200 text-sm leading-relaxed mb-2">{children}</p>;
+      },
+      // Strong/Bold - Style Input:/Output:/Explanation: labels
+      strong: ({ children }: { children?: React.ReactNode }) => {
+        const text = String(children || '').toLowerCase().trim();
+        
         if (text === 'input:') {
-          return <span className="text-green-400 font-semibold">{children}</span>;
+          return <span className="text-green-400 font-semibold text-xs">{children}</span>;
         }
         if (text === 'output:') {
-          return <span className="text-blue-400 font-semibold">{children}</span>;
+          return <span className="text-blue-400 font-semibold text-xs">{children}</span>;
         }
         if (text === 'explanation:') {
-          return <span className="text-slate-400 font-semibold">💬 {children}</span>;
-        }
-        if (text.match(/^constraints:?$/i)) {
-          return (
-            <span className="text-amber-400 font-bold text-sm flex items-center gap-2 mt-4 mb-2 pb-1 border-b border-amber-500/30">
-              <span className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
-              {children}
-            </span>
-          );
+          return <span className="text-slate-400 font-semibold text-xs">💬 Explanation:</span>;
         }
         return <strong className="text-white font-semibold">{children}</strong>;
       },
@@ -609,9 +648,9 @@ func main() {
       },
       // Horizontal rules
       hr: () => <hr className="border-slate-700 my-4" />,
-      // Blockquotes (for explanations)
+      // Blockquotes (used for explanations)
       blockquote: ({ children }: { children?: React.ReactNode }) => (
-        <blockquote className="border-l-2 border-slate-600 bg-slate-800/30 pl-3 py-2 my-2 rounded-r text-slate-400 text-xs italic">
+        <blockquote className="border-l-2 border-slate-500 bg-slate-800/40 pl-3 py-2 my-2 rounded-r text-slate-300 text-xs">
           {children}
         </blockquote>
       ),
