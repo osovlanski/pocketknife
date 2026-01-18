@@ -495,237 +495,228 @@ func main() {
     setHasUnsavedChanges(true);
   };
 
-  // Helper to render inline markdown (bold, italic, code)
-  const renderInlineMarkdown = (text: string, keyPrefix: string): React.ReactNode => {
-    const parts: React.ReactNode[] = [];
-    let remaining = text;
-    let partIndex = 0;
-
-    // Process inline code first (backticks)
-    const processText = (input: string): React.ReactNode[] => {
-      const result: React.ReactNode[] = [];
-      let current = input;
-      let idx = 0;
-
-      while (current.length > 0) {
-        // Match inline code
-        const codeMatch = current.match(/`([^`]+)`/);
-        // Match bold
-        const boldMatch = current.match(/\*\*([^*]+)\*\*/);
-        // Match italic (single *)
-        const italicMatch = current.match(/(?<!\*)\*([^*]+)\*(?!\*)/);
-
-        // Find earliest match
-        const matches = [
-          codeMatch ? { type: 'code', match: codeMatch, index: current.indexOf(codeMatch[0]) } : null,
-          boldMatch ? { type: 'bold', match: boldMatch, index: current.indexOf(boldMatch[0]) } : null,
-          italicMatch ? { type: 'italic', match: italicMatch, index: current.indexOf(italicMatch[0]) } : null,
-        ].filter(Boolean).sort((a, b) => a!.index - b!.index);
-
-        if (matches.length === 0 || matches[0]!.index === -1) {
-          if (current.length > 0) {
-            result.push(<span key={`${keyPrefix}-text-${idx++}`}>{current}</span>);
-          }
-          break;
-        }
-
-        const firstMatch = matches[0]!;
-        
-        // Add text before match
-        if (firstMatch.index > 0) {
-          result.push(<span key={`${keyPrefix}-text-${idx++}`}>{current.slice(0, firstMatch.index)}</span>);
-        }
-
-        // Add formatted element
-        if (firstMatch.type === 'code') {
-          result.push(
-            <code key={`${keyPrefix}-code-${idx++}`} className="bg-slate-700/50 text-pink-300 px-1.5 py-0.5 rounded text-xs font-mono">
-              {firstMatch.match[1]}
-            </code>
-          );
-        } else if (firstMatch.type === 'bold') {
-          result.push(
-            <strong key={`${keyPrefix}-bold-${idx++}`} className="text-white font-semibold">
-              {firstMatch.match[1]}
-            </strong>
-          );
-        } else if (firstMatch.type === 'italic') {
-          result.push(
-            <em key={`${keyPrefix}-italic-${idx++}`} className="text-slate-300 italic">
-              {firstMatch.match[1]}
-            </em>
-          );
-        }
-
-        current = current.slice(firstMatch.index + firstMatch.match[0].length);
-      }
-
-      return result;
-    };
-
-    return processText(text);
+  /**
+   * Clean text by removing markdown bold markers and trimming
+   */
+  const cleanMarkdown = (text: string): string => {
+    return text.replace(/\*\*/g, '').trim();
   };
 
-  // Format problem description with better styling
+  /**
+   * Render inline formatting (code, bold, italic)
+   */
+  const renderText = (text: string, key: string): React.ReactNode => {
+    if (!text) return null;
+    
+    const elements: React.ReactNode[] = [];
+    let remaining = text;
+    let idx = 0;
+
+    while (remaining.length > 0) {
+      // Find the earliest match of any pattern
+      const patterns = [
+        { regex: /`([^`]+)`/, type: 'code' },
+        { regex: /\*\*([^*]+)\*\*/, type: 'bold' },
+        { regex: /(?<!\*)\*([^*]+)\*(?!\*)/, type: 'italic' },
+      ];
+
+      let earliest: { index: number; length: number; content: string; type: string } | null = null;
+
+      for (const { regex, type } of patterns) {
+        const match = remaining.match(regex);
+        if (match && match.index !== undefined) {
+          if (!earliest || match.index < earliest.index) {
+            earliest = { index: match.index, length: match[0].length, content: match[1], type };
+          }
+        }
+      }
+
+      if (!earliest) {
+        elements.push(<span key={`${key}-${idx++}`}>{remaining}</span>);
+        break;
+      }
+
+      // Add text before match
+      if (earliest.index > 0) {
+        elements.push(<span key={`${key}-${idx++}`}>{remaining.slice(0, earliest.index)}</span>);
+      }
+
+      // Add formatted element
+      if (earliest.type === 'code') {
+        elements.push(
+          <code key={`${key}-${idx++}`} className="bg-slate-700/60 text-emerald-300 px-1.5 py-0.5 rounded text-xs font-mono">
+            {earliest.content}
+          </code>
+        );
+      } else if (earliest.type === 'bold') {
+        elements.push(
+          <strong key={`${key}-${idx++}`} className="text-white font-semibold">
+            {earliest.content}
+          </strong>
+        );
+      } else if (earliest.type === 'italic') {
+        elements.push(
+          <em key={`${key}-${idx++}`} className="text-slate-300 italic">
+            {earliest.content}
+          </em>
+        );
+      }
+
+      remaining = remaining.slice(earliest.index + earliest.length);
+    }
+
+    return elements.length === 1 ? elements[0] : elements;
+  };
+
+  /**
+   * Parse and format problem description using section-based approach
+   * This handles inconsistent newlines and markdown formatting
+   */
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    // Split by common patterns and format
-    const lines = description.split('\n');
     const elements: React.ReactNode[] = [];
-    let currentList: string[] = [];
-    let isInCodeBlock = false;
-    let codeBlockContent: string[] = [];
+    let elementIndex = 0;
 
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-      // Strip ALL markdown bold markers for pattern matching (e.g., **Input:** value → Input: value)
-      const cleanLine = trimmedLine.replace(/\*\*/g, '');
-      const cleanLineLower = cleanLine.toLowerCase();
-      
-      // Handle code blocks (```)
-      if (trimmedLine.startsWith('```')) {
-        if (isInCodeBlock) {
-          // End code block
-          elements.push(
-            <pre key={`code-block-${index}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3 my-2 overflow-x-auto">
-              <code className="text-green-300 text-xs font-mono whitespace-pre">
-                {codeBlockContent.join('\n')}
-              </code>
-            </pre>
-          );
-          codeBlockContent = [];
-          isInCodeBlock = false;
-        } else {
-          // Start code block
-          isInCodeBlock = true;
-        }
-        return;
-      }
+    // Normalize the text: replace multiple spaces/newlines, trim
+    let text = description
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
-      if (isInCodeBlock) {
-        codeBlockContent.push(line);
-        return;
+    // Extract main description (before first Example)
+    const firstExampleMatch = text.match(/\*?\*?Example\s*\d*:?\*?\*/i);
+    if (firstExampleMatch && firstExampleMatch.index !== undefined && firstExampleMatch.index > 0) {
+      const mainDesc = text.slice(0, firstExampleMatch.index).trim();
+      if (mainDesc) {
+        // Split main description into paragraphs
+        mainDesc.split(/\n\n+/).forEach((para, i) => {
+          const cleanPara = para.replace(/\n/g, ' ').trim();
+          if (cleanPara) {
+            elements.push(
+              <p key={`desc-${i}`} className="text-slate-200 text-sm leading-relaxed mb-3">
+                {renderText(cleanMarkdown(cleanPara), `desc-${i}`)}
+              </p>
+            );
+          }
+        });
       }
-      
-      // Detect example sections (handles both "Example 1:" and "**Example 1:**")
-      if (cleanLineLower.startsWith('example') || cleanLine.match(/^example\s*\d*:?/i)) {
-        if (currentList.length > 0) {
-          elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
-            </ul>
-          );
-          currentList = [];
-        }
-        elements.push(
-          <div key={`example-header-${index}`} className="mt-4 mb-2 flex items-center gap-2">
-            <span className="text-cyan-400 font-semibold text-sm">💡 {cleanLine}</span>
-          </div>
-        );
-        return;
-      }
-
-      // Detect Input/Output in examples (handles both "Input:" and "**Input:**")
-      if (cleanLineLower.startsWith('input:')) {
-        // Extract value from original line, removing markdown and label
-        const value = trimmedLine.replace(/^\*\*Input:\*\*\s*/i, '').replace(/^Input:\s*/i, '');
-        elements.push(
-          <div key={`input-${index}`} className="bg-slate-800/60 border-l-2 border-green-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-green-400 font-semibold">Input: </span>
-            <span className="text-slate-200">{renderInlineMarkdown(value, `input-val-${index}`)}</span>
-          </div>
-        );
-        return;
-      }
-
-      if (cleanLineLower.startsWith('output:')) {
-        const value = trimmedLine.replace(/^\*\*Output:\*\*\s*/i, '').replace(/^Output:\s*/i, '');
-        elements.push(
-          <div key={`output-${index}`} className="bg-slate-800/60 border-l-2 border-blue-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-blue-400 font-semibold">Output: </span>
-            <span className="text-slate-200">{renderInlineMarkdown(value, `output-val-${index}`)}</span>
-          </div>
-        );
-        return;
-      }
-
-      if (cleanLineLower.startsWith('explanation:')) {
-        const value = trimmedLine.replace(/^\*\*Explanation:\*\*\s*/i, '').replace(/^Explanation:\s*/i, '');
-        elements.push(
-          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-3 border-l-2 border-slate-500 bg-slate-800/30 py-1 rounded-r">
-            💬 {renderInlineMarkdown(value, `expl-val-${index}`)}
-          </div>
-        );
-        return;
-      }
-
-      // Detect constraints section (handles both "Constraints:" and "**Constraints:**")
-      if (cleanLineLower.startsWith('constraints:') || cleanLineLower === 'constraints') {
-        if (currentList.length > 0) {
-          elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
-            </ul>
-          );
-          currentList = [];
-        }
-        elements.push(
-          <div key={`constraints-header-${index}`} className="mt-4 mb-2">
-            <span className="text-amber-400 font-semibold text-sm">📋 Constraints</span>
-          </div>
-        );
-        return;
-      }
-
-      // Detect bullet points or numbered lists
-      if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\.\s/)) {
-        // Use original line for content, stripping bullet/number prefix
-        const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
-        const cleanContent = cleanLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
-        // Check if it's a constraint (contains comparison operators)
-        if (cleanContent.match(/[<>≤≥]/) || cleanContent.match(/\d+\s*(<=|>=|<|>|==)/) || cleanContent.match(/^\d+\s*[<>=]/)) {
-          elements.push(
-            <div key={`constraint-${index}`} className="bg-slate-800/40 border border-slate-700/50 rounded px-3 py-1 my-1 font-mono text-xs text-amber-200">
-              ⚡ {renderInlineMarkdown(content, `constraint-${index}`)}
-            </div>
-          );
-        } else {
-          currentList.push(content);
-        }
-        return;
-      }
-
-      // Regular paragraph - render with inline markdown support (use trimmedLine to preserve markdown)
-      if (cleanLine.length > 0) {
-        if (currentList.length > 0) {
-          elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-              {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-${index}-${i}`)}</li>)}
-            </ul>
-          );
-          currentList = [];
-        }
-        elements.push(
-          <p key={`para-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
-            {renderInlineMarkdown(trimmedLine, `para-${index}`)}
-          </p>
-        );
-      }
-    });
-
-    // Flush remaining list items
-    if (currentList.length > 0) {
-      elements.push(
-        <ul key="list-final" className="list-disc list-inside space-y-1 my-2 text-slate-300">
-          {currentList.map((item, i) => <li key={i}>{renderInlineMarkdown(item, `li-final-${i}`)}</li>)}
-        </ul>
-      );
+      text = text.slice(firstExampleMatch.index);
     }
 
-    return elements.length > 0 ? elements : (
-      <p className="text-slate-200 text-sm leading-relaxed">{description}</p>
-    );
+    // Split by Example sections (handles **Example 1:** or Example 1:)
+    const exampleSections = text.split(/(?=\*?\*?Example\s*\d*:?\*?\*?)/i).filter(s => s.trim());
+
+    exampleSections.forEach((section, sectionIdx) => {
+      const lines = section.split('\n').map(l => l.trim()).filter(l => l);
+      
+      lines.forEach((line, lineIdx) => {
+        const cleanLine = cleanMarkdown(line).toLowerCase();
+        const key = `sec-${sectionIdx}-${lineIdx}`;
+
+        // Example header
+        if (cleanLine.match(/^example\s*\d*:?$/i)) {
+          elements.push(
+            <div key={key} className="mt-5 mb-2 pb-1 border-b border-cyan-500/30">
+              <span className="text-cyan-400 font-bold text-sm flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
+                {cleanMarkdown(line)}
+              </span>
+            </div>
+          );
+          return;
+        }
+
+        // Input line
+        if (cleanLine.startsWith('input:')) {
+          const value = line.replace(/^\*?\*?Input:\*?\*?\s*/i, '');
+          elements.push(
+            <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
+              <span className="text-green-400 font-semibold text-xs min-w-[50px]">Input:</span>
+              <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
+                {cleanMarkdown(value)}
+              </code>
+            </div>
+          );
+          return;
+        }
+
+        // Output line
+        if (cleanLine.startsWith('output:')) {
+          const value = line.replace(/^\*?\*?Output:\*?\*?\s*/i, '');
+          elements.push(
+            <div key={key} className="flex items-start gap-2 my-1.5 ml-2">
+              <span className="text-blue-400 font-semibold text-xs min-w-[50px]">Output:</span>
+              <code className="text-slate-200 text-xs font-mono bg-slate-800/50 px-2 py-1 rounded flex-1">
+                {cleanMarkdown(value)}
+              </code>
+            </div>
+          );
+          return;
+        }
+
+        // Explanation line
+        if (cleanLine.startsWith('explanation:')) {
+          const value = line.replace(/^\*?\*?Explanation:\*?\*?\s*/i, '');
+          elements.push(
+            <div key={key} className="my-1.5 ml-2 pl-3 border-l-2 border-slate-600 bg-slate-800/30 py-1.5 rounded-r">
+              <span className="text-slate-400 text-xs italic">
+                💬 {renderText(cleanMarkdown(value), key)}
+              </span>
+            </div>
+          );
+          return;
+        }
+
+        // Constraints header
+        if (cleanLine.match(/^constraints:?$/i)) {
+          elements.push(
+            <div key={key} className="mt-5 mb-2 pb-1 border-b border-amber-500/30">
+              <span className="text-amber-400 font-bold text-sm flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
+                Constraints
+              </span>
+            </div>
+          );
+          return;
+        }
+
+        // Constraint item (bullet point with comparison operators)
+        if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\s*[<>=≤≥]/)) {
+          const content = cleanMarkdown(line).replace(/^[-•*]\s*/, '');
+          elements.push(
+            <div key={key} className="flex items-center gap-2 my-1 ml-4">
+              <span className="text-amber-500 text-xs">⚡</span>
+              <code className="text-amber-200/90 text-xs font-mono">{content}</code>
+            </div>
+          );
+          return;
+        }
+
+        // Regular text (explanation continuation or other content)
+        if (cleanLine.length > 0 && !cleanLine.match(/^example\s*\d/i)) {
+          elements.push(
+            <p key={key} className="text-slate-300 text-xs leading-relaxed ml-2 my-1">
+              {renderText(cleanMarkdown(line), key)}
+            </p>
+          );
+        }
+      });
+    });
+
+    // Handle case where there are no examples (pure constraints or simple description)
+    if (elements.length === 0) {
+      const lines = text.split('\n').filter(l => l.trim());
+      lines.forEach((line, i) => {
+        elements.push(
+          <p key={`fallback-${i}`} className="text-slate-200 text-sm leading-relaxed mb-2">
+            {renderText(cleanMarkdown(line), `fallback-${i}`)}
+          </p>
+        );
+      });
+    }
+
+    return <div className="space-y-1">{elements}</div>;
   };
 
   // Extract test cases from problem examples
