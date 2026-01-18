@@ -57,6 +57,9 @@ export interface UseCookingReturn {
   handleAddListItem: (listId: string, item: { name: string; quantity?: number; unit?: string }) => Promise<void>;
   handleToggleListItem: (itemId: string, isChecked: boolean) => Promise<void>;
   handleCompleteList: (listId: string) => Promise<void>;
+  handleDeleteList: (listId: string) => Promise<void>;
+  handleDeleteListItem: (listId: string, itemId: string) => Promise<void>;
+  handleGenerateList: (params: { prompt?: string; fromLowStock?: boolean; fromExpiring?: boolean }) => Promise<void>;
 
   // Recipe actions
   handleFindRecipes: (params?: RecipeSearchParams) => Promise<void>;
@@ -304,6 +307,42 @@ export const useCooking = (): UseCookingReturn => {
     }
   }, []);
 
+  const handleDeleteList = useCallback(async (listId: string) => {
+    try {
+      await cookingApi.deleteList(listId);
+      await loadLists();
+    } catch (error) {
+      logger.error('Failed to delete list', { error });
+      alert('Failed to delete list. Please try again.');
+    }
+  }, []);
+
+  const handleDeleteListItem = useCallback(async (listId: string, itemId: string) => {
+    try {
+      await cookingApi.deleteListItem(listId, itemId);
+      await loadLists();
+    } catch (error) {
+      logger.error('Failed to delete list item', { error });
+    }
+  }, []);
+
+  const handleGenerateList = useCallback(async (params: { 
+    prompt?: string; 
+    fromLowStock?: boolean; 
+    fromExpiring?: boolean 
+  }) => {
+    try {
+      setLoading(true);
+      await cookingApi.generateShoppingList(params);
+      await loadLists();
+    } catch (error) {
+      logger.error('Failed to generate shopping list', { error });
+      alert('Failed to generate shopping list. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // ==========================================================================
   // RECIPE ACTIONS
   // ==========================================================================
@@ -394,6 +433,9 @@ export const useCooking = (): UseCookingReturn => {
     handleAddListItem,
     handleToggleListItem,
     handleCompleteList,
+    handleDeleteList,
+    handleDeleteListItem,
+    handleGenerateList,
 
     // Recipe actions
     handleFindRecipes,

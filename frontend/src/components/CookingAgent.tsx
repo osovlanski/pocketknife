@@ -376,9 +376,13 @@ interface ShoppingListCardProps {
   list: ShoppingList;
   onToggleItem: (itemId: string, isChecked: boolean) => void;
   onComplete: (listId: string) => void;
+  onDeleteList: (listId: string) => void;
+  onDeleteItem: (listId: string, itemId: string) => void;
 }
 
-const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onToggleItem, onComplete }) => {
+const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ 
+  list, onToggleItem, onComplete, onDeleteList, onDeleteItem 
+}) => {
   const checkedCount = list.items.filter((i) => i.isChecked).length;
   const progress = list.items.length > 0 ? (checkedCount / list.items.length) * 100 : 0;
 
@@ -386,9 +390,18 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onToggleItem,
     <div className={styles.listCard}>
       <div className={styles.listHeader}>
         <h3 className={styles.listName}>{list.name}</h3>
-        <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-          {checkedCount}/{list.items.length} items
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+            {checkedCount}/{list.items.length} items
+          </span>
+          <button
+            className={`${styles.itemActionButton} ${styles.itemActionButtonDanger}`}
+            onClick={() => onDeleteList(list.id)}
+            title="Delete list"
+          >
+            <Trash2 className={styles.iconSmall} />
+          </button>
+        </div>
       </div>
 
       {list.items.length > 0 && (
@@ -414,6 +427,13 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onToggleItem,
             <span className={styles.listItemQuantity}>
               {item.quantity} {item.unit || 'pcs'}
             </span>
+            <button
+              className={styles.listItemDelete}
+              onClick={() => onDeleteItem(list.id, item.id)}
+              title="Remove item"
+            >
+              ×
+            </button>
           </div>
         ))}
       </div>
@@ -440,6 +460,10 @@ const CookingAgent: React.FC = () => {
   const cooking = useCooking();
   const [recipeSearchMode, setRecipeSearchMode] = useState<'available' | 'custom'>('available');
   const [customIngredients, setCustomIngredients] = useState('');
+  const [showGenerateList, setShowGenerateList] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState('');
+  const [generateFromLowStock, setGenerateFromLowStock] = useState(true);
+  const [generateFromExpiring, setGenerateFromExpiring] = useState(true);
 
   const handleRecipeSearch = () => {
     if (recipeSearchMode === 'available') {
@@ -637,13 +661,20 @@ const CookingAgent: React.FC = () => {
               <Plus className={styles.icon} />
               New List
             </button>
+            <button
+              className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+              onClick={() => setShowGenerateList(true)}
+            >
+              <Star className={styles.icon} />
+              Smart Generate
+            </button>
           </div>
 
           {cooking.lists.length === 0 ? (
             <div className={styles.emptyState}>
               <List className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No shopping lists</p>
-              <p className={styles.emptyHint}>Create a new shopping list to plan your next trip!</p>
+              <p className={styles.emptyHint}>Create a new shopping list or let AI generate one for you!</p>
             </div>
           ) : (
             <div className={styles.listsContainer}>
@@ -653,6 +684,8 @@ const CookingAgent: React.FC = () => {
                   list={list}
                   onToggleItem={cooking.handleToggleListItem}
                   onComplete={cooking.handleCompleteList}
+                  onDeleteList={cooking.handleDeleteList}
+                  onDeleteItem={cooking.handleDeleteListItem}
                 />
               ))}
             </div>
@@ -804,6 +837,72 @@ const CookingAgent: React.FC = () => {
                 className={`${styles.modalButton} ${styles.modalButtonPrimary}`}
               >
                 Create List
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generate List Modal */}
+      {showGenerateList && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>🪄 Smart Generate Shopping List</h3>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Describe what you need (optional)</label>
+              <textarea
+                className={styles.formInput}
+                style={{ minHeight: '80px', resize: 'vertical' }}
+                placeholder="e.g., I'm planning a BBQ for 10 people, or I want to make Italian food this week..."
+                value={generatePrompt}
+                onChange={(e) => setGeneratePrompt(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Auto-add items based on:</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={generateFromLowStock}
+                    onChange={(e) => setGenerateFromLowStock(e.target.checked)}
+                  />
+                  <span>🔴 Low stock items ({cooking.lowStockItems.length} items)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={generateFromExpiring}
+                    onChange={(e) => setGenerateFromExpiring(e.target.checked)}
+                  />
+                  <span>⏰ Replace expiring items ({cooking.expiringItems.length} items)</span>
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                onClick={() => setShowGenerateList(false)}
+                className={`${styles.modalButton} ${styles.modalButtonSecondary}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await cooking.handleGenerateList({
+                    prompt: generatePrompt || undefined,
+                    fromLowStock: generateFromLowStock,
+                    fromExpiring: generateFromExpiring
+                  });
+                  setShowGenerateList(false);
+                  setGeneratePrompt('');
+                }}
+                className={`${styles.modalButton} ${styles.modalButtonPrimary}`}
+                disabled={cooking.loading}
+              >
+                {cooking.loading ? 'Generating...' : 'Generate List'}
               </button>
             </div>
           </div>

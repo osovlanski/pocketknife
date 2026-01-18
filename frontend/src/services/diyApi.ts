@@ -84,6 +84,7 @@ export interface DIYIdea {
   whyItsAwesome?: string;
   tags?: string[];
   source: string;
+  imageUrl?: string;
 }
 
 export interface DIYProjectRequest {

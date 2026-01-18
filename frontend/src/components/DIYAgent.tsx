@@ -9,7 +9,7 @@ import React, { useState, useCallback } from 'react';
 import { 
   Wrench, Search, Lightbulb, FolderOpen, ShoppingCart,
   Loader2, ChevronDown, ChevronUp, AlertTriangle, Check,
-  Clock, DollarSign, Star, ExternalLink, Play, Pause
+  Clock, DollarSign, Star, ExternalLink, Play, Pause, X, Image as ImageIcon
 } from 'lucide-react';
 import useDIY from '../hooks/useDIY';
 import { DIY_CATEGORIES, SKILL_LEVELS, DIFFICULTY_COLORS, DIYProject, DIYStep } from '../services/diyApi';
@@ -250,23 +250,36 @@ const DIYAgent: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={handleGenerate}
-                disabled={!description.trim() || diy.generating}
-                className={styles.generateButton}
-              >
-                {diy.generating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating Instructions...
-                  </>
-                ) : (
-                  <>
-                    <Wrench className="w-5 h-5" />
-                    Generate DIY Instructions
-                  </>
+              <div className={styles.buttonRow}>
+                <button
+                  onClick={handleGenerate}
+                  disabled={!description.trim() || diy.generating}
+                  className={styles.generateButton}
+                >
+                  {diy.generating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Generating Instructions...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="w-5 h-5" />
+                      Generate DIY Instructions
+                    </>
+                  )}
+                </button>
+                
+                {diy.generating && (
+                  <button
+                    onClick={diy.handleCancelGenerate}
+                    className={styles.cancelButton}
+                    aria-label="Cancel generation"
+                  >
+                    <X className="w-5 h-5" />
+                    Cancel
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
 
             {/* Generated Project */}
@@ -573,6 +586,23 @@ const DIYAgent: React.FC = () => {
                     tabIndex={0}
                     role="button"
                   >
+                    {/* Idea Image */}
+                    <div className={styles.ideaImageContainer}>
+                      {idea.imageUrl ? (
+                        <img 
+                          src={idea.imageUrl} 
+                          alt={idea.title}
+                          className={styles.ideaImage}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove(styles.hidden);
+                          }}
+                        />
+                      ) : null}
+                      <div className={`${styles.ideaImagePlaceholder} ${idea.imageUrl ? styles.hidden : ''}`}>
+                        <ImageIcon className="w-8 h-8" />
+                      </div>
+                    </div>
                     <div className={styles.cardHeader}>
                       <span 
                         className={styles.difficultyBadge}

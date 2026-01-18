@@ -178,8 +178,11 @@ class ProductAggregatorService {
       scoredProducts = this.scoreDealsBatchWithAlgorithm(allProducts);
     }
 
+    // Filter by query relevance
+    const relevantProducts = this.filterByQueryRelevance(scoredProducts, query);
+
     // Sort products
-    const sortedProducts = this.sortProducts(scoredProducts, sortBy);
+    const sortedProducts = this.sortProducts(relevantProducts, sortBy);
 
     // Deduplicate by title similarity
     const uniqueProducts = this.deduplicateProducts(sortedProducts);
@@ -447,6 +450,81 @@ Respond ONLY with valid JSON:
       logger.warn('AI deal scoring failed, falling back to algorithm');
       return this.scoreDealsBatchWithAlgorithm(products);
     }
+  }
+
+  /**
+   * Filter products by query relevance to avoid search-result mismatches
+   */
+  private filterByQueryRelevance(products: UnifiedProduct[], query: string): UnifiedProduct[] {
+    if (!query || products.length === 0) return products;
+
+    const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    
+    if (queryWords.length === 0) return products;
+
+    // Score each product by relevance
+    const scoredProducts = products.map(product => {
+      let relevanceScore = 0;
+      const title = product.title.toLowerCase();
+      const description = (product.description || '').toLowerCase();
+      const category = (product.category || '').toLowerCase();
+      const tags = (product.tags || []).map(t => t.toLowerCase());
+
+      for (const word of queryWords) {
+        // Title matches are most important
+        if (title.includes(word)) {
+          relevanceScore += 10;
+          // Exact word match bonus
+          if (title.split(/\s+/).includes(word)) {
+            relevanceScore += 5;
+          }
+        }
+        
+        // Description matches
+        if (description.includes(word)) {
+          relevanceScore += 3;
+        }
+        
+        // Category matches
+        if (category.includes(word)) {
+          relevanceScore += 5;
+        }
+        
+        // Tag matches
+        if (tags.some(tag => tag.includes(word))) {
+          relevanceScore += 4;
+        }
+      }
+
+      // Normalize by query length
+      const normalizedScore = relevanceScore / queryWords.length;
+      
+      return { product, relevanceScore: normalizedScore };
+    });
+
+    // Filter out products with low relevance (less than 3 points per query word)
+    // This threshold ensures at least some meaningful match
+    const relevantProducts = scoredProducts
+      .filter(sp => sp.relevanceScore >= 3)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .map(sp => sp.product);
+
+    // If too aggressive filtering removed everything, return top 50% by score
+    if (relevantProducts.length === 0 && products.length > 0) {
+      logger.warn('Relevance filter too strict, relaxing threshold', { query });
+      return scoredProducts
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .slice(0, Math.ceil(products.length / 2))
+        .map(sp => sp.product);
+    }
+
+    logger.info('Filtered products by relevance', { 
+      query,
+      original: products.length, 
+      filtered: relevantProducts.length 
+    });
+
+    return relevantProducts;
   }
 
   /**

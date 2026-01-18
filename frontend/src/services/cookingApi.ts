@@ -203,6 +203,24 @@ export const completeList = async (listId: string): Promise<{ list: ShoppingList
   return response.data;
 };
 
+export const deleteList = async (listId: string): Promise<void> => {
+  await cookingAxios.delete(`/cooking/lists/${listId}`);
+};
+
+export const deleteListItem = async (listId: string, itemId: string): Promise<void> => {
+  await cookingAxios.delete(`/cooking/lists/${listId}/items/${itemId}`);
+};
+
+export const generateShoppingList = async (params: {
+  prompt?: string;
+  fromLowStock?: boolean;
+  fromExpiring?: boolean;
+  forRecipeIds?: string[];
+}): Promise<{ list: ShoppingList }> => {
+  const response = await cookingAxios.post('/cooking/lists/generate', params);
+  return response.data;
+};
+
 // =============================================================================
 // RECIPES
 // =============================================================================

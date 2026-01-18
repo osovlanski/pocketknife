@@ -31,6 +31,7 @@ export interface UseDIYReturn {
   
   // Actions
   handleGenerate: (request: DIYProjectRequest) => Promise<DIYProject | null>;
+  handleCancelGenerate: () => void;
   handleGetProject: (id: string) => Promise<void>;
   handleGetProjects: (options?: { status?: string; category?: string }) => Promise<void>;
   handleSaveProject: (project: DIYProject) => Promise<string | null>;
@@ -68,6 +69,7 @@ export const useDIY = (): UseDIYReturn => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generateCancelled, setGenerateCancelled] = useState(false);
   const [loadingFeatured, setLoadingFeatured] = useState(false);
   const [loadingInspiration, setLoadingInspiration] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,18 +91,36 @@ export const useDIY = (): UseDIYReturn => {
   const handleGenerate = useCallback(async (request: DIYProjectRequest): Promise<DIYProject | null> => {
     try {
       setGenerating(true);
+      setGenerateCancelled(false);
       setError(null);
       const result = await diyApi.generateProject(request);
+      
+      // Check if cancelled during request
+      if (generateCancelled) {
+        return null;
+      }
+      
       const project = result.project;
       setCurrentProject(project);
       return project;
     } catch (err: any) {
-      setError(err.message || 'Failed to generate project');
-      logger.error('Generate project failed', { error: err });
+      // Don't show error if cancelled
+      if (!generateCancelled) {
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to generate project. Please try again.';
+        setError(errorMessage);
+        logger.error('Generate project failed', { error: err });
+      }
       return null;
     } finally {
       setGenerating(false);
     }
+  }, [generateCancelled]);
+
+  // Cancel generation
+  const handleCancelGenerate = useCallback(() => {
+    setGenerateCancelled(true);
+    setGenerating(false);
+    setError(null);
   }, []);
 
   // Get specific project
@@ -296,6 +316,7 @@ export const useDIY = (): UseDIYReturn => {
     loadingInspiration,
     error,
     handleGenerate,
+    handleCancelGenerate,
     handleGetProject,
     handleGetProjects,
     handleSaveProject,
