@@ -114,7 +114,7 @@ class SystemDesignEvaluationService {
   }
 
   /**
-   * Parse elements JSON to extract components and connections
+   * Parse elements JSON to extract components and connections with spatial relationships
    */
   private parseElementsJSON(jsonData: string): DiagramElements {
     try {
@@ -124,20 +124,46 @@ class SystemDesignEvaluationService {
       const components: string[] = [];
       const labels: string[] = [];
       const connections: { from: string; to: string }[] = [];
+      
+      // Store rectangles with positions for connection analysis
+      const rects: { id: string; label: string; x: number; y: number; width: number; height: number }[] = [];
 
       elements.forEach((el: any) => {
         if (el.type === 'rect') {
           const label = el.text || 'Unknown Component';
           components.push(label);
           labels.push(label);
+          rects.push({
+            id: el.id,
+            label,
+            x: el.x,
+            y: el.y,
+            width: el.width || 130,
+            height: el.height || 70
+          });
+        }
+        if (el.type === 'ellipse') {
+          const label = el.text || 'Component';
+          components.push(label);
+          labels.push(label);
         }
         if (el.type === 'text' && el.text) {
           labels.push(el.text);
         }
-        if (el.type === 'arrow') {
+        if (el.type === 'arrow' || el.type === 'line') {
+          // Try to find which components this arrow connects
+          const startX = el.x;
+          const startY = el.y;
+          const endX = el.width || el.x + 100;
+          const endY = el.height || el.y;
+          
+          // Find nearest component to start and end points
+          const fromComp = this.findNearestComponent(startX, startY, rects);
+          const toComp = this.findNearestComponent(endX, endY, rects);
+          
           connections.push({
-            from: 'Component',
-            to: 'Component'
+            from: fromComp || 'Source',
+            to: toComp || 'Destination'
           });
         }
       });
@@ -149,6 +175,27 @@ class SystemDesignEvaluationService {
   }
 
   /**
+   * Find the nearest component to a given point
+   */
+  private findNearestComponent(x: number, y: number, rects: { label: string; x: number; y: number; width: number; height: number }[]): string | null {
+    let nearest: string | null = null;
+    let minDist = Infinity;
+
+    for (const rect of rects) {
+      const centerX = rect.x + rect.width / 2;
+      const centerY = rect.y + rect.height / 2;
+      const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+      
+      if (dist < minDist && dist < 200) { // Max 200px distance
+        minDist = dist;
+        nearest = rect.label;
+      }
+    }
+
+    return nearest;
+  }
+
+  /**
    * Build the evaluation prompt for Claude
    */
   private buildEvaluationPrompt(
@@ -156,6 +203,22 @@ class SystemDesignEvaluationService {
     elements: DiagramElements,
     textAnnotations: string[]
   ): string {
+    // Format connections for better analysis
+    const connectionsList = elements.connections.length > 0
+      ? elements.connections.map((c, i) => `  ${i + 1}. ${c.from} → ${c.to}`).join('\n')
+      : 'No connections detected';
+
+    // Identify common architecture patterns based on components
+    const componentLower = elements.components.map(c => c.toLowerCase());
+    const patterns: string[] = [];
+    if (componentLower.some(c => c.includes('load balancer'))) patterns.push('Load Balancing');
+    if (componentLower.some(c => c.includes('cache') || c.includes('redis'))) patterns.push('Caching Layer');
+    if (componentLower.some(c => c.includes('cdn'))) patterns.push('CDN');
+    if (componentLower.some(c => c.includes('queue') || c.includes('kafka') || c.includes('rabbitmq'))) patterns.push('Message Queue');
+    if (componentLower.some(c => c.includes('database') || c.includes('db'))) patterns.push('Database');
+    if (componentLower.some(c => c.includes('replica') || c.includes('slave'))) patterns.push('Read Replicas');
+    if (componentLower.some(c => c.includes('gateway'))) patterns.push('API Gateway');
+
     return `You are a senior system design interviewer at a top tech company (Google, Amazon, Meta level).
 Evaluate this system design diagram for the following question.
 
@@ -170,26 +233,36 @@ ${question.requirements.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 ${question.constraints ? `## Constraints
 ${question.constraints.map((c, i) => `${i + 1}. ${c}`).join('\n')}` : ''}
 
-## Detected Components (from diagram)
+## Detected Architecture Components (${elements.components.length} total)
 ${elements.components.length > 0 ? elements.components.join(', ') : 'Unable to detect components'}
 
-## Text Labels
-${textAnnotations.length > 0 ? textAnnotations.join(', ') : elements.labels.join(', ') || 'No labels detected'}
+## Identified Patterns
+${patterns.length > 0 ? patterns.join(', ') : 'No common patterns detected'}
 
-## Connections
-${elements.connections.length} connections detected
+## Data Flow Connections (${elements.connections.length} total)
+${connectionsList}
 
-## Evaluation Instructions
+## Text Annotations
+${textAnnotations.length > 0 ? textAnnotations.join(', ') : elements.labels.join(', ') || 'No annotations detected'}
 
-Analyze the system design and provide a comprehensive evaluation. Consider:
+## Evaluation Criteria
 
-1. **Completeness**: Does the design address all requirements?
-2. **Scalability**: Can the system handle increased load? Is it horizontally scalable?
-3. **Reliability**: Are there single points of failure? Is there redundancy?
-4. **Data Consistency**: How is data consistency maintained?
-5. **Performance**: Are there appropriate caching layers? Load balancing?
-6. **Cost Efficiency**: Is the architecture cost-effective?
-7. **Security**: Are there proper security considerations?
+Analyze the system design comprehensively. Score each area from 0-100:
+
+1. **Completeness**: Does the design address all stated requirements?
+2. **Scalability**: Can it handle 10x, 100x load? Horizontal scaling? Sharding?
+3. **Reliability**: Redundancy? No single points of failure? Failover mechanisms?
+4. **Performance**: Caching? Load balancing? Async processing? CDN?
+5. **Data Consistency**: CAP considerations? Strong vs eventual consistency?
+6. **Cost Efficiency**: Over-engineered? Right-sized for requirements?
+7. **Security**: Auth? Encryption? Rate limiting? Input validation?
+
+For EACH missing requirement, dock points. Common components that might be missing:
+- Load Balancer (if handling high traffic)
+- Cache layer (if low latency required)
+- Message Queue (if async processing needed)
+- Read replicas (if read-heavy workload)
+- CDN (if serving static content globally)
 
 Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
 {
@@ -202,7 +275,7 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
   "costEfficiencyScore": <0-100>,
   "feedback": "Overall feedback as a string...",
   "detailedAnalysis": {
-    "dataFlow": "Description of how data flows through the system...",
+    "dataFlow": "Description of how data flows through the system based on the connections...",
     "bottlenecks": ["potential bottleneck 1", "potential bottleneck 2"],
     "singlePointsOfFailure": ["SPOF 1", "SPOF 2"],
     "recommendations": ["recommendation 1", "recommendation 2"]

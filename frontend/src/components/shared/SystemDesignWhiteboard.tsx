@@ -136,9 +136,18 @@ interface CanvasElement {
   fontSize?: number;
 }
 
+// Pending component for drag-and-drop
+interface PendingComponent {
+  template: ComponentTemplate;
+  x: number;
+  y: number;
+}
+
 const SimpleCanvas: React.FC<{
   onElementsChange: (elements: CanvasElement[]) => void;
-}> = ({ onElementsChange }) => {
+  pendingComponent: PendingComponent | null;
+  onPendingComponentPlaced: () => void;
+}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -157,6 +166,14 @@ const SimpleCanvas: React.FC<{
   const [textInputPos, setTextInputPos] = useState({ x: 0, y: 0 });
   const [textInputValue, setTextInputValue] = useState('');
   const textInputRef = useRef<HTMLInputElement>(null);
+  
+  // Selection and dragging state
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // Ghost preview position for pending component
+  const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Save to history when elements change
   const saveToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -379,9 +396,41 @@ const SimpleCanvas: React.FC<{
       ctx.stroke();
     }
 
+    // Draw selection highlight
+    if (selectedElementId) {
+      const selectedEl = elements.find(el => el.id === selectedElementId);
+      if (selectedEl) {
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        if (selectedEl.type === 'rect' || selectedEl.type === 'ellipse' || selectedEl.type === 'text') {
+          const w = selectedEl.width || (selectedEl.type === 'text' ? (selectedEl.text?.length || 0) * 8 : 100);
+          const h = selectedEl.height || (selectedEl.type === 'text' ? 20 : 60);
+          ctx.strokeRect(selectedEl.x - 4, selectedEl.y - 4, w + 8, h + 8);
+        }
+      }
+    }
+
+    // Draw ghost preview for pending component
+    if (pendingComponent && ghostPosition) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = pendingComponent.template.color;
+      ctx.fillRect(ghostPosition.x - 65, ghostPosition.y - 35, 130, 70);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.strokeRect(ghostPosition.x - 65, ghostPosition.y - 35, 130, 70);
+      ctx.fillStyle = '#fff';
+      ctx.font = '13px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pendingComponent.template.name, ghostPosition.x, ghostPosition.y);
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
     onElementsChange(elements);
-  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth]);
+  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition]);
 
   // Get accurate mouse position on canvas
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
@@ -400,8 +449,95 @@ const SimpleCanvas: React.FC<{
     return { x: Math.round(x), y: Math.round(y) };
   };
 
+  // Find element at position (for selection and dragging)
+  const getElementAtPosition = (x: number, y: number): CanvasElement | null => {
+    // Search in reverse order (top elements first)
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      
+      if (el.type === 'rect' || el.type === 'ellipse') {
+        const elWidth = el.width || 100;
+        const elHeight = el.height || 60;
+        if (x >= el.x && x <= el.x + elWidth && y >= el.y && y <= el.y + elHeight) {
+          return el;
+        }
+      } else if (el.type === 'text') {
+        // Approximate text bounds
+        const textWidth = (el.text?.length || 0) * 8;
+        const textHeight = el.fontSize || 16;
+        if (x >= el.x && x <= el.x + textWidth && y >= el.y && y <= el.y + textHeight) {
+          return el;
+        }
+      } else if (el.type === 'arrow' || el.type === 'line') {
+        // Check if near the line
+        const endX = el.width || el.x + 100;
+        const endY = el.height || el.y;
+        const dist = distanceToLine(x, y, el.x, el.y, endX, endY);
+        if (dist < 10) {
+          return el;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Distance from point to line segment
+  const distanceToLine = (px: number, py: number, x1: number, y1: number, x2: number, y2: number): number => {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    if (lenSq !== 0) param = dot / lenSq;
+    let xx, yy;
+    if (param < 0) { xx = x1; yy = y1; }
+    else if (param > 1) { xx = x2; yy = y2; }
+    else { xx = x1 + param * C; yy = y1 + param * D; }
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     const pos = getMousePos(e);
+    
+    // If there's a pending component, place it
+    if (pendingComponent) {
+      const newElement: CanvasElement = {
+        id: `el-${Date.now()}`,
+        type: 'rect',
+        x: pos.x - 65, // Center the component (130/2)
+        y: pos.y - 35, // Center the component (70/2)
+        width: 130,
+        height: 70,
+        color: pendingComponent.template.color,
+        strokeColor: '#fff',
+        strokeWidth: 2,
+        text: pendingComponent.template.name,
+        fontSize: 13
+      };
+      const newElements = [...elements, newElement];
+      setElements(newElements);
+      saveToHistory(newElements);
+      setGhostPosition(null);
+      onPendingComponentPlaced();
+      return;
+    }
+    
+    // Select tool - check if clicking on an element
+    if (selectedTool === 'select') {
+      const clickedElement = getElementAtPosition(pos.x, pos.y);
+      if (clickedElement) {
+        setSelectedElementId(clickedElement.id);
+        setIsDragging(true);
+        setDragOffset({ x: pos.x - clickedElement.x, y: pos.y - clickedElement.y });
+        return;
+      } else {
+        setSelectedElementId(null);
+      }
+    }
     
     if (selectedTool === 'text') {
       setTextInputPos(pos);
@@ -420,13 +556,30 @@ const SimpleCanvas: React.FC<{
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    const pos = getMousePos(e);
+    
+    // Update ghost position for pending component
+    if (pendingComponent) {
+      setGhostPosition(pos);
+      return;
+    }
+    
+    // Handle dragging selected element
+    if (isDragging && selectedElementId) {
+      setElements(prev => prev.map(el => {
+        if (el.id === selectedElementId) {
+          return { ...el, x: pos.x - dragOffset.x, y: pos.y - dragOffset.y };
+        }
+        return el;
+      }));
+      return;
+    }
+    
     if (!isDrawing) return;
     
     if (selectedTool === 'pen') {
-      const pos = getMousePos(e);
       setCurrentPath(prev => [...prev, pos]);
     } else if (selectedTool === 'eraser') {
-      const pos = getMousePos(e);
       // Remove elements near the eraser position
       setElements(prev => prev.filter(el => {
         const centerX = el.x + (el.width || 0) / 2;
@@ -438,6 +591,13 @@ const SimpleCanvas: React.FC<{
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    // Finish dragging
+    if (isDragging) {
+      setIsDragging(false);
+      saveToHistory([...elements]);
+      return;
+    }
+    
     if (!isDrawing) return;
 
     const endPos = getMousePos(e);
@@ -546,24 +706,31 @@ const SimpleCanvas: React.FC<{
     setTextInputValue('');
   };
 
-  const addComponent = (template: ComponentTemplate) => {
-    const newElement: CanvasElement = {
-      id: `el-${Date.now()}`,
-      type: 'rect',
-      x: 100 + Math.random() * 400,
-      y: 100 + Math.random() * 300,
-      width: 130,
-      height: 70,
-      color: template.color,
-      strokeColor: '#fff',
-      strokeWidth: 2,
-      text: template.name,
-      fontSize: 13
+  // Delete selected element
+  const deleteSelected = useCallback(() => {
+    if (selectedElementId) {
+      const newElements = elements.filter(el => el.id !== selectedElementId);
+      setElements(newElements);
+      saveToHistory(newElements);
+      setSelectedElementId(null);
+    }
+  }, [selectedElementId, elements, saveToHistory]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!showTextInput) {
+          deleteSelected();
+        }
+      }
+      if (e.key === 'Escape') {
+        setSelectedElementId(null);
+      }
     };
-    const newElements = [...elements, newElement];
-    setElements(newElements);
-    saveToHistory(newElements);
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelected, showTextInput]);
 
   const clearCanvas = () => {
     saveToHistory([]);
@@ -712,22 +879,20 @@ const SimpleCanvas: React.FC<{
         </button>
       </div>
 
-      {/* Component Templates Bar */}
-      <div className="flex items-center gap-1 p-2 bg-slate-900/50 border-b border-white/5 overflow-x-auto">
-        <span className="text-xs text-slate-500 mr-2 whitespace-nowrap">Components:</span>
-        {COMPONENT_TEMPLATES.map(template => (
+      {/* Component Templates Bar - Now renders instruction when pending */}
+      {pendingComponent && (
+        <div className="flex items-center justify-center gap-2 p-2 bg-cyan-500/20 border-b border-cyan-500/30">
+          <span className="text-sm text-cyan-300 font-medium">
+            👆 Click on the canvas to place: {pendingComponent.template.name}
+          </span>
           <button
-            key={template.name}
-            onClick={() => addComponent(template)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:bg-white/10 transition-colors whitespace-nowrap border border-white/5"
-            style={{ color: template.color }}
-            title={template.description}
+            onClick={onPendingComponentPlaced}
+            className="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10"
           >
-            {template.icon}
-            <span>{template.name}</span>
+            Cancel
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Canvas */}
       <div ref={containerRef} className="flex-1 overflow-hidden relative bg-slate-900">
@@ -736,15 +901,17 @@ const SimpleCanvas: React.FC<{
           width={canvasSize.width}
           height={canvasSize.height}
           className={`absolute inset-0 ${
+            pendingComponent ? 'cursor-copy' :
+            isDragging ? 'cursor-grabbing' :
             selectedTool === 'eraser' ? 'cursor-cell' : 
             selectedTool === 'text' ? 'cursor-text' : 
-            selectedTool === 'select' ? 'cursor-move' : 'cursor-crosshair'
+            selectedTool === 'select' ? 'cursor-grab' : 'cursor-crosshair'
           }`}
           style={{ width: '100%', height: '100%' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={() => setIsDrawing(false)}
+          onMouseLeave={() => { setIsDrawing(false); setGhostPosition(null); }}
         />
         
         {/* Text Input Overlay */}
@@ -791,6 +958,19 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['requirements']));
   const [currentHintIndex, setCurrentHintIndex] = useState(-1);
+  
+  // Pending component for drag-and-drop placement
+  const [pendingComponent, setPendingComponent] = useState<PendingComponent | null>(null);
+
+  // Handle component selection from sidebar
+  const handleComponentSelect = useCallback((template: ComponentTemplate) => {
+    setPendingComponent({ template, x: 0, y: 0 });
+  }, []);
+
+  // Clear pending component (after placement or cancel)
+  const handlePendingComponentPlaced = useCallback(() => {
+    setPendingComponent(null);
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -1032,18 +1212,32 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
               </div>
             )}
 
-            {/* Component Legend */}
+            {/* Component Palette - Drag to Canvas */}
             <div className="bg-white/5 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-slate-300 mb-2">Component Legend</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                🧩 Components
+                <span className="text-xs text-slate-500 font-normal">(Click to place)</span>
+              </h4>
+              <div className="grid grid-cols-1 gap-1.5">
                 {COMPONENT_TEMPLATES.map(template => (
-                  <div key={template.name} className="flex items-center gap-2 text-xs">
+                  <button
+                    key={template.name}
+                    onClick={() => handleComponentSelect(template)}
+                    className={`flex items-center gap-2 text-xs p-2 rounded transition-all hover:bg-white/10 border ${
+                      pendingComponent?.template.name === template.name
+                        ? 'border-cyan-400 bg-cyan-500/20'
+                        : 'border-transparent'
+                    }`}
+                    title={`Click to place: ${template.description}`}
+                  >
                     <div
-                      className="w-3 h-3 rounded"
+                      className="w-4 h-4 rounded flex items-center justify-center text-white"
                       style={{ backgroundColor: template.color }}
-                    />
-                    <span className="text-slate-400">{template.name}</span>
-                  </div>
+                    >
+                      {template.icon}
+                    </div>
+                    <span className="text-slate-300">{template.name}</span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1051,7 +1245,11 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
 
           {/* Right Panel - Whiteboard */}
           <div className="flex-1 flex flex-col">
-            <SimpleCanvas onElementsChange={setCanvasElements} />
+            <SimpleCanvas 
+              onElementsChange={setCanvasElements}
+              pendingComponent={pendingComponent}
+              onPendingComponentPlaced={handlePendingComponentPlaced}
+            />
 
             {/* Actions */}
             <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between">
