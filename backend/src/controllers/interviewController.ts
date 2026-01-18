@@ -7,6 +7,7 @@
 
 import { Request, Response } from 'express';
 import { jobsAgent } from '../agents/JobsAgent';
+import { diagramGenerationService } from '../services/jobs/diagramGenerationService';
 import logger from '../utils/logger';
 
 // Helper for consistent logging
@@ -277,4 +278,37 @@ export const getSystemDesignQuestions = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Generate a system design diagram from a text prompt
+ */
+export const generateSystemDesignDiagram = async (req: Request, res: Response) => {
+  try {
+    const { prompt, questionTitle, questionDescription, requirements, canvasWidth, canvasHeight } = req.body;
+    const io = req.app.get('io');
 
+    if (!prompt || prompt.trim().length === 0) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    emitLog(io, '✨ Generating system design diagram from your description...', 'info');
+
+    const diagram = await diagramGenerationService.generateDiagram({
+      prompt,
+      questionTitle,
+      questionDescription,
+      requirements,
+      canvasWidth,
+      canvasHeight
+    });
+
+    emitLog(io, `✅ Generated diagram with ${diagram.components.length} components and ${diagram.connections.length} connections`, 'success');
+
+    res.json({
+      success: true,
+      diagram
+    });
+  } catch (error: any) {
+    logger.fail('System design diagram generation error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};

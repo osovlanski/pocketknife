@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench } from 'lucide-react';
+import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
 import logger from '../services/logger';
+import styles from '../styles/problems.module.css';
 
 interface CodingProblem {
   id: string;
@@ -494,63 +495,86 @@ func main() {
     setHasUnsavedChanges(true);
   };
 
-  // Format problem description with better styling
+  /**
+   * Format problem description - simple line-by-line approach (proven to work)
+   * This directly builds React elements without relying on markdown parsing
+   */
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
+    // Clean up the description
+    const cleanedText = description
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\*\*/g, '') // Remove markdown bold markers
+      .replace(/```[a-z]*\n?/gi, '') // Remove code block markers
+      .replace(/```/g, '') // Remove remaining code block markers
+      .replace(/\r\n/g, '\n');
+
     // Split by common patterns and format
-    const lines = description.split('\n');
+    const lines = cleanedText.split('\n');
     const elements: React.ReactNode[] = [];
     let currentList: string[] = [];
-    let isInExample = false;
+    let inConstraintsSection = false;
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
       
+      // Skip empty lines
+      if (!trimmedLine) return;
+
       // Detect example sections
-      if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:/i)) {
+      if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:?$/i)) {
+        inConstraintsSection = false; // Reset constraints flag when entering example
         if (currentList.length > 0) {
           elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
               {currentList.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
           );
           currentList = [];
         }
-        isInExample = true;
         elements.push(
-          <div key={`example-header-${index}`} className="mt-4 mb-2">
+          <div key={`example-header-${index}`} className="mt-5 mb-2 pb-1 border-b border-cyan-500/30 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
             <span className="text-cyan-400 font-semibold text-sm">{trimmedLine}</span>
           </div>
         );
         return;
       }
 
-      // Detect Input/Output in examples
+      // Detect Input in examples
       if (trimmedLine.toLowerCase().startsWith('input:')) {
         elements.push(
           <div key={`input-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-green-400">Input: </span>
+            <span className="text-green-400 font-semibold">Input: </span>
             <span className="text-slate-200">{trimmedLine.replace(/^input:\s*/i, '')}</span>
           </div>
         );
         return;
       }
 
+      // Detect Output in examples
       if (trimmedLine.toLowerCase().startsWith('output:')) {
         elements.push(
           <div key={`output-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
-            <span className="text-blue-400">Output: </span>
+            <span className="text-blue-400 font-semibold">Output: </span>
             <span className="text-slate-200">{trimmedLine.replace(/^output:\s*/i, '')}</span>
           </div>
         );
         return;
       }
 
+      // Detect Explanation in examples
       if (trimmedLine.toLowerCase().startsWith('explanation:')) {
         elements.push(
-          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-2 border-l-2 border-slate-600">
-            {trimmedLine.replace(/^explanation:\s*/i, '')}
+          <div key={`explanation-${index}`} className="bg-slate-800/30 rounded px-3 py-2 my-2 border-l-2 border-slate-500">
+            <span className="text-slate-500 font-semibold text-xs">💬 Explanation: </span>
+            <span className="text-slate-300 text-xs">{trimmedLine.replace(/^explanation:\s*/i, '')}</span>
           </div>
         );
         return;
@@ -558,17 +582,19 @@ func main() {
 
       // Detect constraints section
       if (trimmedLine.toLowerCase().startsWith('constraints:') || trimmedLine.toLowerCase() === 'constraints') {
+        inConstraintsSection = true; // Set flag - all following lines are constraints
         if (currentList.length > 0) {
           elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
               {currentList.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
           );
           currentList = [];
         }
         elements.push(
-          <div key={`constraints-header-${index}`} className="mt-4 mb-2">
-            <span className="text-amber-400 font-semibold text-sm">📋 Constraints</span>
+          <div key={`constraints-header-${index}`} className="mt-5 mb-2 pb-1 border-b border-amber-500/30 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
+            <span className="text-amber-400 font-semibold text-sm">Constraints</span>
           </div>
         );
         return;
@@ -577,11 +603,13 @@ func main() {
       // Detect bullet points or numbered lists
       if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
         const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
-        // Check if it's a constraint (contains comparison operators)
-        if (content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
+        // If we're in constraints section, ALL items are constraints
+        // OR if it contains comparison operators
+        if (inConstraintsSection || content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
           elements.push(
-            <div key={`constraint-${index}`} className="bg-slate-800/30 rounded px-3 py-1 my-1 font-mono text-xs text-slate-300">
-              {content}
+            <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+              <span className="text-amber-500">⚡</span>
+              <span>{content}</span>
             </div>
           );
         } else {
@@ -590,36 +618,68 @@ func main() {
         return;
       }
 
+      // Check if line looks like a constraint (comparison operators, numbers)
+      // Only use inConstraintsSection for lines that look like constraint content
+      const looksLikeConstraint = trimmedLine.match(/[<>≤≥]/) || 
+                                   trimmedLine.match(/\d+\s*(<=|>=|<|>|==)/) ||
+                                   trimmedLine.match(/^-?\d/) ||
+                                   trimmedLine.includes('is either') ||
+                                   trimmedLine.includes('is a') ||
+                                   trimmedLine.includes('is an') ||
+                                   trimmedLine.includes('can be') ||
+                                   trimmedLine.includes('will be') ||
+                                   trimmedLine.includes('at most') ||
+                                   trimmedLine.includes('at least');
+      
+      if (inConstraintsSection && looksLikeConstraint) {
+        elements.push(
+          <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+            <span className="text-amber-500">⚡</span>
+            <span>{trimmedLine}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // Non-constraint lines with comparison operators
+      if (trimmedLine.match(/[<>≤≥]/) && trimmedLine.match(/\d/)) {
+        elements.push(
+          <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+            <span className="text-amber-500">⚡</span>
+            <span>{trimmedLine}</span>
+          </div>
+        );
+        return;
+      }
+
       // Regular paragraph
       if (trimmedLine.length > 0) {
         if (currentList.length > 0) {
           elements.push(
-            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
               {currentList.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
           );
           currentList = [];
         }
         elements.push(
-          <p key={`para-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
+          <p key={`p-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
             {trimmedLine}
           </p>
         );
       }
     });
 
-    // Flush remaining list items
+    // Don't forget remaining list items
     if (currentList.length > 0) {
       elements.push(
-        <ul key="list-final" className="list-disc list-inside space-y-1 my-2 text-slate-300">
+        <ul key="list-final" className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
           {currentList.map((item, i) => <li key={i}>{item}</li>)}
         </ul>
       );
     }
 
-    return elements.length > 0 ? elements : (
-      <p className="text-slate-200 text-sm leading-relaxed">{description}</p>
-    );
+    return <div className="space-y-1">{elements}</div>;
   };
 
   // Extract test cases from problem examples
@@ -1345,47 +1405,57 @@ func main() {
             <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
               {/* Code Editor */}
               <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden flex-1 flex flex-col min-h-[300px]">
-                <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/10 flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <Code className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-semibold">Code Editor</span>
+                {/* Toolbar */}
+                <div className={styles.editorToolbar}>
+                  {/* Left side - Title */}
+                  <div className={styles.toolbarLeft}>
+                    <div className={styles.editorTitle}>
+                      <Code />
+                      <span>Editor</span>
+                    </div>
                     {hasUnsavedChanges && (
-                      <span className="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded">
-                        Unsaved
-                      </span>
+                      <span className={styles.unsavedBadge}>Unsaved</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  
+                  {/* Right side - Actions */}
+                  <div className={styles.toolbarRight}>
+                    {/* Utility actions */}
                     <button
                       onClick={generateMethodSignature}
                       disabled={isGeneratingSignature || !selectedProblem}
-                      className="flex items-center gap-1 bg-purple-500/20 hover:bg-purple-500/30 px-2 py-1 rounded text-xs transition-colors disabled:opacity-50"
-                      title="Generate problem-specific method signature"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnUtility}`}
+                      title="Generate method signature"
                     >
                       {isGeneratingSignature ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Wand2 className="w-3 h-3" />
+                        <Wand2 />
                       )}
-                      Signature
+                      <span>Signature</span>
                     </button>
+                    
                     <button
                       onClick={fixSyntaxErrors}
                       disabled={isFixingSyntax || !code.trim() || showDiffView}
-                      className="flex items-center gap-1 bg-orange-500/20 hover:bg-orange-500/30 px-2 py-1 rounded text-xs transition-colors disabled:opacity-50"
-                      title="Fix syntax errors without changing logic"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnUtility}`}
+                      title="Fix syntax errors"
                     >
                       {isFixingSyntax ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Wrench className="w-3 h-3" />
+                        <Wrench />
                       )}
-                      Fix Syntax
+                      <span>Fix Syntax</span>
                     </button>
+                    
+                    <div className={styles.toolbarDivider} />
+                    
+                    {/* Language selector */}
                     <select
                       value={language}
                       onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-400"
+                      className={styles.languageSelect}
                     >
                       <option value="javascript">JavaScript</option>
                       <option value="typescript">TypeScript</option>
@@ -1395,33 +1465,39 @@ func main() {
                       <option value="csharp">C#</option>
                       <option value="go">Go</option>
                     </select>
+                    
+                    <div className={styles.toolbarDivider} />
+                    
+                    {/* Primary actions */}
                     <button
                       onClick={handleRunLocalTests}
                       disabled={isRunningTests || !code.trim()}
-                      className="flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnSecondary}`}
                       title="Run local tests"
                     >
                       {isRunningTests ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Code className="w-4 h-4" />
+                        <Play />
                       )}
-                      Test
+                      <span>Test</span>
                     </button>
+                    
                     <button
                       onClick={handleSubmitCode}
                       disabled={isEvaluating || !code.trim() || showDiffView}
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnPrimary}`}
+                      title="Submit solution"
                     >
                       {isEvaluating ? (
                         <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Evaluating...
+                          <RefreshCw className="animate-spin" />
+                          <span>Evaluating...</span>
                         </>
                       ) : (
                         <>
-                          <Send className="w-4 h-4" />
-                          Submit
+                          <Send />
+                          <span>Submit</span>
                         </>
                       )}
                     </button>

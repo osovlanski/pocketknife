@@ -39,8 +39,37 @@ import {
   ZoomOut,
   Move,
   Minus,
-  Circle
+  Circle,
+  // Additional component icons
+  Monitor,
+  Smartphone,
+  Wifi,
+  Lock,
+  Search,
+  Bell,
+  FileText,
+  GitBranch,
+  Activity,
+  Zap,
+  Sparkles,
+  Wand2,
+  Lightbulb,
+  // Export & Share icons
+  Download,
+  Share2,
+  Mail,
+  Image,
+  FileDown,
+  Maximize2,
+  PanelRightClose,
+  PanelRight,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
+import * as mockInterviewApi from '../../services/mockInterviewApi';
+import logger from '../../services/logger';
+import type { GeneratedDiagram, GeneratedComponent, GeneratedConnection } from '../../services/mockInterviewApi';
 
 // =============================================================================
 // TYPES
@@ -63,11 +92,31 @@ export interface DiagramSubmission {
   elapsedTime: number;
 }
 
+export type WhiteboardMode = 'sandbox' | 'system-design';
+
+export interface SavedCanvas {
+  id: string;
+  name: string;
+  elements: CanvasElement[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SystemDesignWhiteboardProps {
   isOpen: boolean;
   onClose: () => void;
-  question: SystemDesignQuestion;
-  onSubmit: (result: DiagramSubmission) => void;
+  // For system-design mode
+  question?: SystemDesignQuestion;
+  onSubmit?: (result: DiagramSubmission) => void;
+  // Mode control
+  mode?: WhiteboardMode;
+  // For sandbox mode - save/load
+  initialElements?: CanvasElement[];
+  canvasName?: string;
+  onSave?: (elements: CanvasElement[], name: string, prompt?: string, summary?: string) => void;
+  // Previous prompt for editing
+  initialPrompt?: string;
+  initialSummary?: string;
 }
 
 // =============================================================================
@@ -77,21 +126,36 @@ export interface SystemDesignWhiteboardProps {
 interface ComponentTemplate {
   name: string;
   icon: React.ReactNode;
+  iconName: string; // For canvas rendering
   color: string;
   description: string;
+  shortcut: string;
 }
 
 const COMPONENT_TEMPLATES: ComponentTemplate[] = [
-  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, color: '#22c55e', description: 'Distributes traffic' },
-  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, color: '#3b82f6', description: 'Handles HTTP requests' },
-  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, color: '#a855f7', description: 'API routing & auth' },
-  { name: 'Database', icon: <Database className="w-4 h-4" />, color: '#f59e0b', description: 'Data storage' },
-  { name: 'Cache', icon: <Cpu className="w-4 h-4" />, color: '#ef4444', description: 'Redis/Memcached' },
-  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, color: '#06b6d4', description: 'Kafka/RabbitMQ' },
-  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, color: '#8b5cf6', description: 'Content delivery' },
-  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, color: '#64748b', description: 'S3/Blob storage' },
-  { name: 'Microservice', icon: <Server className="w-4 h-4" />, color: '#10b981', description: 'Service container' },
-  { name: 'Worker', icon: <Layers className="w-4 h-4" />, color: '#f97316', description: 'Background jobs' },
+  // Core Infrastructure (1-5)
+  { name: 'Client', icon: <Monitor className="w-4 h-4" />, iconName: 'client', color: '#60a5fa', description: 'Web/Desktop client', shortcut: '1' },
+  { name: 'Mobile App', icon: <Smartphone className="w-4 h-4" />, iconName: 'mobile', color: '#818cf8', description: 'Mobile application', shortcut: '2' },
+  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, iconName: 'network', color: '#22c55e', description: 'Distributes traffic', shortcut: '3' },
+  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, iconName: 'shield', color: '#a855f7', description: 'API routing & auth', shortcut: '4' },
+  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, iconName: 'globe', color: '#3b82f6', description: 'Handles HTTP', shortcut: '5' },
+  
+  // Data Layer (6-9, 0)
+  { name: 'Database', icon: <Database className="w-4 h-4" />, iconName: 'database', color: '#f59e0b', description: 'SQL/NoSQL DB', shortcut: '6' },
+  { name: 'Cache', icon: <Zap className="w-4 h-4" />, iconName: 'cache', color: '#ef4444', description: 'Redis/Memcached', shortcut: '7' },
+  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, iconName: 'message', color: '#06b6d4', description: 'Kafka/RabbitMQ', shortcut: '8' },
+  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, iconName: 'storage', color: '#64748b', description: 'S3/Blob storage', shortcut: '9' },
+  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, iconName: 'cloud', color: '#8b5cf6', description: 'Content delivery', shortcut: '0' },
+  
+  // Services (no shortcuts - click to use)
+  { name: 'Microservice', icon: <Server className="w-4 h-4" />, iconName: 'server', color: '#10b981', description: 'Service container', shortcut: '' },
+  { name: 'Worker', icon: <Layers className="w-4 h-4" />, iconName: 'layers', color: '#f97316', description: 'Background jobs', shortcut: '' },
+  { name: 'Auth Service', icon: <Lock className="w-4 h-4" />, iconName: 'auth', color: '#dc2626', description: 'Authentication', shortcut: '' },
+  { name: 'Search', icon: <Search className="w-4 h-4" />, iconName: 'search', color: '#0891b2', description: 'Elasticsearch', shortcut: '' },
+  { name: 'Notification', icon: <Bell className="w-4 h-4" />, iconName: 'notification', color: '#eab308', description: 'Push/Email/SMS', shortcut: '' },
+  { name: 'Logging', icon: <FileText className="w-4 h-4" />, iconName: 'logging', color: '#78716c', description: 'Log aggregation', shortcut: '' },
+  { name: 'DNS', icon: <Wifi className="w-4 h-4" />, iconName: 'dns', color: '#14b8a6', description: 'Domain resolution', shortcut: '' },
+  { name: 'Monitoring', icon: <Activity className="w-4 h-4" />, iconName: 'monitoring', color: '#f43f5e', description: 'Metrics/Alerts', shortcut: '' },
 ];
 
 // =============================================================================
@@ -122,7 +186,7 @@ type LineStyle = 'solid' | 'dashed' | 'dotted';
 
 interface CanvasElement {
   id: string;
-  type: 'rect' | 'ellipse' | 'text' | 'arrow' | 'line' | 'path';
+  type: 'rect' | 'ellipse' | 'text' | 'arrow' | 'line' | 'path' | 'component';
   x: number;
   y: number;
   width?: number;
@@ -134,14 +198,57 @@ interface CanvasElement {
   lineStyle?: LineStyle;
   points?: { x: number; y: number }[];
   fontSize?: number;
+  // Component specific
+  componentName?: string;      // Name of component template
+  iconName?: string;           // Icon identifier for rendering
+  // Connection info for arrows (graph-like behavior)
+  sourceElementId?: string;    // ID of source component
+  sourceHandlePos?: 'top' | 'right' | 'bottom' | 'left';
+  targetElementId?: string;    // ID of target component
+  targetHandlePos?: 'top' | 'right' | 'bottom' | 'left';
+}
+
+// Pending component for drag-and-drop
+interface PendingComponent {
+  template: ComponentTemplate;
+  x: number;
+  y: number;
 }
 
 const SimpleCanvas: React.FC<{
   onElementsChange: (elements: CanvasElement[]) => void;
-}> = ({ onElementsChange }) => {
+  pendingComponent: PendingComponent | null;
+  onPendingComponentPlaced: () => void;
+  onComponentSelect: (template: ComponentTemplate) => void;
+  externalElements?: CanvasElement[];
+  autoFitOnNewElements?: boolean;
+}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced, onComponentSelect, externalElements, autoFitOnNewElements = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
+  
+  // Track last synced external elements to prevent infinite loops
+  const lastExternalElementsRef = useRef<string>('');
+  const pendingAutoFitRef = useRef<boolean>(false);
+  
+  // Sync with external elements (from parent, e.g., AI generation or loaded canvas)
+  useEffect(() => {
+    if (externalElements && externalElements.length > 0) {
+      // Only sync if these are truly new external elements (different from last sync)
+      const externalKey = JSON.stringify(externalElements.map(e => e.id).sort());
+      if (externalKey !== lastExternalElementsRef.current) {
+        lastExternalElementsRef.current = externalKey;
+        setElements(externalElements);
+        // Also save to history
+        setHistory([[...externalElements]]);
+        setHistoryIndex(0);
+        // Mark that we should auto-fit after elements are set
+        if (autoFitOnNewElements) {
+          pendingAutoFitRef.current = true;
+        }
+      }
+    }
+  }, [externalElements, autoFitOnNewElements]);
   const [history, setHistory] = useState<CanvasElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedTool, setSelectedTool] = useState<ToolType>('rect');
@@ -156,7 +263,36 @@ const SimpleCanvas: React.FC<{
   const [showTextInput, setShowTextInput] = useState(false);
   const [textInputPos, setTextInputPos] = useState({ x: 0, y: 0 });
   const [textInputValue, setTextInputValue] = useState('');
-  const textInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Selection and dragging state
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // Ghost preview position for pending component
+  const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Connection drawing state (for creating arrows between components)
+  const [isDrawingConnection, setIsDrawingConnection] = useState(false);
+  const [connectionStart, setConnectionStart] = useState<{ elementId: string; x: number; y: number } | null>(null);
+  const [connectionEnd, setConnectionEnd] = useState<{ x: number; y: number } | null>(null);
+  
+  // Hovered handle for visual feedback (like webwhiteboard.com)
+  const [hoveredHandle, setHoveredHandle] = useState<{ elementId: string; x: number; y: number } | null>(null);
+  
+  // Suggested arrow to nearest component (shown when hovering a handle)
+  const [suggestedArrow, setSuggestedArrow] = useState<{
+    fromX: number; fromY: number;
+    toX: number; toY: number;
+    targetElementId: string;
+  } | null>(null);
+  
+  // Screen position for text input (not canvas coordinates)
+  const [textInputScreenPos, setTextInputScreenPos] = useState({ x: 0, y: 0 });
+  
+  // Track which text element is being edited (null = creating new)
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   // Save to history when elements change
   const saveToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -313,7 +449,13 @@ const SimpleCanvas: React.FC<{
         ctx.font = `${el.fontSize || 16}px Inter, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(el.text || '', el.x, el.y);
+        
+        // Support multi-line text
+        const lines = (el.text || '').split('\n');
+        const lineHeight = (el.fontSize || 16) * 1.3;
+        lines.forEach((line, index) => {
+          ctx.fillText(line, el.x, el.y + index * lineHeight);
+        });
       } else if (el.type === 'arrow' || el.type === 'line') {
         const endX = el.width || el.x + 100;
         const endY = el.height || el.y;
@@ -360,6 +502,78 @@ const SimpleCanvas: React.FC<{
           ctx.lineTo(el.points[i].x, el.points[i].y);
         }
         ctx.stroke();
+      } else if (el.type === 'component') {
+        // Draw component with icon and rounded corners
+        const w = el.width || 130;
+        const h = el.height || 70;
+        const radius = 8;
+        
+        // Icon mapping for canvas rendering
+        const iconEmojis: Record<string, string> = {
+          'client': '💻',
+          'mobile': '📱',
+          'network': '🔀',
+          'globe': '🌐',
+          'shield': '🛡️',
+          'database': '🗄️',
+          'cache': '⚡',
+          'message': '📨',
+          'cloud': '☁️',
+          'storage': '💾',
+          'server': '📦',
+          'layers': '⚙️',
+          'auth': '🔐',
+          'search': '🔍',
+          'notification': '🔔',
+          'logging': '📝',
+          'dns': '📡',
+          'monitoring': '📊'
+        };
+        
+        // Draw rounded rectangle background
+        ctx.fillStyle = el.color || '#3b82f6';
+        ctx.beginPath();
+        ctx.moveTo(el.x + radius, el.y);
+        ctx.lineTo(el.x + w - radius, el.y);
+        ctx.quadraticCurveTo(el.x + w, el.y, el.x + w, el.y + radius);
+        ctx.lineTo(el.x + w, el.y + h - radius);
+        ctx.quadraticCurveTo(el.x + w, el.y + h, el.x + w - radius, el.y + h);
+        ctx.lineTo(el.x + radius, el.y + h);
+        ctx.quadraticCurveTo(el.x, el.y + h, el.x, el.y + h - radius);
+        ctx.lineTo(el.x, el.y + radius);
+        ctx.quadraticCurveTo(el.x, el.y, el.x + radius, el.y);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw border
+        ctx.strokeStyle = el.strokeColor || '#fff';
+        ctx.lineWidth = el.strokeWidth || 2;
+        ctx.stroke();
+        
+        // Draw icon circle at top
+        const iconSize = 24;
+        const iconX = el.x + w / 2;
+        const iconY = el.y + 20;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.arc(iconX, iconY, iconSize / 2 + 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw icon emoji
+        const emoji = iconEmojis[el.iconName || ''] || '📦';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, iconX, iconY);
+        
+        // Draw component name
+        if (el.text) {
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${el.fontSize || 12}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(el.text, el.x + w / 2, el.y + h - 18);
+        }
       }
     });
 
@@ -379,11 +593,197 @@ const SimpleCanvas: React.FC<{
       ctx.stroke();
     }
 
+    // Draw selection highlight and connection handles
+    if (selectedElementId) {
+      const selectedEl = elements.find(el => el.id === selectedElementId);
+      if (selectedEl) {
+        // Selection border
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        if (selectedEl.type === 'rect' || selectedEl.type === 'ellipse' || selectedEl.type === 'text' || selectedEl.type === 'component') {
+          const w = selectedEl.width || (selectedEl.type === 'text' ? (selectedEl.text?.length || 0) * 8 : 100);
+          const h = selectedEl.height || (selectedEl.type === 'text' ? 20 : 60);
+          ctx.strokeRect(selectedEl.x - 4, selectedEl.y - 4, w + 8, h + 8);
+        }
+      }
+    }
+
+    // Draw connection handles on all rect/ellipse/component elements (always visible for easy arrow creation)
+    // This mimics webwhiteboard.com behavior where you can drag from handles to create connections
+    elements.forEach(el => {
+      if (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component') return;
+      
+      const width = el.width || 130;
+      const height = el.height || 70;
+      const handles = [
+        { x: el.x + width / 2, y: el.y },           // top
+        { x: el.x + width, y: el.y + height / 2 },  // right
+        { x: el.x + width / 2, y: el.y + height },  // bottom
+        { x: el.x, y: el.y + height / 2 }           // left
+      ];
+      
+      ctx.setLineDash([]);
+      handles.forEach(h => {
+        // Check if this handle is hovered
+        const isHovered = hoveredHandle && 
+          Math.abs(hoveredHandle.x - h.x) < 2 && 
+          Math.abs(hoveredHandle.y - h.y) < 2;
+        
+        if (isHovered) {
+          // Larger glowing handle when hovered (like webwhiteboard.com)
+          ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 14, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#00d4ff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 10, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        // Outer circle (border)
+        ctx.fillStyle = isHovered ? '#00d4ff' : '#1e293b';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, isHovered ? 7 : 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner circle - cyan color
+        ctx.fillStyle = isHovered ? '#ffffff' : '#00d4ff';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, isHovered ? 4 : 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    });
+
+    // Draw connection preview while dragging
+    if (isDrawingConnection && connectionStart && connectionEnd) {
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      ctx.beginPath();
+      ctx.moveTo(connectionStart.x, connectionStart.y);
+      ctx.lineTo(connectionEnd.x, connectionEnd.y);
+      ctx.stroke();
+      
+      // Draw arrow head
+      ctx.setLineDash([]);
+      const angle = Math.atan2(connectionEnd.y - connectionStart.y, connectionEnd.x - connectionStart.x);
+      const headLen = 12;
+      ctx.beginPath();
+      ctx.moveTo(connectionEnd.x, connectionEnd.y);
+      ctx.lineTo(
+        connectionEnd.x - headLen * Math.cos(angle - Math.PI / 6),
+        connectionEnd.y - headLen * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        connectionEnd.x - headLen * Math.cos(angle + Math.PI / 6),
+        connectionEnd.y - headLen * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#00d4ff';
+      ctx.fill();
+    }
+
+    // Draw ghost preview for pending component
+    if (pendingComponent && ghostPosition) {
+      const gx = ghostPosition.x - 65;
+      const gy = ghostPosition.y - 35;
+      const gw = 130;
+      const gh = 70;
+      const radius = 8;
+      
+      // Icon mapping
+      const iconEmojis: Record<string, string> = {
+        'client': '💻', 'mobile': '📱', 'network': '🔀', 'globe': '🌐',
+        'shield': '🛡️', 'database': '🗄️', 'cache': '⚡', 'message': '📨',
+        'cloud': '☁️', 'storage': '💾', 'server': '📦', 'layers': '⚙️',
+        'auth': '🔐', 'search': '🔍', 'notification': '🔔', 'logging': '📝',
+        'dns': '📡', 'monitoring': '📊'
+      };
+      
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = pendingComponent.template.color;
+      
+      // Rounded rectangle
+      ctx.beginPath();
+      ctx.moveTo(gx + radius, gy);
+      ctx.lineTo(gx + gw - radius, gy);
+      ctx.quadraticCurveTo(gx + gw, gy, gx + gw, gy + radius);
+      ctx.lineTo(gx + gw, gy + gh - radius);
+      ctx.quadraticCurveTo(gx + gw, gy + gh, gx + gw - radius, gy + gh);
+      ctx.lineTo(gx + radius, gy + gh);
+      ctx.quadraticCurveTo(gx, gy + gh, gx, gy + gh - radius);
+      ctx.lineTo(gx, gy + radius);
+      ctx.quadraticCurveTo(gx, gy, gx + radius, gy);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Draw icon
+      const emoji = iconEmojis[pendingComponent.template.iconName || ''] || '📦';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(emoji, ghostPosition.x, gy + 20);
+      
+      // Draw name
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.fillText(pendingComponent.template.name, ghostPosition.x, gy + gh - 18);
+      
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw suggested arrow to nearest component (when hovering a handle)
+    if (suggestedArrow && !isDrawingConnection) {
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = '#22c55e'; // Green for suggestion
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(suggestedArrow.fromX, suggestedArrow.fromY);
+      ctx.lineTo(suggestedArrow.toX, suggestedArrow.toY);
+      ctx.stroke();
+      
+      // Draw arrow head
+      ctx.setLineDash([]);
+      const angle = Math.atan2(suggestedArrow.toY - suggestedArrow.fromY, suggestedArrow.toX - suggestedArrow.fromX);
+      const headLen = 10;
+      ctx.beginPath();
+      ctx.moveTo(suggestedArrow.toX, suggestedArrow.toY);
+      ctx.lineTo(
+        suggestedArrow.toX - headLen * Math.cos(angle - Math.PI / 6),
+        suggestedArrow.toY - headLen * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        suggestedArrow.toX - headLen * Math.cos(angle + Math.PI / 6),
+        suggestedArrow.toY - headLen * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#22c55e';
+      ctx.fill();
+      
+      // Draw "Click to connect" hint near the target
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click to connect', suggestedArrow.toX, suggestedArrow.toY - 15);
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
     onElementsChange(elements);
-  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth]);
+  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd, hoveredHandle, suggestedArrow]);
 
-  // Get accurate mouse position on canvas
+  // Get accurate mouse position on canvas (in canvas coordinates)
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -400,15 +800,260 @@ const SimpleCanvas: React.FC<{
     return { x: Math.round(x), y: Math.round(y) };
   };
 
+  // Get screen position relative to container (for overlay positioning)
+  const getScreenPos = (e: React.MouseEvent): { x: number; y: number } => {
+    const container = containerRef.current;
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
+    return { 
+      x: e.clientX - rect.left, 
+      y: e.clientY - rect.top 
+    };
+  };
+
+  // Get connection handle positions for an element (top, right, bottom, left)
+  const getConnectionHandles = (el: CanvasElement): { position: string; x: number; y: number }[] => {
+    const width = el.width || 130;
+    const height = el.height || 70;
+    return [
+      { position: 'top', x: el.x + width / 2, y: el.y },
+      { position: 'right', x: el.x + width, y: el.y + height / 2 },
+      { position: 'bottom', x: el.x + width / 2, y: el.y + height },
+      { position: 'left', x: el.x, y: el.y + height / 2 }
+    ];
+  };
+
+  // Check if position is near a connection handle
+  const getHandleAtPosition = (x: number, y: number): { elementId: string; handleX: number; handleY: number } | null => {
+    for (const el of elements) {
+      if (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component') continue;
+      const handles = getConnectionHandles(el);
+      for (const handle of handles) {
+        const dist = Math.sqrt(Math.pow(x - handle.x, 2) + Math.pow(y - handle.y, 2));
+        if (dist < 15) { // 15px hit area for handles
+          return { elementId: el.id, handleX: handle.x, handleY: handle.y };
+        }
+      }
+    }
+    return null;
+  };
+
+  // Find closest handle on target element
+  const getClosestHandle = (targetEl: CanvasElement, x: number, y: number): { x: number; y: number; position: string } => {
+    const handles = getConnectionHandles(targetEl);
+    let closest = handles[0];
+    let minDist = Infinity;
+    for (const handle of handles) {
+      const dist = Math.sqrt(Math.pow(x - handle.x, 2) + Math.pow(y - handle.y, 2));
+      if (dist < minDist) {
+        minDist = dist;
+        closest = handle;
+      }
+    }
+    return { x: closest.x, y: closest.y, position: closest.position };
+  };
+
+  // Find the nearest component to a given handle (for arrow suggestion)
+  const findNearestComponent = (sourceElementId: string, handleX: number, handleY: number): { 
+    element: CanvasElement; 
+    handleX: number; 
+    handleY: number;
+    handlePos: string;
+    distance: number;
+  } | null => {
+    let nearest: { element: CanvasElement; handleX: number; handleY: number; handlePos: string; distance: number } | null = null;
+    
+    for (const el of elements) {
+      // Skip the source element and non-component elements
+      if (el.id === sourceElementId || (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component')) continue;
+      
+      // Get the closest handle on this element
+      const closestHandle = getClosestHandle(el, handleX, handleY);
+      const dist = Math.sqrt(Math.pow(closestHandle.x - handleX, 2) + Math.pow(closestHandle.y - handleY, 2));
+      
+      if (!nearest || dist < nearest.distance) {
+        nearest = { 
+          element: el, 
+          handleX: closestHandle.x, 
+          handleY: closestHandle.y,
+          handlePos: closestHandle.position,
+          distance: dist 
+        };
+      }
+    }
+    
+    return nearest;
+  };
+
+  // Find element at position (for selection and dragging)
+  const getElementAtPosition = (x: number, y: number): CanvasElement | null => {
+    // Search in reverse order (top elements first)
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      
+      if (el.type === 'rect' || el.type === 'ellipse' || el.type === 'component') {
+        const elWidth = el.width || 100;
+        const elHeight = el.height || 60;
+        if (x >= el.x && x <= el.x + elWidth && y >= el.y && y <= el.y + elHeight) {
+          return el;
+        }
+      } else if (el.type === 'text') {
+        // Approximate text bounds (multi-line support)
+        const lines = (el.text || '').split('\n');
+        const maxLineLength = Math.max(...lines.map(l => l.length), 1);
+        const textWidth = maxLineLength * 8;
+        const lineHeight = (el.fontSize || 16) * 1.3;
+        const textHeight = lines.length * lineHeight;
+        if (x >= el.x && x <= el.x + textWidth && y >= el.y && y <= el.y + textHeight) {
+          return el;
+        }
+      } else if (el.type === 'arrow' || el.type === 'line') {
+        // Check if near the line
+        const endX = el.width || el.x + 100;
+        const endY = el.height || el.y;
+        const dist = distanceToLine(x, y, el.x, el.y, endX, endY);
+        if (dist < 10) {
+          return el;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Distance from point to line segment
+  const distanceToLine = (px: number, py: number, x1: number, y1: number, x2: number, y2: number): number => {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    if (lenSq !== 0) param = dot / lenSq;
+    let xx, yy;
+    if (param < 0) { xx = x1; yy = y1; }
+    else if (param > 1) { xx = x2; yy = y2; }
+    else { xx = x1 + param * C; yy = y1 + param * D; }
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     const pos = getMousePos(e);
+    const screenPos = getScreenPos(e);
     
-    if (selectedTool === 'text') {
-      setTextInputPos(pos);
-      setTextInputValue('');
-      setShowTextInput(true);
-      setTimeout(() => textInputRef.current?.focus(), 10);
+    // If there's a pending component, place it
+    if (pendingComponent) {
+      const newElement: CanvasElement = {
+        id: `el-${Date.now()}`,
+        type: 'component',
+        x: pos.x - 65, // Center the component (130/2)
+        y: pos.y - 35, // Center the component (70/2)
+        width: 130,
+        height: 70,
+        color: pendingComponent.template.color,
+        strokeColor: '#fff',
+        strokeWidth: 2,
+        text: pendingComponent.template.name,
+        componentName: pendingComponent.template.name,
+        iconName: pendingComponent.template.iconName,
+        fontSize: 13
+      };
+      const newElements = [...elements, newElement];
+      setElements(newElements);
+      saveToHistory(newElements);
+      setGhostPosition(null);
+      onPendingComponentPlaced();
       return;
+    }
+    
+    // Quick connect: If hovering a handle with suggested arrow, single click creates the arrow
+    if (suggestedArrow && hoveredHandle) {
+      // Get handle positions for connection tracking
+      const sourceEl = elements.find(el => el.id === hoveredHandle.elementId);
+      const targetEl = elements.find(el => el.id === suggestedArrow.targetElementId);
+      
+      if (sourceEl && targetEl) {
+        const sourceHandles = getConnectionHandles(sourceEl);
+        const targetHandles = getConnectionHandles(targetEl);
+        const sourceHandleInfo = sourceHandles.find(h => 
+          Math.abs(h.x - suggestedArrow.fromX) < 2 && Math.abs(h.y - suggestedArrow.fromY) < 2
+        );
+        const targetHandleInfo = targetHandles.find(h => 
+          Math.abs(h.x - suggestedArrow.toX) < 2 && Math.abs(h.y - suggestedArrow.toY) < 2
+        );
+        
+        const newArrow: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'arrow',
+          x: suggestedArrow.fromX,
+          y: suggestedArrow.fromY,
+          width: suggestedArrow.toX,  // For arrows, width = end X position
+          height: suggestedArrow.toY, // For arrows, height = end Y position
+          color: selectedColor,
+          strokeWidth: strokeWidth,
+          // Store connection info for graph-like behavior
+          sourceElementId: hoveredHandle.elementId,
+          sourceHandlePos: sourceHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left',
+          targetElementId: suggestedArrow.targetElementId,
+          targetHandlePos: targetHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left'
+        };
+        const newElements = [...elements, newArrow];
+        setElements(newElements);
+        saveToHistory(newElements);
+        setSuggestedArrow(null);
+        setHoveredHandle(null);
+        return;
+      }
+    }
+    
+    // Text tool - check if clicking on existing text to edit, or create new
+    if (selectedTool === 'text') {
+      // Check if clicking on an existing text element
+      const clickedElement = getElementAtPosition(pos.x, pos.y);
+      if (clickedElement && clickedElement.type === 'text') {
+        // Edit existing text
+        setTextInputPos({ x: clickedElement.x, y: clickedElement.y });
+        setTextInputScreenPos(screenPos);
+        setTextInputValue(clickedElement.text || '');
+        setEditingTextId(clickedElement.id);
+        setShowTextInput(true);
+        setTimeout(() => textInputRef.current?.focus(), 50);
+        return;
+      }
+      
+      // Create new text
+      setTextInputPos(pos);
+      setTextInputScreenPos(screenPos);
+      setTextInputValue('');
+      setEditingTextId(null);
+      setShowTextInput(true);
+      setTimeout(() => textInputRef.current?.focus(), 50);
+      return;
+    }
+    
+    // Check if clicking on a connection handle (to start drawing an arrow)
+    // Works with any tool except text - allows quick arrow creation from handles
+    const handle = getHandleAtPosition(pos.x, pos.y);
+    if (handle) {
+      setIsDrawingConnection(true);
+      setConnectionStart({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+      setConnectionEnd(pos);
+      return;
+    }
+    
+    // Select tool - check if clicking on an element
+    if (selectedTool === 'select') {
+      const clickedElement = getElementAtPosition(pos.x, pos.y);
+      if (clickedElement) {
+        setSelectedElementId(clickedElement.id);
+        setIsDragging(true);
+        setDragOffset({ x: pos.x - clickedElement.x, y: pos.y - clickedElement.y });
+        return;
+      } else {
+        setSelectedElementId(null);
+      }
     }
     
     if (selectedTool === 'pen') {
@@ -420,13 +1065,115 @@ const SimpleCanvas: React.FC<{
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    const pos = getMousePos(e);
+    
+    // Update ghost position for pending component
+    if (pendingComponent) {
+      setGhostPosition(pos);
+      return;
+    }
+    
+    // Handle connection drawing - update endpoint and check for target handles
+    if (isDrawingConnection && connectionStart) {
+      // Check if hovering near a handle on another element (for snap preview)
+      const handle = getHandleAtPosition(pos.x, pos.y);
+      if (handle && handle.elementId !== connectionStart.elementId) {
+        // Snap to the handle
+        setConnectionEnd({ x: handle.handleX, y: handle.handleY });
+        setHoveredHandle({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+      } else {
+        setConnectionEnd(pos);
+        setHoveredHandle(null);
+      }
+      return;
+    }
+    
+    // Handle dragging selected element (with graph-like arrow updates)
+    if (isDragging && selectedElementId) {
+      setElements(prev => {
+        const draggedElement = prev.find(el => el.id === selectedElementId);
+        if (!draggedElement) return prev;
+        
+        const newX = pos.x - dragOffset.x;
+        const newY = pos.y - dragOffset.y;
+        
+        return prev.map(el => {
+          // Update the dragged element position
+          if (el.id === selectedElementId) {
+            return { ...el, x: newX, y: newY };
+          }
+          
+          // Update arrows connected to the dragged element (graph-like behavior)
+          if (el.type === 'arrow') {
+            const updatedElement = { ...el };
+            let needsUpdate = false;
+            
+            // If this arrow starts from the dragged element
+            if (el.sourceElementId === selectedElementId && el.sourceHandlePos) {
+              const newDraggedEl = { ...draggedElement, x: newX, y: newY };
+              const handles = getConnectionHandles(newDraggedEl);
+              const handle = handles.find(h => h.position === el.sourceHandlePos);
+              if (handle) {
+                // For arrows: x,y = start; width,height = end (absolute)
+                // Keep the end point the same, update start point
+                updatedElement.x = handle.x;
+                updatedElement.y = handle.y;
+                needsUpdate = true;
+              }
+            }
+            
+            // If this arrow ends at the dragged element
+            if (el.targetElementId === selectedElementId && el.targetHandlePos) {
+              const newDraggedEl = { ...draggedElement, x: newX, y: newY };
+              const handles = getConnectionHandles(newDraggedEl);
+              const handle = handles.find(h => h.position === el.targetHandlePos);
+              if (handle) {
+                // For arrows: width,height = end position (absolute)
+                updatedElement.width = handle.x;
+                updatedElement.height = handle.y;
+                needsUpdate = true;
+              }
+            }
+            
+            return needsUpdate ? updatedElement : el;
+          }
+          
+          return el;
+        });
+      });
+      return;
+    }
+    
+    // Check if hovering over a handle (for visual feedback - like webwhiteboard.com)
+    if (!isDrawing && selectedTool !== 'text') {
+      const handle = getHandleAtPosition(pos.x, pos.y);
+      if (handle) {
+        setHoveredHandle({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+        
+        // Find nearest component and show suggested arrow
+        const nearest = findNearestComponent(handle.elementId, handle.handleX, handle.handleY);
+        if (nearest && nearest.distance < 400) { // Only suggest if within reasonable distance
+          setSuggestedArrow({
+            fromX: handle.handleX,
+            fromY: handle.handleY,
+            toX: nearest.handleX,
+            toY: nearest.handleY,
+            targetElementId: nearest.element.id
+          });
+        } else {
+          setSuggestedArrow(null);
+        }
+      } else {
+        setHoveredHandle(null);
+        setSuggestedArrow(null);
+      }
+    }
+    
     if (!isDrawing) return;
     
     if (selectedTool === 'pen') {
-      const pos = getMousePos(e);
       setCurrentPath(prev => [...prev, pos]);
     } else if (selectedTool === 'eraser') {
-      const pos = getMousePos(e);
       // Remove elements near the eraser position
       setElements(prev => prev.filter(el => {
         const centerX = el.x + (el.width || 0) / 2;
@@ -438,6 +1185,78 @@ const SimpleCanvas: React.FC<{
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    const pos = getMousePos(e);
+    
+    // Finish connection drawing
+    if (isDrawingConnection && connectionStart) {
+      // Find target element or use endpoint position
+      const targetElement = getElementAtPosition(pos.x, pos.y);
+      let endX = pos.x;
+      let endY = pos.y;
+      
+      // If dropping on another component (not the source), snap to its closest handle
+      if (targetElement && targetElement.id !== connectionStart.elementId) {
+        const closestHandle = getClosestHandle(targetElement, pos.x, pos.y);
+        endX = closestHandle.x;
+        endY = closestHandle.y;
+      }
+      
+      // Only create arrow if moved a minimum distance
+      const dist = Math.sqrt(
+        Math.pow(endX - connectionStart.x, 2) + 
+        Math.pow(endY - connectionStart.y, 2)
+      );
+      
+      if (dist > 30) {
+        // Find source and target element info for graph-like behavior
+        const sourceElement = elements.find(el => el.id === connectionStart.elementId);
+        const sourceHandles = sourceElement ? getConnectionHandles(sourceElement) : [];
+        const sourceHandleInfo = sourceHandles.find(h => 
+          Math.abs(h.x - connectionStart.x) < 2 && Math.abs(h.y - connectionStart.y) < 2
+        );
+        
+        let targetHandleInfo: { position: string } | undefined;
+        if (targetElement) {
+          const targetHandles = getConnectionHandles(targetElement);
+          targetHandleInfo = targetHandles.find(h => 
+            Math.abs(h.x - endX) < 2 && Math.abs(h.y - endY) < 2
+          );
+        }
+        
+        const newArrow: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'arrow',
+          x: connectionStart.x,
+          y: connectionStart.y,
+          width: endX,  // For arrows, width/height store the end position
+          height: endY,
+          color: selectedColor,
+          strokeWidth: strokeWidth,
+          lineStyle: lineStyle,
+          // Store connection info for graph-like behavior
+          sourceElementId: connectionStart.elementId,
+          sourceHandlePos: sourceHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left' | undefined,
+          targetElementId: targetElement?.id,
+          targetHandlePos: targetHandleInfo?.position as 'top' | 'right' | 'bottom' | 'left' | undefined
+        };
+        const newElements = [...elements, newArrow];
+        setElements(newElements);
+        saveToHistory(newElements);
+      }
+      
+      setIsDrawingConnection(false);
+      setConnectionStart(null);
+      setConnectionEnd(null);
+      return;
+    }
+    
+    // Finish dragging
+    if (isDragging) {
+      setIsDragging(false);
+      saveToHistory([...elements]);
+      return;
+    }
+    
     if (!isDrawing) return;
 
     const endPos = getMousePos(e);
@@ -529,41 +1348,112 @@ const SimpleCanvas: React.FC<{
 
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
-      const newElement: CanvasElement = {
-        id: `el-${Date.now()}`,
-        type: 'text',
-        x: textInputPos.x,
-        y: textInputPos.y,
-        text: textInputValue,
-        color: selectedColor,
-        fontSize: 16
-      };
-      const newElements = [...elements, newElement];
-      setElements(newElements);
-      saveToHistory(newElements);
+      if (editingTextId) {
+        // Editing existing text
+        const newElements = elements.map(el => 
+          el.id === editingTextId 
+            ? { ...el, text: textInputValue }
+            : el
+        );
+        setElements(newElements);
+        saveToHistory(newElements);
+      } else {
+        // Creating new text
+        const newElement: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'text',
+          x: textInputPos.x,
+          y: textInputPos.y,
+          text: textInputValue,
+          color: selectedColor,
+          fontSize: 16
+        };
+        const newElements = [...elements, newElement];
+        setElements(newElements);
+        saveToHistory(newElements);
+      }
     }
     setShowTextInput(false);
     setTextInputValue('');
+    setEditingTextId(null);
+    // Auto-switch to select tool after adding/editing text (better UX)
+    setSelectedTool('select');
   };
 
-  const addComponent = (template: ComponentTemplate) => {
-    const newElement: CanvasElement = {
-      id: `el-${Date.now()}`,
-      type: 'rect',
-      x: 100 + Math.random() * 400,
-      y: 100 + Math.random() * 300,
-      width: 130,
-      height: 70,
-      color: template.color,
-      strokeColor: '#fff',
-      strokeWidth: 2,
-      text: template.name,
-      fontSize: 13
-    };
-    const newElements = [...elements, newElement];
-    setElements(newElements);
-    saveToHistory(newElements);
+  const handleTextCancel = () => {
+    setShowTextInput(false);
+    setTextInputValue('');
+    setEditingTextId(null);
+    // Also switch to select on cancel
+    setSelectedTool('select');
   };
+
+  // Delete selected element
+  const deleteSelected = useCallback(() => {
+    if (selectedElementId) {
+      const newElements = elements.filter(el => el.id !== selectedElementId);
+      setElements(newElements);
+      saveToHistory(newElements);
+      setSelectedElementId(null);
+    }
+  }, [selectedElementId, elements, saveToHistory]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if typing in text input
+      if (showTextInput) {
+        if (e.key === 'Escape') setShowTextInput(false);
+        return;
+      }
+      
+      // Delete selected element
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        deleteSelected();
+        e.preventDefault();
+      }
+      
+      // Escape - deselect
+      if (e.key === 'Escape') {
+        setSelectedElementId(null);
+        onPendingComponentPlaced(); // Cancel pending component
+      }
+      
+      // Ctrl+Z - Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        handleUndo();
+        e.preventDefault();
+      }
+      
+      // Ctrl+Y or Ctrl+Shift+Z - Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        handleRedo();
+        e.preventDefault();
+      }
+      
+      // Tool shortcuts (single keys, no modifiers)
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'v': setSelectedTool('select'); break;
+          case 'r': setSelectedTool('rect'); break;
+          case 'o': setSelectedTool('ellipse'); break;
+          case 'l': setSelectedTool('line'); break;
+          case 'a': setSelectedTool('arrow'); break;
+          case 't': setSelectedTool('text'); break;
+          case 'p': setSelectedTool('pen'); break;
+          case 'e': setSelectedTool('eraser'); break;
+        }
+        
+        // Component shortcuts (1-9, 0)
+        const componentIndex = '1234567890'.indexOf(e.key);
+        if (componentIndex !== -1 && componentIndex < COMPONENT_TEMPLATES.length) {
+          onComponentSelect(COMPONENT_TEMPLATES[componentIndex]);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelected, showTextInput, handleUndo, handleRedo, onPendingComponentPlaced, onComponentSelect]);
 
   const clearCanvas = () => {
     saveToHistory([]);
@@ -572,16 +1462,244 @@ const SimpleCanvas: React.FC<{
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  
+  // Fit to view - centers and scales diagram to fit canvas
+  const handleFitToView = useCallback(() => {
+    if (elements.length === 0) return;
+    
+    // Calculate bounding box of all elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    elements.forEach(el => {
+      const elWidth = el.width || 130;
+      const elHeight = el.height || 70;
+      
+      if (el.type === 'arrow') {
+        // For arrows, x/y is start and width/height is end
+        minX = Math.min(minX, el.x, el.width || el.x);
+        minY = Math.min(minY, el.y, el.height || el.y);
+        maxX = Math.max(maxX, el.x, el.width || el.x);
+        maxY = Math.max(maxY, el.y, el.height || el.y);
+      } else {
+        minX = Math.min(minX, el.x);
+        minY = Math.min(minY, el.y);
+        maxX = Math.max(maxX, el.x + elWidth);
+        maxY = Math.max(maxY, el.y + elHeight);
+      }
+    });
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 80;
+    
+    // Calculate zoom to fit
+    const scaleX = (canvasSize.width - padding * 2) / contentWidth;
+    const scaleY = (canvasSize.height - padding * 2) / contentHeight;
+    const newZoom = Math.min(scaleX, scaleY, 2); // Cap at 200%
+    const clampedZoom = Math.max(0.5, Math.min(newZoom, 2));
+    
+    // Calculate center offset
+    const centerX = (canvasSize.width / 2) - ((minX + contentWidth / 2) * clampedZoom);
+    const centerY = (canvasSize.height / 2) - ((minY + contentHeight / 2) * clampedZoom);
+    
+    // Update elements positions to center
+    const offsetX = (canvasSize.width / 2 / clampedZoom) - (minX + contentWidth / 2);
+    const offsetY = (canvasSize.height / 2 / clampedZoom) - (minY + contentHeight / 2);
+    
+    const centeredElements = elements.map(el => {
+      if (el.type === 'arrow') {
+        return {
+          ...el,
+          x: el.x + offsetX,
+          y: el.y + offsetY,
+          width: (el.width || el.x) + offsetX,
+          height: (el.height || el.y) + offsetY
+        };
+      }
+      return {
+        ...el,
+        x: el.x + offsetX,
+        y: el.y + offsetY
+      };
+    });
+    
+    setElements(centeredElements);
+    setZoom(clampedZoom);
+    saveToHistory(centeredElements);
+    onElementsChange(centeredElements);
+  }, [elements, canvasSize, saveToHistory, onElementsChange]);
+  
+  // Auto-fit after new external elements are loaded
+  useEffect(() => {
+    if (pendingAutoFitRef.current && elements.length > 0) {
+      pendingAutoFitRef.current = false;
+      // Delay to ensure canvas is rendered
+      setTimeout(() => {
+        handleFitToView();
+      }, 100);
+    }
+  }, [elements, handleFitToView]);
+  
+  // Export dropdown state
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  
+  // Export to PNG
+  const handleExportPNG = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    // Create a temporary canvas with white background
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+    
+    // Fill white background
+    tempCtx.fillStyle = '#1e293b';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw original canvas
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    // Download
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.png`;
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+    setShowExportMenu(false);
+  }, []);
+  
+  // Export to JSON (for import later)
+  const handleExportJSON = useCallback(() => {
+    const data = {
+      version: '1.0',
+      elements: elements,
+      canvasSize,
+      exportedAt: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setShowExportMenu(false);
+  }, [elements, canvasSize]);
+  
+  // Export to DrawIO format (XML)
+  const handleExportDrawIO = useCallback(() => {
+    // Create basic DrawIO XML structure
+    let mxCells = '';
+    let cellId = 2;
+    
+    elements.forEach(el => {
+      if (el.type === 'component' || el.type === 'rect') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || el.componentName || ''}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=${el.color || '#3b82f6'};strokeColor=#000000;fontColor=#ffffff;" vertex="1" parent="1">
+            <mxGeometry x="${el.x}" y="${el.y}" width="${el.width || 130}" height="${el.height || 70}" as="geometry" />
+          </mxCell>`;
+        cellId++;
+      } else if (el.type === 'arrow') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || ''}" style="endArrow=classic;html=1;strokeColor=#94a3b8;${el.lineStyle === 'dashed' ? 'dashed=1;' : ''}" edge="1" parent="1">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="${el.x}" y="${el.y}" as="sourcePoint" />
+              <mxPoint x="${el.width}" y="${el.height}" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>`;
+        cellId++;
+      } else if (el.type === 'text') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || ''}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#94a3b8;" vertex="1" parent="1">
+            <mxGeometry x="${el.x}" y="${el.y}" width="100" height="40" as="geometry" />
+          </mxCell>`;
+        cellId++;
+      }
+    });
+    
+    const drawioXml = `<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="SystemDesignWhiteboard">
+  <diagram name="System Design" id="system-design-1">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${canvasSize.width}" pageHeight="${canvasSize.height}" background="#1e293b">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        ${mxCells}
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`;
+    
+    const blob = new Blob([drawioXml], { type: 'application/xml' });
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.drawio`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setShowExportMenu(false);
+  }, [elements, canvasSize]);
+  
+  // Share via Email
+  const handleShareEmail = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const subject = encodeURIComponent('System Design Diagram');
+    const body = encodeURIComponent(`Check out my system design diagram!\n\nView the attached image or open the JSON file in the System Design Whiteboard.`);
+    
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+    setShowShareMenu(false);
+  }, []);
+  
+  // Share via WhatsApp
+  const handleShareWhatsApp = useCallback(() => {
+    const text = encodeURIComponent('Check out my system design diagram! 📊🔧');
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    setShowShareMenu(false);
+  }, []);
+  
+  // Copy diagram as image to clipboard
+  const handleCopyToClipboard = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    try {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      
+      tempCtx.fillStyle = '#1e293b';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tempCtx.drawImage(canvas, 0, 0);
+      
+      tempCanvas.toBlob(async (blob) => {
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+    setShowShareMenu(false);
+  }, []);
 
-  const tools: { id: ToolType; icon: React.ReactNode; label: string }[] = [
-    { id: 'select', icon: <Move className="w-4 h-4" />, label: 'Select' },
-    { id: 'pen', icon: <Pencil className="w-4 h-4" />, label: 'Pen' },
-    { id: 'rect', icon: <Square className="w-4 h-4" />, label: 'Rectangle' },
-    { id: 'ellipse', icon: <Circle className="w-4 h-4" />, label: 'Ellipse' },
-    { id: 'line', icon: <Minus className="w-4 h-4" />, label: 'Line' },
-    { id: 'arrow', icon: <ArrowRight className="w-4 h-4" />, label: 'Arrow' },
-    { id: 'text', icon: <Type className="w-4 h-4" />, label: 'Text' },
-    { id: 'eraser', icon: <Trash2 className="w-4 h-4" />, label: 'Eraser' },
+  const tools: { id: ToolType; icon: React.ReactNode; label: string; shortcut: string }[] = [
+    { id: 'select', icon: <Move className="w-4 h-4" />, label: 'Select', shortcut: 'V' },
+    { id: 'pen', icon: <Pencil className="w-4 h-4" />, label: 'Pen', shortcut: 'P' },
+    { id: 'rect', icon: <Square className="w-4 h-4" />, label: 'Rectangle', shortcut: 'R' },
+    { id: 'ellipse', icon: <Circle className="w-4 h-4" />, label: 'Ellipse', shortcut: 'O' },
+    { id: 'line', icon: <Minus className="w-4 h-4" />, label: 'Line', shortcut: 'L' },
+    { id: 'arrow', icon: <ArrowRight className="w-4 h-4" />, label: 'Arrow', shortcut: 'A' },
+    { id: 'text', icon: <Type className="w-4 h-4" />, label: 'Text', shortcut: 'T' },
+    { id: 'eraser', icon: <Trash2 className="w-4 h-4" />, label: 'Eraser', shortcut: 'E' },
   ];
 
   return (
@@ -599,7 +1717,7 @@ const SimpleCanvas: React.FC<{
                   ? 'bg-blue-600 text-white' 
                   : 'text-slate-300 hover:bg-white/10'
               }`}
-              title={tool.label}
+              title={`${tool.label} (${tool.shortcut})`}
             >
               {tool.icon}
             </button>
@@ -687,19 +1805,111 @@ const SimpleCanvas: React.FC<{
             onClick={handleZoomOut}
             disabled={zoom <= 0.5}
             className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
-            title="Zoom Out"
+            title="Zoom Out (-)"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-xs text-slate-300 min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom(1)}
+            className="text-xs text-slate-300 min-w-[40px] text-center hover:bg-white/10 rounded px-1 py-0.5"
+            title="Reset to 100%"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
           <button
             onClick={handleZoomIn}
             disabled={zoom >= 3}
             className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
-            title="Zoom In"
+            title="Zoom In (+)"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
+          <button
+            onClick={handleFitToView}
+            disabled={elements.length === 0}
+            className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
+            title="Fit to View (F)"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+        
+        {/* Export Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { setShowExportMenu(!showExportMenu); setShowShareMenu(false); }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-white/10 transition-colors"
+            title="Export Options"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          
+          {showExportMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-slate-700 rounded-lg border border-white/10 shadow-xl z-50 min-w-[160px] py-1">
+              <button
+                onClick={handleExportPNG}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <Image className="w-4 h-4 text-blue-400" />
+                Download PNG
+              </button>
+              <button
+                onClick={handleExportJSON}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <FileDown className="w-4 h-4 text-green-400" />
+                Download JSON
+              </button>
+              <button
+                onClick={handleExportDrawIO}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4 text-purple-400" />
+                Export to DrawIO
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Share Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { setShowShareMenu(!showShareMenu); setShowExportMenu(false); }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-white/10 transition-colors"
+            title="Share Options"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Share
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          
+          {showShareMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-slate-700 rounded-lg border border-white/10 shadow-xl z-50 min-w-[160px] py-1">
+              <button
+                onClick={handleCopyToClipboard}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                {copySuccess ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                {copySuccess ? 'Copied!' : 'Copy to Clipboard'}
+              </button>
+              <button
+                onClick={handleShareEmail}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <Mail className="w-4 h-4 text-blue-400" />
+                Share via Email
+              </button>
+              <button
+                onClick={handleShareWhatsApp}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 text-green-400" />
+                Share via WhatsApp
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Clear Button */}
@@ -712,22 +1922,36 @@ const SimpleCanvas: React.FC<{
         </button>
       </div>
 
-      {/* Component Templates Bar */}
-      <div className="flex items-center gap-1 p-2 bg-slate-900/50 border-b border-white/5 overflow-x-auto">
-        <span className="text-xs text-slate-500 mr-2 whitespace-nowrap">Components:</span>
-        {COMPONENT_TEMPLATES.map(template => (
+      {/* Instruction banners for different modes */}
+      {pendingComponent && (
+        <div className="flex items-center justify-center gap-2 p-2 bg-cyan-500/20 border-b border-cyan-500/30">
+          <span className="text-sm text-cyan-300 font-medium">
+            👆 Click on the canvas to place: {pendingComponent.template.name}
+          </span>
           <button
-            key={template.name}
-            onClick={() => addComponent(template)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:bg-white/10 transition-colors whitespace-nowrap border border-white/5"
-            style={{ color: template.color }}
-            title={template.description}
+            onClick={onPendingComponentPlaced}
+            className="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10"
           >
-            {template.icon}
-            <span>{template.name}</span>
+            Cancel
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+      
+      {/* Text tool instruction */}
+      {selectedTool === 'text' && !showTextInput && !pendingComponent && (
+        <div className="flex items-center justify-center gap-2 p-2 bg-purple-500/20 border-b border-purple-500/30">
+          <span className="text-sm text-purple-300 font-medium">
+            📝 Click anywhere on the canvas to add text
+          </span>
+        </div>
+      )}
+      
+      {/* Connection hint */}
+      {!pendingComponent && selectedTool !== 'text' && (
+        <div className="flex items-center justify-center gap-1 py-1 bg-slate-800/50 border-b border-white/5 text-xs text-slate-500">
+          <span>💡 Drag from the cyan dots on components to create arrows</span>
+        </div>
+      )}
 
       {/* Canvas */}
       <div ref={containerRef} className="flex-1 overflow-hidden relative bg-slate-900">
@@ -736,39 +1960,84 @@ const SimpleCanvas: React.FC<{
           width={canvasSize.width}
           height={canvasSize.height}
           className={`absolute inset-0 ${
+            pendingComponent ? 'cursor-copy' :
+            isDragging ? 'cursor-grabbing' :
+            isDrawingConnection ? 'cursor-crosshair' :
+            hoveredHandle ? 'cursor-crosshair' :
             selectedTool === 'eraser' ? 'cursor-cell' : 
             selectedTool === 'text' ? 'cursor-text' : 
-            selectedTool === 'select' ? 'cursor-move' : 'cursor-crosshair'
+            selectedTool === 'select' ? 'cursor-grab' : 'cursor-crosshair'
           }`}
           style={{ width: '100%', height: '100%' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={() => setIsDrawing(false)}
+          onMouseLeave={() => { setIsDrawing(false); setGhostPosition(null); }}
+          onDoubleClick={(e) => {
+            // Double-click to edit text elements (any tool)
+            const pos = getMousePos(e);
+            const clickedElement = getElementAtPosition(pos.x, pos.y);
+            if (clickedElement && clickedElement.type === 'text') {
+              const screenPos = getScreenPos(e);
+              setTextInputPos({ x: clickedElement.x, y: clickedElement.y });
+              setTextInputScreenPos(screenPos);
+              setTextInputValue(clickedElement.text || '');
+              setEditingTextId(clickedElement.id);
+              setShowTextInput(true);
+              setTimeout(() => textInputRef.current?.focus(), 50);
+            }
+          }}
         />
         
-        {/* Text Input Overlay */}
+        {/* Text Input Overlay with backdrop */}
         {showTextInput && (
-          <div
-            className="absolute"
-            style={{ left: textInputPos.x * zoom, top: textInputPos.y * zoom }}
-          >
-            <input
-              ref={textInputRef}
-              type="text"
-              value={textInputValue}
-              onChange={(e) => setTextInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleTextSubmit();
-                if (e.key === 'Escape') setShowTextInput(false);
+          <>
+            {/* Invisible backdrop to catch clicks outside */}
+            <div 
+              className="absolute inset-0 z-40"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTextSubmit(); // Submit on click outside
               }}
-              onBlur={handleTextSubmit}
-              className="bg-slate-700 text-white px-2 py-1 rounded border border-blue-500 outline-none text-sm min-w-[150px]"
-              placeholder="Type text..."
-              style={{ color: selectedColor }}
-              autoFocus
             />
-          </div>
+            {/* Text input popup */}
+            <div
+              className="absolute z-50"
+              style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
+              onClick={(e) => e.stopPropagation()} // Prevent backdrop click
+            >
+              <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-3">
+                <textarea
+                  ref={textInputRef}
+                  value={textInputValue}
+                  onChange={(e) => setTextInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation(); // Prevent global keyboard shortcuts
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault(); // Prevent newline
+                      handleTextSubmit();
+                    }
+                    if (e.key === 'Escape') handleTextCancel();
+                  }}
+                  className="bg-slate-700 text-white px-4 py-3 rounded border border-slate-600 outline-none text-sm 
+                           w-[320px] min-h-[120px] resize focus:border-blue-500 leading-relaxed"
+                  placeholder="Type your text here...&#10;Use Shift+Enter for new lines"
+                  style={{ color: selectedColor }}
+                  autoFocus
+                  rows={5}
+                />
+                <div className="text-xs text-slate-500 mt-2 px-1 flex items-center justify-between">
+                  <span>Enter to {editingTextId ? 'save' : 'add'} • Shift+Enter newline • Drag corner to resize</span>
+                  <button 
+                    onClick={handleTextSubmit}
+                    className="text-blue-400 hover:text-blue-300 px-3 py-1 bg-blue-500/10 rounded"
+                  >
+                    {editingTextId ? 'Save' : 'Add'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -784,13 +2053,56 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
   onClose,
   question,
   onSubmit,
+  mode = 'system-design',
+  initialElements = [],
+  canvasName: initialCanvasName = '',
+  onSave,
+  initialPrompt = '',
+  initialSummary = '',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
+  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>(initialElements);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['requirements']));
   const [currentHintIndex, setCurrentHintIndex] = useState(-1);
+  
+  // Sandbox mode state
+  const [canvasName, setCanvasName] = useState(initialCanvasName);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Generate from prompt state
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState(initialPrompt);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateSuggestions, setGenerateSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState(initialSummary);
+  const [showSummaryPanel, setShowSummaryPanel] = useState(!!initialSummary);
+  const [shouldAutoFit, setShouldAutoFit] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [savedPrompt, setSavedPrompt] = useState(initialPrompt);
+  
+  // Pending component for drag-and-drop placement
+  const [pendingComponent, setPendingComponent] = useState<PendingComponent | null>(null);
+  
+  // Reset elements when initialElements change (for loading saved canvases)
+  useEffect(() => {
+    if (initialElements.length > 0) {
+      setCanvasElements(initialElements);
+    }
+  }, [initialElements]);
+
+  // Handle component selection from sidebar
+  const handleComponentSelect = useCallback((template: ComponentTemplate) => {
+    setPendingComponent({ template, x: 0, y: 0 });
+  }, []);
+
+  // Clear pending component (after placement or cancel)
+  const handlePendingComponentPlaced = useCallback(() => {
+    setPendingComponent(null);
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -826,10 +2138,222 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
 
   // Get next hint
   const handleGetHint = useCallback(() => {
-    if (question.hints && currentHintIndex < question.hints.length - 1) {
+    if (question?.hints && currentHintIndex < question.hints.length - 1) {
       setCurrentHintIndex(prev => prev + 1);
     }
-  }, [question.hints, currentHintIndex]);
+  }, [question?.hints, currentHintIndex]);
+
+  // Handle save (sandbox mode)
+  const handleSave = useCallback(async () => {
+    if (!onSave) return;
+    
+    const name = canvasName.trim() || `Canvas ${new Date().toLocaleDateString()}`;
+    setIsSaving(true);
+    try {
+      await onSave(canvasElements, name);
+      setShowSaveDialog(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canvasElements, canvasName, onSave]);
+  
+  // Handle generate diagram from prompt
+  // Calculate best connection handles based on relative positions
+  const calculateBestHandles = useCallback((
+    fromComp: CanvasElement,
+    toComp: CanvasElement
+  ): { startX: number; startY: number; endX: number; endY: number; sourceHandle: string; targetHandle: string } => {
+    const fromW = fromComp.width || 130;
+    const fromH = fromComp.height || 70;
+    const toW = toComp.width || 130;
+    const toH = toComp.height || 70;
+    
+    // Center points
+    const fromCX = fromComp.x + fromW / 2;
+    const fromCY = fromComp.y + fromH / 2;
+    const toCX = toComp.x + toW / 2;
+    const toCY = toComp.y + toH / 2;
+    
+    // Calculate relative direction
+    const dx = toCX - fromCX;
+    const dy = toCY - fromCY;
+    
+    // Determine best handles based on relative position
+    let sourceHandle: 'top' | 'right' | 'bottom' | 'left';
+    let targetHandle: 'top' | 'right' | 'bottom' | 'left';
+    
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal relationship
+      if (dx > 0) {
+        // Target is to the right
+        sourceHandle = 'right';
+        targetHandle = 'left';
+      } else {
+        // Target is to the left
+        sourceHandle = 'left';
+        targetHandle = 'right';
+      }
+    } else {
+      // Vertical relationship
+      if (dy > 0) {
+        // Target is below
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
+      } else {
+        // Target is above
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
+      }
+    }
+    
+    // Calculate handle positions
+    const getHandlePos = (comp: CanvasElement, handle: string) => {
+      const w = comp.width || 130;
+      const h = comp.height || 70;
+      switch (handle) {
+        case 'top': return { x: comp.x + w / 2, y: comp.y };
+        case 'right': return { x: comp.x + w, y: comp.y + h / 2 };
+        case 'bottom': return { x: comp.x + w / 2, y: comp.y + h };
+        case 'left': return { x: comp.x, y: comp.y + h / 2 };
+        default: return { x: comp.x + w, y: comp.y + h / 2 };
+      }
+    };
+    
+    const startPos = getHandlePos(fromComp, sourceHandle);
+    const endPos = getHandlePos(toComp, targetHandle);
+    
+    return {
+      startX: startPos.x,
+      startY: startPos.y,
+      endX: endPos.x,
+      endY: endPos.y,
+      sourceHandle,
+      targetHandle
+    };
+  }, []);
+
+  const handleGenerateDiagram = useCallback(async () => {
+    if (!generatePrompt.trim()) return;
+    
+    setIsGenerating(true);
+    setGenerateSuggestions([]);
+    setShowSuggestions(false);
+    
+    try {
+      const result = await mockInterviewApi.generateSystemDesignDiagram({
+        prompt: generatePrompt,
+        questionTitle: question?.title,
+        questionDescription: question?.description,
+        requirements: question?.requirements,
+        canvasWidth: 1200,
+        canvasHeight: 800
+      });
+      
+      if (result.success && result.diagram) {
+        // Convert generated diagram to canvas elements
+        const newElements: CanvasElement[] = [];
+        
+        // Add components first
+        result.diagram.components.forEach((comp: GeneratedComponent) => {
+          const template = COMPONENT_TEMPLATES.find(t => 
+            t.iconName === comp.template || 
+            t.name.toLowerCase().replace(/\s+/g, '_') === comp.template
+          );
+          
+          newElements.push({
+            id: comp.id,
+            type: 'component',
+            x: comp.position.x,
+            y: comp.position.y,
+            width: 130,
+            height: 70,
+            text: comp.label,
+            componentName: template?.name || comp.label,
+            iconName: template?.iconName || comp.template,
+            color: comp.color || template?.color || '#3b82f6'
+          });
+        });
+        
+        // Add connections with smart edge routing
+        result.diagram.connections.forEach((conn: GeneratedConnection, idx: number) => {
+          const fromComp = newElements.find(e => e.id === conn.fromId);
+          const toComp = newElements.find(e => e.id === conn.toId);
+          
+          if (fromComp && toComp) {
+            // Use smart handle calculation
+            const handles = calculateBestHandles(fromComp, toComp);
+            
+            newElements.push({
+              id: `arrow-${conn.fromId}-${conn.toId}-${idx}`,
+              type: 'arrow',
+              x: handles.startX,
+              y: handles.startY,
+              width: handles.endX,
+              height: handles.endY,
+              color: '#94a3b8',
+              strokeWidth: 2,
+              lineStyle: conn.style === 'dashed' ? 'dashed' : 'solid',
+              sourceElementId: conn.fromId,
+              targetElementId: conn.toId,
+              sourceHandlePos: handles.sourceHandle as any,
+              targetHandlePos: handles.targetHandle as any,
+              text: conn.label
+            });
+          }
+        });
+        
+        // Add annotations as text elements
+        result.diagram.annotations.forEach((ann, idx) => {
+          newElements.push({
+            id: `text-${Date.now()}-${idx}`,
+            type: 'text',
+            x: ann.position.x,
+            y: ann.position.y,
+            text: ann.text,
+            color: '#94a3b8',
+            fontSize: 14
+          });
+        });
+        
+        // Update canvas elements and trigger auto-fit
+        setCanvasElements(newElements);
+        setShouldAutoFit(true);
+        // Reset auto-fit flag after elements are processed
+        setTimeout(() => setShouldAutoFit(false), 500);
+        
+        // Save summary and show panel
+        if (result.diagram.summary) {
+          setGeneratedSummary(result.diagram.summary);
+          setShowSummaryPanel(true);
+        }
+        
+        // Save suggestions (but don't show immediately)
+        if (result.diagram.suggestions && result.diagram.suggestions.length > 0) {
+          setGenerateSuggestions(result.diagram.suggestions);
+        }
+        
+        // Save the prompt for future reference
+        setSavedPrompt(generatePrompt);
+        
+        // Close modal
+        setShowGenerateModal(false);
+        setGeneratePrompt('');
+      }
+    } catch (error: any) {
+      logger.error('Failed to generate diagram', { error: error?.message });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generatePrompt, question, calculateBestHandles]);
+
+  // Handle close - save state for system-design mode before closing
+  const handleClose = useCallback(() => {
+    // For system-design mode, auto-save elements so user can resume
+    if (mode === 'system-design' && onSave && canvasElements.length > 0) {
+      onSave(canvasElements, question?.title || 'design', savedPrompt, generatedSummary);
+    }
+    onClose();
+  }, [mode, onSave, canvasElements, onClose, question?.title, savedPrompt, generatedSummary]);
 
   // Export canvas to image
   const exportToImage = useCallback(async (): Promise<string> => {
@@ -858,7 +2382,7 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
         elapsedTime,
       };
 
-      onSubmit(submission);
+      onSubmit?.(submission);
     } finally {
       setIsSubmitting(false);
     }
@@ -872,151 +2396,220 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-800/50">
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <Layers className="w-5 h-5 text-cyan-400" />
+            <div className={`p-2 rounded-lg ${mode === 'sandbox' ? 'bg-purple-500/20' : 'bg-cyan-500/20'}`}>
+              <Layers className={`w-5 h-5 ${mode === 'sandbox' ? 'text-purple-400' : 'text-cyan-400'}`} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">{question.title}</h2>
-              <div className="flex items-center gap-3 mt-1">
-                {question.category && (
-                  <span className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full">
-                    {question.category}
-                  </span>
-                )}
-                <span className="text-xs text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTime(elapsedTime)}
-                </span>
-              </div>
+              {mode === 'sandbox' ? (
+                <>
+                  <h2 className="text-lg font-semibold text-white">
+                    {canvasName || 'Untitled Canvas'}
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">Free drawing canvas • Auto-saved to browser</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-lg font-semibold text-white">{question?.title}</h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    {question?.category && (
+                      <span className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded-full">
+                        {question.category}
+                      </span>
+                    )}
+                    <span className="text-xs text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatTime(elapsedTime)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Close whiteboard"
-          >
-            <X className="w-5 h-5 text-slate-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Generate from Prompt button */}
+            <button
+              onClick={() => setShowGenerateModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 
+                       hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg transition-all text-sm font-medium"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate from Prompt
+            </button>
+            
+            {/* Save button for sandbox mode */}
+            {mode === 'sandbox' && onSave && (
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <HardDrive className="w-4 h-4" />
+                Save
+              </button>
+            )}
+            
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Close whiteboard"
+            >
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Question Details */}
+          {/* Left Panel - Question Details (system-design) or Instructions (sandbox) */}
           <div className="w-80 border-r border-white/10 overflow-y-auto p-4 space-y-4">
-            {/* Description */}
-            <div className="bg-white/5 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection('description')}
-                className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-              >
-                <span className="text-sm font-medium text-slate-300">Description</span>
-                {expandedSections.has('description') ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-              {expandedSections.has('description') && (
-                <div className="p-3 pt-0">
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                    {question.description}
+            {mode === 'sandbox' ? (
+              /* Sandbox mode - simple instructions */
+              <>
+                <div className="bg-purple-500/10 rounded-lg p-4 border border-purple-500/20">
+                  <h3 className="text-sm font-semibold text-purple-300 mb-2">🎨 Free Canvas</h3>
+                  <p className="text-xs text-slate-400">
+                    Use this canvas to sketch diagrams, architecture, or any visual ideas.
                   </p>
                 </div>
-              )}
-            </div>
-
-            {/* Requirements */}
-            <div className="bg-white/5 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection('requirements')}
-                className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-              >
-                <span className="text-sm font-medium text-slate-300">
-                  Requirements ({question.requirements.length})
-                </span>
-                {expandedSections.has('requirements') ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-              {expandedSections.has('requirements') && (
-                <div className="p-3 pt-0">
-                  <ul className="space-y-2">
-                    {question.requirements.map((req, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                        <span className="text-cyan-400 font-bold">{idx + 1}.</span>
-                        {req}
-                      </li>
-                    ))}
+                
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Tips</h4>
+                  <ul className="space-y-2 text-xs text-slate-400">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Use number keys <kbd className="bg-slate-700 px-1 rounded">1-0</kbd> for quick component placement
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Hover component handles to see suggested connections
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      Press <kbd className="bg-slate-700 px-1 rounded">T</kbd> for text tool
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400">•</span>
+                      <kbd className="bg-slate-700 px-1 rounded">Ctrl+Z</kbd> to undo
+                    </li>
                   </ul>
                 </div>
-              )}
-            </div>
-
-            {/* Constraints */}
-            {question.constraints && question.constraints.length > 0 && (
-              <div className="bg-white/5 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => toggleSection('constraints')}
-                  className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-                >
-                  <span className="text-sm font-medium text-slate-300">
-                    Constraints ({question.constraints.length})
-                  </span>
-                  {expandedSections.has('constraints') ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+              </>
+            ) : (
+              /* System-design mode - question details */
+              <>
+                {/* Description */}
+                <div className="bg-white/5 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('description')}
+                    className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                  >
+                    <span className="text-sm font-medium text-slate-300">Description</span>
+                    {expandedSections.has('description') ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {expandedSections.has('description') && (
+                    <div className="p-3 pt-0">
+                      <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                        {question?.description}
+                      </p>
+                    </div>
                   )}
-                </button>
-                {expandedSections.has('constraints') && (
-                  <div className="p-3 pt-0">
-                    <ul className="space-y-2">
-                      {question.constraints.map((constraint, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-orange-300">
-                          <span className="text-orange-400">⚡</span>
-                          {constraint}
-                        </li>
-                      ))}
-                    </ul>
+                </div>
+
+                {/* Requirements */}
+                <div className="bg-white/5 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('requirements')}
+                    className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                  >
+                    <span className="text-sm font-medium text-slate-300">
+                      Requirements ({question?.requirements?.length || 0})
+                    </span>
+                    {expandedSections.has('requirements') ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {expandedSections.has('requirements') && (
+                    <div className="p-3 pt-0">
+                      <ul className="space-y-2">
+                        {question?.requirements?.map((req, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-cyan-400 font-bold">{idx + 1}.</span>
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Constraints */}
+                {question?.constraints && question.constraints.length > 0 && (
+                  <div className="bg-white/5 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleSection('constraints')}
+                      className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                    >
+                      <span className="text-sm font-medium text-slate-300">
+                        Constraints ({question.constraints.length})
+                      </span>
+                      {expandedSections.has('constraints') ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                    {expandedSections.has('constraints') && (
+                      <div className="p-3 pt-0">
+                        <ul className="space-y-2">
+                          {question.constraints.map((constraint, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-orange-300">
+                              <span className="text-orange-400">⚡</span>
+                              {constraint}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Hints */}
-            {question.hints && question.hints.length > 0 && (
-              <div className="bg-white/5 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => toggleSection('hints')}
-                  className="w-full flex items-center justify-between p-3 hover:bg-white/5"
-                >
-                  <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    💡 Hints
-                    {currentHintIndex >= 0 && (
-                      <span className="text-xs text-slate-500">
-                        ({currentHintIndex + 1}/{question.hints.length})
+                {/* Hints */}
+                {question?.hints && question.hints.length > 0 && (
+                  <div className="bg-white/5 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleSection('hints')}
+                      className="w-full flex items-center justify-between p-3 hover:bg-white/5"
+                    >
+                      <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        💡 Hints
+                        {currentHintIndex >= 0 && (
+                          <span className="text-xs text-slate-500">
+                            ({currentHintIndex + 1}/{question.hints.length})
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  {expandedSections.has('hints') ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
-                {expandedSections.has('hints') && (
-                  <div className="p-3 pt-0 space-y-2">
-                    {currentHintIndex >= 0 ? (
-                      question.hints.slice(0, currentHintIndex + 1).map((hint, idx) => (
-                        <div key={idx} className="text-sm text-yellow-200/80 bg-yellow-500/10 p-2 rounded">
-                          💡 {hint}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-500">Click button below to reveal hints</p>
+                      {expandedSections.has('hints') ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                    {expandedSections.has('hints') && (
+                      <div className="p-3 pt-0 space-y-2">
+                        {currentHintIndex >= 0 ? (
+                          question.hints.slice(0, currentHintIndex + 1).map((hint, idx) => (
+                            <div key={idx} className="text-sm text-yellow-200/80 bg-yellow-500/10 p-2 rounded">
+                              💡 {hint}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-slate-500">Click button below to reveal hints</p>
                     )}
                     {currentHintIndex < question.hints.length - 1 && (
                       <button
@@ -1030,59 +2623,406 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
                   </div>
                 )}
               </div>
+                )}
+              </>
             )}
 
-            {/* Component Legend */}
+            {/* Component Palette - Drag to Canvas (shown in both modes) */}
             <div className="bg-white/5 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-slate-300 mb-2">Component Legend</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                🧩 Components
+                <span className="text-xs text-slate-500 font-normal">(Click to place)</span>
+              </h4>
+              <div className="grid grid-cols-1 gap-1.5">
                 {COMPONENT_TEMPLATES.map(template => (
-                  <div key={template.name} className="flex items-center gap-2 text-xs">
+                  <button
+                    key={template.name}
+                    onClick={() => handleComponentSelect(template)}
+                    className={`flex items-center gap-2 text-xs p-2 rounded transition-all hover:bg-white/10 border ${
+                      pendingComponent?.template.name === template.name
+                        ? 'border-cyan-400 bg-cyan-500/20'
+                        : 'border-transparent'
+                    }`}
+                    title={`${template.description} (${template.shortcut})`}
+                  >
                     <div
-                      className="w-3 h-3 rounded"
+                      className="w-5 h-5 rounded flex items-center justify-center text-white"
                       style={{ backgroundColor: template.color }}
-                    />
-                    <span className="text-slate-400">{template.name}</span>
-                  </div>
+                    >
+                      {template.icon}
+                    </div>
+                    <span className="text-slate-300 flex-1">{template.name}</span>
+                    <span className="text-slate-500 text-[10px] bg-white/10 px-1 rounded">{template.shortcut}</span>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
 
           {/* Right Panel - Whiteboard */}
-          <div className="flex-1 flex flex-col">
-            <SimpleCanvas onElementsChange={setCanvasElements} />
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex min-h-0">
+              {/* Canvas Area */}
+              <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+                <SimpleCanvas 
+                  onElementsChange={setCanvasElements}
+                  pendingComponent={pendingComponent}
+                  onPendingComponentPlaced={handlePendingComponentPlaced}
+                  onComponentSelect={handleComponentSelect}
+                  externalElements={canvasElements}
+                  autoFitOnNewElements={shouldAutoFit}
+                />
+              </div>
+              
+              {/* Summary Panel - Flex Sidebar (not absolute) */}
+              <div 
+                className={`bg-slate-800 border-l border-white/10 flex flex-col shadow-xl 
+                          transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0
+                          ${showSummaryPanel ? 'w-80 opacity-100' : 'w-0 opacity-0'}`}
+              >
+                {/* Panel content wrapper - prevents content from squishing */}
+                <div className="w-80 flex flex-col h-full">
+                  {/* Panel Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-900/50 flex-shrink-0">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2 whitespace-nowrap">
+                      <FileText className="w-4 h-4 text-blue-400" />
+                      Design Summary
+                    </h3>
+                    <button
+                      onClick={() => setShowSummaryPanel(false)}
+                      className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded flex-shrink-0"
+                      aria-label="Close summary panel"
+                    >
+                      <PanelRightClose className="w-4 h-4" />
+                    </button>
+                  </div>
+                
+                {/* Summary Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {generatedSummary ? (
+                    <div className="space-y-4">
+                      {/* Previous Prompt - Collapsible with Edit Option */}
+                      {savedPrompt && (
+                        <div className="bg-purple-500/10 rounded-lg border border-purple-500/20 overflow-hidden">
+                          <button
+                            onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-purple-500/5 transition-colors"
+                          >
+                            <span className="text-xs font-medium text-purple-300 flex items-center gap-2">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              Your Description
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <Pencil className="w-3 h-3 text-purple-400" />
+                              <ChevronDown 
+                                className={`w-4 h-4 text-purple-400 transition-transform ${isEditingPrompt ? 'rotate-180' : ''}`} 
+                              />
+                            </div>
+                          </button>
+                          {isEditingPrompt && (
+                            <div className="px-3 pb-3 border-t border-purple-500/10">
+                              <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap leading-relaxed">
+                                {savedPrompt}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  setGeneratePrompt(savedPrompt);
+                                  setShowGenerateModal(true);
+                                  setIsEditingPrompt(false);
+                                }}
+                                className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 
+                                         bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-medium transition-colors"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                Edit & Regenerate
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Generated Summary */}
+                      <div className="bg-slate-700/50 rounded-lg p-4 border border-white/5">
+                        <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">
+                          Architecture Overview
+                        </h4>
+                        <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                          {generatedSummary}
+                        </p>
+                      </div>
+                      
+                      {/* AI Suggestions - Collapsible */}
+                      {generateSuggestions.length > 0 && (
+                        <div className="bg-yellow-500/10 rounded-lg border border-yellow-500/20 overflow-hidden">
+                          <button
+                            onClick={() => setShowSuggestions(!showSuggestions)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-yellow-500/5 transition-colors"
+                          >
+                            <span className="text-xs font-medium text-yellow-300 flex items-center gap-2">
+                              <Lightbulb className="w-3.5 h-3.5" />
+                              {showSuggestions ? 'Hide' : 'Reveal'} Suggestions ({generateSuggestions.length})
+                            </span>
+                            <ChevronDown 
+                              className={`w-4 h-4 text-yellow-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} 
+                            />
+                          </button>
+                          {showSuggestions && (
+                            <div className="px-3 pb-3 border-t border-yellow-500/10 bg-yellow-500/5">
+                              <p className="text-[10px] text-yellow-400/70 mt-2 mb-2 italic">
+                                Think about these before revealing...
+                              </p>
+                              <ul className="space-y-2">
+                                {generateSuggestions.map((sug, idx) => (
+                                  <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                                    <span className="text-yellow-400 mt-0.5 font-bold">{idx + 1}.</span>
+                                    {sug}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Diagram Stats */}
+                      <div className="bg-slate-700/30 rounded-lg p-3 border border-white/5">
+                        <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">
+                          Diagram Stats
+                        </h4>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-blue-400">
+                              {canvasElements.filter(e => e.type === 'component' || e.type === 'rect').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Components</div>
+                          </div>
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-green-400">
+                              {canvasElements.filter(e => e.type === 'arrow').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Connections</div>
+                          </div>
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-purple-400">
+                              {canvasElements.filter(e => e.type === 'text').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Annotations</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <FileText className="w-12 h-12 text-slate-600 mb-3" />
+                      <p className="text-sm text-slate-400 mb-2">No summary yet</p>
+                      <p className="text-xs text-slate-500">
+                        Use "Generate from Prompt" to create a diagram with summary
+                      </p>
+                    </div>
+                  )}
+                </div>
+                </div> {/* Close panel content wrapper */}
+              </div>
+              
+              {/* Toggle Summary Panel Button - Floating when panel is closed */}
+              {!showSummaryPanel && generatedSummary && (
+                <div className="flex items-center border-l border-white/10">
+                  <button
+                    onClick={() => setShowSummaryPanel(true)}
+                    className="h-full px-2 bg-slate-700 hover:bg-slate-600 text-slate-300 
+                             flex flex-col items-center justify-center gap-1 transition-colors"
+                    title="Show Summary Panel"
+                  >
+                    <PanelRight className="w-4 h-4" />
+                    <span className="text-[10px] writing-mode-vertical">Summary</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-400">
-                <span>Components: {canvasElements.filter(e => e.type === 'rect').length}</span>
+                <span>Components: {canvasElements.filter(e => e.type === 'rect' || e.type === 'component').length}</span>
                 <span>•</span>
                 <span>Connections: {canvasElements.filter(e => e.type === 'arrow').length}</span>
+                <span>•</span>
+                <span>Text: {canvasElements.filter(e => e.type === 'text').length}</span>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || canvasElements.length === 0}
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg
-                           hover:bg-green-500 transition-colors disabled:opacity-50 font-medium"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  Submit Design
-                </button>
+                {mode === 'system-design' && onSubmit && (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || canvasElements.length === 0}
+                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg
+                             hover:bg-green-500 transition-colors disabled:opacity-50 font-medium"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    Submit Design
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Save Dialog (sandbox mode) */}
+        {showSaveDialog && mode === 'sandbox' && (
+          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center">
+            <div className="bg-slate-800 rounded-xl border border-white/10 p-6 w-96 shadow-2xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Save Canvas</h3>
+              <input
+                type="text"
+                value={canvasName}
+                onChange={(e) => setCanvasName(e.target.value)}
+                placeholder="Enter canvas name..."
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 
+                         focus:border-purple-500 focus:outline-none mb-4"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveDialog(false)}
+                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white 
+                           rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Generate from Prompt Modal */}
+        {showGenerateModal && (
+          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-slate-800 rounded-xl border border-white/10 p-6 w-full max-w-2xl shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-indigo-600/20">
+                  <Wand2 className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">✨ Generate Diagram from Description</h3>
+                  <p className="text-xs text-slate-400">Describe your architecture and AI will create the diagram</p>
+                </div>
+              </div>
+              
+              {/* Prompt Input */}
+              <textarea
+                value={generatePrompt}
+                onChange={(e) => setGeneratePrompt(e.target.value)}
+                placeholder="Describe your system architecture...&#10;&#10;Example: I'll use a load balancer to distribute traffic to multiple API servers. Redis for caching hot data. PostgreSQL as the main database with read replicas. A message queue for async processing..."
+                rows={6}
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 
+                         focus:border-purple-500 focus:outline-none resize-none mb-4"
+                autoFocus
+              />
+              
+              {/* Tips Section */}
+              {question && (
+                <div className="bg-cyan-500/10 rounded-lg p-4 mb-4 border border-cyan-500/20">
+                  <h4 className="text-sm font-medium text-cyan-300 mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4" />
+                    Consider addressing these requirements:
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {question.requirements?.slice(0, 4).map((req, idx) => (
+                      <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                        <span className="text-cyan-400">•</span>
+                        {req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* AI Suggestions - Collapsible Hint System */}
+              {generateSuggestions.length > 0 && (
+                <div className="bg-yellow-500/10 rounded-lg border border-yellow-500/20 mb-4 overflow-hidden">
+                  <button
+                    onClick={() => setShowSuggestions(!showSuggestions)}
+                    className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-yellow-500/5 transition-colors"
+                  >
+                    <span className="text-xs font-medium text-yellow-300 flex items-center gap-2">
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      {showSuggestions ? 'Hide' : 'Reveal'} AI Suggestions ({generateSuggestions.length})
+                    </span>
+                    <ChevronDown 
+                      className={`w-4 h-4 text-yellow-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} 
+                    />
+                  </button>
+                  {showSuggestions && (
+                    <div className="px-3 pb-3 border-t border-yellow-500/10">
+                      <p className="text-[10px] text-yellow-400/60 mt-2 mb-1.5 italic">
+                        💡 Consider these improvements before revealing:
+                      </p>
+                      <ul className="space-y-1">
+                        {generateSuggestions.map((sug, idx) => (
+                          <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                            <span className="text-yellow-400 mt-0.5">•</span>
+                            {sug}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowGenerateModal(false);
+                    setGeneratePrompt('');
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleGenerateDiagram}
+                  disabled={isGenerating || !generatePrompt.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 
+                           bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+                           rounded-lg hover:from-purple-500 hover:to-indigo-500 
+                           transition-all disabled:opacity-50 font-medium"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Diagram
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+// Export types for external use
+export type { CanvasElement };
 
 export default SystemDesignWhiteboard;
 

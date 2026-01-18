@@ -247,3 +247,53 @@ export const getSystemDesignQuestions = async (): Promise<{
   return response.data;
 };
 
+// =============================================================================
+// AI DIAGRAM GENERATION
+// =============================================================================
+
+export interface GeneratedComponent {
+  id: string;
+  template: string;
+  label: string;
+  position: { x: number; y: number };
+  color?: string;
+}
+
+export interface GeneratedConnection {
+  fromId: string;
+  toId: string;
+  label?: string;
+  style?: 'solid' | 'dashed';
+}
+
+export interface GeneratedAnnotation {
+  text: string;
+  position: { x: number; y: number };
+}
+
+export interface GeneratedDiagram {
+  components: GeneratedComponent[];
+  connections: GeneratedConnection[];
+  annotations: GeneratedAnnotation[];
+  summary: string;
+  suggestions: string[];
+}
+
+/**
+ * Generate a system design diagram from a text prompt
+ */
+export const generateSystemDesignDiagram = async (params: {
+  prompt: string;
+  questionTitle?: string;
+  questionDescription?: string;
+  requirements?: string[];
+  canvasWidth?: number;
+  canvasHeight?: number;
+}): Promise<{
+  success: boolean;
+  diagram: GeneratedDiagram;
+}> => {
+  const response = await api.post('/jobs/interview/system-design/generate', params);
+  return response.data;
+};
+

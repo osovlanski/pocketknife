@@ -16,6 +16,7 @@ import {
   CompanyInterviewProfile 
 } from '../../data/companyMappings';
 import { ProblemDifficulty, PROBLEM_DIFFICULTIES } from '../../types/constants';
+import { configService } from '../core/configService';
 
 // =============================================================================
 // TYPES
@@ -501,21 +502,55 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
         variables: { titleSlug }
       };
 
+      const leetcodeTimeout = configService.get('problems.leetcode.timeoutMs', 10000);
       const response = await axios.post('https://leetcode.com/graphql/', graphqlQuery, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0'
         },
-        timeout: 5000
+        timeout: leetcodeTimeout
       });
 
       const content = response.data?.data?.question?.content;
       
       if (content) {
         // Strip HTML tags and clean up the content
-        // First decode HTML entities, then remove actual HTML tags
+        // Order matters: handle structural tags FIRST, then decode entities, then remove remaining tags
         const cleanContent = content
-          // Decode HTML entities FIRST (before removing tags)
+          // 1. Handle structural HTML elements FIRST (before removing tags)
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<p[^>]*>/gi, '')
+          .replace(/<\/div>/gi, '\n')
+          .replace(/<div[^>]*>/gi, '')
+          .replace(/<li[^>]*>/gi, '\n• ')
+          .replace(/<\/li>/gi, '')
+          .replace(/<ul[^>]*>/gi, '\n')
+          .replace(/<\/ul>/gi, '\n')
+          .replace(/<ol[^>]*>/gi, '\n')
+          .replace(/<\/ol>/gi, '\n')
+          .replace(/<pre[^>]*>/gi, '\n```\n')
+          .replace(/<\/pre>/gi, '\n```\n')
+          .replace(/<code[^>]*>/gi, '`')
+          .replace(/<\/code>/gi, '`')
+          .replace(/<strong[^>]*>/gi, '**')
+          .replace(/<\/strong>/gi, '**')
+          .replace(/<em[^>]*>/gi, '*')
+          .replace(/<\/em>/gi, '*')
+          .replace(/<b[^>]*>/gi, '**')
+          .replace(/<\/b>/gi, '**')
+          .replace(/<i[^>]*>/gi, '*')
+          .replace(/<\/i>/gi, '*')
+          // 2. Remove image tags (keep alt text if any)
+          .replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, '$1')
+          .replace(/<img[^>]*>/gi, '')
+          // 3. Remove remaining HTML tags (spans, links without href, etc.)
+          .replace(/<sup[^>]*>/gi, '^')
+          .replace(/<\/sup>/gi, '')
+          .replace(/<sub[^>]*>/gi, '_')
+          .replace(/<\/sub>/gi, '')
+          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*[^>]*>/g, '')
+          // 4. Decode HTML entities
           .replace(/&nbsp;/g, ' ')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
@@ -523,20 +558,11 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
           .replace(/&apos;/g, "'")
-          // Remove actual HTML tags (only match tags with valid tag names)
-          // This regex matches <tagname ...> or </tagname> but not things like "a < b > c"
-          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?\/?>/g, '')
-          // Handle self-closing tags
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<p\s*\/?>/gi, '\n')
-          .replace(/<\/p>/gi, '\n')
-          .replace(/<li\s*\/?>/gi, '\n• ')
-          .replace(/<\/li>/gi, '')
-          // Clean up any remaining angle brackets that are clearly HTML (with attributes)
-          .replace(/<[a-zA-Z]+\s+[^>]+>/g, '')
-          .replace(/<\/[a-zA-Z]+>/g, '')
-          // Clean up multiple newlines
+          .replace(/&#(\d+);/g, (_: string, code: string) => String.fromCharCode(parseInt(code)))
+          // 5. Clean up whitespace
           .replace(/\n\s*\n\s*\n/g, '\n\n')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/\n /g, '\n')
           .trim();
         
         return cleanContent;

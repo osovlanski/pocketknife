@@ -391,9 +391,9 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
       <div className={styles.listHeader}>
         <h3 className={styles.listName}>{list.name}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-            {checkedCount}/{list.items.length} items
-          </span>
+        <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+          {checkedCount}/{list.items.length} items
+        </span>
           <button
             className={`${styles.itemActionButton} ${styles.itemActionButtonDanger}`}
             onClick={() => onDeleteList(list.id)}
