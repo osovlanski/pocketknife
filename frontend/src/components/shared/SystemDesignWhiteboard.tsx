@@ -77,21 +77,23 @@ export interface SystemDesignWhiteboardProps {
 interface ComponentTemplate {
   name: string;
   icon: React.ReactNode;
+  iconName: string; // For canvas rendering
   color: string;
   description: string;
+  shortcut: string;
 }
 
 const COMPONENT_TEMPLATES: ComponentTemplate[] = [
-  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, color: '#22c55e', description: 'Distributes traffic' },
-  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, color: '#3b82f6', description: 'Handles HTTP requests' },
-  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, color: '#a855f7', description: 'API routing & auth' },
-  { name: 'Database', icon: <Database className="w-4 h-4" />, color: '#f59e0b', description: 'Data storage' },
-  { name: 'Cache', icon: <Cpu className="w-4 h-4" />, color: '#ef4444', description: 'Redis/Memcached' },
-  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, color: '#06b6d4', description: 'Kafka/RabbitMQ' },
-  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, color: '#8b5cf6', description: 'Content delivery' },
-  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, color: '#64748b', description: 'S3/Blob storage' },
-  { name: 'Microservice', icon: <Server className="w-4 h-4" />, color: '#10b981', description: 'Service container' },
-  { name: 'Worker', icon: <Layers className="w-4 h-4" />, color: '#f97316', description: 'Background jobs' },
+  { name: 'Load Balancer', icon: <Network className="w-4 h-4" />, iconName: 'network', color: '#22c55e', description: 'Distributes traffic', shortcut: '1' },
+  { name: 'Web Server', icon: <Globe className="w-4 h-4" />, iconName: 'globe', color: '#3b82f6', description: 'Handles HTTP requests', shortcut: '2' },
+  { name: 'API Gateway', icon: <Shield className="w-4 h-4" />, iconName: 'shield', color: '#a855f7', description: 'API routing & auth', shortcut: '3' },
+  { name: 'Database', icon: <Database className="w-4 h-4" />, iconName: 'database', color: '#f59e0b', description: 'Data storage', shortcut: '4' },
+  { name: 'Cache', icon: <Cpu className="w-4 h-4" />, iconName: 'cpu', color: '#ef4444', description: 'Redis/Memcached', shortcut: '5' },
+  { name: 'Message Queue', icon: <MessageSquare className="w-4 h-4" />, iconName: 'message', color: '#06b6d4', description: 'Kafka/RabbitMQ', shortcut: '6' },
+  { name: 'CDN', icon: <Cloud className="w-4 h-4" />, iconName: 'cloud', color: '#8b5cf6', description: 'Content delivery', shortcut: '7' },
+  { name: 'Storage', icon: <HardDrive className="w-4 h-4" />, iconName: 'storage', color: '#64748b', description: 'S3/Blob storage', shortcut: '8' },
+  { name: 'Microservice', icon: <Server className="w-4 h-4" />, iconName: 'server', color: '#10b981', description: 'Service container', shortcut: '9' },
+  { name: 'Worker', icon: <Layers className="w-4 h-4" />, iconName: 'layers', color: '#f97316', description: 'Background jobs', shortcut: '0' },
 ];
 
 // =============================================================================
@@ -122,7 +124,7 @@ type LineStyle = 'solid' | 'dashed' | 'dotted';
 
 interface CanvasElement {
   id: string;
-  type: 'rect' | 'ellipse' | 'text' | 'arrow' | 'line' | 'path';
+  type: 'rect' | 'ellipse' | 'text' | 'arrow' | 'line' | 'path' | 'component';
   x: number;
   y: number;
   width?: number;
@@ -134,6 +136,9 @@ interface CanvasElement {
   lineStyle?: LineStyle;
   points?: { x: number; y: number }[];
   fontSize?: number;
+  // Component specific
+  componentName?: string;      // Name of component template
+  iconName?: string;           // Icon identifier for rendering
   // Connection info for arrows (graph-like behavior)
   sourceElementId?: string;    // ID of source component
   sourceHandlePos?: 'top' | 'right' | 'bottom' | 'left';
@@ -152,7 +157,8 @@ const SimpleCanvas: React.FC<{
   onElementsChange: (elements: CanvasElement[]) => void;
   pendingComponent: PendingComponent | null;
   onPendingComponentPlaced: () => void;
-}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced }) => {
+  onComponentSelect: (template: ComponentTemplate) => void;
+}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced, onComponentSelect }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -403,6 +409,70 @@ const SimpleCanvas: React.FC<{
           ctx.lineTo(el.points[i].x, el.points[i].y);
         }
         ctx.stroke();
+      } else if (el.type === 'component') {
+        // Draw component with icon and rounded corners
+        const w = el.width || 130;
+        const h = el.height || 70;
+        const radius = 8;
+        
+        // Icon mapping for canvas rendering
+        const iconEmojis: Record<string, string> = {
+          'network': '🔀',
+          'globe': '🌐',
+          'shield': '🛡️',
+          'database': '🗄️',
+          'cpu': '⚡',
+          'message': '📨',
+          'cloud': '☁️',
+          'storage': '💾',
+          'server': '📦',
+          'layers': '⚙️'
+        };
+        
+        // Draw rounded rectangle background
+        ctx.fillStyle = el.color || '#3b82f6';
+        ctx.beginPath();
+        ctx.moveTo(el.x + radius, el.y);
+        ctx.lineTo(el.x + w - radius, el.y);
+        ctx.quadraticCurveTo(el.x + w, el.y, el.x + w, el.y + radius);
+        ctx.lineTo(el.x + w, el.y + h - radius);
+        ctx.quadraticCurveTo(el.x + w, el.y + h, el.x + w - radius, el.y + h);
+        ctx.lineTo(el.x + radius, el.y + h);
+        ctx.quadraticCurveTo(el.x, el.y + h, el.x, el.y + h - radius);
+        ctx.lineTo(el.x, el.y + radius);
+        ctx.quadraticCurveTo(el.x, el.y, el.x + radius, el.y);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw border
+        ctx.strokeStyle = el.strokeColor || '#fff';
+        ctx.lineWidth = el.strokeWidth || 2;
+        ctx.stroke();
+        
+        // Draw icon circle at top
+        const iconSize = 24;
+        const iconX = el.x + w / 2;
+        const iconY = el.y + 20;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.arc(iconX, iconY, iconSize / 2 + 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw icon emoji
+        const emoji = iconEmojis[el.iconName || ''] || '📦';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, iconX, iconY);
+        
+        // Draw component name
+        if (el.text) {
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${el.fontSize || 12}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(el.text, el.x + w / 2, el.y + h - 18);
+        }
       }
     });
 
@@ -518,18 +588,54 @@ const SimpleCanvas: React.FC<{
 
     // Draw ghost preview for pending component
     if (pendingComponent && ghostPosition) {
-      ctx.globalAlpha = 0.5;
+      const gx = ghostPosition.x - 65;
+      const gy = ghostPosition.y - 35;
+      const gw = 130;
+      const gh = 70;
+      const radius = 8;
+      
+      // Icon mapping
+      const iconEmojis: Record<string, string> = {
+        'network': '🔀', 'globe': '🌐', 'shield': '🛡️', 'database': '🗄️',
+        'cpu': '⚡', 'message': '📨', 'cloud': '☁️', 'storage': '💾',
+        'server': '📦', 'layers': '⚙️'
+      };
+      
+      ctx.globalAlpha = 0.6;
       ctx.fillStyle = pendingComponent.template.color;
-      ctx.fillRect(ghostPosition.x - 65, ghostPosition.y - 35, 130, 70);
+      
+      // Rounded rectangle
+      ctx.beginPath();
+      ctx.moveTo(gx + radius, gy);
+      ctx.lineTo(gx + gw - radius, gy);
+      ctx.quadraticCurveTo(gx + gw, gy, gx + gw, gy + radius);
+      ctx.lineTo(gx + gw, gy + gh - radius);
+      ctx.quadraticCurveTo(gx + gw, gy + gh, gx + gw - radius, gy + gh);
+      ctx.lineTo(gx + radius, gy + gh);
+      ctx.quadraticCurveTo(gx, gy + gh, gx, gy + gh - radius);
+      ctx.lineTo(gx, gy + radius);
+      ctx.quadraticCurveTo(gx, gy, gx + radius, gy);
+      ctx.closePath();
+      ctx.fill();
+      
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
       ctx.setLineDash([]);
-      ctx.strokeRect(ghostPosition.x - 65, ghostPosition.y - 35, 130, 70);
-      ctx.fillStyle = '#fff';
-      ctx.font = '13px Inter, sans-serif';
+      
+      // Draw icon
+      const emoji = iconEmojis[pendingComponent.template.iconName || ''] || '📦';
+      ctx.font = '16px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(pendingComponent.template.name, ghostPosition.x, ghostPosition.y);
+      ctx.fillText(emoji, ghostPosition.x, gy + 20);
+      
+      // Draw name
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.fillText(pendingComponent.template.name, ghostPosition.x, gy + gh - 18);
+      
       ctx.globalAlpha = 1;
     }
 
@@ -735,7 +841,7 @@ const SimpleCanvas: React.FC<{
     if (pendingComponent) {
       const newElement: CanvasElement = {
         id: `el-${Date.now()}`,
-        type: 'rect',
+        type: 'component',
         x: pos.x - 65, // Center the component (130/2)
         y: pos.y - 35, // Center the component (70/2)
         width: 130,
@@ -744,6 +850,8 @@ const SimpleCanvas: React.FC<{
         strokeColor: '#fff',
         strokeWidth: 2,
         text: pendingComponent.template.name,
+        componentName: pendingComponent.template.name,
+        iconName: pendingComponent.template.iconName,
         fontSize: 13
       };
       const newElements = [...elements, newElement];
@@ -1227,12 +1335,19 @@ const SimpleCanvas: React.FC<{
           case 'a': setSelectedTool('arrow'); break;
           case 't': setSelectedTool('text'); break;
           case 'p': setSelectedTool('pen'); break;
+          case 'e': setSelectedTool('eraser'); break;
+        }
+        
+        // Component shortcuts (1-9, 0)
+        const componentIndex = '1234567890'.indexOf(e.key);
+        if (componentIndex !== -1 && componentIndex < COMPONENT_TEMPLATES.length) {
+          onComponentSelect(COMPONENT_TEMPLATES[componentIndex]);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelected, showTextInput, handleUndo, handleRedo, onPendingComponentPlaced]);
+  }, [deleteSelected, showTextInput, handleUndo, handleRedo, onPendingComponentPlaced, onComponentSelect]);
 
   const clearCanvas = () => {
     saveToHistory([]);
@@ -1242,15 +1357,15 @@ const SimpleCanvas: React.FC<{
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
 
-  const tools: { id: ToolType; icon: React.ReactNode; label: string }[] = [
-    { id: 'select', icon: <Move className="w-4 h-4" />, label: 'Select' },
-    { id: 'pen', icon: <Pencil className="w-4 h-4" />, label: 'Pen' },
-    { id: 'rect', icon: <Square className="w-4 h-4" />, label: 'Rectangle' },
-    { id: 'ellipse', icon: <Circle className="w-4 h-4" />, label: 'Ellipse' },
-    { id: 'line', icon: <Minus className="w-4 h-4" />, label: 'Line' },
-    { id: 'arrow', icon: <ArrowRight className="w-4 h-4" />, label: 'Arrow' },
-    { id: 'text', icon: <Type className="w-4 h-4" />, label: 'Text' },
-    { id: 'eraser', icon: <Trash2 className="w-4 h-4" />, label: 'Eraser' },
+  const tools: { id: ToolType; icon: React.ReactNode; label: string; shortcut: string }[] = [
+    { id: 'select', icon: <Move className="w-4 h-4" />, label: 'Select', shortcut: 'V' },
+    { id: 'pen', icon: <Pencil className="w-4 h-4" />, label: 'Pen', shortcut: 'P' },
+    { id: 'rect', icon: <Square className="w-4 h-4" />, label: 'Rectangle', shortcut: 'R' },
+    { id: 'ellipse', icon: <Circle className="w-4 h-4" />, label: 'Ellipse', shortcut: 'O' },
+    { id: 'line', icon: <Minus className="w-4 h-4" />, label: 'Line', shortcut: 'L' },
+    { id: 'arrow', icon: <ArrowRight className="w-4 h-4" />, label: 'Arrow', shortcut: 'A' },
+    { id: 'text', icon: <Type className="w-4 h-4" />, label: 'Text', shortcut: 'T' },
+    { id: 'eraser', icon: <Trash2 className="w-4 h-4" />, label: 'Eraser', shortcut: 'E' },
   ];
 
   return (
@@ -1268,7 +1383,7 @@ const SimpleCanvas: React.FC<{
                   ? 'bg-blue-600 text-white' 
                   : 'text-slate-300 hover:bg-white/10'
               }`}
-              title={tool.label}
+              title={`${tool.label} (${tool.shortcut})`}
             >
               {tool.icon}
             </button>
@@ -1785,15 +1900,16 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
                         ? 'border-cyan-400 bg-cyan-500/20'
                         : 'border-transparent'
                     }`}
-                    title={`Click to place: ${template.description}`}
+                    title={`${template.description} (${template.shortcut})`}
                   >
                     <div
-                      className="w-4 h-4 rounded flex items-center justify-center text-white"
+                      className="w-5 h-5 rounded flex items-center justify-center text-white"
                       style={{ backgroundColor: template.color }}
                     >
                       {template.icon}
                     </div>
-                    <span className="text-slate-300">{template.name}</span>
+                    <span className="text-slate-300 flex-1">{template.name}</span>
+                    <span className="text-slate-500 text-[10px] bg-white/10 px-1 rounded">{template.shortcut}</span>
                   </button>
                 ))}
               </div>
@@ -1806,6 +1922,7 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
               onElementsChange={setCanvasElements}
               pendingComponent={pendingComponent}
               onPendingComponentPlaced={handlePendingComponentPlaced}
+              onComponentSelect={handleComponentSelect}
             />
 
             {/* Actions */}
