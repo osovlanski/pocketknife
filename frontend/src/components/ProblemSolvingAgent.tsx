@@ -519,6 +519,7 @@ func main() {
     const lines = cleanedText.split('\n');
     const elements: React.ReactNode[] = [];
     let currentList: string[] = [];
+    let inConstraintsSection = false;
 
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
@@ -528,6 +529,7 @@ func main() {
 
       // Detect example sections
       if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:?$/i)) {
+        inConstraintsSection = false; // Reset constraints flag when entering example
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
@@ -580,6 +582,7 @@ func main() {
 
       // Detect constraints section
       if (trimmedLine.toLowerCase().startsWith('constraints:') || trimmedLine.toLowerCase() === 'constraints') {
+        inConstraintsSection = true; // Set flag - all following lines are constraints
         if (currentList.length > 0) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
@@ -600,8 +603,9 @@ func main() {
       // Detect bullet points or numbered lists
       if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
         const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
-        // Check if it's a constraint (contains comparison operators)
-        if (content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
+        // If we're in constraints section, ALL items are constraints
+        // OR if it contains comparison operators
+        if (inConstraintsSection || content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
           elements.push(
             <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
               <span className="text-amber-500">⚡</span>
@@ -615,6 +619,29 @@ func main() {
       }
 
       // Check if line looks like a constraint (comparison operators, numbers)
+      // Only use inConstraintsSection for lines that look like constraint content
+      const looksLikeConstraint = trimmedLine.match(/[<>≤≥]/) || 
+                                   trimmedLine.match(/\d+\s*(<=|>=|<|>|==)/) ||
+                                   trimmedLine.match(/^-?\d/) ||
+                                   trimmedLine.includes('is either') ||
+                                   trimmedLine.includes('is a') ||
+                                   trimmedLine.includes('is an') ||
+                                   trimmedLine.includes('can be') ||
+                                   trimmedLine.includes('will be') ||
+                                   trimmedLine.includes('at most') ||
+                                   trimmedLine.includes('at least');
+      
+      if (inConstraintsSection && looksLikeConstraint) {
+        elements.push(
+          <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+            <span className="text-amber-500">⚡</span>
+            <span>{trimmedLine}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // Non-constraint lines with comparison operators
       if (trimmedLine.match(/[<>≤≥]/) && trimmedLine.match(/\d/)) {
         elements.push(
           <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">

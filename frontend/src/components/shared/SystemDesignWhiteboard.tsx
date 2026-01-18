@@ -212,11 +212,6 @@ const SimpleCanvas: React.FC<{
     }
   }, [historyIndex, history]);
 
-  // Debug: log when showTextInput changes
-  React.useEffect(() => {
-    console.log('showTextInput changed to:', showTextInput, 'at pos:', textInputScreenPos);
-  }, [showTextInput, textInputScreenPos]);
-
   // Resize canvas to match container
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -652,8 +647,6 @@ const SimpleCanvas: React.FC<{
     const pos = getMousePos(e);
     const screenPos = getScreenPos(e);
     
-    console.log('handleMouseDown - selectedTool:', selectedTool, 'pos:', pos);
-    
     // If there's a pending component, place it
     if (pendingComponent) {
       const newElement: CanvasElement = {
@@ -679,15 +672,11 @@ const SimpleCanvas: React.FC<{
     
     // Text tool - open text input immediately (priority over handles)
     if (selectedTool === 'text') {
-      console.log('Text tool clicked at:', pos, 'screen:', screenPos);
       setTextInputPos(pos);
       setTextInputScreenPos(screenPos); // Store screen position for overlay
       setTextInputValue('');
       setShowTextInput(true);
-      setTimeout(() => {
-        console.log('Focusing text input, ref:', textInputRef.current);
-        textInputRef.current?.focus();
-      }, 10);
+      setTimeout(() => textInputRef.current?.focus(), 50);
       return;
     }
     
@@ -924,6 +913,9 @@ const SimpleCanvas: React.FC<{
     setIsDrawing(false);
   };
 
+  // Track if text input has been focused at least once
+  const [textInputFocused, setTextInputFocused] = useState(false);
+
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
       const newElement: CanvasElement = {
@@ -941,6 +933,17 @@ const SimpleCanvas: React.FC<{
     }
     setShowTextInput(false);
     setTextInputValue('');
+    setTextInputFocused(false);
+  };
+
+  // Handle blur - only submit if the input was actually focused first
+  const handleTextBlur = () => {
+    // Use a small delay to allow focus to settle
+    setTimeout(() => {
+      if (textInputFocused) {
+        handleTextSubmit();
+      }
+    }, 100);
   };
 
   // Delete selected element
@@ -1217,9 +1220,10 @@ const SimpleCanvas: React.FC<{
                 onChange={(e) => setTextInputValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleTextSubmit();
-                  if (e.key === 'Escape') setShowTextInput(false);
+                  if (e.key === 'Escape') { setShowTextInput(false); setTextInputFocused(false); }
                 }}
-                onBlur={handleTextSubmit}
+                onFocus={() => setTextInputFocused(true)}
+                onBlur={handleTextBlur}
                 className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] focus:border-blue-500"
                 placeholder="Type your text here..."
                 style={{ color: selectedColor }}
