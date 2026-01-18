@@ -4,6 +4,7 @@ import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
 import logger from '../services/logger';
+import styles from '../styles/problems.module.css';
 
 interface CodingProblem {
   id: string;

@@ -16,6 +16,7 @@ import {
   CompanyInterviewProfile 
 } from '../../data/companyMappings';
 import { ProblemDifficulty, PROBLEM_DIFFICULTIES } from '../../types/constants';
+import { configService } from '../core/configService';
 
 // =============================================================================
 // TYPES
@@ -501,12 +502,13 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
         variables: { titleSlug }
       };
 
+      const leetcodeTimeout = configService.get('problems.leetcode.timeoutMs', 10000);
       const response = await axios.post('https://leetcode.com/graphql/', graphqlQuery, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0'
         },
-        timeout: 5000
+        timeout: leetcodeTimeout
       });
 
       const content = response.data?.data?.question?.content;
