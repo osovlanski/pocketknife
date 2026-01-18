@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench } from 'lucide-react';
+import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
@@ -1345,47 +1345,57 @@ func main() {
             <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
               {/* Code Editor */}
               <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden flex-1 flex flex-col min-h-[300px]">
-                <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/10 flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <Code className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-semibold">Code Editor</span>
+                {/* Toolbar */}
+                <div className={styles.editorToolbar}>
+                  {/* Left side - Title */}
+                  <div className={styles.toolbarLeft}>
+                    <div className={styles.editorTitle}>
+                      <Code />
+                      <span>Editor</span>
+                    </div>
                     {hasUnsavedChanges && (
-                      <span className="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded">
-                        Unsaved
-                      </span>
+                      <span className={styles.unsavedBadge}>Unsaved</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  
+                  {/* Right side - Actions */}
+                  <div className={styles.toolbarRight}>
+                    {/* Utility actions */}
                     <button
                       onClick={generateMethodSignature}
                       disabled={isGeneratingSignature || !selectedProblem}
-                      className="flex items-center gap-1 bg-purple-500/20 hover:bg-purple-500/30 px-2 py-1 rounded text-xs transition-colors disabled:opacity-50"
-                      title="Generate problem-specific method signature"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnUtility}`}
+                      title="Generate method signature"
                     >
                       {isGeneratingSignature ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Wand2 className="w-3 h-3" />
+                        <Wand2 />
                       )}
-                      Signature
+                      <span>Signature</span>
                     </button>
+                    
                     <button
                       onClick={fixSyntaxErrors}
                       disabled={isFixingSyntax || !code.trim() || showDiffView}
-                      className="flex items-center gap-1 bg-orange-500/20 hover:bg-orange-500/30 px-2 py-1 rounded text-xs transition-colors disabled:opacity-50"
-                      title="Fix syntax errors without changing logic"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnUtility}`}
+                      title="Fix syntax errors"
                     >
                       {isFixingSyntax ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Wrench className="w-3 h-3" />
+                        <Wrench />
                       )}
-                      Fix Syntax
+                      <span>Fix Syntax</span>
                     </button>
+                    
+                    <div className={styles.toolbarDivider} />
+                    
+                    {/* Language selector */}
                     <select
                       value={language}
                       onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-400"
+                      className={styles.languageSelect}
                     >
                       <option value="javascript">JavaScript</option>
                       <option value="typescript">TypeScript</option>
@@ -1395,33 +1405,39 @@ func main() {
                       <option value="csharp">C#</option>
                       <option value="go">Go</option>
                     </select>
+                    
+                    <div className={styles.toolbarDivider} />
+                    
+                    {/* Primary actions */}
                     <button
                       onClick={handleRunLocalTests}
                       disabled={isRunningTests || !code.trim()}
-                      className="flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnSecondary}`}
                       title="Run local tests"
                     >
                       {isRunningTests ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <RefreshCw className="animate-spin" />
                       ) : (
-                        <Code className="w-4 h-4" />
+                        <Play />
                       )}
-                      Test
+                      <span>Test</span>
                     </button>
+                    
                     <button
                       onClick={handleSubmitCode}
                       disabled={isEvaluating || !code.trim() || showDiffView}
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+                      className={`${styles.toolbarBtn} ${styles.toolbarBtnPrimary}`}
+                      title="Submit solution"
                     >
                       {isEvaluating ? (
                         <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Evaluating...
+                          <RefreshCw className="animate-spin" />
+                          <span>Evaluating...</span>
                         </>
                       ) : (
                         <>
-                          <Send className="w-4 h-4" />
-                          Submit
+                          <Send />
+                          <span>Submit</span>
                         </>
                       )}
                     </button>
