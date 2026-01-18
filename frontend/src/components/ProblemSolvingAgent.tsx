@@ -511,6 +511,8 @@ func main() {
       .replace(/&#39;/g, "'")
       .replace(/&nbsp;/g, ' ')
       .replace(/\*\*/g, '') // Remove markdown bold markers
+      .replace(/```[a-z]*\n?/gi, '') // Remove code block markers
+      .replace(/```/g, '') // Remove remaining code block markers
       .replace(/\r\n/g, '\n');
 
     // Split by common patterns and format
@@ -568,8 +570,9 @@ func main() {
       // Detect Explanation in examples
       if (trimmedLine.toLowerCase().startsWith('explanation:')) {
         elements.push(
-          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-2 border-l-2 border-slate-600">
-            💬 {trimmedLine.replace(/^explanation:\s*/i, '')}
+          <div key={`explanation-${index}`} className="bg-slate-800/30 rounded px-3 py-2 my-2 border-l-2 border-slate-500">
+            <span className="text-slate-500 font-semibold text-xs">💬 Explanation: </span>
+            <span className="text-slate-300 text-xs">{trimmedLine.replace(/^explanation:\s*/i, '')}</span>
           </div>
         );
         return;

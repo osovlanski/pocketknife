@@ -180,6 +180,9 @@ const SimpleCanvas: React.FC<{
   const [connectionStart, setConnectionStart] = useState<{ elementId: string; x: number; y: number } | null>(null);
   const [connectionEnd, setConnectionEnd] = useState<{ x: number; y: number } | null>(null);
   
+  // Hovered handle for visual feedback (like webwhiteboard.com)
+  const [hoveredHandle, setHoveredHandle] = useState<{ elementId: string; x: number; y: number } | null>(null);
+  
   // Screen position for text input (not canvas coordinates)
   const [textInputScreenPos, setTextInputScreenPos] = useState({ x: 0, y: 0 });
 
@@ -421,7 +424,7 @@ const SimpleCanvas: React.FC<{
     }
 
     // Draw connection handles on all rect/ellipse elements (always visible for easy arrow creation)
-    // This mimics draw.io/Miro behavior where you can always drag from handles to create connections
+    // This mimics webwhiteboard.com behavior where you can drag from handles to create connections
     elements.forEach(el => {
       if (el.type !== 'rect' && el.type !== 'ellipse') return;
       
@@ -436,16 +439,35 @@ const SimpleCanvas: React.FC<{
       
       ctx.setLineDash([]);
       handles.forEach(h => {
+        // Check if this handle is hovered
+        const isHovered = hoveredHandle && 
+          Math.abs(hoveredHandle.x - h.x) < 2 && 
+          Math.abs(hoveredHandle.y - h.y) < 2;
+        
+        if (isHovered) {
+          // Larger glowing handle when hovered (like webwhiteboard.com)
+          ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 14, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#00d4ff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 10, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
         // Outer circle (border)
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = isHovered ? '#00d4ff' : '#1e293b';
         ctx.beginPath();
-        ctx.arc(h.x, h.y, 8, 0, Math.PI * 2);
+        ctx.arc(h.x, h.y, isHovered ? 7 : 8, 0, Math.PI * 2);
         ctx.fill();
         
         // Inner circle - cyan color
-        ctx.fillStyle = '#00d4ff';
+        ctx.fillStyle = isHovered ? '#ffffff' : '#00d4ff';
         ctx.beginPath();
-        ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
+        ctx.arc(h.x, h.y, isHovered ? 4 : 5, 0, Math.PI * 2);
         ctx.fill();
       });
     });
@@ -498,7 +520,7 @@ const SimpleCanvas: React.FC<{
 
     ctx.restore();
     onElementsChange(elements);
-  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd]);
+  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd, hoveredHandle]);
 
   // Get accurate mouse position on canvas (in canvas coordinates)
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
@@ -698,9 +720,18 @@ const SimpleCanvas: React.FC<{
       return;
     }
     
-    // Handle connection drawing
+    // Handle connection drawing - update endpoint and check for target handles
     if (isDrawingConnection && connectionStart) {
-      setConnectionEnd(pos);
+      // Check if hovering near a handle on another element (for snap preview)
+      const handle = getHandleAtPosition(pos.x, pos.y);
+      if (handle && handle.elementId !== connectionStart.elementId) {
+        // Snap to the handle
+        setConnectionEnd({ x: handle.handleX, y: handle.handleY });
+        setHoveredHandle({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+      } else {
+        setConnectionEnd(pos);
+        setHoveredHandle(null);
+      }
       return;
     }
     
@@ -713,6 +744,16 @@ const SimpleCanvas: React.FC<{
         return el;
       }));
       return;
+    }
+    
+    // Check if hovering over a handle (for visual feedback - like webwhiteboard.com)
+    if (!isDrawing && selectedTool !== 'text') {
+      const handle = getHandleAtPosition(pos.x, pos.y);
+      if (handle) {
+        setHoveredHandle({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+      } else {
+        setHoveredHandle(null);
+      }
     }
     
     if (!isDrawing) return;
@@ -1138,6 +1179,8 @@ const SimpleCanvas: React.FC<{
           className={`absolute inset-0 ${
             pendingComponent ? 'cursor-copy' :
             isDragging ? 'cursor-grabbing' :
+            isDrawingConnection ? 'cursor-crosshair' :
+            hoveredHandle ? 'cursor-crosshair' :
             selectedTool === 'eraser' ? 'cursor-cell' : 
             selectedTool === 'text' ? 'cursor-text' : 
             selectedTool === 'select' ? 'cursor-grab' : 'cursor-crosshair'
