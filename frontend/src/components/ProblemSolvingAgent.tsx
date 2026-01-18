@@ -628,32 +628,33 @@ func main() {
 
       // Detect Input/Output in examples (handles both "Input:" and "**Input:**")
       if (cleanLineLower.startsWith('input:')) {
-        const value = cleanLine.replace(/^input:\s*/i, '');
+        // Extract value from original line, removing markdown and label
+        const value = trimmedLine.replace(/^\*\*Input:\*\*\s*/i, '').replace(/^Input:\s*/i, '');
         elements.push(
           <div key={`input-${index}`} className="bg-slate-800/60 border-l-2 border-green-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
             <span className="text-green-400 font-semibold">Input: </span>
-            <span className="text-slate-200">{value}</span>
+            <span className="text-slate-200">{renderInlineMarkdown(value, `input-val-${index}`)}</span>
           </div>
         );
         return;
       }
 
       if (cleanLineLower.startsWith('output:')) {
-        const value = cleanLine.replace(/^output:\s*/i, '');
+        const value = trimmedLine.replace(/^\*\*Output:\*\*\s*/i, '').replace(/^Output:\s*/i, '');
         elements.push(
           <div key={`output-${index}`} className="bg-slate-800/60 border-l-2 border-blue-500 rounded-r px-3 py-1.5 my-1 font-mono text-xs">
             <span className="text-blue-400 font-semibold">Output: </span>
-            <span className="text-slate-200">{value}</span>
+            <span className="text-slate-200">{renderInlineMarkdown(value, `output-val-${index}`)}</span>
           </div>
         );
         return;
       }
 
       if (cleanLineLower.startsWith('explanation:')) {
-        const value = cleanLine.replace(/^explanation:\s*/i, '');
+        const value = trimmedLine.replace(/^\*\*Explanation:\*\*\s*/i, '').replace(/^Explanation:\s*/i, '');
         elements.push(
           <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-3 border-l-2 border-slate-500 bg-slate-800/30 py-1 rounded-r">
-            💬 {value}
+            💬 {renderInlineMarkdown(value, `expl-val-${index}`)}
           </div>
         );
         return;
@@ -679,12 +680,14 @@ func main() {
 
       // Detect bullet points or numbered lists
       if (cleanLine.match(/^[-•*]\s/) || cleanLine.match(/^\d+\.\s/)) {
-        const content = cleanLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
+        // Use original line for content, stripping bullet/number prefix
+        const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
+        const cleanContent = cleanLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
         // Check if it's a constraint (contains comparison operators)
-        if (content.match(/[<>≤≥]/) || content.match(/\d+\s*(<=|>=|<|>|==)/) || content.match(/^\d+\s*[<>=]/)) {
+        if (cleanContent.match(/[<>≤≥]/) || cleanContent.match(/\d+\s*(<=|>=|<|>|==)/) || cleanContent.match(/^\d+\s*[<>=]/)) {
           elements.push(
             <div key={`constraint-${index}`} className="bg-slate-800/40 border border-slate-700/50 rounded px-3 py-1 my-1 font-mono text-xs text-amber-200">
-              ⚡ {content}
+              ⚡ {renderInlineMarkdown(content, `constraint-${index}`)}
             </div>
           );
         } else {
@@ -693,7 +696,7 @@ func main() {
         return;
       }
 
-      // Regular paragraph - render with inline markdown support
+      // Regular paragraph - render with inline markdown support (use trimmedLine to preserve markdown)
       if (cleanLine.length > 0) {
         if (currentList.length > 0) {
           elements.push(
@@ -705,7 +708,7 @@ func main() {
         }
         elements.push(
           <p key={`para-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
-            {renderInlineMarkdown(cleanLine, `para-${index}`)}
+            {renderInlineMarkdown(trimmedLine, `para-${index}`)}
           </p>
         );
       }
