@@ -7,13 +7,32 @@
 
 import { API_BASE_URL } from '../config';
 
-// ========== TYPES ==========
+// ========== CONSTANTS & DERIVED TYPES ==========
+
+export const PROBLEM_CATEGORIES = [
+  'array', 'string', 'tree', 'graph', 'dp', 'math', 'design', 'binary', 'linkedlist', 'stack'
+] as const;
+
+/** Type-safe problem category derived from PROBLEM_CATEGORIES */
+export type ProblemCategory = typeof PROBLEM_CATEGORIES[number];
+
+export const PROBLEM_DIFFICULTIES = ['Easy', 'Medium', 'Hard'] as const;
+
+/** Type-safe problem difficulty derived from PROBLEM_DIFFICULTIES */
+export type ProblemDifficulty = typeof PROBLEM_DIFFICULTIES[number];
+
+export const SUPPORTED_LANGUAGES = ['javascript', 'python', 'java', 'typescript', 'cpp', 'go'] as const;
+
+/** Type-safe programming language */
+export type ProgrammingLanguage = typeof SUPPORTED_LANGUAGES[number];
+
+// ========== INTERFACES ==========
 
 export interface CodingPattern {
   id: string;
   name: string;
-  category: 'array' | 'string' | 'tree' | 'graph' | 'dp' | 'math' | 'design' | 'binary' | 'linkedlist' | 'stack';
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  category: ProblemCategory;
+  difficulty: ProblemDifficulty;
   description: string;
   whenToUse: string[];
   keyIndicators: string[];

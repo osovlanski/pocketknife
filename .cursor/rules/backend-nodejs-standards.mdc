@@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
 ]);
 ```
 
-### Configuration Management
+### Configuration Management (Three-Tier System)
+
+**NEVER hardcode values. Use the appropriate configuration tier:**
+
+| Tier | Service | Use For |
+| :--- | :--- | :--- |
+| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
 
 ```typescript
-// NEVER hardcode values
-// Bad
+// ❌ BAD - Hardcoded values
 const timeout = 5000;
 const apiUrl = 'https://api.example.com';
+const maxResults = 100;
+if (score > 80) { /* ... */ }
 
-// Good - use configService or environment variables
-const timeout = configService.get('api.timeout', 5000);
+// ✅ GOOD - Use configService for simple values
+const timeout = configService.get('api.timeoutMs', 5000);
+const maxResults = configService.get('jobs.saved.maxResults', 100);
 const apiUrl = process.env.API_URL;
+
+// ✅ GOOD - Use Rule Engine for business logic
+const context: RuleContext = { data: { score, discount, price } };
+const result = await ruleEngineService.evaluate(context, 'scoring');
+const finalScore = result.finalContext.data.adjustedScore;
+
+// ✅ GOOD - Use Feature Flags for toggles
+if (await featureFlagService.isEnabled('new_algorithm')) {
+  // New implementation
+}
+
+// ✅ GOOD - A/B testing with variants
+const variant = await featureFlagService.getVariant('experiment', { userId });
+if (variant === 'treatment') {
+  // Treatment group
+}
+```
+
+### Adding New Config Keys
+
+```typescript
+// In configService.ts DEFAULT_CONFIG
+const DEFAULT_CONFIG = {
+  // Agent-specific keys
+  'yourAgent.maxResults': 20,
+  'yourAgent.ai.maxTokens': 2000,
+  'yourAgent.cache.ttlSeconds': 3600,
+} as const;
 ```
 
 ### Database Operations (Prisma)

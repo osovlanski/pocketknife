@@ -6,6 +6,7 @@
  */
 
 import { getPrisma } from '../core/databaseService';
+import { configService } from '../core/configService';
 import claudeService from '../core/claudeService';
 import logger from '../../utils/logger';
 
@@ -244,7 +245,8 @@ Respond ONLY with valid JSON:
   ]
 }`;
 
-      const response = await claudeService.generateText(prompt, 1500);
+      const aiMaxTokens = configService.get('email.ai.maxTokens', 1500);
+      const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       const analysis = JSON.parse(cleanResponse);
 

@@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
 
 ---
 
-## Step 6: Configuration
+## Step 6: Configuration (Three-Tier System)
 
-### File: `backend/src/services/core/configService.ts`
+Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+
+### 6a. Config Service (Simple Values)
+
+File: `backend/src/services/core/configService.ts`
 
 Add your agent's config entries in `DEFAULT_CONFIG`:
 
@@ -373,8 +377,48 @@ const DEFAULT_CONFIG = {
   'yourAgent.maxResults': 20,
   'yourAgent.cacheMinutes': 30,
   'yourAgent.ai.maxTokens': 2000,
+  'yourAgent.api.timeoutMs': 10000,
   'yourAgent.feature.enabled': true,
 } as const;
+```
+
+### 6b. Using Config in Your Agent
+
+```typescript
+// In your agent or service
+import { configService } from '../services/core/configService';
+
+const maxResults = configService.get('yourAgent.maxResults', 20);
+const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+```
+
+### 6c. Business Rules (Optional)
+
+If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+
+```typescript
+import { ruleEngineService, RuleContext } from '../services/rules';
+
+const context: RuleContext = {
+  agentId: 'your-agent',
+  action: 'score-item',
+  data: { price: item.price, category: item.category }
+};
+
+const result = await ruleEngineService.evaluate(context, 'scoring');
+const score = result.finalContext.data.score;
+```
+
+### 6d. Feature Flags (Optional)
+
+For feature toggles or A/B tests:
+
+```typescript
+import { featureFlagService } from '../services/featureFlags';
+
+if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+  // New implementation
+}
 ```
 
 ---

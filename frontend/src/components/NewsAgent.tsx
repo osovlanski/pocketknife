@@ -26,15 +26,33 @@ interface ArticleCardProps {
   onLike: (article: NewsArticle, isPositive: boolean) => void;
   onSummarize: (article: NewsArticle) => void;
   onRead: (article: NewsArticle) => void;
+  isSaved?: boolean;
 }
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ 
-  article, onSave, onLike, onSummarize, onRead 
+  article, onSave, onLike, onSummarize, onRead, isSaved = false 
 }) => {
+  const [imageError, setImageError] = useState(false);
+  
   const handleClick = () => {
     onRead(article);
     window.open(article.url, '_blank');
   };
+
+  // Handle Reddit external preview images that return 403
+  // These images are hotlink protected by Reddit
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Check if the image URL is a Reddit external preview (often returns 403)
+  const isProblematicImageUrl = (url: string | undefined): boolean => {
+    if (!url) return true;
+    return url.includes('external-preview.redd.it') || 
+           url.includes('preview.redd.it');
+  };
+
+  const shouldShowImage = article.imageUrl && !imageError && !isProblematicImageUrl(article.imageUrl);
 
   return (
     <article 
@@ -45,9 +63,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       role="article"
       aria-label={article.title}
     >
-      {article.imageUrl && (
+      {shouldShowImage && (
         <div className={styles.articleImage}>
-          <img src={article.imageUrl} alt={article.title} loading="lazy" />
+          <img 
+            src={article.imageUrl} 
+            alt={article.title} 
+            loading="lazy" 
+            onError={handleImageError}
+          />
         </div>
       )}
       <div className={styles.articleContent}>
@@ -75,10 +98,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
         <div className={styles.articleActions} onClick={e => e.stopPropagation()}>
           <button 
             onClick={(e) => { e.stopPropagation(); onSave(article); }}
-            className={styles.actionButton}
-            aria-label="Save article"
+            className={`${styles.actionButton} ${isSaved ? styles.savedActive : ''}`}
+            aria-label={isSaved ? "Unsave article" : "Save article"}
           >
-            <Bookmark className="w-4 h-4" />
+            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onLike(article, true); }}
@@ -142,9 +165,10 @@ const NewsAgent: React.FC = () => {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [summaryModal, setSummaryModal] = useState<{ article: NewsArticle; summary: string } | null>(null);
 
-  // Load feed on mount
+  // Load feed and saved articles on mount
   useEffect(() => {
     news.handleGetFeed();
+    news.handleGetSavedArticles();
   }, []);
 
   // Handlers
@@ -155,13 +179,20 @@ const NewsAgent: React.FC = () => {
     });
   }, [news, searchQuery, selectedTopics]);
 
-  const handleTopicToggle = (topicId: string) => {
-    setSelectedTopics(prev => 
-      prev.includes(topicId) 
+  const handleTopicToggle = useCallback((topicId: string) => {
+    setSelectedTopics(prev => {
+      const newTopics = prev.includes(topicId) 
         ? prev.filter(t => t !== topicId)
-        : [...prev, topicId]
-    );
-  };
+        : [...prev, topicId];
+      
+      // Trigger search with updated topics
+      news.handleSearch({
+        topics: newTopics.length > 0 ? newTopics : undefined
+      });
+      
+      return newTopics;
+    });
+  }, [news]);
 
   const handleSaveArticle = useCallback(async (article: NewsArticle) => {
     await news.handleSaveArticle(article);
@@ -232,6 +263,7 @@ const NewsAgent: React.FC = () => {
                     onLike={handleLikeArticle}
                     onSummarize={handleSummarize}
                     onRead={handleReadArticle}
+                    isSaved={news.savedArticles.some(s => s.id === article.id || s.url === article.url)}
                   />
                 ))}
               </div>
@@ -285,6 +317,7 @@ const NewsAgent: React.FC = () => {
                     onLike={handleLikeArticle}
                     onSummarize={handleSummarize}
                     onRead={handleReadArticle}
+                    isSaved={news.savedArticles.some(s => s.id === article.id || s.url === article.url)}
                   />
                 ))}
               </div>

@@ -40,6 +40,8 @@ pocketknife/
 │   │   ├── routes/          # Express routes
 │   │   ├── services/        # Business logic
 │   │   │   ├── core/        # Cache, config, database
+│   │   │   ├── rules/       # Rule Engine (dynamic business logic)
+│   │   │   ├── featureFlags/# Feature Flag system
 │   │   │   ├── email/       # Gmail, Drive integration
 │   │   │   ├── jobs/        # Job search APIs
 │   │   │   └── ...
@@ -93,17 +95,32 @@ class JobsAgent extends AbstractAgent {
 }
 ```
 
-### 3. Configuration Management
+### 3. Dynamic Configuration (Three-Tier System)
 
-All configurable values use `configService`:
+Pocketknife uses a three-tier configuration system:
+
+| Tier | Service | Purpose |
+| :--- | :--- | :--- |
+| **ConfigService** | `configService` | Simple key-value settings (timeouts, limits, URLs) |
+| **Rule Engine** | `ruleEngineService` | Dynamic business logic (scoring, filtering, validation) |
+| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, gradual rollouts |
 
 ```typescript
-// Backend
-const batchSize = configService.get('email.batch.size', 50);
+// 1. Simple values → ConfigService (NEVER hardcode!)
+const timeout = configService.get('api.timeoutMs', 5000);
+const maxResults = configService.get('jobs.saved.maxResults', 100);
 
-// Frontend
-const config = await configApi.getConfig();
+// 2. Business logic → Rule Engine
+const result = await ruleEngineService.evaluate(context, 'scoring');
+const score = result.finalContext.data.dealScore;
+
+// 3. Feature toggles → Feature Flags
+if (await featureFlagService.isEnabled('new_feature')) {
+  // New implementation
+}
 ```
+
+See `.cursor/rules/dynamic-configuration.mdc` for full documentation.
 
 ### 4. Caching Strategy
 

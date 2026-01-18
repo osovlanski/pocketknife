@@ -16,7 +16,52 @@ api.interceptors.request.use((config) => {
 });
 
 // =============================================================================
-// TYPES
+// CONSTANTS & DERIVED TYPES (must be first for type safety)
+// =============================================================================
+
+export const DIY_CATEGORIES = [
+  { id: 'home_improvement', label: 'Home Improvement', icon: '🏠' },
+  { id: 'electronics', label: 'Electronics', icon: '⚡' },
+  { id: 'crafts', label: 'Crafts', icon: '🎨' },
+  { id: 'automotive', label: 'Automotive', icon: '🚗' },
+  { id: 'gardening', label: 'Gardening', icon: '🌱' },
+  { id: 'furniture', label: 'Furniture', icon: '🪑' },
+  { id: 'plumbing', label: 'Plumbing', icon: '🔧' },
+  { id: 'electrical', label: 'Electrical', icon: '💡' },
+  { id: 'painting', label: 'Painting', icon: '🎨' },
+  { id: 'flooring', label: 'Flooring', icon: '🏗️' },
+  { id: 'woodworking', label: 'Woodworking', icon: '🪵' },
+  { id: 'metalworking', label: 'Metalworking', icon: '⚙️' },
+  { id: 'sewing', label: 'Sewing', icon: '🧵' },
+  { id: 'jewelry', label: 'Jewelry', icon: '💎' }
+] as const;
+
+/** Type-safe DIY category ID derived from DIY_CATEGORIES */
+export type DIYCategoryId = typeof DIY_CATEGORIES[number]['id'];
+
+export const SKILL_LEVELS = [
+  { id: 'beginner', label: 'Beginner', description: 'New to DIY, basic tools' },
+  { id: 'intermediate', label: 'Intermediate', description: 'Some experience, standard tools' },
+  { id: 'advanced', label: 'Advanced', description: 'Experienced, specialized tools' }
+] as const;
+
+/** Type-safe skill level ID derived from SKILL_LEVELS */
+export type SkillLevelId = typeof SKILL_LEVELS[number]['id'];
+
+export const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard', 'expert'] as const;
+
+/** Type-safe difficulty level */
+export type DifficultyLevel = typeof DIFFICULTY_LEVELS[number];
+
+export const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
+  easy: '#10B981',
+  medium: '#F59E0B',
+  hard: '#EF4444',
+  expert: '#7C3AED'
+};
+
+// =============================================================================
+// INTERFACES
 // =============================================================================
 
 export interface DIYMaterial {
@@ -52,8 +97,8 @@ export interface DIYProject {
   id?: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: DIYCategoryId | string; // Allows backend to return any category
+  difficulty: DifficultyLevel;
   estimatedTime: number;
   estimatedCost: {
     min: number;
@@ -75,8 +120,8 @@ export interface DIYIdea {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: string;
+  category: DIYCategoryId | string;
+  difficulty: DifficultyLevel | string; // Backend may return various difficulties
   estimatedTime: number;
   estimatedCostMin?: number;
   estimatedCostMax?: number;
@@ -84,17 +129,21 @@ export interface DIYIdea {
   whyItsAwesome?: string;
   tags?: string[];
   source: string;
+  imageUrl?: string;
 }
 
 export interface DIYProjectRequest {
   description: string;
-  category?: string;
+  category?: DIYCategoryId;
   budget?: number;
+  budgetMin?: number;
+  budgetMax?: number;
   currency?: string;
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   timeAvailable?: number;
   existingTools?: string[];
 }
+
 
 // =============================================================================
 // API CALLS
@@ -202,9 +251,9 @@ export const searchIdeas = async (query: string): Promise<{ ideas: DIYIdea[] }> 
  * Get featured/trending DIY ideas with filters
  */
 export const getFeaturedIdeas = async (options?: {
-  category?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  category?: DIYCategoryId | string;
+  difficulty?: DifficultyLevel;
+  skillLevel?: SkillLevelId;
   timeAvailable?: number;
   count?: number;
 }): Promise<{ ideas: DIYIdea[] }> => {
@@ -216,7 +265,7 @@ export const getFeaturedIdeas = async (options?: {
  * Get a random inspiration project
  */
 export const getInspiration = async (options?: {
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   excludeCategories?: string[];
 }): Promise<{ inspiration: DIYIdea }> => {
   const response = await api.get('/diy/ideas/inspire', { 
@@ -247,38 +296,6 @@ export const getCategories = async (): Promise<{
   return response.data;
 };
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-export const DIY_CATEGORIES = [
-  { id: 'home_improvement', label: 'Home Improvement', icon: '🏠' },
-  { id: 'electronics', label: 'Electronics', icon: '⚡' },
-  { id: 'crafts', label: 'Crafts', icon: '🎨' },
-  { id: 'automotive', label: 'Automotive', icon: '🚗' },
-  { id: 'gardening', label: 'Gardening', icon: '🌱' },
-  { id: 'furniture', label: 'Furniture', icon: '🪑' },
-  { id: 'plumbing', label: 'Plumbing', icon: '🔧' },
-  { id: 'electrical', label: 'Electrical', icon: '💡' },
-  { id: 'painting', label: 'Painting', icon: '🎨' },
-  { id: 'flooring', label: 'Flooring', icon: '🏗️' },
-  { id: 'woodworking', label: 'Woodworking', icon: '🪵' },
-  { id: 'metalworking', label: 'Metalworking', icon: '⚙️' },
-  { id: 'sewing', label: 'Sewing', icon: '🧵' },
-  { id: 'jewelry', label: 'Jewelry', icon: '💎' }
-];
-
-export const SKILL_LEVELS = [
-  { id: 'beginner', label: 'Beginner', description: 'New to DIY, basic tools' },
-  { id: 'intermediate', label: 'Intermediate', description: 'Some experience, standard tools' },
-  { id: 'advanced', label: 'Advanced', description: 'Experienced, specialized tools' }
-];
-
-export const DIFFICULTY_COLORS: Record<string, string> = {
-  easy: '#10B981',
-  medium: '#F59E0B',
-  hard: '#EF4444',
-  expert: '#7C3AED'
-};
+// Constants and types are now defined at the top of the file
 
 

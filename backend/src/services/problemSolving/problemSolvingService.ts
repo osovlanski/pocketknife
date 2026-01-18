@@ -15,14 +15,29 @@ import {
   getAllCompanyNames,
   CompanyInterviewProfile 
 } from '../../data/companyMappings';
+import { ProblemDifficulty, PROBLEM_DIFFICULTIES } from '../../types/constants';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/** Problem sources */
+export const PROBLEM_SOURCES = [
+  'LeetCode', 'HackerRank', 'Codeforces', 'Curated', 'Glassdoor', 'Custom'
+] as const;
+export type ProblemSource = typeof PROBLEM_SOURCES[number];
+
+/** Curated lists */
+export const CURATED_LISTS = ['blind75', 'neetcode150', 'grind75'] as const;
+export type CuratedList = typeof CURATED_LISTS[number];
 
 interface CodingProblem {
   id: string;
   title: string;
   titleSlug?: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  source: 'LeetCode' | 'HackerRank' | 'Codeforces' | 'Curated' | 'Glassdoor' | 'Custom';
+  difficulty: ProblemDifficulty;
+  source: ProblemSource;
   url?: string;
   company?: string;
   companies?: string[];
@@ -37,10 +52,10 @@ interface CodingProblem {
 
 interface ProblemSearchOptions {
   query: string;
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: ProblemDifficulty;
   company?: string;
   source?: string[];
-  list?: 'blind75' | 'neetcode150' | 'grind75';
+  list?: CuratedList;
 }
 
 class ProblemSolvingService {
@@ -498,14 +513,30 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       
       if (content) {
         // Strip HTML tags and clean up the content
+        // First decode HTML entities, then remove actual HTML tags
         const cleanContent = content
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          // Decode HTML entities FIRST (before removing tags)
           .replace(/&nbsp;/g, ' ')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&amp;/g, '&')
           .replace(/&quot;/g, '"')
-          .replace(/\n\s*\n/g, '\n\n') // Clean up multiple newlines
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          // Remove actual HTML tags (only match tags with valid tag names)
+          // This regex matches <tagname ...> or </tagname> but not things like "a < b > c"
+          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?\/?>/g, '')
+          // Handle self-closing tags
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<p\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<li\s*\/?>/gi, '\n• ')
+          .replace(/<\/li>/gi, '')
+          // Clean up any remaining angle brackets that are clearly HTML (with attributes)
+          .replace(/<[a-zA-Z]+\s+[^>]+>/g, '')
+          .replace(/<\/[a-zA-Z]+>/g, '')
+          // Clean up multiple newlines
+          .replace(/\n\s*\n\s*\n/g, '\n\n')
           .trim();
         
         return cleanContent;
@@ -1148,6 +1179,70 @@ Return ONLY the improved code, no explanations or markdown code blocks.`
     } catch (error: any) {
       console.error('❌ Code improvement failed:', error.message);
       throw new Error(`Failed to improve code: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fix syntax errors in code without changing the logic
+   * This is useful when the code has compilation/build errors
+   */
+  async fixSyntaxErrors(
+    code: string,
+    language: string,
+    problemTitle: string
+  ): Promise<string> {
+    this.initializeAnthropic();
+
+    if (!this.anthropicClient) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    try {
+      console.log(`🔧 Fixing syntax errors in ${language} code`);
+
+      const message = await this.anthropicClient.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `You are a code syntax expert. Fix ONLY the syntax errors in the following code.
+
+IMPORTANT RULES:
+1. Fix syntax errors ONLY (missing brackets, semicolons, typos, malformed statements)
+2. DO NOT change the logic, algorithm, or approach
+3. DO NOT add new functionality
+4. DO NOT optimize the code
+5. DO NOT rename variables (unless there's a typo)
+6. Preserve all comments
+7. Maintain the exact same indentation style
+
+PROBLEM: ${problemTitle}
+LANGUAGE: ${language}
+
+CODE WITH SYNTAX ERRORS:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Return ONLY the fixed code with syntax errors corrected. No explanations, no markdown code blocks, just the raw code.
+
+If the code has no syntax errors, return it exactly as is.`
+        }]
+      });
+
+      const firstBlock = message.content[0];
+      let fixedCode = firstBlock.type === 'text' ? firstBlock.text : '';
+      
+      // Clean up any markdown code blocks the AI might have added
+      fixedCode = fixedCode
+        .replace(/^```\w*\n?/gm, '')
+        .replace(/```$/gm, '')
+        .trim();
+
+      return fixedCode;
+    } catch (error: any) {
+      console.error('❌ Syntax fix failed:', error.message);
+      throw new Error(`Failed to fix syntax errors: ${error.message}`);
     }
   }
 }

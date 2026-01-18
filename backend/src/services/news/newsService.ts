@@ -15,10 +15,19 @@ import claudeService from '../core/claudeService';
 import { telegramNotificationService } from '../notifications';
 import logger from '../../utils/logger';
 import { discordNotificationService } from '../notifications';
+import { NEWS_SOURCES, NEWS_TOPICS, NewsSourceId, NewsTopicId } from '../../types/constants';
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/** Sentiment analysis result */
+export const SENTIMENT_VALUES = ['positive', 'negative', 'neutral'] as const;
+export type SentimentValue = typeof SENTIMENT_VALUES[number];
+
+/** Time range for news search */
+export const TIME_RANGES = ['today', 'week', 'month'] as const;
+export type TimeRange = typeof TIME_RANGES[number];
 
 export interface NewsArticle {
   id: string;
@@ -27,21 +36,21 @@ export interface NewsArticle {
   description: string;
   content?: string;
   author?: string;
-  source: string;
+  source: NewsSourceId | string;
   sourceName: string;
   imageUrl?: string;
   publishedAt: Date;
-  topics: string[];
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  topics: (NewsTopicId | string)[];
+  sentiment?: SentimentValue;
   readingTime?: number;
   relevanceScore?: number;
 }
 
 export interface NewsSearchParams {
   query?: string;
-  topics?: string[];
-  sources?: string[];
-  timeRange?: 'today' | 'week' | 'month';
+  topics?: (NewsTopicId | string)[];
+  sources?: (NewsSourceId | string)[];
+  timeRange?: TimeRange;
   geoLocation?: string;
   countryCode?: string;
   includeGlobal?: boolean;
@@ -49,8 +58,8 @@ export interface NewsSearchParams {
 }
 
 export interface UserNewsPreferences {
-  topicWeights: Record<string, number>;
-  preferredSources: string[];
+  topicWeights: Record<NewsTopicId | string, number>;
+  preferredSources: (NewsSourceId | string)[];
   geoLocation?: string;
   countryCode?: string;
 }
@@ -991,32 +1000,73 @@ Format your response as bullet points.`;
 
   /**
    * Get trending topics
+   * Falls back to generating trends from recent articles if database is empty
    */
   getTrendingTopics: async (
     geoScope: 'global' | 'domestic' | 'local' = 'global',
     countryCode?: string
   ): Promise<NewsTrend[]> => {
     const prisma = getPrisma();
-    if (!prisma) return [];
-
+    
     try {
-      const trends = await prisma.newsTrend.findMany({
-        where: {
-          isActive: true,
-          geoScope,
-          ...(countryCode ? { countryCode } : {})
-        },
-        orderBy: { trendScore: 'desc' },
-        take: 10
+      // Try to get from database first
+      if (prisma) {
+        const trends = await prisma.newsTrend.findMany({
+          where: {
+            isActive: true,
+            geoScope,
+            ...(countryCode ? { countryCode } : {})
+          },
+          orderBy: { trendScore: 'desc' },
+          take: 10
+        });
+
+        if (trends.length > 0) {
+          return trends.map((t) => ({
+            topic: t.topic,
+            relatedTopics: t.relatedTopics,
+            trendScore: t.trendScore,
+            articleCount: t.articleCount,
+            geoScope: t.geoScope as 'global' | 'domestic' | 'local'
+          }));
+        }
+      }
+
+      // Fallback: Generate trends from current news
+      const articles = await newsService.searchNews({
+        sources: ['hackernews', 'reddit', 'lobsters', 'devto'],
+        maxResults: 50
       });
 
-      return trends.map((t) => ({
-        topic: t.topic,
-        relatedTopics: t.relatedTopics,
-        trendScore: t.trendScore,
-        articleCount: t.articleCount,
-        geoScope: t.geoScope as 'global' | 'domestic' | 'local'
-      }));
+      // Count topic frequencies
+      const topicCounts: Record<string, { count: number; articles: string[] }> = {};
+      for (const article of articles) {
+        for (const topic of article.topics) {
+          const normalizedTopic = topic.toLowerCase();
+          if (!topicCounts[normalizedTopic]) {
+            topicCounts[normalizedTopic] = { count: 0, articles: [] };
+          }
+          topicCounts[normalizedTopic].count++;
+          if (topicCounts[normalizedTopic].articles.length < 5) {
+            topicCounts[normalizedTopic].articles.push(article.title);
+          }
+        }
+      }
+
+      // Convert to trends, sorted by count
+      const generatedTrends: NewsTrend[] = Object.entries(topicCounts)
+        .filter(([topic]) => topic.length > 2) // Filter out very short topics
+        .sort(([, a], [, b]) => b.count - a.count)
+        .slice(0, 10)
+        .map(([topic, data], index) => ({
+          topic: topic.charAt(0).toUpperCase() + topic.slice(1),
+          relatedTopics: [],
+          trendScore: Math.max(10, 100 - index * 10),
+          articleCount: data.count,
+          geoScope
+        }));
+
+      return generatedTrends;
     } catch (error) {
       logger.fail('Failed to get trending topics', { error: (error as Error).message });
       return [];

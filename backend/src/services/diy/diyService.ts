@@ -16,6 +16,14 @@ import { configService } from '../core/configService';
 import logger from '../../utils/logger';
 import claudeService from '../core/claudeService';
 import { israeliShopsService, zapScraperService } from '../shopping';
+import { 
+  DIY_CATEGORIES, 
+  SKILL_LEVELS, 
+  DIFFICULTY_LEVELS,
+  SkillLevelId, 
+  DifficultyLevel,
+  DIYCategoryId
+} from '../../types/constants';
 
 // =============================================================================
 // TYPES
@@ -23,10 +31,10 @@ import { israeliShopsService, zapScraperService } from '../shopping';
 
 export interface DIYProjectRequest {
   description: string;
-  category?: string;
+  category?: DIYCategoryId | string;
   budget?: number;
   currency?: string;
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   timeAvailable?: number; // hours
   existingTools?: string[];
 }
@@ -64,8 +72,8 @@ export interface DIYProject {
   id?: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: DIYCategoryId | string;
+  difficulty: DifficultyLevel;
   estimatedTime: number; // minutes
   estimatedCost: {
     min: number;
@@ -85,8 +93,8 @@ export interface DIYSearchResult {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: string;
+  category: DIYCategoryId | string;
+  difficulty: DifficultyLevel | string;
   estimatedTime: number;
   estimatedCostMin?: number;
   estimatedCostMax?: number;
@@ -94,34 +102,47 @@ export interface DIYSearchResult {
   whyItsAwesome?: string;
   tags?: string[];
   source: string;
+  imageUrl?: string;
 }
 
 // =============================================================================
-// CATEGORIES & TEMPLATES
+// TEMPLATES (categories are imported from types/constants.ts)
 // =============================================================================
-
-const DIY_CATEGORIES = [
-  'home_improvement',
-  'electronics',
-  'crafts',
-  'automotive',
-  'gardening',
-  'furniture',
-  'plumbing',
-  'electrical',
-  'painting',
-  'flooring',
-  'woodworking',
-  'metalworking',
-  'sewing',
-  'jewelry'
-] as const;
 
 const DIFFICULTY_DESCRIPTIONS = {
   easy: 'Suitable for beginners with basic tools',
   medium: 'Requires some experience and standard tools',
   hard: 'Requires advanced skills and specialized tools',
   expert: 'Professional-level project requiring extensive experience'
+};
+
+// Category to image search terms mapping for Unsplash
+const CATEGORY_IMAGE_TERMS: Record<string, string[]> = {
+  'home_improvement': ['home renovation', 'diy home', 'tools workshop'],
+  'electronics': ['electronics project', 'circuit board', 'soldering'],
+  'crafts': ['craft project', 'handmade', 'arts crafts'],
+  'automotive': ['car repair', 'automotive tools', 'car engine'],
+  'gardening': ['garden project', 'plants garden', 'landscaping'],
+  'furniture': ['woodworking furniture', 'diy furniture', 'wood craft'],
+  'plumbing': ['plumbing repair', 'pipes tools', 'bathroom fix'],
+  'electrical': ['electrical work', 'wiring', 'electrician'],
+  'painting': ['house painting', 'paint brush', 'wall painting'],
+  'flooring': ['floor installation', 'wood flooring', 'tiles'],
+  'woodworking': ['woodworking', 'carpentry', 'wood project'],
+  'metalworking': ['metalworking', 'welding', 'metal craft'],
+  'sewing': ['sewing project', 'fabric craft', 'textile'],
+  'jewelry': ['jewelry making', 'handmade jewelry', 'beads craft']
+};
+
+/**
+ * Get a random image URL for a category using Unsplash Source
+ */
+const getImageForCategory = (category: string, index: number): string => {
+  const terms = CATEGORY_IMAGE_TERMS[category] || ['diy project', 'craft', 'tools'];
+  const term = terms[index % terms.length];
+  // Using Unsplash Source API (free, no auth required)
+  // Adding random seed based on index for variety
+  return `https://source.unsplash.com/400x300/?${encodeURIComponent(term)}&sig=${Date.now()}-${index}`;
 };
 
 // =============================================================================
@@ -203,20 +224,46 @@ Provide a complete DIY guide in the following JSON format:
 
 Be thorough, practical, and prioritize safety. Include specific measurements and quantities.`;
 
-    const result = await claudeService.generateText(prompt, configService.get('diy.ai.maxTokens', 3000));
+    let result: string;
+    try {
+      result = await claudeService.generateText(prompt, configService.get('diy.ai.maxTokens', 3000));
+    } catch (aiError: any) {
+      logger.fail('AI service failed', { error: aiError.message });
+      throw new Error('AI service is temporarily unavailable. Please try again.');
+    }
+
+    if (!result || result.trim().length === 0) {
+      logger.fail('AI returned empty response');
+      throw new Error('Failed to generate instructions. Please try again.');
+    }
 
     // Parse the JSON response
     let project: DIYProject;
     try {
-      // Extract JSON from the response
-      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      // Extract JSON from the response - handle nested JSON better
+      let jsonMatch = result.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+        // Try to find JSON in code blocks
+        const codeBlockMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          jsonMatch = codeBlockMatch[1].match(/\{[\s\S]*\}/);
+        }
       }
+      
+      if (!jsonMatch) {
+        logger.fail('No JSON found in AI response', { response: result.slice(0, 500) });
+        throw new Error('No valid response received');
+      }
+      
       project = JSON.parse(jsonMatch[0]);
+      
+      // Validate required fields
+      if (!project.title || !project.instructions || !Array.isArray(project.instructions)) {
+        throw new Error('Invalid project structure');
+      }
     } catch (error) {
       logger.fail('Failed to parse AI response', { error: (error as Error).message });
-      throw new Error('Failed to generate project instructions');
+      throw new Error('Failed to process AI response. Please try again with a simpler description.');
     }
 
     // Cache the result
@@ -466,8 +513,8 @@ Return as JSON array with this format:
    */
   getFeaturedIdeas: async (options?: {
     category?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    difficulty?: DifficultyLevel;
+    skillLevel?: SkillLevelId;
     timeAvailable?: number; // max hours
     count?: number;
   }): Promise<DIYSearchResult[]> => {
@@ -536,7 +583,8 @@ Make them specific, actionable, and exciting!`;
         estimatedCostMax: idea.estimatedCostMax,
         popularity: idea.popularity,
         tags: idea.tags || [],
-        source: 'ai_featured'
+        source: 'ai_featured',
+        imageUrl: getImageForCategory(idea.category, index)
       }));
 
       // Cache for 1 hour
@@ -603,7 +651,8 @@ Return as JSON with this EXACT format:
         popularity: 85, // High since it's curated
         whyItsAwesome: idea.whyItsAwesome,
         tags: idea.tags || [],
-        source: 'ai_inspiration'
+        source: 'ai_inspiration',
+        imageUrl: getImageForCategory(idea.category, 0)
       };
     } catch (error) {
       logger.fail('Failed to get inspiration', { error: (error as Error).message });

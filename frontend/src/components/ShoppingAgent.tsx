@@ -77,6 +77,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, onPriceAlert, getDealScoreColor }) => {
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   // Convert color name to CSS style using configurable thresholds
   const getDealScoreStyle = (score?: number): string => {
@@ -106,17 +107,40 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
     setImageError(true);
   };
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  // Check if image URL is valid/likely to work
+  const isValidImageUrl = (url?: string): boolean => {
+    if (!url) return false;
+    if (url.includes('undefined') || url.includes('null')) return false;
+    // Basic URL check
+    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//');
+  };
+
+  const showImage = product.imageUrl && !imageError && isValidImageUrl(product.imageUrl);
+
   return (
     <div className={styles.productCard}>
       {/* Image */}
       <div className={styles.productImage}>
-        {product.imageUrl && !imageError ? (
-          <img 
-            src={product.imageUrl} 
-            alt={product.title} 
-            onError={handleImageError}
-            loading="lazy"
-          />
+        {showImage ? (
+          <>
+            {!imageLoaded && (
+              <div className={styles.imagePlaceholderLoading}>
+                <Loader2 className={`${styles.iconSmall} ${styles.spinner}`} />
+              </div>
+            )}
+            <img 
+              src={product.imageUrl} 
+              alt={product.title} 
+              onError={handleImageError}
+              onLoad={handleImageLoad}
+              loading="lazy"
+              style={{ opacity: imageLoaded ? 1 : 0 }}
+            />
+          </>
         ) : (
           <Package className={styles.productImagePlaceholder} />
         )}
@@ -564,8 +588,8 @@ const ShoppingAgent: React.FC = () => {
             Personalized Suggestions
           </h3>
           <div className={styles.productGrid}>
-            {shop.suggestions.map((suggestion) => (
-              <div key={`suggestion-${suggestion.product.title}-${suggestion.matchScore}`} className={styles.productCard}>
+            {shop.suggestions.map((suggestion, index) => (
+              <div key={`suggestion-${suggestion.product.id || index}-${suggestion.matchScore}`} className={styles.productCard}>
                 <div className={styles.productContent}>
                   <h3 className={styles.productTitle}>{suggestion.product.title}</h3>
                   <p className={styles.productReason}>{suggestion.reason}</p>
@@ -612,12 +636,21 @@ const ShoppingAgent: React.FC = () => {
         </div>
       )}
 
-      {/* No Results */}
-      {!shop.loading && shop.products.length === 0 && !shop.showSaved && !shop.showAlerts && shop.suggestions.length === 0 && (
+      {/* Empty State - only show when truly empty */}
+      {!shop.loading && shop.products.length === 0 && !shop.showSaved && !shop.showAlerts && shop.suggestions.length === 0 && shop.searchQuery === '' && (
         <div className={styles.emptyState}>
           <ShoppingCart className={styles.emptyIcon} />
-          <p className={styles.emptyTitle}>Ready to find great deals!</p>
-          <p className={styles.emptyHint}>Search for products or tell us about your hobbies</p>
+          <p className={styles.emptyTitle}>Scanning for deals...</p>
+          <p className={styles.emptyHint}>Loading trending products and great deals for you!</p>
+        </div>
+      )}
+
+      {/* No Search Results */}
+      {!shop.loading && shop.products.length === 0 && shop.searchQuery !== '' && (
+        <div className={styles.emptyState}>
+          <Search className={styles.emptyIcon} />
+          <p className={styles.emptyTitle}>No products found</p>
+          <p className={styles.emptyHint}>Try different keywords or adjust your filters</p>
         </div>
       )}
 

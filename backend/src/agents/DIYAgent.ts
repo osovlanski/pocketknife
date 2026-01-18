@@ -13,33 +13,37 @@ import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { diyService, DIYProject, DIYProjectRequest, DIYMaterial } from '../services/diy';
 import { configService } from '../services/core/configService';
+import { SkillLevelId, DifficultyLevel, DIYCategoryId } from '../types/constants';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
+/** Project status for tracking workflow */
+export const PROJECT_STATUSES = [
+  'planning', 'shopping', 'in_progress', 'completed', 'paused', 'abandoned'
+] as const;
+export type ProjectStatus = typeof PROJECT_STATUSES[number];
+
+/** Available actions for the DIY Agent */
+export const DIY_ACTIONS = [
+  'generate', 'get-project', 'get-projects', 'save-project', 'update-status',
+  'get-materials-links', 'create-shopping-list', 'search-ideas', 'get-templates',
+  'add-feedback', 'get-categories', 'get-featured-ideas', 'get-inspiration'
+] as const;
+export type DIYAction = typeof DIY_ACTIONS[number];
+
 interface DIYAgentParams extends AgentParams {
-  action: 
-    | 'generate'
-    | 'get-project'
-    | 'get-projects'
-    | 'save-project'
-    | 'update-status'
-    | 'get-materials-links'
-    | 'create-shopping-list'
-    | 'search-ideas'
-    | 'get-templates'
-    | 'add-feedback'
-    | 'get-categories'
-    | 'get-featured-ideas'
-    | 'get-inspiration';
+  action: DIYAction;
   
   // Generate params
   description?: string;
-  category?: string;
+  category?: DIYCategoryId | string;
   budget?: number;
+  budgetMin?: number;
+  budgetMax?: number;
   currency?: string;
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   timeAvailable?: number;
   existingTools?: string[];
   
@@ -48,7 +52,7 @@ interface DIYAgentParams extends AgentParams {
   project?: DIYProject;
   
   // Status params
-  status?: 'planning' | 'shopping' | 'in_progress' | 'completed' | 'paused' | 'abandoned';
+  status?: ProjectStatus;
   startedAt?: Date;
   completedAt?: Date;
   actualTime?: number;
@@ -71,8 +75,8 @@ interface DIYAgentParams extends AgentParams {
   count?: number;
   
   // Featured ideas params
-  difficulty?: 'easy' | 'medium' | 'hard';
-  excludeCategories?: string[];
+  difficulty?: DifficultyLevel;
+  excludeCategories?: DIYCategoryId[];
 }
 
 interface DIYAgentResult {
@@ -100,6 +104,19 @@ export class DIYAgent extends AbstractAgent {
     icon: '🔧',
     color: '#F59E0B' // Amber
   };
+
+  constructor() {
+    super({
+      // DIY projects require longer timeouts due to complex AI generation
+      defaultTimeoutMs: configService.get('diy.agent.timeoutMs', 120000), // 2 minutes
+      actionTimeouts: {
+        'generate': configService.get('diy.agent.generateTimeoutMs', 180000), // 3 minutes for project generation
+        'get-featured-ideas': 60000,
+        'get-inspiration': 60000
+      },
+      circuitBreakerThreshold: 5 // Allow more failures before circuit breaks
+    });
+  }
 
   protected async run(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
     const { action } = params;
@@ -140,7 +157,7 @@ export class DIYAgent extends AbstractAgent {
    * Generate a DIY project with AI
    */
   private async generateProject(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
-    const { description, category, budget, currency, skillLevel, timeAvailable, existingTools, userId } = params;
+    const { description, category, budget, budgetMin, budgetMax, currency, skillLevel, timeAvailable, existingTools, userId } = params;
 
     if (!description) {
       return { success: false, error: 'Project description is required' };
@@ -150,10 +167,13 @@ export class DIYAgent extends AbstractAgent {
     this.emitProgress(10);
 
     try {
+      // Use budgetMax as the primary budget constraint, fallback to budget or budgetMin
+      const effectiveBudget = budgetMax || budget || budgetMin;
+      
       const request: DIYProjectRequest = {
         description,
         category,
-        budget,
+        budget: effectiveBudget,
         currency,
         skillLevel,
         timeAvailable,

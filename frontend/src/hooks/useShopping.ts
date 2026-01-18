@@ -102,7 +102,7 @@ export const useShopping = (): UseShoppingReturn => {
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [hobbyInput, setHobbyInput] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['ebay', 'aliexpress', 'amazon']);
-  const [includeIsraeliShops, setIncludeIsraeliShops] = useState<boolean>(false);
+  const [includeIsraeliShops, setIncludeIsraeliShops] = useState<boolean>(true); // Default enabled
   
   // UI state
   const [showFilters, setShowFilters] = useState(false);
@@ -122,7 +122,21 @@ export const useShopping = (): UseShoppingReturn => {
     loadSavedProducts();
     loadPriceAlerts();
     loadSuggestions();
+    loadTrendingProducts();
   }, []);
+
+  const loadTrendingProducts = async () => {
+    try {
+      // Load deals on mount to show something by default
+      const result = await shoppingApi.getDeals({ minDealScore: 60 });
+      if (result.deals && result.deals.length > 0) {
+        setProducts(result.deals.slice(0, 10));
+      }
+    } catch (error) {
+      // Silent fail - not critical
+      logger.debug('Failed to load trending products', { error });
+    }
+  };
 
   const loadSavedProducts = async () => {
     try {

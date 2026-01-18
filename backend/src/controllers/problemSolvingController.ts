@@ -218,6 +218,37 @@ export async function generateImprovedCode(req: Request, res: Response) {
 }
 
 /**
+ * Fix syntax errors in code without changing logic
+ */
+export async function fixSyntaxErrors(req: Request, res: Response) {
+  try {
+    const { code, language, problemTitle } = req.body;
+
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ error: 'Code is required' });
+    }
+
+    logger.processing(`Fixing syntax errors in ${language} code`);
+
+    const fixedCode = await problemSolvingService.fixSyntaxErrors(
+      code,
+      language || 'javascript',
+      problemTitle || 'Unknown Problem'
+    );
+
+    res.json({
+      success: true,
+      fixedCode
+    });
+  } catch (error: any) {
+    logger.fail('Syntax fix error', { error: error.message });
+    res.status(500).json({
+      error: error.message || 'Failed to fix syntax errors'
+    });
+  }
+}
+
+/**
  * Get company interview profile and tips
  */
 export async function getCompanyInterviewProfile(req: Request, res: Response) {

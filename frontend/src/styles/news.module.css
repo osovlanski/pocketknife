@@ -280,6 +280,15 @@
   background: rgba(139, 92, 246, 0.3);
 }
 
+.savedActive {
+  background: rgba(234, 179, 8, 0.3);
+  color: #FBBF24;
+}
+
+.savedActive:hover {
+  background: rgba(234, 179, 8, 0.4);
+}
+
 .relevanceScore {
   position: absolute;
   top: 0.75rem;

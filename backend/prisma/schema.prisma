@@ -669,22 +669,8 @@ model ApiKey {
   @@index([isActive])
 }
 
-model FeatureFlag {
-  id          String   @id
-  name        String   @unique
-  description String?
-  
-  // Flag state
-  isEnabled   Boolean  @default(false)
-  
-  // Targeting
-  enabledForRoles   String[] // ["ADMIN", "USER"]
-  enabledForUsers   String[] // Specific user IDs
-  rolloutPercentage Int      @default(0) // 0-100 for gradual rollout
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// Note: FeatureFlag model has been moved to the end of the file with enhanced schema
+// for Rule Engine and Feature Flags integration
 
 // =============================================================================
 // EXTERNAL API CONFIGURATION
@@ -1201,5 +1187,141 @@ model DIYTemplate {
 
   @@index([category])
   @@index([difficulty])
+  @@index([tags])
+}
+
+// =============================================================================
+// RULE ENGINE
+// =============================================================================
+
+model BusinessRule {
+  id          String   @id @default(uuid())
+  
+  // Rule identification
+  name        String
+  description String?  @db.Text
+  category    String   // agent_config, scoring, filtering, validation, etc.
+  
+  // Rule structure (stored as JSON)
+  conditions  Json     // RuleConditionGroup
+  actions     Json     // RuleAction[]
+  
+  // Priority and state
+  priority    Int      @default(100) // Lower = higher priority
+  enabled     Boolean  @default(true)
+  
+  // Scheduling
+  startDate   DateTime?
+  endDate     DateTime?
+  daysOfWeek  Int[]    // 0-6, where 0 is Sunday
+  timezone    String?  @default("UTC")
+  
+  // Versioning
+  version     Int      @default(1)
+  
+  // Metadata
+  tags        String[]
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  ruleSetId   String?
+  ruleSet     RuleSet? @relation(fields: [ruleSetId], references: [id])
+  auditLogs   RuleAuditLog[]
+  
+  @@unique([name, category])
+  @@index([category])
+  @@index([enabled])
+  @@index([priority])
+  @@index([ruleSetId])
+}
+
+model RuleSet {
+  id              String   @id @default(uuid())
+  
+  name            String
+  description     String?  @db.Text
+  category        String
+  
+  // Behavior
+  stopOnFirstMatch Boolean @default(false)
+  defaultAction    Json?   // RuleAction to use if no rules match
+  enabled          Boolean @default(true)
+  
+  // Metadata
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  rules       BusinessRule[]
+  
+  @@unique([name])
+  @@index([category])
+  @@index([enabled])
+}
+
+model RuleAuditLog {
+  id          String   @id @default(uuid())
+  
+  // Action details
+  action      String   // create, update, delete, enable, disable, evaluate
+  
+  // State changes (for mutations)
+  previousState Json?
+  newState      Json?
+  
+  // Evaluation context (for evaluate actions)
+  context       Json?
+  result        Json?
+  
+  // Metadata
+  userId      String?
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  ruleId      String?
+  rule        BusinessRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  
+  @@index([ruleId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([userId])
+}
+
+// =============================================================================
+// FEATURE FLAGS
+// =============================================================================
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  
+  key         String   @unique
+  name        String
+  description String?  @db.Text
+  
+  // Flag state
+  enabled     Boolean  @default(false)
+  
+  // Targeting (optional)
+  targetingRules Json?  // Can specify user segments, percentages, etc.
+  
+  // Variants for A/B testing
+  variants    Json?    // Array of variant objects
+  defaultVariant String? @default("control")
+  
+  // Scheduling
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  // Metadata
+  tags        String[]
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key])
+  @@index([enabled])
   @@index([tags])
 }

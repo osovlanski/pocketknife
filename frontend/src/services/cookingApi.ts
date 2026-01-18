@@ -203,6 +203,24 @@ export const completeList = async (listId: string): Promise<{ list: ShoppingList
   return response.data;
 };
 
+export const deleteList = async (listId: string): Promise<void> => {
+  await cookingAxios.delete(`/cooking/lists/${listId}`);
+};
+
+export const deleteListItem = async (listId: string, itemId: string): Promise<void> => {
+  await cookingAxios.delete(`/cooking/lists/${listId}/items/${itemId}`);
+};
+
+export const generateShoppingList = async (params: {
+  prompt?: string;
+  fromLowStock?: boolean;
+  fromExpiring?: boolean;
+  forRecipeIds?: string[];
+}): Promise<{ list: ShoppingList }> => {
+  const response = await cookingAxios.post('/cooking/lists/generate', params);
+  return response.data;
+};
+
 // =============================================================================
 // RECIPES
 // =============================================================================
@@ -279,6 +297,12 @@ export const COOKING_CATEGORIES = [
   { value: 'other', label: '📦 Other', color: '#9CA3AF' }
 ] as const;
 
+/** Type-safe cooking category derived from COOKING_CATEGORIES */
+export type CookingCategoryId = typeof COOKING_CATEGORIES[number]['value'];
+
 export const UNITS = [
   'pcs', 'pack', 'kg', 'g', 'lb', 'oz', 'L', 'ml', 'cup', 'tbsp', 'tsp', 'dozen'
 ] as const;
+
+/** Type-safe unit derived from UNITS */
+export type UnitType = typeof UNITS[number];

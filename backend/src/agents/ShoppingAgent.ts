@@ -13,6 +13,7 @@
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import claudeService from '../services/core/claudeService';
 import { 
   productAggregatorService, 
@@ -22,30 +23,33 @@ import {
   israeliShopsService,
   UnifiedProduct
 } from '../services/shopping';
+import { ShoppingSource, InterestType, SHOPPING_SOURCES, INTEREST_TYPES } from '../types/constants';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/** Available actions for the Shopping Agent */
+export const SHOPPING_ACTIONS = [
+  'search-products', 'search-by-hobby', 'get-deals', 'save-product', 
+  'unsave-product', 'get-saved-products', 'set-price-alert', 
+  'get-price-alerts', 'update-interests', 'get-suggestions'
+] as const;
+export type ShoppingAction = typeof SHOPPING_ACTIONS[number];
 
 interface ShoppingParams extends AgentParams {
-  action: 
-    | 'search-products'
-    | 'search-by-hobby'
-    | 'get-deals'
-    | 'save-product'
-    | 'unsave-product'
-    | 'get-saved-products'
-    | 'set-price-alert'
-    | 'get-price-alerts'
-    | 'update-interests'
-    | 'get-suggestions';
+  action: ShoppingAction;
   query?: string;
   hobbies?: string[];
   productId?: string;
   targetPrice?: number;
   interests?: UserInterest[];
-  sources?: string[];
+  sources?: (ShoppingSource | string)[];
   filters?: ProductFilters;
 }
 
 interface UserInterest {
-  type: 'hobby' | 'category' | 'brand' | 'keyword';
+  type: InterestType;
   value: string;
   weight?: number;
 }
@@ -54,7 +58,7 @@ interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   category?: string;
-  source?: string;
+  source?: ShoppingSource | string;
   minDiscount?: number;
   minDealScore?: number;
 }
@@ -76,7 +80,7 @@ interface Product {
   originalPrice?: number | null;
   currency: string;
   discount?: number | null;
-  source: string;
+  source: ShoppingSource | string;
   sourceUrl: string;
   sourceId?: string | null;
   imageUrl?: string | null;
@@ -157,7 +161,8 @@ export class ShoppingAgent extends AbstractAgent {
       });
 
       // Search multiple sources
-      const sourcesToSearch = sources || ['ebay', 'aliexpress', 'amazon'];
+      const defaultSources = configService.get('shopping.search.defaultSources', ['ebay', 'aliexpress', 'amazon']);
+      const sourcesToSearch = sources || defaultSources;
       const allProducts: Product[] = [];
 
       for (let i = 0; i < sourcesToSearch.length; i++) {
@@ -406,10 +411,11 @@ Respond ONLY with valid JSON:
       if (filters?.minPrice) where.price = { gte: filters.minPrice };
       if (filters?.maxPrice) where.price = { ...where.price, lte: filters.maxPrice };
 
+      const maxDealsResults = configService.get('shopping.deals.maxResults', 20);
       const deals = await prisma.product.findMany({
         where,
         orderBy: { dealScore: 'desc' },
-        take: 20
+        take: maxDealsResults
       });
 
       return { success: true, data: { deals } };
@@ -609,24 +615,27 @@ Respond ONLY with valid JSON:
 
     try {
       // Get user interests
+      const maxInterests = configService.get('shopping.interests.maxResults', 10);
       const interests = await prisma.userInterest.findMany({
         where: { userId },
         orderBy: [{ weight: 'desc' }, { searchCount: 'desc' }],
-        take: 10
+        take: maxInterests
       });
 
       // Get recent saved products
+      const maxSavedProducts = configService.get('shopping.saved.maxResults', 10);
       const savedProducts = await prisma.product.findMany({
         where: { userId, isSaved: true },
         orderBy: { updatedAt: 'desc' },
-        take: 10
+        take: maxSavedProducts
       });
 
       // Get recent searches
+      const maxSearches = configService.get('shopping.searches.maxResults', 5);
       const recentSearches = await prisma.productSearch.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: 5
+        take: maxSearches
       });
 
       if (interests.length === 0 && savedProducts.length === 0) {

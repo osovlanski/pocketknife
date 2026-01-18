@@ -10,6 +10,7 @@
 import { AbstractAgent, AgentConfig } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import mockInterviewService, { InterviewQuestion, InterviewAnswer } from '../services/jobs/mockInterviewService';
 import systemDesignEvaluationService, { SystemDesignEvaluation, SystemDesignQuestion } from '../services/jobs/systemDesignEvaluationService';
 import { z } from 'zod';
@@ -174,15 +175,15 @@ export class JobsAgent extends AbstractAgent {
 
   constructor(config?: AgentConfig) {
     super({
-      // Custom config for Jobs Agent
-      rateLimit: 30, // 30 requests per minute
-      defaultTimeoutMs: 60000, // 60s timeout (AI operations can be slow)
+      // Custom config for Jobs Agent - values from configService
+      rateLimit: configService.get('jobs.agent.rateLimit', 30),
+      defaultTimeoutMs: configService.get('jobs.agent.timeoutMs', 60000),
       actionTimeouts: {
-        'extract-interview-questions': 120000, // 2 min for image processing
-        'evaluate-system-design': 90000, // 1.5 min for evaluation
-        'generate-answer': 45000 // 45s for answer generation
+        'extract-interview-questions': configService.get('jobs.action.extractQuestions.timeoutMs', 120000),
+        'evaluate-system-design': configService.get('jobs.action.evaluateDesign.timeoutMs', 90000),
+        'generate-answer': configService.get('jobs.action.generateAnswer.timeoutMs', 45000)
       },
-      circuitBreakerThreshold: 3,
+      circuitBreakerThreshold: configService.get('jobs.agent.circuitBreakerThreshold', 3),
       ...config
     });
   }
@@ -284,10 +285,11 @@ export class JobsAgent extends AbstractAgent {
     }
 
     try {
+      const maxSavedResults = configService.get('jobs.saved.maxResults', 100);
       const savedJobs = await prisma.savedJob.findMany({
         where: { userId },
         orderBy: { savedAt: 'desc' },
-        take: 100
+        take: maxSavedResults
       });
 
       return {

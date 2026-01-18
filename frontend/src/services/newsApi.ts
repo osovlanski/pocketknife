@@ -186,7 +186,7 @@ export const updatePreferences = async (preferences: NewsPreferences): Promise<{
 };
 
 // =============================================================================
-// AVAILABLE TOPICS & SOURCES
+// CONSTANTS & DERIVED TYPES
 // =============================================================================
 
 export const NEWS_TOPICS = [
@@ -198,7 +198,10 @@ export const NEWS_TOPICS = [
   { id: 'health', label: 'Health', icon: '🏥' },
   { id: 'entertainment', label: 'Entertainment', icon: '🎬' },
   { id: 'money', label: 'Money & Finance', icon: '💰' }
-];
+] as const;
+
+/** Type-safe news topic ID derived from NEWS_TOPICS */
+export type NewsTopicId = typeof NEWS_TOPICS[number]['id'];
 
 export const NEWS_SOURCES = [
   { id: 'hackernews', label: 'Hacker News', category: 'tech' },
@@ -206,7 +209,10 @@ export const NEWS_SOURCES = [
   { id: 'newsapi', label: 'NewsAPI', category: 'general' },
   { id: 'gnews', label: 'GNews', category: 'general' },
   { id: 'mediastack', label: 'MediaStack', category: 'general' }
-];
+] as const;
+
+/** Type-safe news source ID derived from NEWS_SOURCES */
+export type NewsSourceId = typeof NEWS_SOURCES[number]['id'];
 
 
 

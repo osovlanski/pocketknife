@@ -1,0 +1,397 @@
+---
+description: Dynamic configuration patterns including ConfigService, Rule Engine, and Feature Flags. Triggered by 'config', 'rule engine', 'feature flag', 'dynamic config'.
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Dynamic Configuration System
+
+Pocketknife uses a three-tier configuration system for runtime flexibility:
+
+| Layer | Service | Purpose | Use When |
+| :--- | :--- | :--- | :--- |
+| **Config** | `configService` | Simple key-value settings | Timeouts, limits, API URLs, defaults |
+| **Rules** | `ruleEngineService` | Conditional business logic | Scoring, filtering, validation, notifications |
+| **Flags** | `featureFlagService` | Feature toggles & rollouts | A/B tests, gradual rollouts, kill switches |
+
+## 🚫 NEVER Hardcode These Values
+
+| Type | Example | Correct Approach |
+| :--- | :--- | :--- |
+| Timeouts | `timeout: 5000` | `configService.get('api.timeoutMs', 5000)` |
+| Limits | `take: 100` | `configService.get('jobs.saved.maxResults', 100)` |
+| AI Tokens | `maxTokens: 1500` | `configService.get('shopping.ai.maxTokens', 1500)` |
+| Thresholds | `if (score > 80)` | Use Rule Engine for conditional logic |
+| Feature toggles | `if (isNewFeature)` | `featureFlagService.isEnabled('new_feature')` |
+
+---
+
+## 1. ConfigService (Simple Values)
+
+### Usage
+
+```typescript
+import { configService } from '../services/core/configService';
+
+// Get value with default fallback
+const timeout = configService.get('api.timeoutMs', 5000);
+const sources = configService.get('shopping.search.defaultSources', ['ebay', 'amazon']);
+
+// In Agent constructors
+constructor(config?: AgentConfig) {
+  super({
+    rateLimit: configService.get('jobs.agent.rateLimit', 30),
+    defaultTimeoutMs: configService.get('jobs.agent.timeoutMs', 60000),
+    circuitBreakerThreshold: configService.get('jobs.agent.circuitBreakerThreshold', 3),
+    ...config
+  });
+}
+```
+
+### Adding New Config Keys
+
+File: `backend/src/services/core/configService.ts`
+
+```typescript
+const DEFAULT_CONFIG = {
+  // Add in the appropriate section
+  
+  // ==========================================================================
+  // YOUR AGENT
+  // ==========================================================================
+  'yourAgent.maxResults': 20,
+  'yourAgent.cacheMinutes': 30,
+  'yourAgent.ai.maxTokens': 2000,
+  'yourAgent.feature.enabled': true,
+} as const;
+```
+
+### Naming Convention
+
+```
+category.subcategory.setting
+
+Examples:
+- agent.default.rateLimit
+- jobs.agent.timeoutMs
+- shopping.ai.maxTokens
+- cache.products.ttlSeconds
+- feature.israeliShops
+```
+
+---
+
+## 2. Rule Engine (Business Logic)
+
+Use the Rule Engine for conditional business logic that may change over time.
+
+### When to Use
+
+- Scoring algorithms (deal scores, match scores)
+- Filtering logic (content filtering, relevance)
+- Notification triggers (alert conditions)
+- Pricing rules (discounts, thresholds)
+- Validation rules (input validation)
+
+### Usage
+
+```typescript
+import { ruleEngineService, RuleContext } from '../services/rules';
+
+// Evaluate rules
+const context: RuleContext = {
+  agentId: 'shopping',
+  action: 'score-deal',
+  userId: 'user-123',
+  data: {
+    price: 49.99,
+    discount: 50,
+    category: 'electronics'
+  }
+};
+
+const result = await ruleEngineService.evaluate(context, 'scoring');
+
+// Access modified values
+const dealScore = result.finalContext.data.dealScore;
+const dealReason = result.finalContext.data.dealReason;
+```
+
+### Creating Rules
+
+```typescript
+import { ruleEngineService } from '../services/rules';
+
+await ruleEngineService.createRule({
+  name: 'Excellent Deal Threshold',
+  category: 'scoring',
+  priority: 10,  // Lower = higher priority
+  enabled: true,
+  conditions: {
+    operator: 'and',
+    conditions: [
+      { field: 'data.discount', operator: 'gte', value: 50 },
+      { field: 'data.price', operator: 'lt', value: 100 }
+    ]
+  },
+  actions: [
+    { type: 'set_value', target: 'data.dealScore', value: 95 },
+    { type: 'set_value', target: 'data.dealReason', value: 'Exceptional discount!' }
+  ],
+  metadata: { tags: ['shopping', 'deals'] }
+});
+```
+
+### Available Operators
+
+| Operator | Description | Example |
+| :--- | :--- | :--- |
+| `eq` | Equal | `{ field: 'status', operator: 'eq', value: 'active' }` |
+| `neq` | Not equal | `{ field: 'status', operator: 'neq', value: 'deleted' }` |
+| `gt` / `gte` | Greater than (or equal) | `{ field: 'score', operator: 'gte', value: 80 }` |
+| `lt` / `lte` | Less than (or equal) | `{ field: 'price', operator: 'lt', value: 100 }` |
+| `in` | Value in array | `{ field: 'category', operator: 'in', value: ['tech', 'science'] }` |
+| `contains` | Array/string contains | `{ field: 'tags', operator: 'contains', value: 'hot' }` |
+| `matches` | Regex match | `{ field: 'email', operator: 'matches', value: '@company.com$' }` |
+| `between` | Value between | `{ field: 'price', operator: 'between', value: [10, 100] }` |
+| `exists` | Property exists | `{ field: 'userId', operator: 'exists', value: true }` |
+
+### Available Actions
+
+| Action | Description | Example |
+| :--- | :--- | :--- |
+| `set_value` | Set a field value | `{ type: 'set_value', target: 'data.score', value: 100 }` |
+| `multiply` | Multiply a value | `{ type: 'multiply', target: 'data.score', value: 1.5 }` |
+| `add` | Add to a value | `{ type: 'add', target: 'data.bonus', value: 10 }` |
+| `filter` | Filter array items | `{ type: 'filter', target: 'data.items', params: { status: 'active' } }` |
+| `sort` | Sort array | `{ type: 'sort', target: 'data.items', params: { field: 'score', order: 'desc' } }` |
+| `limit` | Limit array size | `{ type: 'limit', target: 'data.items', value: 10 }` |
+| `abort` | Stop processing | `{ type: 'abort' }` |
+
+---
+
+## 3. Feature Flags (Toggles & Rollouts)
+
+Use Feature Flags for feature toggles, A/B tests, and gradual rollouts.
+
+### When to Use
+
+- Enabling/disabling features without deployment
+- A/B testing UI variants
+- Gradual rollouts (10% → 50% → 100%)
+- Kill switches for problematic features
+- User-specific targeting
+
+### Usage
+
+```typescript
+import { featureFlagService } from '../services/featureFlags';
+
+// Simple check
+const isEnabled = await featureFlagService.isEnabled('new_search_algorithm');
+
+// With user context (for targeting/rollouts)
+const context = {
+  userId: 'user-123',
+  email: 'user@example.com',
+  attributes: { plan: 'premium', country: 'US' }
+};
+const result = await featureFlagService.evaluate('dashboard_experiment', context);
+
+if (result.enabled) {
+  // New feature
+  if (result.variant === 'treatment') {
+    // A/B test treatment group
+  }
+}
+```
+
+### Creating Flags
+
+```typescript
+import { featureFlagService } from '../services/featureFlags';
+
+// Simple toggle
+await featureFlagService.createFlag({
+  key: 'ai_generation_enabled',
+  name: 'AI Content Generation',
+  description: 'Enable AI-powered content generation',
+  enabled: true,
+  metadata: { tags: ['core', 'ai'] }
+});
+
+// Percentage rollout
+await featureFlagService.createFlag({
+  key: 'new_search_v2',
+  name: 'New Search Algorithm V2',
+  enabled: true,
+  targetingRules: [
+    {
+      id: 'internal-users',
+      priority: 1,
+      conditions: [
+        { attribute: 'email', operator: 'ends_with', value: '@company.com' }
+      ],
+      percentage: 100  // 100% of internal users
+    },
+    {
+      id: 'gradual-rollout',
+      priority: 2,
+      conditions: [],
+      percentage: 10  // 10% of everyone else
+    }
+  ]
+});
+
+// A/B test with variants
+await featureFlagService.createFlag({
+  key: 'dashboard_layout_test',
+  name: 'Dashboard Layout A/B Test',
+  enabled: true,
+  variants: [
+    { key: 'control', name: 'Original', weight: 50, payload: { layout: 'classic' } },
+    { key: 'treatment', name: 'New Layout', weight: 50, payload: { layout: 'modern' } }
+  ],
+  defaultVariant: 'control'
+});
+```
+
+### Toggle a Flag
+
+```typescript
+// Enable/disable
+await featureFlagService.updateFlag('feature_key', { enabled: false });
+
+// Or toggle
+await featureFlagService.toggleFlag('feature_key');
+```
+
+---
+
+## Database Schema
+
+### BusinessRule
+
+```prisma
+model BusinessRule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String   // scoring, filtering, validation, etc.
+  conditions  Json     // RuleConditionGroup
+  actions     Json     // RuleAction[]
+  priority    Int      @default(100)
+  enabled     Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  daysOfWeek  Int[]    // 0-6 for scheduling
+  version     Int      @default(1)
+  tags        String[]
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
+
+### FeatureFlag
+
+```prisma
+model FeatureFlag {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  name           String
+  description    String?
+  enabled        Boolean  @default(false)
+  targetingRules Json?    // For percentage rollouts
+  variants       Json?    // For A/B tests
+  defaultVariant String?
+  startDate      DateTime?
+  endDate        DateTime?
+  tags           String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+```
+
+---
+
+## Migration Required
+
+After adding the schema, run:
+
+```bash
+cd backend && npx prisma migrate dev --name add_dynamic_config
+```
+
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Application Layer                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │   Agents     │  │   Services   │  │     Controllers      │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
+│         │                 │                      │              │
+│         └─────────────────┼──────────────────────┘              │
+│                           ▼                                      │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                  Configuration Layer                         ││
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐ ││
+│  │  │ configSvc  │  │ ruleEngine │  │  featureFlagService    │ ││
+│  │  │ (runtime)  │  │  (BL rules)│  │  (toggles & rollouts)  │ ││
+│  │  └─────┬──────┘  └─────┬──────┘  └──────────┬─────────────┘ ││
+│  │        │               │                     │               ││
+│  └────────┼───────────────┼─────────────────────┼───────────────┘│
+│           ▼               ▼                     ▼                │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │                    Data Layer                                │ │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐ │ │
+│  │  │  AppConfig │  │BusinessRule│  │     FeatureFlag        │ │ │
+│  │  │   (DB)     │  │   (DB)     │  │       (DB/Flipt)       │ │ │
+│  │  └────────────┘  └────────────┘  └────────────────────────┘ │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Quick Reference
+
+### Import Patterns
+
+```typescript
+// ConfigService
+import { configService } from '../services/core/configService';
+
+// Rule Engine
+import { ruleEngineService, RuleContext, Rule } from '../services/rules';
+
+// Feature Flags
+import { featureFlagService, FlagContext, FeatureFlag } from '../services/featureFlags';
+```
+
+### Common Patterns
+
+```typescript
+// Pattern 1: Config with fallback
+const maxResults = configService.get('agent.maxResults', 20);
+
+// Pattern 2: Conditional business logic
+const result = await ruleEngineService.evaluate(context, 'scoring');
+const score = result.finalContext.data.score;
+
+// Pattern 3: Feature gate
+if (await featureFlagService.isEnabled('new_feature')) {
+  // New implementation
+} else {
+  // Legacy implementation
+}
+
+// Pattern 4: A/B test
+const variant = await featureFlagService.getVariant('experiment', { userId });
+if (variant === 'treatment') {
+  // Treatment group
+}
+```

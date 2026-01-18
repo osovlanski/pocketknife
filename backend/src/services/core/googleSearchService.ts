@@ -378,7 +378,8 @@ Respond ONLY with valid JSON (no markdown):
   ]
 }`;
 
-      const response = await claudeService.generateText(prompt, 2000);
+      const aiMaxTokens = configService.get('ai.claude.defaultMaxTokens', 2000);
+      const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(cleanResponse);
 

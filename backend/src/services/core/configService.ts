@@ -16,6 +16,19 @@ import logger from '../../utils/logger';
 // Default configuration values - organized by category
 const DEFAULT_CONFIG = {
   // ==========================================================================
+  // AGENT DEFAULTS (used by AbstractAgent)
+  // ==========================================================================
+  'agent.default.rateLimit': 60,
+  'agent.default.timeoutMs': 30000,
+  'agent.default.retryMaxAttempts': 3,
+  'agent.default.retryInitialDelayMs': 1000,
+  'agent.default.retryMaxDelayMs': 30000,
+  'agent.default.retryBackoffMultiplier': 2,
+  'agent.default.circuitBreakerThreshold': 5,
+  'agent.default.circuitBreakerResetMs': 60000,
+  'agent.default.historyLimit': 50,
+
+  // ==========================================================================
   // API LIMITS
   // ==========================================================================
   'api.rateLimit.requests': 100,
@@ -30,10 +43,42 @@ const DEFAULT_CONFIG = {
   'shopping.dealScore.good': 60,
   'shopping.dealScore.fair': 40,
   'shopping.dealScore.notifyThreshold': 70,
+  'shopping.dealScore.minDefault': 70,
   'shopping.search.maxResults': 30,
   'shopping.search.maxIsraeliResults': 10,
+  'shopping.search.defaultSources': ['ebay', 'aliexpress', 'amazon'],
+  'shopping.search.productLimit': 15,
   'shopping.ai.maxTokens': 1500,
+  'shopping.ai.hobbyMaxTokens': 2000,
+  'shopping.ai.suggestionMaxTokens': 1500,
+  'shopping.ai.dealScoringMaxTokens': 1500,
   'shopping.api.timeoutMs': 10000,
+  'shopping.saved.maxResults': 100,
+  'shopping.deals.maxResults': 20,
+  'shopping.interests.maxResults': 10,
+  'shopping.searches.maxResults': 5,
+  'shopping.suggestions.maxPerSource': 3,
+  'shopping.hobby.maxSuggestions': 5,
+  'shopping.ai.filterRelevance': false,
+  'shopping.feature.israeliShopsDefault': true,
+  
+  // ==========================================================================
+  // CACHE TTL (seconds)
+  // ==========================================================================
+  'cache.flights.ttlSeconds': 1800,
+  'cache.locations.ttlSeconds': 86400,
+  'cache.routes.ttlSeconds': 3600,
+  'cache.products.ttlSeconds': 1800,
+  'cache.productDetails.ttlSeconds': 3600,
+  'cache.leetcode.problemTtlSeconds': 86400,
+  'cache.leetcode.listTtlSeconds': 3600,
+  'cache.glassdoor.companyTtlSeconds': 86400,
+  'cache.glassdoor.reviewsTtlSeconds': 43200,
+  'cache.youtube.videosTtlSeconds': 3600,
+  'cache.youtube.detailsTtlSeconds': 86400,
+  'cache.recipes.ttlSeconds': 7200,
+  'cache.recipeDetails.ttlSeconds': 86400,
+  'cache.ingredients.ttlSeconds': 86400,
   
   // ==========================================================================
   // JOB AGENT
@@ -61,6 +106,16 @@ const DEFAULT_CONFIG = {
   'job.startups.maxResultsPerSource': 50,
   'jobs.glassdoor.timeoutMs': 10000,
   'jobs.glassdoor.enabled': true,
+  // Jobs Agent specific
+  'jobs.agent.rateLimit': 30,
+  'jobs.agent.timeoutMs': 60000,
+  'jobs.action.extractQuestions.timeoutMs': 120000,
+  'jobs.action.evaluateDesign.timeoutMs': 90000,
+  'jobs.action.generateAnswer.timeoutMs': 45000,
+  'jobs.agent.circuitBreakerThreshold': 3,
+  'jobs.saved.maxResults': 100,
+  'jobs.sources.apiTimeoutMs': 15000,
+  'jobs.sources.longTimeoutMs': 20000,
   
   // ==========================================================================
   // MOCK INTERVIEW
@@ -160,10 +215,18 @@ const DEFAULT_CONFIG = {
   'news.api.devto.baseUrl': 'https://dev.to/api',
   'news.api.currentsapi.baseUrl': 'https://api.currentsapi.services/v1',
   'news.reddit.subreddits': ['technology', 'worldnews', 'science', 'programming', 'business', 'sports'],
+  // News Agent specific
+  'news.feed.defaultMaxResults': 20,
+  'news.saved.maxResults': 50,
+  'news.preferences.minWeightThreshold': 0.4,
+  'news.preferences.maxTopicsToUse': 5,
+  'news.trends.maxResults': 10,
   
   // ==========================================================================
   // DIY AGENT
   // ==========================================================================
+  'diy.agent.timeoutMs': 120000, // 2 minutes for AI project generation
+  'diy.agent.generateTimeoutMs': 180000, // 3 minutes for complex projects
   'diy.search.maxResults': 20,
   'diy.ai.maxTokens': 3000,
   'diy.cache.ttlSeconds': 86400,
@@ -207,6 +270,12 @@ const DEFAULT_CONFIG = {
   'ai.claude.defaultModel': 'claude-sonnet-4-20250514',
   'ai.claude.defaultMaxTokens': 1500,
   'ai.claude.maxTokensLimit': 4000,
+  'ai.claude.zapScraper.extractInfoMaxTokens': 2500,
+  'ai.claude.israeliShops.extractInfoMaxTokens': 2000,
+  'ai.claude.cooking.generateListMaxTokens': 2000,
+  'ai.claude.email.patternRecognitionMaxTokens': 1500,
+  'ai.claude.googleSearch.summarizeMaxTokens': 2000,
+  'ai.claude.shopping.dealScoringMaxTokens': 1500,
   
   // ==========================================================================
   // CACHE
@@ -216,13 +285,26 @@ const DEFAULT_CONFIG = {
   'cache.autocomplete.maxHistory': 100,
   
   // ==========================================================================
-  // FEATURES
+  // FEATURES (Global Feature Toggles)
   // ==========================================================================
   'feature.aiGeneration': true,
   'feature.companyEnrichment': true,
   'feature.activityLogging': true,
   'feature.israeliShops': true,
   'feature.calendarSync': true,
+  'feature.ruleEngine.enabled': true,
+  'feature.featureFlags.enabled': true,
+  'feature.featureFlags.flipt.enabled': false,
+  'feature.featureFlags.flipt.url': process.env.FLIPT_URL || 'http://localhost:8080',
+  'feature.featureFlags.cacheSeconds': 60,
+  
+  // ==========================================================================
+  // RULE ENGINE
+  // ==========================================================================
+  'ruleEngine.evaluation.maxRulesPerRequest': 100,
+  'ruleEngine.evaluation.timeoutMs': 5000,
+  'ruleEngine.cache.ttlSeconds': 300,
+  'ruleEngine.audit.enabled': true,
   
   // ==========================================================================
   // DEVELOPMENT CORS ORIGINS

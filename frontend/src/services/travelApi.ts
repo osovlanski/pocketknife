@@ -100,7 +100,7 @@ export interface SkiResort {
   altitude: { base: number; peak: number };
   slopes: { total: number; beginner: number; intermediate: number; advanced: number };
   lifts: number;
-  priceLevel?: 'budget' | 'mid' | 'premium';
+  priceLevel?: PriceLevel;
 }
 
 export interface SkiDeal {
@@ -117,8 +117,8 @@ export interface SkiSearchQuery {
   returnDate?: string;
   passengers?: { adults: number; children?: number };
   preferences?: {
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
-    priceLevel?: 'budget' | 'mid' | 'premium';
+    skillLevel?: SkiSkillLevel;
+    priceLevel?: PriceLevel;
     preferredCountries?: string[];
   };
 }
@@ -166,13 +166,47 @@ export const stopSkiSearch = async (): Promise<void> => {
 };
 
 // =============================================================================
+// CONSTANTS & DERIVED TYPES
+// =============================================================================
+
+export const PRICE_LEVELS = ['budget', 'mid', 'premium'] as const;
+/** Type-safe price level */
+export type PriceLevel = typeof PRICE_LEVELS[number];
+
+export const SKI_SKILL_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+/** Type-safe ski skill level */
+export type SkiSkillLevel = typeof SKI_SKILL_LEVELS[number];
+
+export const HIKING_DIFFICULTIES = ['easy', 'moderate', 'challenging', 'expert'] as const;
+/** Type-safe hiking difficulty */
+export type HikingDifficulty = typeof HIKING_DIFFICULTIES[number];
+
+export const BEACH_TYPES = ['mediterranean', 'red_sea', 'dead_sea', 'kineret'] as const;
+/** Type-safe beach type */
+export type BeachType = typeof BEACH_TYPES[number];
+
+// =============================================================================
 // ISRAEL TRAVEL API
 // =============================================================================
 
-export type IsraelRegion = 'north' | 'center' | 'jerusalem' | 'dead_sea' | 'negev' | 'eilat';
-export type IsraelActivityType = 'beaches' | 'hiking' | 'historical' | 'religious' | 'nature' | 'food_wine' | 'wellness' | 'adventure' | 'family' | 'nightlife' | 'art_culture';
-export type TripDuration = 'day_trip' | 'weekend' | 'extended';
-export type BudgetLevel = 'budget' | 'moderate' | 'luxury';
+export const ISRAEL_REGIONS = ['north', 'center', 'jerusalem', 'dead_sea', 'negev', 'eilat'] as const;
+/** Type-safe Israel region */
+export type IsraelRegion = typeof ISRAEL_REGIONS[number];
+
+export const ISRAEL_ACTIVITY_TYPES = [
+  'beaches', 'hiking', 'historical', 'religious', 'nature', 
+  'food_wine', 'wellness', 'adventure', 'family', 'nightlife', 'art_culture'
+] as const;
+/** Type-safe Israel activity type */
+export type IsraelActivityType = typeof ISRAEL_ACTIVITY_TYPES[number];
+
+export const TRIP_DURATIONS = ['day_trip', 'weekend', 'extended'] as const;
+/** Type-safe trip duration */
+export type TripDuration = typeof TRIP_DURATIONS[number];
+
+export const BUDGET_LEVELS = ['budget', 'moderate', 'luxury'] as const;
+/** Type-safe budget level */
+export type BudgetLevel = typeof BUDGET_LEVELS[number];
 
 export interface IsraelDestination {
   id: string;
@@ -194,7 +228,7 @@ export interface IsraelHikingTrail {
   name: string;
   nameHebrew: string;
   region: IsraelRegion;
-  difficulty: 'easy' | 'moderate' | 'challenging' | 'expert';
+  difficulty: HikingDifficulty;
   length: number;
   duration: string;
   elevation: { gain: number; highest: number };
@@ -214,7 +248,7 @@ export interface IsraelBeach {
   nameHebrew: string;
   region: IsraelRegion;
   city: string;
-  type: 'mediterranean' | 'red_sea' | 'dead_sea' | 'kineret';
+  type: BeachType;
   facilities: string[];
   lifeguard: boolean;
   freeEntry: boolean;
@@ -326,7 +360,7 @@ export const getIsraelDestinations = async (params?: {
  */
 export const getIsraelTrails = async (params?: {
   region?: IsraelRegion;
-  difficulty?: 'easy' | 'moderate' | 'challenging' | 'expert';
+  difficulty?: HikingDifficulty;
   maxLength?: number;
 }): Promise<{ trails: IsraelHikingTrail[] }> => {
   try {
@@ -348,7 +382,7 @@ export const getIsraelTrails = async (params?: {
  */
 export const getIsraelBeaches = async (params?: {
   region?: IsraelRegion;
-  type?: 'mediterranean' | 'red_sea' | 'dead_sea' | 'kineret';
+  type?: BeachType;
   freeOnly?: boolean;
 }): Promise<{ beaches: IsraelBeach[] }> => {
   try {
