@@ -1,8 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
 import logger from '../services/logger';
@@ -498,285 +496,160 @@ func main() {
   };
 
   /**
-   * Format problem description using react-markdown
-   * This is a robust, scalable solution that properly parses all markdown syntax
+   * Format problem description - simple line-by-line approach (proven to work)
+   * This directly builds React elements without relying on markdown parsing
    */
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    // Pre-process: Convert LeetCode's non-standard format to proper markdown
-    // LeetCode uses: **Example 1:** **Input:** nums = [...] all on one line
-    // We need to convert this to structured markdown with proper line breaks
-    const preprocessDescription = (text: string): string => {
-      let result = text
-        // Decode HTML entities first
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        // Remove all ** markdown bold markers completely
-        .replace(/\*\*/g, '')
-        // Normalize line endings
-        .replace(/\r\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+    // Clean up the description
+    const cleanedText = description
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\*\*/g, '') // Remove markdown bold markers
+      .replace(/\r\n/g, '\n');
 
-      // Split into lines and process each one
-      const lines = result.split('\n');
-      const processedLines: string[] = [];
-      let inConstraints = false;
+    // Split by common patterns and format
+    const lines = cleanedText.split('\n');
+    const elements: React.ReactNode[] = [];
+    let currentList: string[] = [];
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
       
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
-        
-        // Skip empty lines but preserve spacing
-        if (!line) {
-          processedLines.push('');
-          continue;
+      // Skip empty lines
+      if (!trimmedLine) return;
+
+      // Detect example sections
+      if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:?$/i)) {
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
+              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+            </ul>
+          );
+          currentList = [];
         }
-        
-        // Detect Example headers: "Example 1:", "Example 2", etc.
-        const exampleMatch = line.match(/^Example\s*(\d+):?$/i);
-        if (exampleMatch) {
-          inConstraints = false;
-          processedLines.push(''); // blank line before
-          processedLines.push(`SECTION_EXAMPLE_${exampleMatch[1]}`);
-          continue;
-        }
-        
-        // Detect Constraints header
-        if (line.match(/^Constraints:?$/i)) {
-          inConstraints = true;
-          processedLines.push('');
-          processedLines.push('SECTION_CONSTRAINTS');
-          continue;
-        }
-        
-        // Detect Input: line
-        const inputMatch = line.match(/^Input:?\s*(.*)$/i);
-        if (inputMatch) {
-          processedLines.push('');
-          processedLines.push(`LABEL_INPUT ${inputMatch[1]}`);
-          continue;
-        }
-        
-        // Detect Output: line
-        const outputMatch = line.match(/^Output:?\s*(.*)$/i);
-        if (outputMatch) {
-          processedLines.push('');
-          processedLines.push(`LABEL_OUTPUT ${outputMatch[1]}`);
-          continue;
-        }
-        
-        // Detect Explanation: line
-        const explainMatch = line.match(/^Explanation:?\s*(.*)$/i);
-        if (explainMatch) {
-          processedLines.push('');
-          processedLines.push(`LABEL_EXPLAIN ${explainMatch[1]}`);
-          continue;
-        }
-        
-        // If in constraints section and line has comparison operators, mark it
-        if (inConstraints && (line.match(/[<>=≤≥]/) || line.match(/^\d/) || line.match(/^-\d/))) {
-          processedLines.push(`CONSTRAINT_ITEM ${line}`);
-          continue;
-        }
-        
-        // Regular line
-        processedLines.push(line);
+        elements.push(
+          <div key={`example-header-${index}`} className="mt-5 mb-2 pb-1 border-b border-cyan-500/30 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
+            <span className="text-cyan-400 font-semibold text-sm">{trimmedLine}</span>
+          </div>
+        );
+        return;
       }
-      
-      // Now convert markers to final format
-      result = processedLines.join('\n')
-        .replace(/SECTION_EXAMPLE_(\d+)/g, '### 💡 Example $1')
-        .replace(/SECTION_CONSTRAINTS/g, '### ⚡ Constraints')
-        .replace(/LABEL_INPUT\s*/g, '🔹 **Input:** ')
-        .replace(/LABEL_OUTPUT\s*/g, '🔸 **Output:** ')
-        .replace(/LABEL_EXPLAIN\s*/g, '💬 **Explanation:** ')
-        .replace(/CONSTRAINT_ITEM\s*/g, '⚡ ');
-      
-      // Clean up multiple newlines
-      result = result.replace(/\n{3,}/g, '\n\n');
-      
-      return result.trim();
-    };
 
-    const cleanedDescription = preprocessDescription(description);
-
-    // Custom components for styled markdown rendering
-    const markdownComponents = {
-      // Headings
-      h1: ({ children }: { children?: React.ReactNode }) => (
-        <h1 className="text-lg font-bold text-white mb-3">{children}</h1>
-      ),
-      h2: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '');
-        // Check if it's an Example or Constraints heading
-        if (text.includes('Example')) {
-          return (
-            <h2 className="text-sm font-bold text-cyan-400 mt-5 mb-2 pb-1 border-b border-cyan-500/30 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">💡</span>
-              <span>{text.replace(/💡\s*/, '')}</span>
-            </h2>
-          );
-        }
-        if (text.includes('Constraint')) {
-          return (
-            <h2 className="text-sm font-bold text-amber-400 mt-5 mb-2 pb-1 border-b border-amber-500/30 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
-              <span>{text.replace(/📋\s*/, '')}</span>
-            </h2>
-          );
-        }
-        return (
-          <h2 className="text-base font-bold text-white mt-4 mb-2">{children}</h2>
+      // Detect Input in examples
+      if (trimmedLine.toLowerCase().startsWith('input:')) {
+        elements.push(
+          <div key={`input-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
+            <span className="text-green-400 font-semibold">Input: </span>
+            <span className="text-slate-200">{trimmedLine.replace(/^input:\s*/i, '')}</span>
+          </div>
         );
-      },
-      h3: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '');
-        // Example headers
-        if (text.includes('Example')) {
-          return (
-            <h3 className="text-sm font-bold text-cyan-400 mt-5 mb-2 pb-1 border-b border-cyan-500/30">
-              {children}
-            </h3>
-          );
-        }
-        // Constraints header
-        if (text.includes('Constraints')) {
-          return (
-            <h3 className="text-sm font-bold text-amber-400 mt-5 mb-2 pb-1 border-b border-amber-500/30">
-              {children}
-            </h3>
-          );
-        }
-        return <h3 className="text-sm font-semibold text-slate-300 mt-3 mb-1">{children}</h3>;
-      },
-      // Paragraphs - style based on content
-      p: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '');
-        
-        // Constraint items (starts with ⚡)
-        if (text.startsWith('⚡')) {
-          return (
-            <p className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
-              {children}
-            </p>
-          );
-        }
-        
-        // Input line (starts with 🔹)
-        if (text.startsWith('🔹')) {
-          return (
-            <p className="text-slate-200 text-xs leading-relaxed mb-1 font-mono bg-slate-800/30 px-2 py-1 rounded">
-              {children}
-            </p>
-          );
-        }
-        
-        // Output line (starts with 🔸)
-        if (text.startsWith('🔸')) {
-          return (
-            <p className="text-slate-200 text-xs leading-relaxed mb-1 font-mono bg-slate-800/30 px-2 py-1 rounded">
-              {children}
-            </p>
-          );
-        }
-        
-        // Explanation line (starts with 💬)
-        if (text.startsWith('💬')) {
-          return (
-            <p className="text-slate-400 text-xs leading-relaxed mb-2 pl-2 border-l-2 border-slate-600">
-              {children}
-            </p>
-          );
-        }
-        
-        return <p className="text-slate-200 text-sm leading-relaxed mb-2">{children}</p>;
-      },
-      // Strong/Bold - Style Input:/Output:/Explanation: labels
-      strong: ({ children }: { children?: React.ReactNode }) => {
-        const text = String(children || '').toLowerCase().trim();
-        
-        // Input label
-        if (text.includes('input')) {
-          return <span className="text-green-400 font-semibold">{children}</span>;
-        }
-        // Output label
-        if (text.includes('output')) {
-          return <span className="text-blue-400 font-semibold">{children}</span>;
-        }
-        // Explanation label
-        if (text.includes('explanation')) {
-          return <span className="text-slate-400 font-semibold">{children}</span>;
-        }
-        return <strong className="text-white font-semibold">{children}</strong>;
-      },
-      // Emphasis/Italic
-      em: ({ children }: { children?: React.ReactNode }) => (
-        <em className="text-slate-300 italic">{children}</em>
-      ),
-      // Inline code
-      code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
-        // Check if it's a code block (has language class) or inline code
-        const isCodeBlock = className?.startsWith('language-');
-        if (isCodeBlock) {
-          return (
-            <code className="block bg-slate-900 text-green-300 p-3 rounded-lg font-mono text-xs overflow-x-auto my-2">
-              {children}
-            </code>
-          );
-        }
-        return (
-          <code className="bg-slate-700/60 text-emerald-300 px-1.5 py-0.5 rounded text-xs font-mono">
-            {children}
-          </code>
-        );
-      },
-      // Code blocks
-      pre: ({ children }: { children?: React.ReactNode }) => (
-        <pre className="bg-slate-900 border border-slate-700 rounded-lg p-3 my-2 overflow-x-auto text-xs">
-          {children}
-        </pre>
-      ),
-      // Lists
-      ul: ({ children }: { children?: React.ReactNode }) => (
-        <ul className="list-disc list-inside space-y-1 my-2 ml-2 text-slate-300 text-sm">{children}</ul>
-      ),
-      ol: ({ children }: { children?: React.ReactNode }) => (
-        <ol className="list-decimal list-inside space-y-1 my-2 ml-2 text-slate-300 text-sm">{children}</ol>
-      ),
-      li: ({ children }: { children?: React.ReactNode }) => (
-        <li className="text-slate-300 text-sm">{children}</li>
-      ),
-      // Horizontal rules
-      hr: () => <hr className="border-slate-700 my-4" />,
-      // Blockquotes (used for explanations)
-      blockquote: ({ children }: { children?: React.ReactNode }) => (
-        <blockquote className="border-l-2 border-slate-500 bg-slate-800/40 pl-3 py-2 my-2 rounded-r text-slate-300 text-xs">
-          {children}
-        </blockquote>
-      ),
-      // Links
-      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
-        <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      ),
-    };
+        return;
+      }
 
-    return (
-      <div className="prose prose-invert prose-sm max-w-none">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]}
-          components={markdownComponents}
-        >
-          {cleanedDescription}
-        </ReactMarkdown>
-      </div>
-    );
+      // Detect Output in examples
+      if (trimmedLine.toLowerCase().startsWith('output:')) {
+        elements.push(
+          <div key={`output-${index}`} className="bg-slate-800/50 rounded px-3 py-1.5 my-1 font-mono text-xs">
+            <span className="text-blue-400 font-semibold">Output: </span>
+            <span className="text-slate-200">{trimmedLine.replace(/^output:\s*/i, '')}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Detect Explanation in examples
+      if (trimmedLine.toLowerCase().startsWith('explanation:')) {
+        elements.push(
+          <div key={`explanation-${index}`} className="text-slate-400 text-xs italic my-1 pl-2 border-l-2 border-slate-600">
+            💬 {trimmedLine.replace(/^explanation:\s*/i, '')}
+          </div>
+        );
+        return;
+      }
+
+      // Detect constraints section
+      if (trimmedLine.toLowerCase().startsWith('constraints:') || trimmedLine.toLowerCase() === 'constraints') {
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
+              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+            </ul>
+          );
+          currentList = [];
+        }
+        elements.push(
+          <div key={`constraints-header-${index}`} className="mt-5 mb-2 pb-1 border-b border-amber-500/30 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">📋</span>
+            <span className="text-amber-400 font-semibold text-sm">Constraints</span>
+          </div>
+        );
+        return;
+      }
+
+      // Detect bullet points or numbered lists
+      if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
+        const content = trimmedLine.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
+        // Check if it's a constraint (contains comparison operators)
+        if (content.match(/[<>≤≥=]/) || content.match(/\d+\s*(<=|>=|<|>|==)/)) {
+          elements.push(
+            <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+              <span className="text-amber-500">⚡</span>
+              <span>{content}</span>
+            </div>
+          );
+        } else {
+          currentList.push(content);
+        }
+        return;
+      }
+
+      // Check if line looks like a constraint (comparison operators, numbers)
+      if (trimmedLine.match(/[<>≤≥]/) && trimmedLine.match(/\d/)) {
+        elements.push(
+          <div key={`constraint-${index}`} className="flex items-start gap-2 my-1 text-amber-200/90 text-xs font-mono bg-amber-500/10 rounded px-2 py-1">
+            <span className="text-amber-500">⚡</span>
+            <span>{trimmedLine}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Regular paragraph
+      if (trimmedLine.length > 0) {
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key={`list-${index}`} className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
+              {currentList.map((item, i) => <li key={i}>{item}</li>)}
+            </ul>
+          );
+          currentList = [];
+        }
+        elements.push(
+          <p key={`p-${index}`} className="text-slate-200 text-sm leading-relaxed mb-2">
+            {trimmedLine}
+          </p>
+        );
+      }
+    });
+
+    // Don't forget remaining list items
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key="list-final" className="list-disc list-inside space-y-1 my-2 text-slate-300 text-sm">
+          {currentList.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      );
+    }
+
+    return <div className="space-y-1">{elements}</div>;
   };
 
   // Extract test cases from problem examples

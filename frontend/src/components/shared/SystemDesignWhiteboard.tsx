@@ -648,8 +648,18 @@ const SimpleCanvas: React.FC<{
       return;
     }
     
+    // Text tool - open text input immediately (priority over handles)
+    if (selectedTool === 'text') {
+      setTextInputPos(pos);
+      setTextInputScreenPos(screenPos); // Store screen position for overlay
+      setTextInputValue('');
+      setShowTextInput(true);
+      setTimeout(() => textInputRef.current?.focus(), 10);
+      return;
+    }
+    
     // Check if clicking on a connection handle (to start drawing an arrow)
-    // Works with any tool - allows quick arrow creation from handles
+    // Works with any tool except text - allows quick arrow creation from handles
     const handle = getHandleAtPosition(pos.x, pos.y);
     if (handle) {
       setIsDrawingConnection(true);
@@ -669,15 +679,6 @@ const SimpleCanvas: React.FC<{
       } else {
         setSelectedElementId(null);
       }
-    }
-    
-    if (selectedTool === 'text') {
-      setTextInputPos(pos);
-      setTextInputScreenPos(screenPos); // Store screen position for overlay
-      setTextInputValue('');
-      setShowTextInput(true);
-      setTimeout(() => textInputRef.current?.focus(), 10);
-      return;
     }
     
     if (selectedTool === 'pen') {
@@ -903,18 +904,52 @@ const SimpleCanvas: React.FC<{
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (!showTextInput) {
-          deleteSelected();
-        }
+      // Skip if typing in text input
+      if (showTextInput) {
+        if (e.key === 'Escape') setShowTextInput(false);
+        return;
       }
+      
+      // Delete selected element
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        deleteSelected();
+        e.preventDefault();
+      }
+      
+      // Escape - deselect
       if (e.key === 'Escape') {
         setSelectedElementId(null);
+        onPendingComponentPlaced(); // Cancel pending component
+      }
+      
+      // Ctrl+Z - Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        handleUndo();
+        e.preventDefault();
+      }
+      
+      // Ctrl+Y or Ctrl+Shift+Z - Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        handleRedo();
+        e.preventDefault();
+      }
+      
+      // Tool shortcuts (single keys, no modifiers)
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'v': setSelectedTool('select'); break;
+          case 'r': setSelectedTool('rect'); break;
+          case 'o': setSelectedTool('ellipse'); break;
+          case 'l': setSelectedTool('line'); break;
+          case 'a': setSelectedTool('arrow'); break;
+          case 't': setSelectedTool('text'); break;
+          case 'p': setSelectedTool('pen'); break;
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelected, showTextInput]);
+  }, [deleteSelected, showTextInput, handleUndo, handleRedo, onPendingComponentPlaced]);
 
   const clearCanvas = () => {
     saveToHistory([]);
