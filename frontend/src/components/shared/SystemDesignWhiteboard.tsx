@@ -174,6 +174,14 @@ const SimpleCanvas: React.FC<{
   
   // Ghost preview position for pending component
   const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Connection drawing state (for creating arrows between components)
+  const [isDrawingConnection, setIsDrawingConnection] = useState(false);
+  const [connectionStart, setConnectionStart] = useState<{ elementId: string; x: number; y: number } | null>(null);
+  const [connectionEnd, setConnectionEnd] = useState<{ x: number; y: number } | null>(null);
+  
+  // Screen position for text input (not canvas coordinates)
+  const [textInputScreenPos, setTextInputScreenPos] = useState({ x: 0, y: 0 });
 
   // Save to history when elements change
   const saveToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -396,10 +404,11 @@ const SimpleCanvas: React.FC<{
       ctx.stroke();
     }
 
-    // Draw selection highlight
+    // Draw selection highlight and connection handles
     if (selectedElementId) {
       const selectedEl = elements.find(el => el.id === selectedElementId);
       if (selectedEl) {
+        // Selection border
         ctx.strokeStyle = '#00d4ff';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
@@ -409,6 +418,66 @@ const SimpleCanvas: React.FC<{
           ctx.strokeRect(selectedEl.x - 4, selectedEl.y - 4, w + 8, h + 8);
         }
       }
+    }
+
+    // Draw connection handles on all rect/ellipse elements (when in select mode)
+    if (selectedTool === 'select') {
+      elements.forEach(el => {
+        if (el.type !== 'rect' && el.type !== 'ellipse') return;
+        
+        const width = el.width || 130;
+        const height = el.height || 70;
+        const handles = [
+          { x: el.x + width / 2, y: el.y },           // top
+          { x: el.x + width, y: el.y + height / 2 },  // right
+          { x: el.x + width / 2, y: el.y + height },  // bottom
+          { x: el.x, y: el.y + height / 2 }           // left
+        ];
+        
+        ctx.setLineDash([]);
+        handles.forEach(h => {
+          // Outer circle (border)
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Inner circle
+          ctx.fillStyle = '#00d4ff';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+    }
+
+    // Draw connection preview while dragging
+    if (isDrawingConnection && connectionStart && connectionEnd) {
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      ctx.beginPath();
+      ctx.moveTo(connectionStart.x, connectionStart.y);
+      ctx.lineTo(connectionEnd.x, connectionEnd.y);
+      ctx.stroke();
+      
+      // Draw arrow head
+      ctx.setLineDash([]);
+      const angle = Math.atan2(connectionEnd.y - connectionStart.y, connectionEnd.x - connectionStart.x);
+      const headLen = 12;
+      ctx.beginPath();
+      ctx.moveTo(connectionEnd.x, connectionEnd.y);
+      ctx.lineTo(
+        connectionEnd.x - headLen * Math.cos(angle - Math.PI / 6),
+        connectionEnd.y - headLen * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        connectionEnd.x - headLen * Math.cos(angle + Math.PI / 6),
+        connectionEnd.y - headLen * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#00d4ff';
+      ctx.fill();
     }
 
     // Draw ghost preview for pending component
@@ -430,9 +499,9 @@ const SimpleCanvas: React.FC<{
 
     ctx.restore();
     onElementsChange(elements);
-  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition]);
+  }, [elements, onElementsChange, canvasSize, zoom, isDrawing, currentPath, selectedTool, selectedColor, strokeWidth, selectedElementId, pendingComponent, ghostPosition, isDrawingConnection, connectionStart, connectionEnd]);
 
-  // Get accurate mouse position on canvas
+  // Get accurate mouse position on canvas (in canvas coordinates)
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -447,6 +516,59 @@ const SimpleCanvas: React.FC<{
     const y = ((e.clientY - rect.top) * scaleY) / zoom;
     
     return { x: Math.round(x), y: Math.round(y) };
+  };
+
+  // Get screen position relative to container (for overlay positioning)
+  const getScreenPos = (e: React.MouseEvent): { x: number; y: number } => {
+    const container = containerRef.current;
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
+    return { 
+      x: e.clientX - rect.left, 
+      y: e.clientY - rect.top 
+    };
+  };
+
+  // Get connection handle positions for an element (top, right, bottom, left)
+  const getConnectionHandles = (el: CanvasElement): { position: string; x: number; y: number }[] => {
+    const width = el.width || 130;
+    const height = el.height || 70;
+    return [
+      { position: 'top', x: el.x + width / 2, y: el.y },
+      { position: 'right', x: el.x + width, y: el.y + height / 2 },
+      { position: 'bottom', x: el.x + width / 2, y: el.y + height },
+      { position: 'left', x: el.x, y: el.y + height / 2 }
+    ];
+  };
+
+  // Check if position is near a connection handle
+  const getHandleAtPosition = (x: number, y: number): { elementId: string; handleX: number; handleY: number } | null => {
+    for (const el of elements) {
+      if (el.type !== 'rect' && el.type !== 'ellipse') continue;
+      const handles = getConnectionHandles(el);
+      for (const handle of handles) {
+        const dist = Math.sqrt(Math.pow(x - handle.x, 2) + Math.pow(y - handle.y, 2));
+        if (dist < 15) { // 15px hit area for handles
+          return { elementId: el.id, handleX: handle.x, handleY: handle.y };
+        }
+      }
+    }
+    return null;
+  };
+
+  // Find closest handle on target element
+  const getClosestHandle = (targetEl: CanvasElement, x: number, y: number): { x: number; y: number } => {
+    const handles = getConnectionHandles(targetEl);
+    let closest = handles[0];
+    let minDist = Infinity;
+    for (const handle of handles) {
+      const dist = Math.sqrt(Math.pow(x - handle.x, 2) + Math.pow(y - handle.y, 2));
+      if (dist < minDist) {
+        minDist = dist;
+        closest = handle;
+      }
+    }
+    return { x: closest.x, y: closest.y };
   };
 
   // Find element at position (for selection and dragging)
@@ -502,6 +624,7 @@ const SimpleCanvas: React.FC<{
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const pos = getMousePos(e);
+    const screenPos = getScreenPos(e);
     
     // If there's a pending component, place it
     if (pendingComponent) {
@@ -526,6 +649,15 @@ const SimpleCanvas: React.FC<{
       return;
     }
     
+    // Check if clicking on a connection handle (to start drawing an arrow)
+    const handle = getHandleAtPosition(pos.x, pos.y);
+    if (handle && selectedTool === 'select') {
+      setIsDrawingConnection(true);
+      setConnectionStart({ elementId: handle.elementId, x: handle.handleX, y: handle.handleY });
+      setConnectionEnd(pos);
+      return;
+    }
+    
     // Select tool - check if clicking on an element
     if (selectedTool === 'select') {
       const clickedElement = getElementAtPosition(pos.x, pos.y);
@@ -541,6 +673,7 @@ const SimpleCanvas: React.FC<{
     
     if (selectedTool === 'text') {
       setTextInputPos(pos);
+      setTextInputScreenPos(screenPos); // Store screen position for overlay
       setTextInputValue('');
       setShowTextInput(true);
       setTimeout(() => textInputRef.current?.focus(), 10);
@@ -561,6 +694,12 @@ const SimpleCanvas: React.FC<{
     // Update ghost position for pending component
     if (pendingComponent) {
       setGhostPosition(pos);
+      return;
+    }
+    
+    // Handle connection drawing
+    if (isDrawingConnection && connectionStart) {
+      setConnectionEnd(pos);
       return;
     }
     
@@ -591,6 +730,51 @@ const SimpleCanvas: React.FC<{
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    const pos = getMousePos(e);
+    
+    // Finish connection drawing
+    if (isDrawingConnection && connectionStart) {
+      // Find target element or use endpoint position
+      const targetElement = getElementAtPosition(pos.x, pos.y);
+      let endX = pos.x;
+      let endY = pos.y;
+      
+      // If dropping on another component (not the source), snap to its closest handle
+      if (targetElement && targetElement.id !== connectionStart.elementId) {
+        const closestHandle = getClosestHandle(targetElement, pos.x, pos.y);
+        endX = closestHandle.x;
+        endY = closestHandle.y;
+      }
+      
+      // Only create arrow if moved a minimum distance
+      const dist = Math.sqrt(
+        Math.pow(endX - connectionStart.x, 2) + 
+        Math.pow(endY - connectionStart.y, 2)
+      );
+      
+      if (dist > 30) {
+        const newArrow: CanvasElement = {
+          id: `el-${Date.now()}`,
+          type: 'arrow',
+          x: connectionStart.x,
+          y: connectionStart.y,
+          width: endX,  // For arrows, width/height store the end position
+          height: endY,
+          color: selectedColor,
+          strokeWidth: strokeWidth,
+          lineStyle: lineStyle
+        };
+        const newElements = [...elements, newArrow];
+        setElements(newElements);
+        saveToHistory(newElements);
+      }
+      
+      setIsDrawingConnection(false);
+      setConnectionStart(null);
+      setConnectionEnd(null);
+      return;
+    }
+    
     // Finish dragging
     if (isDragging) {
       setIsDragging(false);
@@ -917,24 +1101,29 @@ const SimpleCanvas: React.FC<{
         {/* Text Input Overlay */}
         {showTextInput && (
           <div
-            className="absolute"
-            style={{ left: textInputPos.x * zoom, top: textInputPos.y * zoom }}
+            className="absolute z-50"
+            style={{ left: textInputScreenPos.x, top: textInputScreenPos.y }}
           >
-            <input
-              ref={textInputRef}
-              type="text"
-              value={textInputValue}
-              onChange={(e) => setTextInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleTextSubmit();
-                if (e.key === 'Escape') setShowTextInput(false);
-              }}
-              onBlur={handleTextSubmit}
-              className="bg-slate-700 text-white px-2 py-1 rounded border border-blue-500 outline-none text-sm min-w-[150px]"
-              placeholder="Type text..."
-              style={{ color: selectedColor }}
-              autoFocus
-            />
+            <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
+              <input
+                ref={textInputRef}
+                type="text"
+                value={textInputValue}
+                onChange={(e) => setTextInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTextSubmit();
+                  if (e.key === 'Escape') setShowTextInput(false);
+                }}
+                onBlur={handleTextSubmit}
+                className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] focus:border-blue-500"
+                placeholder="Type your text here..."
+                style={{ color: selectedColor }}
+                autoFocus
+              />
+              <div className="text-xs text-slate-500 mt-1 px-1">
+                Press Enter to add • Escape to cancel
+              </div>
+            </div>
           </div>
         )}
       </div>
