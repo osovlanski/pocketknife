@@ -40,6 +40,8 @@ interface DIYAgentParams extends AgentParams {
   description?: string;
   category?: DIYCategoryId | string;
   budget?: number;
+  budgetMin?: number;
+  budgetMax?: number;
   currency?: string;
   skillLevel?: SkillLevelId;
   timeAvailable?: number;
@@ -155,7 +157,7 @@ export class DIYAgent extends AbstractAgent {
    * Generate a DIY project with AI
    */
   private async generateProject(params: DIYAgentParams): Promise<AgentResult<DIYAgentResult>> {
-    const { description, category, budget, currency, skillLevel, timeAvailable, existingTools, userId } = params;
+    const { description, category, budget, budgetMin, budgetMax, currency, skillLevel, timeAvailable, existingTools, userId } = params;
 
     if (!description) {
       return { success: false, error: 'Project description is required' };
@@ -165,10 +167,13 @@ export class DIYAgent extends AbstractAgent {
     this.emitProgress(10);
 
     try {
+      // Use budgetMax as the primary budget constraint, fallback to budget or budgetMin
+      const effectiveBudget = budgetMax || budget || budgetMin;
+      
       const request: DIYProjectRequest = {
         description,
         category,
-        budget,
+        budget: effectiveBudget,
         currency,
         skillLevel,
         timeAvailable,

@@ -181,6 +181,42 @@ describe('Route Registration Verification', () => {
       expect(routePaths).toContain('POST /projects');
     });
   });
+
+  describe('Problem Solving Routes', () => {
+    const problemsRoutePath = path.join(routesDir, 'problemSolving.ts');
+    
+    it('should have core problem solving routes registered', () => {
+      const routes = extractRoutes(problemsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      // Core routes
+      expect(routePaths).toContain('POST /search');
+      expect(routePaths).toContain('GET /description/:titleSlug');
+      expect(routePaths).toContain('POST /hints');
+      expect(routePaths).toContain('POST /evaluate');
+      expect(routePaths).toContain('POST /signature');
+      expect(routePaths).toContain('POST /improve');
+      expect(routePaths).toContain('POST /fix-syntax');
+      expect(routePaths).toContain('POST /test');
+    });
+    
+    it('should have coding patterns routes registered', () => {
+      const routes = extractRoutes(problemsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('GET /patterns');
+      expect(routePaths).toContain('GET /patterns/:patternId');
+    });
+    
+    it('should have solved problems routes registered', () => {
+      const routes = extractRoutes(problemsRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('POST /save');
+      expect(routePaths).toContain('GET /solved');
+      expect(routePaths).toContain('GET /solved/:problemId/:source?');
+    });
+  });
 });
 
 describe('Frontend-Backend Route Sync', () => {
@@ -258,6 +294,20 @@ describe('Controller Method Verification', () => {
     const content = fs.readFileSync(controllerPath, 'utf-8');
     
     expect(content).toContain('export const importCalendarEvent');
+  });
+  
+  it('problem solving controller should have all required methods', () => {
+    const controllerPath = path.join(controllersDir, 'problemSolvingController.ts');
+    const content = fs.readFileSync(controllerPath, 'utf-8');
+    
+    // Core methods
+    expect(content).toContain('export async function searchProblems');
+    expect(content).toContain('export async function generateHints');
+    expect(content).toContain('export async function evaluateCode');
+    expect(content).toContain('export async function generateSignature');
+    expect(content).toContain('export async function generateImprovedCode');
+    expect(content).toContain('export async function fixSyntaxErrors');
+    expect(content).toContain('export async function runTests');
   });
 });
 
