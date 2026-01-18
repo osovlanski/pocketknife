@@ -500,7 +500,7 @@ const SimpleCanvas: React.FC<{
         ctx.strokeStyle = '#00d4ff';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
-        if (selectedEl.type === 'rect' || selectedEl.type === 'ellipse' || selectedEl.type === 'text') {
+        if (selectedEl.type === 'rect' || selectedEl.type === 'ellipse' || selectedEl.type === 'text' || selectedEl.type === 'component') {
           const w = selectedEl.width || (selectedEl.type === 'text' ? (selectedEl.text?.length || 0) * 8 : 100);
           const h = selectedEl.height || (selectedEl.type === 'text' ? 20 : 60);
           ctx.strokeRect(selectedEl.x - 4, selectedEl.y - 4, w + 8, h + 8);
@@ -508,10 +508,10 @@ const SimpleCanvas: React.FC<{
       }
     }
 
-    // Draw connection handles on all rect/ellipse elements (always visible for easy arrow creation)
+    // Draw connection handles on all rect/ellipse/component elements (always visible for easy arrow creation)
     // This mimics webwhiteboard.com behavior where you can drag from handles to create connections
     elements.forEach(el => {
-      if (el.type !== 'rect' && el.type !== 'ellipse') return;
+      if (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component') return;
       
       const width = el.width || 130;
       const height = el.height || 70;
@@ -723,7 +723,7 @@ const SimpleCanvas: React.FC<{
   // Check if position is near a connection handle
   const getHandleAtPosition = (x: number, y: number): { elementId: string; handleX: number; handleY: number } | null => {
     for (const el of elements) {
-      if (el.type !== 'rect' && el.type !== 'ellipse') continue;
+      if (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component') continue;
       const handles = getConnectionHandles(el);
       for (const handle of handles) {
         const dist = Math.sqrt(Math.pow(x - handle.x, 2) + Math.pow(y - handle.y, 2));
@@ -762,7 +762,7 @@ const SimpleCanvas: React.FC<{
     
     for (const el of elements) {
       // Skip the source element and non-component elements
-      if (el.id === sourceElementId || (el.type !== 'rect' && el.type !== 'ellipse')) continue;
+      if (el.id === sourceElementId || (el.type !== 'rect' && el.type !== 'ellipse' && el.type !== 'component')) continue;
       
       // Get the closest handle on this element
       const closestHandle = getClosestHandle(el, handleX, handleY);
@@ -788,7 +788,7 @@ const SimpleCanvas: React.FC<{
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
       
-      if (el.type === 'rect' || el.type === 'ellipse') {
+      if (el.type === 'rect' || el.type === 'ellipse' || el.type === 'component') {
         const elWidth = el.width || 100;
         const elHeight = el.height || 60;
         if (x >= el.x && x <= el.x + elWidth && y >= el.y && y <= el.y + elHeight) {
