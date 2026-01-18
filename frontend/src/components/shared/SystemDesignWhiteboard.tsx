@@ -176,7 +176,7 @@ const SimpleCanvas: React.FC<{
   const [showTextInput, setShowTextInput] = useState(false);
   const [textInputPos, setTextInputPos] = useState({ x: 0, y: 0 });
   const [textInputValue, setTextInputValue] = useState('');
-  const textInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
   
   // Selection and dragging state
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -362,7 +362,13 @@ const SimpleCanvas: React.FC<{
         ctx.font = `${el.fontSize || 16}px Inter, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(el.text || '', el.x, el.y);
+        
+        // Support multi-line text
+        const lines = (el.text || '').split('\n');
+        const lineHeight = (el.fontSize || 16) * 1.3;
+        lines.forEach((line, index) => {
+          ctx.fillText(line, el.x, el.y + index * lineHeight);
+        });
       } else if (el.type === 'arrow' || el.type === 'line') {
         const endX = el.width || el.x + 100;
         const endY = el.height || el.y;
@@ -795,9 +801,12 @@ const SimpleCanvas: React.FC<{
           return el;
         }
       } else if (el.type === 'text') {
-        // Approximate text bounds
-        const textWidth = (el.text?.length || 0) * 8;
-        const textHeight = el.fontSize || 16;
+        // Approximate text bounds (multi-line support)
+        const lines = (el.text || '').split('\n');
+        const maxLineLength = Math.max(...lines.map(l => l.length), 1);
+        const textWidth = maxLineLength * 8;
+        const lineHeight = (el.fontSize || 16) * 1.3;
+        const textHeight = lines.length * lineHeight;
         if (x >= el.x && x <= el.x + textWidth && y >= el.y && y <= el.y + textHeight) {
           return el;
         }
@@ -1581,23 +1590,26 @@ const SimpleCanvas: React.FC<{
               onClick={(e) => e.stopPropagation()} // Prevent backdrop click
             >
               <div className="bg-slate-800 rounded-lg shadow-xl border border-blue-500/50 p-2">
-                <input
+                <textarea
                   ref={textInputRef}
-                  type="text"
                   value={textInputValue}
                   onChange={(e) => setTextInputValue(e.target.value)}
                   onKeyDown={(e) => {
                     e.stopPropagation(); // Prevent global keyboard shortcuts
-                    if (e.key === 'Enter') handleTextSubmit();
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault(); // Prevent newline
+                      handleTextSubmit();
+                    }
                     if (e.key === 'Escape') handleTextCancel();
                   }}
-                  className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] focus:border-blue-500"
+                  className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 outline-none text-sm min-w-[200px] min-h-[60px] resize-none focus:border-blue-500"
                   placeholder="Type your text here..."
                   style={{ color: selectedColor }}
                   autoFocus
+                  rows={3}
                 />
                 <div className="text-xs text-slate-500 mt-1 px-1 flex items-center justify-between">
-                  <span>Enter to {editingTextId ? 'save' : 'add'} • Escape to cancel</span>
+                  <span>Enter to {editingTextId ? 'save' : 'add'} • Shift+Enter for newline • Esc to cancel</span>
                   <button 
                     onClick={handleTextSubmit}
                     className="text-blue-400 hover:text-blue-300 px-2"
