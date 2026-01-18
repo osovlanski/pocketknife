@@ -7,7 +7,7 @@
  * - Practice and receive feedback
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   Upload,
   ImagePlus,
@@ -31,7 +31,11 @@ import {
   Layers,
   Play,
   ExternalLink,
-  Brain
+  Brain,
+  Trophy,
+  Clock,
+  Edit3,
+  Filter
 } from 'lucide-react';
 import * as mockInterviewApi from '../services/mockInterviewApi';
 import logger from '../services/logger';
@@ -49,6 +53,72 @@ import type { ApiError } from '../types';
 import CodeEditorModal, { CodeQuestion, CodeSubmission } from './shared/CodeEditorModal';
 import SystemDesignWhiteboard, { DiagramSubmission } from './shared/SystemDesignWhiteboard';
 import ProblemSolvingAgent from './ProblemSolvingAgent';
+
+// System Design Question Status
+type QuestionStatus = 'not-started' | 'in-progress' | 'completed' | 'success';
+
+interface QuestionStatusData {
+  status: QuestionStatus;
+  score?: number;
+  lastAttempt?: string;
+  evaluationCount: number;
+  // Persist the design elements and prompt
+  elements?: any[];
+  prompt?: string;
+  summary?: string;
+}
+
+// Local storage keys for persisting data
+const SYSTEM_DESIGN_STATUS_KEY = 'system_design_question_status';
+const SYSTEM_DESIGN_ELEMENTS_KEY = 'system_design_elements';
+
+// Load status from local storage
+const loadQuestionStatus = (): Map<string, QuestionStatusData> => {
+  try {
+    const stored = localStorage.getItem(SYSTEM_DESIGN_STATUS_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return new Map(Object.entries(parsed));
+    }
+  } catch (e) {
+    console.error('Failed to load question status:', e);
+  }
+  return new Map();
+};
+
+// Load elements from local storage (separate key due to size)
+const loadSavedElements = (): Map<string, any[]> => {
+  try {
+    const stored = localStorage.getItem(SYSTEM_DESIGN_ELEMENTS_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return new Map(Object.entries(parsed));
+    }
+  } catch (e) {
+    console.error('Failed to load saved elements:', e);
+  }
+  return new Map();
+};
+
+// Save status to local storage
+const saveQuestionStatus = (status: Map<string, QuestionStatusData>) => {
+  try {
+    const obj = Object.fromEntries(status);
+    localStorage.setItem(SYSTEM_DESIGN_STATUS_KEY, JSON.stringify(obj));
+  } catch (e) {
+    console.error('Failed to save question status:', e);
+  }
+};
+
+// Save elements to local storage
+const saveSavedElements = (elements: Map<string, any[]>) => {
+  try {
+    const obj = Object.fromEntries(elements);
+    localStorage.setItem(SYSTEM_DESIGN_ELEMENTS_KEY, JSON.stringify(obj));
+  } catch (e) {
+    console.error('Failed to save elements:', e);
+  }
+};
 
 interface MockInterviewPanelProps {
   className?: string;
@@ -88,7 +158,21 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
   const [designEvaluation, setDesignEvaluation] = useState<SystemDesignEvaluation | null>(null);
   
   // Persist whiteboard elements per question (key: question title)
-  const [whiteboardElements, setWhiteboardElements] = useState<Map<string, any[]>>(new Map());
+  const [whiteboardElements, setWhiteboardElements] = useState<Map<string, any[]>>(() => loadSavedElements());
+  
+  // Question status tracking
+  const [questionStatus, setQuestionStatus] = useState<Map<string, QuestionStatusData>>(() => loadQuestionStatus());
+  const [statusFilter, setStatusFilter] = useState<'all' | QuestionStatus>('all');
+  
+  // Persist question status to localStorage when it changes
+  useEffect(() => {
+    saveQuestionStatus(questionStatus);
+  }, [questionStatus]);
+  
+  // Persist whiteboard elements to localStorage when they change
+  useEffect(() => {
+    saveSavedElements(whiteboardElements);
+  }, [whiteboardElements]);
   
   
   // Context for answer generation
@@ -161,7 +245,20 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
   const handleOpenWhiteboard = useCallback((question: SystemDesignQuestion) => {
     setCurrentDesignQuestion(question);
     setWhiteboardOpen(true);
-  }, []);
+    
+    // Update status to in-progress if not already completed/success
+    const currentStatus = questionStatus.get(question.title);
+    if (!currentStatus || currentStatus.status === 'not-started') {
+      setQuestionStatus(prev => {
+        const updated = new Map(prev);
+        updated.set(question.title, {
+          status: 'in-progress',
+          evaluationCount: currentStatus?.evaluationCount || 0
+        });
+        return updated;
+      });
+    }
+  }, [questionStatus]);
 
   // Handle system design submission
   const handleDesignSubmit = useCallback(async (submission: DiagramSubmission) => {
@@ -179,6 +276,22 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
       
       if (result.success) {
         setDesignEvaluation(result.evaluation);
+        
+        // Update question status based on score
+        const score = result.evaluation.score;
+        const currentStatus = questionStatus.get(currentDesignQuestion.title);
+        const newStatus: QuestionStatus = score >= 90 ? 'success' : 'completed';
+        
+        setQuestionStatus(prev => {
+          const updated = new Map(prev);
+          updated.set(currentDesignQuestion.title, {
+            status: newStatus,
+            score,
+            lastAttempt: new Date().toISOString(),
+            evaluationCount: (currentStatus?.evaluationCount || 0) + 1
+          });
+          return updated;
+        });
       }
     } catch (err) {
       logger.error('Failed to evaluate system design', { error: err });
@@ -187,7 +300,7 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
       setIsLoading(false);
       setWhiteboardOpen(false);
     }
-  }, [currentDesignQuestion]);
+  }, [currentDesignQuestion, questionStatus]);
 
   // Generate example questions
   const handleGenerateExamples = useCallback(async () => {
@@ -372,6 +485,50 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
     if (score >= 8) return 'text-emerald-400';
     if (score >= 6) return 'text-yellow-400';
     return 'text-red-400';
+  };
+  
+  // Get status for a question
+  const getQuestionStatus = useCallback((title: string): QuestionStatusData => {
+    return questionStatus.get(title) || { status: 'not-started', evaluationCount: 0 };
+  }, [questionStatus]);
+  
+  // Filtered system design questions based on status filter
+  const filteredSystemDesignQuestions = useMemo(() => {
+    if (statusFilter === 'all') return systemDesignQuestions;
+    return systemDesignQuestions.filter(q => {
+      const status = getQuestionStatus(q.title);
+      return status.status === statusFilter;
+    });
+  }, [systemDesignQuestions, statusFilter, getQuestionStatus]);
+  
+  // Status counts for filter badges
+  const statusCounts = useMemo(() => {
+    const counts = { 
+      'all': systemDesignQuestions.length,
+      'not-started': 0, 
+      'in-progress': 0, 
+      'completed': 0, 
+      'success': 0 
+    };
+    systemDesignQuestions.forEach(q => {
+      const status = getQuestionStatus(q.title).status;
+      counts[status]++;
+    });
+    return counts;
+  }, [systemDesignQuestions, getQuestionStatus]);
+  
+  // Get status badge styling
+  const getStatusBadge = (status: QuestionStatus, score?: number) => {
+    switch (status) {
+      case 'success':
+        return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', icon: Trophy, label: score ? `${score}%` : 'Success' };
+      case 'completed':
+        return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: CheckCircle2, label: score ? `${score}%` : 'Done' };
+      case 'in-progress':
+        return { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: Clock, label: 'In Progress' };
+      default:
+        return null;
+    }
   };
 
   return (
@@ -958,38 +1115,156 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
               <Layers className="w-5 h-5 text-cyan-400" />
               System Design Practice
             </h3>
-            <p className="text-slate-400 text-sm mb-6">
+            <p className="text-slate-400 text-sm mb-4">
               Practice system design interviews with our interactive whiteboard. 
               Draw your architecture and get AI-powered feedback.
             </p>
 
+            {/* Status Filter Buttons */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  statusFilter === 'all'
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                All ({statusCounts.all})
+              </button>
+              <button
+                onClick={() => setStatusFilter('not-started')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  statusFilter === 'not-started'
+                    ? 'bg-slate-600 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                Not Started ({statusCounts['not-started']})
+              </button>
+              <button
+                onClick={() => setStatusFilter('in-progress')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  statusFilter === 'in-progress'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                In Progress ({statusCounts['in-progress']})
+              </button>
+              <button
+                onClick={() => setStatusFilter('completed')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  statusFilter === 'completed'
+                    ? 'bg-yellow-600 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Completed ({statusCounts.completed})
+              </button>
+              <button
+                onClick={() => setStatusFilter('success')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  statusFilter === 'success'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                Success 90%+ ({statusCounts.success})
+              </button>
+            </div>
+
             {/* System Design Questions Grid */}
             <div className="grid gap-4 md:grid-cols-2">
-              {systemDesignQuestions.map((question, index) => (
-                <div 
-                  key={index}
-                  className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-colors"
-                >
-                  <h4 className="text-white font-medium mb-2">{question.title}</h4>
-                  <p className="text-slate-400 text-sm mb-3 line-clamp-2">{question.description}</p>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {question.requirements.slice(0, 3).map((req, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
-                        {req.slice(0, 30)}...
-                      </span>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => handleOpenWhiteboard(question)}
-                    className="w-full py-2 px-4 bg-cyan-600 text-white rounded-lg flex items-center justify-center gap-2
-                             hover:bg-cyan-500 transition-colors text-sm font-medium"
+              {filteredSystemDesignQuestions.map((question, index) => {
+                const statusData = getQuestionStatus(question.title);
+                const badge = getStatusBadge(statusData.status, statusData.score);
+                const hasSavedDesign = whiteboardElements.has(question.title) && (whiteboardElements.get(question.title)?.length || 0) > 0;
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`bg-white/5 rounded-lg p-4 border transition-colors ${
+                      statusData.status === 'success' 
+                        ? 'border-emerald-500/30 hover:border-emerald-500/50' 
+                        : 'border-white/10 hover:bg-white/10'
+                    }`}
                   >
-                    <Layers className="w-4 h-4" />
-                    Start Design
-                  </button>
-                </div>
-              ))}
+                    {/* Header with title and status badge */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h4 className="text-white font-medium flex-1">{question.title}</h4>
+                      {badge && (
+                        <span className={`px-2 py-0.5 text-xs rounded-full flex items-center gap-1 ${badge.bg} ${badge.text}`}>
+                          <badge.icon className="w-3 h-3" />
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-slate-400 text-sm mb-3 line-clamp-2">{question.description}</p>
+                    
+                    {/* Requirements tags */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {question.requirements.slice(0, 3).map((req, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                          {req.slice(0, 30)}...
+                        </span>
+                      ))}
+                    </div>
+                    
+                    {/* Attempt info */}
+                    {statusData.evaluationCount > 0 && (
+                      <p className="text-xs text-slate-500 mb-2">
+                        {statusData.evaluationCount} attempt{statusData.evaluationCount > 1 ? 's' : ''} 
+                        {statusData.lastAttempt && ` • Last: ${new Date(statusData.lastAttempt).toLocaleDateString()}`}
+                      </p>
+                    )}
+                    
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenWhiteboard(question)}
+                        className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2
+                                  transition-colors text-sm font-medium ${
+                          hasSavedDesign 
+                            ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                            : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                        }`}
+                      >
+                        {hasSavedDesign ? (
+                          <>
+                            <Edit3 className="w-4 h-4" />
+                            Continue Design
+                          </>
+                        ) : (
+                          <>
+                            <Layers className="w-4 h-4" />
+                            Start Design
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {filteredSystemDesignQuestions.length === 0 && systemDesignQuestions.length > 0 && (
+              <div className="text-center py-12 text-slate-400">
+                <Filter className="w-8 h-8 mx-auto mb-4 opacity-50" />
+                <p>No questions match the selected filter.</p>
+                <button 
+                  onClick={() => setStatusFilter('all')}
+                  className="mt-2 text-cyan-400 hover:underline text-sm"
+                >
+                  Show all questions
+                </button>
+              </div>
+            )}
 
             {systemDesignQuestions.length === 0 && (
               <div className="text-center py-12 text-slate-400">
@@ -1118,13 +1393,32 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
           onSubmit={handleDesignSubmit}
           mode="system-design"
           initialElements={whiteboardElements.get(currentDesignQuestion.title) || []}
-          onSave={(elements) => {
+          initialPrompt={questionStatus.get(currentDesignQuestion.title)?.prompt || ''}
+          initialSummary={questionStatus.get(currentDesignQuestion.title)?.summary || ''}
+          onSave={(elements, _name, prompt, summary) => {
             // Persist elements when closing/saving
             setWhiteboardElements(prev => {
               const updated = new Map(prev);
               updated.set(currentDesignQuestion.title, elements);
               return updated;
             });
+            
+            // Also save prompt and summary to question status
+            if (prompt || summary) {
+              setQuestionStatus(prev => {
+                const updated = new Map(prev);
+                const current = updated.get(currentDesignQuestion.title) || {
+                  status: 'in-progress' as QuestionStatus,
+                  evaluationCount: 0
+                };
+                updated.set(currentDesignQuestion.title, {
+                  ...current,
+                  prompt: prompt || current.prompt,
+                  summary: summary || current.summary
+                });
+                return updated;
+              });
+            }
           }}
         />
       )}

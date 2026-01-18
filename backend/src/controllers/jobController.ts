@@ -535,5 +535,6 @@ export {
   getExampleQuestions,
   getPopularCompanyQuestions,
   evaluateSystemDesign,
-  getSystemDesignQuestions
+  getSystemDesignQuestions,
+  generateSystemDesignDiagram
 } from './interviewController';

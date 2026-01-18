@@ -39,5 +39,6 @@ router.get('/interview/popular-companies', jobController.getPopularCompanyQuesti
 // System Design
 router.post('/interview/system-design/evaluate', jobController.evaluateSystemDesign);
 router.get('/interview/system-design/questions', jobController.getSystemDesignQuestions);
+router.post('/interview/system-design/generate', jobController.generateSystemDesignDiagram);
 
 export default router;

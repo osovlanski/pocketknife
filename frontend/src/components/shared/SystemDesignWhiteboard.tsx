@@ -50,8 +50,26 @@ import {
   FileText,
   GitBranch,
   Activity,
-  Zap
+  Zap,
+  Sparkles,
+  Wand2,
+  Lightbulb,
+  // Export & Share icons
+  Download,
+  Share2,
+  Mail,
+  Image,
+  FileDown,
+  Maximize2,
+  PanelRightClose,
+  PanelRight,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
+import * as mockInterviewApi from '../../services/mockInterviewApi';
+import logger from '../../services/logger';
+import type { GeneratedDiagram, GeneratedComponent, GeneratedConnection } from '../../services/mockInterviewApi';
 
 // =============================================================================
 // TYPES
@@ -95,7 +113,10 @@ export interface SystemDesignWhiteboardProps {
   // For sandbox mode - save/load
   initialElements?: CanvasElement[];
   canvasName?: string;
-  onSave?: (elements: CanvasElement[], name: string) => void;
+  onSave?: (elements: CanvasElement[], name: string, prompt?: string, summary?: string) => void;
+  // Previous prompt for editing
+  initialPrompt?: string;
+  initialSummary?: string;
 }
 
 // =============================================================================
@@ -199,10 +220,35 @@ const SimpleCanvas: React.FC<{
   pendingComponent: PendingComponent | null;
   onPendingComponentPlaced: () => void;
   onComponentSelect: (template: ComponentTemplate) => void;
-}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced, onComponentSelect }) => {
+  externalElements?: CanvasElement[];
+  autoFitOnNewElements?: boolean;
+}> = ({ onElementsChange, pendingComponent, onPendingComponentPlaced, onComponentSelect, externalElements, autoFitOnNewElements = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
+  
+  // Track last synced external elements to prevent infinite loops
+  const lastExternalElementsRef = useRef<string>('');
+  const pendingAutoFitRef = useRef<boolean>(false);
+  
+  // Sync with external elements (from parent, e.g., AI generation or loaded canvas)
+  useEffect(() => {
+    if (externalElements && externalElements.length > 0) {
+      // Only sync if these are truly new external elements (different from last sync)
+      const externalKey = JSON.stringify(externalElements.map(e => e.id).sort());
+      if (externalKey !== lastExternalElementsRef.current) {
+        lastExternalElementsRef.current = externalKey;
+        setElements(externalElements);
+        // Also save to history
+        setHistory([[...externalElements]]);
+        setHistoryIndex(0);
+        // Mark that we should auto-fit after elements are set
+        if (autoFitOnNewElements) {
+          pendingAutoFitRef.current = true;
+        }
+      }
+    }
+  }, [externalElements, autoFitOnNewElements]);
   const [history, setHistory] = useState<CanvasElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedTool, setSelectedTool] = useState<ToolType>('rect');
@@ -1416,6 +1462,234 @@ const SimpleCanvas: React.FC<{
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  
+  // Fit to view - centers and scales diagram to fit canvas
+  const handleFitToView = useCallback(() => {
+    if (elements.length === 0) return;
+    
+    // Calculate bounding box of all elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    elements.forEach(el => {
+      const elWidth = el.width || 130;
+      const elHeight = el.height || 70;
+      
+      if (el.type === 'arrow') {
+        // For arrows, x/y is start and width/height is end
+        minX = Math.min(minX, el.x, el.width || el.x);
+        minY = Math.min(minY, el.y, el.height || el.y);
+        maxX = Math.max(maxX, el.x, el.width || el.x);
+        maxY = Math.max(maxY, el.y, el.height || el.y);
+      } else {
+        minX = Math.min(minX, el.x);
+        minY = Math.min(minY, el.y);
+        maxX = Math.max(maxX, el.x + elWidth);
+        maxY = Math.max(maxY, el.y + elHeight);
+      }
+    });
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 80;
+    
+    // Calculate zoom to fit
+    const scaleX = (canvasSize.width - padding * 2) / contentWidth;
+    const scaleY = (canvasSize.height - padding * 2) / contentHeight;
+    const newZoom = Math.min(scaleX, scaleY, 2); // Cap at 200%
+    const clampedZoom = Math.max(0.5, Math.min(newZoom, 2));
+    
+    // Calculate center offset
+    const centerX = (canvasSize.width / 2) - ((minX + contentWidth / 2) * clampedZoom);
+    const centerY = (canvasSize.height / 2) - ((minY + contentHeight / 2) * clampedZoom);
+    
+    // Update elements positions to center
+    const offsetX = (canvasSize.width / 2 / clampedZoom) - (minX + contentWidth / 2);
+    const offsetY = (canvasSize.height / 2 / clampedZoom) - (minY + contentHeight / 2);
+    
+    const centeredElements = elements.map(el => {
+      if (el.type === 'arrow') {
+        return {
+          ...el,
+          x: el.x + offsetX,
+          y: el.y + offsetY,
+          width: (el.width || el.x) + offsetX,
+          height: (el.height || el.y) + offsetY
+        };
+      }
+      return {
+        ...el,
+        x: el.x + offsetX,
+        y: el.y + offsetY
+      };
+    });
+    
+    setElements(centeredElements);
+    setZoom(clampedZoom);
+    saveToHistory(centeredElements);
+    onElementsChange(centeredElements);
+  }, [elements, canvasSize, saveToHistory, onElementsChange]);
+  
+  // Auto-fit after new external elements are loaded
+  useEffect(() => {
+    if (pendingAutoFitRef.current && elements.length > 0) {
+      pendingAutoFitRef.current = false;
+      // Delay to ensure canvas is rendered
+      setTimeout(() => {
+        handleFitToView();
+      }, 100);
+    }
+  }, [elements, handleFitToView]);
+  
+  // Export dropdown state
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  
+  // Export to PNG
+  const handleExportPNG = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    // Create a temporary canvas with white background
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+    
+    // Fill white background
+    tempCtx.fillStyle = '#1e293b';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw original canvas
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    // Download
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.png`;
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+    setShowExportMenu(false);
+  }, []);
+  
+  // Export to JSON (for import later)
+  const handleExportJSON = useCallback(() => {
+    const data = {
+      version: '1.0',
+      elements: elements,
+      canvasSize,
+      exportedAt: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setShowExportMenu(false);
+  }, [elements, canvasSize]);
+  
+  // Export to DrawIO format (XML)
+  const handleExportDrawIO = useCallback(() => {
+    // Create basic DrawIO XML structure
+    let mxCells = '';
+    let cellId = 2;
+    
+    elements.forEach(el => {
+      if (el.type === 'component' || el.type === 'rect') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || el.componentName || ''}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=${el.color || '#3b82f6'};strokeColor=#000000;fontColor=#ffffff;" vertex="1" parent="1">
+            <mxGeometry x="${el.x}" y="${el.y}" width="${el.width || 130}" height="${el.height || 70}" as="geometry" />
+          </mxCell>`;
+        cellId++;
+      } else if (el.type === 'arrow') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || ''}" style="endArrow=classic;html=1;strokeColor=#94a3b8;${el.lineStyle === 'dashed' ? 'dashed=1;' : ''}" edge="1" parent="1">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="${el.x}" y="${el.y}" as="sourcePoint" />
+              <mxPoint x="${el.width}" y="${el.height}" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>`;
+        cellId++;
+      } else if (el.type === 'text') {
+        mxCells += `
+          <mxCell id="${cellId}" value="${el.text || ''}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#94a3b8;" vertex="1" parent="1">
+            <mxGeometry x="${el.x}" y="${el.y}" width="100" height="40" as="geometry" />
+          </mxCell>`;
+        cellId++;
+      }
+    });
+    
+    const drawioXml = `<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="SystemDesignWhiteboard">
+  <diagram name="System Design" id="system-design-1">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${canvasSize.width}" pageHeight="${canvasSize.height}" background="#1e293b">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        ${mxCells}
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`;
+    
+    const blob = new Blob([drawioXml], { type: 'application/xml' });
+    const link = document.createElement('a');
+    link.download = `system-design-${Date.now()}.drawio`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setShowExportMenu(false);
+  }, [elements, canvasSize]);
+  
+  // Share via Email
+  const handleShareEmail = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const subject = encodeURIComponent('System Design Diagram');
+    const body = encodeURIComponent(`Check out my system design diagram!\n\nView the attached image or open the JSON file in the System Design Whiteboard.`);
+    
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+    setShowShareMenu(false);
+  }, []);
+  
+  // Share via WhatsApp
+  const handleShareWhatsApp = useCallback(() => {
+    const text = encodeURIComponent('Check out my system design diagram! 📊🔧');
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    setShowShareMenu(false);
+  }, []);
+  
+  // Copy diagram as image to clipboard
+  const handleCopyToClipboard = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    try {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      
+      tempCtx.fillStyle = '#1e293b';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tempCtx.drawImage(canvas, 0, 0);
+      
+      tempCanvas.toBlob(async (blob) => {
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+    setShowShareMenu(false);
+  }, []);
 
   const tools: { id: ToolType; icon: React.ReactNode; label: string; shortcut: string }[] = [
     { id: 'select', icon: <Move className="w-4 h-4" />, label: 'Select', shortcut: 'V' },
@@ -1531,19 +1805,111 @@ const SimpleCanvas: React.FC<{
             onClick={handleZoomOut}
             disabled={zoom <= 0.5}
             className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
-            title="Zoom Out"
+            title="Zoom Out (-)"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-xs text-slate-300 min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom(1)}
+            className="text-xs text-slate-300 min-w-[40px] text-center hover:bg-white/10 rounded px-1 py-0.5"
+            title="Reset to 100%"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
           <button
             onClick={handleZoomIn}
             disabled={zoom >= 3}
             className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
-            title="Zoom In"
+            title="Zoom In (+)"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
+          <button
+            onClick={handleFitToView}
+            disabled={elements.length === 0}
+            className="p-1.5 rounded text-slate-300 hover:bg-white/10 disabled:opacity-30"
+            title="Fit to View (F)"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+        
+        {/* Export Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { setShowExportMenu(!showExportMenu); setShowShareMenu(false); }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-white/10 transition-colors"
+            title="Export Options"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          
+          {showExportMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-slate-700 rounded-lg border border-white/10 shadow-xl z-50 min-w-[160px] py-1">
+              <button
+                onClick={handleExportPNG}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <Image className="w-4 h-4 text-blue-400" />
+                Download PNG
+              </button>
+              <button
+                onClick={handleExportJSON}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <FileDown className="w-4 h-4 text-green-400" />
+                Download JSON
+              </button>
+              <button
+                onClick={handleExportDrawIO}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4 text-purple-400" />
+                Export to DrawIO
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Share Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { setShowShareMenu(!showShareMenu); setShowExportMenu(false); }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-white/10 transition-colors"
+            title="Share Options"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Share
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          
+          {showShareMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-slate-700 rounded-lg border border-white/10 shadow-xl z-50 min-w-[160px] py-1">
+              <button
+                onClick={handleCopyToClipboard}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                {copySuccess ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                {copySuccess ? 'Copied!' : 'Copy to Clipboard'}
+              </button>
+              <button
+                onClick={handleShareEmail}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <Mail className="w-4 h-4 text-blue-400" />
+                Share via Email
+              </button>
+              <button
+                onClick={handleShareWhatsApp}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 text-green-400" />
+                Share via WhatsApp
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Clear Button */}
@@ -1691,6 +2057,8 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
   initialElements = [],
   canvasName: initialCanvasName = '',
   onSave,
+  initialPrompt = '',
+  initialSummary = '',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1703,6 +2071,18 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
   const [canvasName, setCanvasName] = useState(initialCanvasName);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Generate from prompt state
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState(initialPrompt);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateSuggestions, setGenerateSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState(initialSummary);
+  const [showSummaryPanel, setShowSummaryPanel] = useState(!!initialSummary);
+  const [shouldAutoFit, setShouldAutoFit] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [savedPrompt, setSavedPrompt] = useState(initialPrompt);
   
   // Pending component for drag-and-drop placement
   const [pendingComponent, setPendingComponent] = useState<PendingComponent | null>(null);
@@ -1776,15 +2156,204 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
       setIsSaving(false);
     }
   }, [canvasElements, canvasName, onSave]);
+  
+  // Handle generate diagram from prompt
+  // Calculate best connection handles based on relative positions
+  const calculateBestHandles = useCallback((
+    fromComp: CanvasElement,
+    toComp: CanvasElement
+  ): { startX: number; startY: number; endX: number; endY: number; sourceHandle: string; targetHandle: string } => {
+    const fromW = fromComp.width || 130;
+    const fromH = fromComp.height || 70;
+    const toW = toComp.width || 130;
+    const toH = toComp.height || 70;
+    
+    // Center points
+    const fromCX = fromComp.x + fromW / 2;
+    const fromCY = fromComp.y + fromH / 2;
+    const toCX = toComp.x + toW / 2;
+    const toCY = toComp.y + toH / 2;
+    
+    // Calculate relative direction
+    const dx = toCX - fromCX;
+    const dy = toCY - fromCY;
+    
+    // Determine best handles based on relative position
+    let sourceHandle: 'top' | 'right' | 'bottom' | 'left';
+    let targetHandle: 'top' | 'right' | 'bottom' | 'left';
+    
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal relationship
+      if (dx > 0) {
+        // Target is to the right
+        sourceHandle = 'right';
+        targetHandle = 'left';
+      } else {
+        // Target is to the left
+        sourceHandle = 'left';
+        targetHandle = 'right';
+      }
+    } else {
+      // Vertical relationship
+      if (dy > 0) {
+        // Target is below
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
+      } else {
+        // Target is above
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
+      }
+    }
+    
+    // Calculate handle positions
+    const getHandlePos = (comp: CanvasElement, handle: string) => {
+      const w = comp.width || 130;
+      const h = comp.height || 70;
+      switch (handle) {
+        case 'top': return { x: comp.x + w / 2, y: comp.y };
+        case 'right': return { x: comp.x + w, y: comp.y + h / 2 };
+        case 'bottom': return { x: comp.x + w / 2, y: comp.y + h };
+        case 'left': return { x: comp.x, y: comp.y + h / 2 };
+        default: return { x: comp.x + w, y: comp.y + h / 2 };
+      }
+    };
+    
+    const startPos = getHandlePos(fromComp, sourceHandle);
+    const endPos = getHandlePos(toComp, targetHandle);
+    
+    return {
+      startX: startPos.x,
+      startY: startPos.y,
+      endX: endPos.x,
+      endY: endPos.y,
+      sourceHandle,
+      targetHandle
+    };
+  }, []);
+
+  const handleGenerateDiagram = useCallback(async () => {
+    if (!generatePrompt.trim()) return;
+    
+    setIsGenerating(true);
+    setGenerateSuggestions([]);
+    setShowSuggestions(false);
+    
+    try {
+      const result = await mockInterviewApi.generateSystemDesignDiagram({
+        prompt: generatePrompt,
+        questionTitle: question?.title,
+        questionDescription: question?.description,
+        requirements: question?.requirements,
+        canvasWidth: 1200,
+        canvasHeight: 800
+      });
+      
+      if (result.success && result.diagram) {
+        // Convert generated diagram to canvas elements
+        const newElements: CanvasElement[] = [];
+        
+        // Add components first
+        result.diagram.components.forEach((comp: GeneratedComponent) => {
+          const template = COMPONENT_TEMPLATES.find(t => 
+            t.iconName === comp.template || 
+            t.name.toLowerCase().replace(/\s+/g, '_') === comp.template
+          );
+          
+          newElements.push({
+            id: comp.id,
+            type: 'component',
+            x: comp.position.x,
+            y: comp.position.y,
+            width: 130,
+            height: 70,
+            text: comp.label,
+            componentName: template?.name || comp.label,
+            iconName: template?.iconName || comp.template,
+            color: comp.color || template?.color || '#3b82f6'
+          });
+        });
+        
+        // Add connections with smart edge routing
+        result.diagram.connections.forEach((conn: GeneratedConnection, idx: number) => {
+          const fromComp = newElements.find(e => e.id === conn.fromId);
+          const toComp = newElements.find(e => e.id === conn.toId);
+          
+          if (fromComp && toComp) {
+            // Use smart handle calculation
+            const handles = calculateBestHandles(fromComp, toComp);
+            
+            newElements.push({
+              id: `arrow-${conn.fromId}-${conn.toId}-${idx}`,
+              type: 'arrow',
+              x: handles.startX,
+              y: handles.startY,
+              width: handles.endX,
+              height: handles.endY,
+              color: '#94a3b8',
+              strokeWidth: 2,
+              lineStyle: conn.style === 'dashed' ? 'dashed' : 'solid',
+              sourceElementId: conn.fromId,
+              targetElementId: conn.toId,
+              sourceHandlePos: handles.sourceHandle as any,
+              targetHandlePos: handles.targetHandle as any,
+              text: conn.label
+            });
+          }
+        });
+        
+        // Add annotations as text elements
+        result.diagram.annotations.forEach((ann, idx) => {
+          newElements.push({
+            id: `text-${Date.now()}-${idx}`,
+            type: 'text',
+            x: ann.position.x,
+            y: ann.position.y,
+            text: ann.text,
+            color: '#94a3b8',
+            fontSize: 14
+          });
+        });
+        
+        // Update canvas elements and trigger auto-fit
+        setCanvasElements(newElements);
+        setShouldAutoFit(true);
+        // Reset auto-fit flag after elements are processed
+        setTimeout(() => setShouldAutoFit(false), 500);
+        
+        // Save summary and show panel
+        if (result.diagram.summary) {
+          setGeneratedSummary(result.diagram.summary);
+          setShowSummaryPanel(true);
+        }
+        
+        // Save suggestions (but don't show immediately)
+        if (result.diagram.suggestions && result.diagram.suggestions.length > 0) {
+          setGenerateSuggestions(result.diagram.suggestions);
+        }
+        
+        // Save the prompt for future reference
+        setSavedPrompt(generatePrompt);
+        
+        // Close modal
+        setShowGenerateModal(false);
+        setGeneratePrompt('');
+      }
+    } catch (error: any) {
+      logger.error('Failed to generate diagram', { error: error?.message });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generatePrompt, question, calculateBestHandles]);
 
   // Handle close - save state for system-design mode before closing
   const handleClose = useCallback(() => {
     // For system-design mode, auto-save elements so user can resume
     if (mode === 'system-design' && onSave && canvasElements.length > 0) {
-      onSave(canvasElements, question?.title || 'design');
+      onSave(canvasElements, question?.title || 'design', savedPrompt, generatedSummary);
     }
     onClose();
-  }, [mode, onSave, canvasElements, onClose, question?.title]);
+  }, [mode, onSave, canvasElements, onClose, question?.title, savedPrompt, generatedSummary]);
 
   // Export canvas to image
   const exportToImage = useCallback(async (): Promise<string> => {
@@ -1858,6 +2427,16 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Generate from Prompt button */}
+            <button
+              onClick={() => setShowGenerateModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 
+                       hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg transition-all text-sm font-medium"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate from Prompt
+            </button>
+            
             {/* Save button for sandbox mode */}
             {mode === 'sandbox' && onSave && (
               <button
@@ -2081,13 +2660,185 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
           </div>
 
           {/* Right Panel - Whiteboard */}
-          <div className="flex-1 flex flex-col">
-            <SimpleCanvas 
-              onElementsChange={setCanvasElements}
-              pendingComponent={pendingComponent}
-              onPendingComponentPlaced={handlePendingComponentPlaced}
-              onComponentSelect={handleComponentSelect}
-            />
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex min-h-0">
+              {/* Canvas Area */}
+              <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+                <SimpleCanvas 
+                  onElementsChange={setCanvasElements}
+                  pendingComponent={pendingComponent}
+                  onPendingComponentPlaced={handlePendingComponentPlaced}
+                  onComponentSelect={handleComponentSelect}
+                  externalElements={canvasElements}
+                  autoFitOnNewElements={shouldAutoFit}
+                />
+              </div>
+              
+              {/* Summary Panel - Flex Sidebar (not absolute) */}
+              <div 
+                className={`bg-slate-800 border-l border-white/10 flex flex-col shadow-xl 
+                          transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0
+                          ${showSummaryPanel ? 'w-80 opacity-100' : 'w-0 opacity-0'}`}
+              >
+                {/* Panel content wrapper - prevents content from squishing */}
+                <div className="w-80 flex flex-col h-full">
+                  {/* Panel Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-900/50 flex-shrink-0">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2 whitespace-nowrap">
+                      <FileText className="w-4 h-4 text-blue-400" />
+                      Design Summary
+                    </h3>
+                    <button
+                      onClick={() => setShowSummaryPanel(false)}
+                      className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded flex-shrink-0"
+                      aria-label="Close summary panel"
+                    >
+                      <PanelRightClose className="w-4 h-4" />
+                    </button>
+                  </div>
+                
+                {/* Summary Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {generatedSummary ? (
+                    <div className="space-y-4">
+                      {/* Previous Prompt - Collapsible with Edit Option */}
+                      {savedPrompt && (
+                        <div className="bg-purple-500/10 rounded-lg border border-purple-500/20 overflow-hidden">
+                          <button
+                            onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-purple-500/5 transition-colors"
+                          >
+                            <span className="text-xs font-medium text-purple-300 flex items-center gap-2">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              Your Description
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <Pencil className="w-3 h-3 text-purple-400" />
+                              <ChevronDown 
+                                className={`w-4 h-4 text-purple-400 transition-transform ${isEditingPrompt ? 'rotate-180' : ''}`} 
+                              />
+                            </div>
+                          </button>
+                          {isEditingPrompt && (
+                            <div className="px-3 pb-3 border-t border-purple-500/10">
+                              <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap leading-relaxed">
+                                {savedPrompt}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  setGeneratePrompt(savedPrompt);
+                                  setShowGenerateModal(true);
+                                  setIsEditingPrompt(false);
+                                }}
+                                className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 
+                                         bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-medium transition-colors"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                Edit & Regenerate
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Generated Summary */}
+                      <div className="bg-slate-700/50 rounded-lg p-4 border border-white/5">
+                        <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">
+                          Architecture Overview
+                        </h4>
+                        <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                          {generatedSummary}
+                        </p>
+                      </div>
+                      
+                      {/* AI Suggestions - Collapsible */}
+                      {generateSuggestions.length > 0 && (
+                        <div className="bg-yellow-500/10 rounded-lg border border-yellow-500/20 overflow-hidden">
+                          <button
+                            onClick={() => setShowSuggestions(!showSuggestions)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-yellow-500/5 transition-colors"
+                          >
+                            <span className="text-xs font-medium text-yellow-300 flex items-center gap-2">
+                              <Lightbulb className="w-3.5 h-3.5" />
+                              {showSuggestions ? 'Hide' : 'Reveal'} Suggestions ({generateSuggestions.length})
+                            </span>
+                            <ChevronDown 
+                              className={`w-4 h-4 text-yellow-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} 
+                            />
+                          </button>
+                          {showSuggestions && (
+                            <div className="px-3 pb-3 border-t border-yellow-500/10 bg-yellow-500/5">
+                              <p className="text-[10px] text-yellow-400/70 mt-2 mb-2 italic">
+                                Think about these before revealing...
+                              </p>
+                              <ul className="space-y-2">
+                                {generateSuggestions.map((sug, idx) => (
+                                  <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                                    <span className="text-yellow-400 mt-0.5 font-bold">{idx + 1}.</span>
+                                    {sug}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Diagram Stats */}
+                      <div className="bg-slate-700/30 rounded-lg p-3 border border-white/5">
+                        <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">
+                          Diagram Stats
+                        </h4>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-blue-400">
+                              {canvasElements.filter(e => e.type === 'component' || e.type === 'rect').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Components</div>
+                          </div>
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-green-400">
+                              {canvasElements.filter(e => e.type === 'arrow').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Connections</div>
+                          </div>
+                          <div className="bg-slate-800/50 rounded p-2">
+                            <div className="text-lg font-bold text-purple-400">
+                              {canvasElements.filter(e => e.type === 'text').length}
+                            </div>
+                            <div className="text-[10px] text-slate-500">Annotations</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <FileText className="w-12 h-12 text-slate-600 mb-3" />
+                      <p className="text-sm text-slate-400 mb-2">No summary yet</p>
+                      <p className="text-xs text-slate-500">
+                        Use "Generate from Prompt" to create a diagram with summary
+                      </p>
+                    </div>
+                  )}
+                </div>
+                </div> {/* Close panel content wrapper */}
+              </div>
+              
+              {/* Toggle Summary Panel Button - Floating when panel is closed */}
+              {!showSummaryPanel && generatedSummary && (
+                <div className="flex items-center border-l border-white/10">
+                  <button
+                    onClick={() => setShowSummaryPanel(true)}
+                    className="h-full px-2 bg-slate-700 hover:bg-slate-600 text-slate-300 
+                             flex flex-col items-center justify-center gap-1 transition-colors"
+                    title="Show Summary Panel"
+                  >
+                    <PanelRight className="w-4 h-4" />
+                    <span className="text-[10px] writing-mode-vertical">Summary</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between">
@@ -2149,6 +2900,117 @@ const SystemDesignWhiteboard: React.FC<SystemDesignWhiteboardProps> = ({
                 >
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
                   Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Generate from Prompt Modal */}
+        {showGenerateModal && (
+          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-slate-800 rounded-xl border border-white/10 p-6 w-full max-w-2xl shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-indigo-600/20">
+                  <Wand2 className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">✨ Generate Diagram from Description</h3>
+                  <p className="text-xs text-slate-400">Describe your architecture and AI will create the diagram</p>
+                </div>
+              </div>
+              
+              {/* Prompt Input */}
+              <textarea
+                value={generatePrompt}
+                onChange={(e) => setGeneratePrompt(e.target.value)}
+                placeholder="Describe your system architecture...&#10;&#10;Example: I'll use a load balancer to distribute traffic to multiple API servers. Redis for caching hot data. PostgreSQL as the main database with read replicas. A message queue for async processing..."
+                rows={6}
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 
+                         focus:border-purple-500 focus:outline-none resize-none mb-4"
+                autoFocus
+              />
+              
+              {/* Tips Section */}
+              {question && (
+                <div className="bg-cyan-500/10 rounded-lg p-4 mb-4 border border-cyan-500/20">
+                  <h4 className="text-sm font-medium text-cyan-300 mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4" />
+                    Consider addressing these requirements:
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {question.requirements?.slice(0, 4).map((req, idx) => (
+                      <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                        <span className="text-cyan-400">•</span>
+                        {req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* AI Suggestions - Collapsible Hint System */}
+              {generateSuggestions.length > 0 && (
+                <div className="bg-yellow-500/10 rounded-lg border border-yellow-500/20 mb-4 overflow-hidden">
+                  <button
+                    onClick={() => setShowSuggestions(!showSuggestions)}
+                    className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-yellow-500/5 transition-colors"
+                  >
+                    <span className="text-xs font-medium text-yellow-300 flex items-center gap-2">
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      {showSuggestions ? 'Hide' : 'Reveal'} AI Suggestions ({generateSuggestions.length})
+                    </span>
+                    <ChevronDown 
+                      className={`w-4 h-4 text-yellow-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} 
+                    />
+                  </button>
+                  {showSuggestions && (
+                    <div className="px-3 pb-3 border-t border-yellow-500/10">
+                      <p className="text-[10px] text-yellow-400/60 mt-2 mb-1.5 italic">
+                        💡 Consider these improvements before revealing:
+                      </p>
+                      <ul className="space-y-1">
+                        {generateSuggestions.map((sug, idx) => (
+                          <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                            <span className="text-yellow-400 mt-0.5">•</span>
+                            {sug}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowGenerateModal(false);
+                    setGeneratePrompt('');
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleGenerateDiagram}
+                  disabled={isGenerating || !generatePrompt.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 
+                           bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+                           rounded-lg hover:from-purple-500 hover:to-indigo-500 
+                           transition-all disabled:opacity-50 font-medium"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Diagram
+                    </>
+                  )}
                 </button>
               </div>
             </div>
