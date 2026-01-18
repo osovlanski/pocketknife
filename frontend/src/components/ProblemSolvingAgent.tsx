@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers } from 'lucide-react';
+import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
@@ -74,6 +74,9 @@ const ProblemSolvingAgent = () => {
   
   // Method signature generation
   const [isGeneratingSignature, setIsGeneratingSignature] = useState(false);
+  
+  // Syntax fix generation
+  const [isFixingSyntax, setIsFixingSyntax] = useState(false);
 
   // Save status for DB persistence
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
@@ -403,6 +406,38 @@ func main() {
       logger.error('Failed to generate signature', { error });
     } finally {
       setIsGeneratingSignature(false);
+    }
+  };
+
+  // Fix syntax errors without changing logic
+  const fixSyntaxErrors = async () => {
+    if (!code.trim()) return;
+    
+    setIsFixingSyntax(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/problems/fix-syntax`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          language,
+          problemTitle: selectedProblem?.title || 'Unknown'
+        })
+      });
+      
+      const data = await response.json();
+      if (data.fixedCode) {
+        // Show diff view for the fix
+        setOriginalCode(code);
+        setSuggestedCode(data.fixedCode);
+        setShowDiffView(true);
+      } else if (data.error) {
+        logger.error('Syntax fix failed', { error: data.error });
+      }
+    } catch (error) {
+      logger.error('Failed to fix syntax', { error });
+    } finally {
+      setIsFixingSyntax(false);
     }
   };
 
@@ -1324,6 +1359,19 @@ func main() {
                         <Wand2 className="w-3 h-3" />
                       )}
                       Signature
+                    </button>
+                    <button
+                      onClick={fixSyntaxErrors}
+                      disabled={isFixingSyntax || !code.trim() || showDiffView}
+                      className="flex items-center gap-1 bg-orange-500/20 hover:bg-orange-500/30 px-2 py-1 rounded text-xs transition-colors disabled:opacity-50"
+                      title="Fix syntax errors without changing logic"
+                    >
+                      {isFixingSyntax ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Wrench className="w-3 h-3" />
+                      )}
+                      Fix Syntax
                     </button>
                     <select
                       value={language}

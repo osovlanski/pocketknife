@@ -6,6 +6,7 @@ import {
   getProblemDescription,
   generateSignature,
   generateImprovedCode,
+  fixSyntaxErrors,
   getCompanyInterviewProfile,
   getAllCompanies,
   getCuratedLists,
@@ -37,6 +38,9 @@ router.post('/signature', generateSignature);
 
 // Generate improved code from suggestions
 router.post('/improve', generateImprovedCode);
+
+// Fix syntax errors without changing logic
+router.post('/fix-syntax', fixSyntaxErrors);
 
 // Get company interview profile and tips
 router.get('/company/:companyName', getCompanyInterviewProfile);

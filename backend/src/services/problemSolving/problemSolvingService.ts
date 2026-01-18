@@ -1165,6 +1165,70 @@ Return ONLY the improved code, no explanations or markdown code blocks.`
       throw new Error(`Failed to improve code: ${error.message}`);
     }
   }
+
+  /**
+   * Fix syntax errors in code without changing the logic
+   * This is useful when the code has compilation/build errors
+   */
+  async fixSyntaxErrors(
+    code: string,
+    language: string,
+    problemTitle: string
+  ): Promise<string> {
+    this.initializeAnthropic();
+
+    if (!this.anthropicClient) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    try {
+      console.log(`🔧 Fixing syntax errors in ${language} code`);
+
+      const message = await this.anthropicClient.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `You are a code syntax expert. Fix ONLY the syntax errors in the following code.
+
+IMPORTANT RULES:
+1. Fix syntax errors ONLY (missing brackets, semicolons, typos, malformed statements)
+2. DO NOT change the logic, algorithm, or approach
+3. DO NOT add new functionality
+4. DO NOT optimize the code
+5. DO NOT rename variables (unless there's a typo)
+6. Preserve all comments
+7. Maintain the exact same indentation style
+
+PROBLEM: ${problemTitle}
+LANGUAGE: ${language}
+
+CODE WITH SYNTAX ERRORS:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Return ONLY the fixed code with syntax errors corrected. No explanations, no markdown code blocks, just the raw code.
+
+If the code has no syntax errors, return it exactly as is.`
+        }]
+      });
+
+      const firstBlock = message.content[0];
+      let fixedCode = firstBlock.type === 'text' ? firstBlock.text : '';
+      
+      // Clean up any markdown code blocks the AI might have added
+      fixedCode = fixedCode
+        .replace(/^```\w*\n?/gm, '')
+        .replace(/```$/gm, '')
+        .trim();
+
+      return fixedCode;
+    } catch (error: any) {
+      console.error('❌ Syntax fix failed:', error.message);
+      throw new Error(`Failed to fix syntax errors: ${error.message}`);
+    }
+  }
 }
 
 export default new ProblemSolvingService();
