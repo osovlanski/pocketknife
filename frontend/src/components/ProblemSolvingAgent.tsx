@@ -504,6 +504,10 @@ func main() {
       .replace(/^\*\s*$/g, '')   // Remove lone asterisks
       .replace(/^\*\s+/g, '')    // Remove leading asterisk + space
       .replace(/\s+\*$/g, '')    // Remove trailing asterisk
+      .replace(/^-{2,}$/g, '')   // Remove horizontal rules (---, ----, etc.)
+      .replace(/^_{2,}$/g, '')   // Remove horizontal rules (___, ____, etc.)
+      .replace(/^={2,}$/g, '')   // Remove horizontal rules (===, ====, etc.)
+      .replace(/^[●•]\s*/g, '')  // Remove bullet markers at start
       .trim();
   };
 
@@ -642,8 +646,8 @@ func main() {
         const cleanLine = cleanedLine.toLowerCase();
         const key = `sec-${sectionIdx}-${lineIdx}`;
 
-        // Skip empty or asterisk-only lines
-        if (!cleanedLine || cleanedLine === '*') {
+        // Skip empty, marker-only, or separator lines
+        if (!cleanedLine || cleanedLine === '*' || cleanedLine === '●' || /^[-_=•]{1,}$/.test(cleanedLine)) {
           return;
         }
 
