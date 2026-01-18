@@ -295,7 +295,7 @@ const DEFAULT_CONFIG = {
   'feature.ruleEngine.enabled': true,
   'feature.featureFlags.enabled': true,
   'feature.featureFlags.flipt.enabled': false,
-  'feature.featureFlags.flipt.url': 'http://localhost:8080',
+  'feature.featureFlags.flipt.url': process.env.FLIPT_URL || 'http://localhost:8080',
   'feature.featureFlags.cacheSeconds': 60,
   
   // ==========================================================================
