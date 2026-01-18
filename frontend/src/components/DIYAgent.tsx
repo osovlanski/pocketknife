@@ -228,7 +228,7 @@ const DIYAgent: React.FC = () => {
                   <select
                     id="category"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => setCategory(e.target.value as DIYCategoryId | '')}
                     className={styles.selectInput}
                   >
                     <option value="">Auto-detect</option>
@@ -544,7 +544,7 @@ const DIYAgent: React.FC = () => {
                   ))}
                 </select>
                 <button 
-                  onClick={() => diy.handleGetInspiration({ skillLevel })}
+                  onClick={() => diy.handleGetInspiration({ skillLevel: skillLevel || undefined })}
                   disabled={diy.loadingInspiration}
                   className={styles.inspireButton}
                 >
@@ -567,7 +567,7 @@ const DIYAgent: React.FC = () => {
                   <div className={styles.inspirationMeta}>
                     <span 
                       className={styles.difficultyBadge}
-                      style={{ background: DIFFICULTY_COLORS[diy.inspiration.difficulty] || '#666' }}
+                      style={{ background: DIFFICULTY_COLORS[diy.inspiration.difficulty as DifficultyLevel] || '#666' }}
                     >
                       {diy.inspiration.difficulty}
                     </span>
@@ -599,7 +599,7 @@ const DIYAgent: React.FC = () => {
               <div className={styles.filterControls}>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => setCategory(e.target.value as DIYCategoryId | '')}
                   className={styles.filterSelect}
                   aria-label="Category filter"
                 >
@@ -626,7 +626,7 @@ const DIYAgent: React.FC = () => {
                   onClick={() => diy.handleGetFeaturedIdeas({ 
                     category: category || undefined, 
                     difficulty: difficultyFilter || undefined,
-                    skillLevel 
+                    skillLevel: skillLevel || undefined 
                   })}
                   disabled={diy.loadingFeatured}
                   className={styles.loadButton}
@@ -673,7 +673,7 @@ const DIYAgent: React.FC = () => {
                     <div className={styles.cardHeader}>
                       <span 
                         className={styles.difficultyBadge}
-                        style={{ background: DIFFICULTY_COLORS[idea.difficulty] || '#666' }}
+                        style={{ background: DIFFICULTY_COLORS[idea.difficulty as DifficultyLevel] || '#666' }}
                       >
                         {idea.difficulty}
                       </span>
@@ -734,7 +734,7 @@ const DIYAgent: React.FC = () => {
                       <div className={styles.ideaMeta}>
                         <span 
                           className={styles.difficultyBadge}
-                          style={{ background: DIFFICULTY_COLORS[idea.difficulty] || '#666' }}
+                          style={{ background: DIFFICULTY_COLORS[idea.difficulty as DifficultyLevel] || '#666' }}
                         >
                           {idea.difficulty}
                         </span>
@@ -755,7 +755,7 @@ const DIYAgent: React.FC = () => {
                     key={cat.id}
                     onClick={() => {
                       setCategory(cat.id);
-                      diy.handleGetFeaturedIdeas({ category: cat.id, skillLevel });
+                      diy.handleGetFeaturedIdeas({ category: cat.id, skillLevel: skillLevel || undefined });
                     }}
                     className={styles.categoryCard}
                   >

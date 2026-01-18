@@ -251,9 +251,9 @@ export const searchIdeas = async (query: string): Promise<{ ideas: DIYIdea[] }> 
  * Get featured/trending DIY ideas with filters
  */
 export const getFeaturedIdeas = async (options?: {
-  category?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  category?: DIYCategoryId | string;
+  difficulty?: DifficultyLevel;
+  skillLevel?: SkillLevelId;
   timeAvailable?: number;
   count?: number;
 }): Promise<{ ideas: DIYIdea[] }> => {
@@ -265,7 +265,7 @@ export const getFeaturedIdeas = async (options?: {
  * Get a random inspiration project
  */
 export const getInspiration = async (options?: {
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel?: SkillLevelId;
   excludeCategories?: string[];
 }): Promise<{ inspiration: DIYIdea }> => {
   const response = await api.get('/diy/ideas/inspire', { 

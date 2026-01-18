@@ -513,8 +513,8 @@ Return as JSON array with this format:
    */
   getFeaturedIdeas: async (options?: {
     category?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    difficulty?: DifficultyLevel;
+    skillLevel?: SkillLevelId;
     timeAvailable?: number; // max hours
     count?: number;
   }): Promise<DIYSearchResult[]> => {

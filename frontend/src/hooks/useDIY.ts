@@ -11,7 +11,10 @@ import type {
   DIYProject, 
   DIYProjectRequest, 
   DIYIdea,
-  DIYMaterial 
+  DIYMaterial,
+  DIYCategoryId,
+  SkillLevelId,
+  DifficultyLevel
 } from '../services/diyApi';
 
 export interface UseDIYReturn {
@@ -45,13 +48,13 @@ export interface UseDIYReturn {
   handleCreateShoppingList: (projectId: string, materials: DIYMaterial[]) => Promise<string | null>;
   handleSearchIdeas: (query: string) => Promise<void>;
   handleGetFeaturedIdeas: (options?: {
-    category?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    category?: DIYCategoryId | string;
+    difficulty?: DifficultyLevel;
+    skillLevel?: SkillLevelId;
     timeAvailable?: number;
   }) => Promise<void>;
   handleGetInspiration: (options?: {
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    skillLevel?: SkillLevelId;
   }) => Promise<void>;
   handleGetTemplates: (category?: string) => Promise<void>;
   setCurrentProject: (project: DIYProject | null) => void;
@@ -249,9 +252,9 @@ export const useDIY = (): UseDIYReturn => {
 
   // Get featured ideas
   const handleGetFeaturedIdeas = useCallback(async (options?: {
-    category?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+    category?: DIYCategoryId | string;
+    difficulty?: DifficultyLevel;
+    skillLevel?: SkillLevelId;
     timeAvailable?: number;
   }) => {
     try {

@@ -118,7 +118,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 
 If no products found, return: {"products": []}`;
 
-      const aiMaxTokens = configService.get('shopping.ai.maxTokens', 2500);
+      const aiMaxTokens = configService.get('ai.claude.zapScraper.extractInfoMaxTokens', 2500);
       const response = await claudeService.generateText(prompt, aiMaxTokens);
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       

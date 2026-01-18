@@ -263,7 +263,7 @@ const NewsAgent: React.FC = () => {
                     onLike={handleLikeArticle}
                     onSummarize={handleSummarize}
                     onRead={handleReadArticle}
-                    isSaved={news.savedArticles.some(s => s.externalId === article.id || s.url === article.url)}
+                    isSaved={news.savedArticles.some(s => s.id === article.id || s.url === article.url)}
                   />
                 ))}
               </div>
@@ -317,7 +317,7 @@ const NewsAgent: React.FC = () => {
                     onLike={handleLikeArticle}
                     onSummarize={handleSummarize}
                     onRead={handleReadArticle}
-                    isSaved={news.savedArticles.some(s => s.externalId === article.id || s.url === article.url)}
+                    isSaved={news.savedArticles.some(s => s.id === article.id || s.url === article.url)}
                   />
                 ))}
               </div>

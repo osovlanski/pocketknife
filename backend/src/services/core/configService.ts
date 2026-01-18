@@ -270,6 +270,12 @@ const DEFAULT_CONFIG = {
   'ai.claude.defaultModel': 'claude-sonnet-4-20250514',
   'ai.claude.defaultMaxTokens': 1500,
   'ai.claude.maxTokensLimit': 4000,
+  'ai.claude.zapScraper.extractInfoMaxTokens': 2500,
+  'ai.claude.israeliShops.extractInfoMaxTokens': 2000,
+  'ai.claude.cooking.generateListMaxTokens': 2000,
+  'ai.claude.email.patternRecognitionMaxTokens': 1500,
+  'ai.claude.googleSearch.summarizeMaxTokens': 2000,
+  'ai.claude.shopping.dealScoringMaxTokens': 1500,
   
   // ==========================================================================
   // CACHE
