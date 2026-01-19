@@ -1,9 +1,9 @@
+/* Global animations - comprehensive animation utilities */
+@import './styles/animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Global animations - comprehensive animation utilities */
-@import './styles/animations.css';
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
