@@ -3,6 +3,7 @@
  * 
  * AI-powered DIY project generator with step-by-step instructions.
  * Features project generation, materials lists, and shopping integration.
+ * Uses AgentPageLayout for consistent theming.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -11,6 +12,7 @@ import {
   Loader2, ChevronDown, ChevronUp, AlertTriangle, Check,
   Clock, DollarSign, Star, ExternalLink, Play, Pause, X, Image as ImageIcon
 } from 'lucide-react';
+import AgentPageLayout from './common/AgentPageLayout';
 import useDIY from '../hooks/useDIY';
 import { 
   DIY_CATEGORIES, SKILL_LEVELS, DIFFICULTY_COLORS, 
@@ -783,17 +785,16 @@ const DIYAgent: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.titleSection}>
-          <h1>🔧 DIY Agent</h1>
-          <p>AI-powered DIY instructions - just tell me what you want to make!</p>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <nav className={styles.tabs}>
+    <AgentPageLayout
+      agentId="diy"
+      title="DIY Agent"
+      subtitle="AI-powered DIY instructions - just tell me what you want to make!"
+      icon="🔧"
+      isLoading={diy.generating}
+    >
+      <div className={styles.container}>
+        {/* Navigation Tabs */}
+        <nav className={styles.tabs}>
         {[
           { id: 'generate', label: 'Generate', icon: Wrench },
           { id: 'projects', label: 'My Projects', icon: FolderOpen },
@@ -821,11 +822,12 @@ const DIYAgent: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content */}
-      <main className={styles.mainContent}>
-        {renderTabContent()}
-      </main>
-    </div>
+        {/* Main Content */}
+        <main className={styles.mainContent}>
+          {renderTabContent()}
+        </main>
+      </div>
+    </AgentPageLayout>
   );
 };
 

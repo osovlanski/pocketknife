@@ -3,6 +3,7 @@
  * 
  * Kitchen inventory management, shopping lists, recipe discovery, and wishlist.
  * Uses useCooking hook for business logic.
+ * Uses AgentPageLayout for consistent theming.
  */
 
 import React, { useState } from 'react';
@@ -27,6 +28,7 @@ import {
   Star
 } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
+import AgentPageLayout from './common/AgentPageLayout';
 import useCooking from '../hooks/useCooking';
 import { useTranslation } from '../i18n';
 import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
@@ -481,14 +483,16 @@ const CookingAgent: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>🍳 {t('cooking.title')}</h1>
-        <p className={styles.subtitle}>{t('cooking.subtitle')}</p>
-      </div>
-
-      {/* Summary Cards */}
+    <AgentPageLayout
+      agentId="cooking"
+      title={t('cooking.title')}
+      subtitle={t('cooking.subtitle')}
+      icon="🍳"
+      isLoading={cooking.loading}
+      onRefresh={cooking.refresh}
+    >
+      <div className={styles.container}>
+        {/* Summary Cards */}
       {cooking.summary && (
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>
@@ -929,7 +933,8 @@ const CookingAgent: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AgentPageLayout>
   );
 };
 

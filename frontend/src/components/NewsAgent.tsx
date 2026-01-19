@@ -11,6 +11,7 @@ import {
   RefreshCw, ExternalLink, Clock, ThumbsUp, ThumbsDown,
   Loader2, MapPin, Globe, Sparkles
 } from 'lucide-react';
+import AgentPageLayout from './common/AgentPageLayout';
 import useNews from '../hooks/useNews';
 import { NEWS_TOPICS, NEWS_SOURCES, NewsArticle } from '../services/newsApi';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -463,20 +464,17 @@ const NewsAgent: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.titleSection}>
-          <h1>📰 News Agent</h1>
-          <p>Your personalized news feed with AI-powered recommendations</p>
-        </div>
-        <button onClick={handleRefresh} className={styles.refreshButton} disabled={news.loading}>
-          <RefreshCw className={`w-5 h-5 ${news.loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {/* Navigation Tabs */}
-      <nav className={styles.tabs}>
+    <AgentPageLayout
+      agentId="news"
+      title="News Agent"
+      subtitle="Your personalized news feed with AI-powered recommendations"
+      icon="📰"
+      isLoading={news.loading}
+      onRefresh={handleRefresh}
+    >
+      <div className={styles.container}>
+        {/* Navigation Tabs */}
+        <nav className={styles.tabs}>
         {[
           { id: 'feed', label: 'For You', icon: Newspaper },
           { id: 'search', label: 'Search', icon: Search },
@@ -512,22 +510,23 @@ const NewsAgent: React.FC = () => {
         {renderTabContent()}
       </main>
 
-      {/* Summary Modal */}
-      {summaryModal && (
-        <div className={styles.modalOverlay} onClick={() => setSummaryModal(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <h3>AI Summary</h3>
-            <h4>{summaryModal.article.title}</h4>
-            <div className={styles.summaryText}>
-              <MarkdownRenderer content={summaryModal.summary} />
+        {/* Summary Modal */}
+        {summaryModal && (
+          <div className={styles.modalOverlay} onClick={() => setSummaryModal(null)}>
+            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+              <h3>AI Summary</h3>
+              <h4>{summaryModal.article.title}</h4>
+              <div className={styles.summaryText}>
+                <MarkdownRenderer content={summaryModal.summary} />
+              </div>
+              <button onClick={() => setSummaryModal(null)} className={styles.closeButton}>
+                Close
+              </button>
             </div>
-            <button onClick={() => setSummaryModal(null)} className={styles.closeButton}>
-              Close
-            </button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </AgentPageLayout>
   );
 };
 

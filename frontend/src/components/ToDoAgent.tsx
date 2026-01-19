@@ -3,6 +3,7 @@
  * 
  * ToDo agent UI with separated concerns:
  * - Uses useTodo hook for business logic
+ * - Uses AgentPageLayout for consistent theming
  * - Uses CSS modules for styling
  */
 
@@ -29,6 +30,7 @@ import {
   CalendarDays,
   Download
 } from 'lucide-react';
+import AgentPageLayout from './common/AgentPageLayout';
 import useTodo from '../hooks/useTodo';
 import type { Task, RoutinePattern, TaskData, CalendarEvent } from '../services/todoApi';
 import styles from '../styles/todo.module.css';
@@ -786,14 +788,15 @@ const ToDoAgent: React.FC = () => {
   const calendarEvents = todo.agenda?.calendarEvents || [];
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>✅ ToDo Agent</h1>
-        <p className={styles.subtitle}>Manage tasks, learn your routines, sync with Google Calendar</p>
-      </div>
-
-      {/* Action Buttons */}
+    <AgentPageLayout
+      agentId="todo"
+      title="ToDo Agent"
+      subtitle="Manage tasks, learn your routines, sync with Google Calendar"
+      icon="✅"
+      isLoading={todo.loading}
+    >
+      <div className={styles.container}>
+        {/* Action Buttons */}
       <div className={styles.actions}>
         <button
           onClick={() => todo.setShowAddTask(true)}
@@ -958,8 +961,9 @@ const ToDoAgent: React.FC = () => {
           date={todo.formattedDate} 
           onImportEvent={todo.handleImportCalendarEvent}
         />
+        </div>
       </div>
-    </div>
+    </AgentPageLayout>
   );
 };
 

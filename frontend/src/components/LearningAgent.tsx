@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Search, ExternalLink, FileText, Sparkles, RefreshCw, Filter, Tag, Globe, Linkedin, Brain, ChevronDown, ChevronUp, Copy, Check, Newspaper, Crown, Info, Upload, X, Save, History } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
+import AgentPageLayout from './common/AgentPageLayout';
 import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -357,16 +358,15 @@ const LearningAgent = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-          📚 {t('learning.title')}
-        </h1>
-        <p className="text-slate-300">{t('learning.subtitle')}</p>
-      </div>
-
-      {/* Search Panel */}
+    <AgentPageLayout
+      agentId="learning"
+      title={t('learning.title')}
+      subtitle={t('learning.subtitle')}
+      icon="📚"
+      isLoading={isSearching}
+    >
+      <div className="space-y-6">
+        {/* Search Panel */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="flex-1 relative">
@@ -849,29 +849,30 @@ const LearningAgent = () => {
       )}
 
 
-      {/* Empty State */}
-      {resources.length === 0 && !isSearching && (
-        <div className="bg-white/5 rounded-xl p-12 text-center">
-          <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-slate-400 mb-2">{t('learning.startLearning')}</h3>
-          <p className="text-slate-500 mb-6">{t('learning.startLearningHint')}</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {suggestedTopics.map((topic) => (
-              <button
-                key={topic}
-                onClick={() => {
-                  setSearchQuery(topic);
-                  handleSearch();
-                }}
-                className="text-sm bg-white/10 hover:bg-amber-500/20 border border-white/20 hover:border-amber-500/50 px-4 py-2 rounded-lg transition-colors"
-              >
-                {topic}
-              </button>
-            ))}
+        {/* Empty State */}
+        {resources.length === 0 && !isSearching && (
+          <div className="bg-white/5 rounded-xl p-12 text-center">
+            <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-400 mb-2">{t('learning.startLearning')}</h3>
+            <p className="text-slate-500 mb-6">{t('learning.startLearningHint')}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {suggestedTopics.map((topic) => (
+                <button
+                  key={topic}
+                  onClick={() => {
+                    setSearchQuery(topic);
+                    handleSearch();
+                  }}
+                  className="text-sm bg-white/10 hover:bg-amber-500/20 border border-white/20 hover:border-amber-500/50 px-4 py-2 rounded-lg transition-colors"
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </AgentPageLayout>
   );
 };
 

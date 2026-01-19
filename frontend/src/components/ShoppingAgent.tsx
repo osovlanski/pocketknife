@@ -3,6 +3,7 @@
  * 
  * Shopping agent UI with separated concerns:
  * - Uses useShopping hook for business logic
+ * - Uses AgentPageLayout for consistent theming
  * - Uses CSS modules for styling
  */
 
@@ -28,6 +29,7 @@ import {
   BookmarkCheck
 } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
+import AgentPageLayout from './common/AgentPageLayout';
 import useShopping from '../hooks/useShopping';
 import { useTranslation } from '../i18n';
 import type { Product, ProductSuggestion, PriceAlert } from '../services/shoppingApi';
@@ -298,12 +300,14 @@ const ShoppingAgent: React.FC = () => {
   const shop = useShopping();
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>🛒 {t('shopping.title')}</h1>
-        <p className={styles.subtitle}>{t('shopping.subtitle')}</p>
-      </div>
+    <AgentPageLayout
+      agentId="shopping"
+      title={t('shopping.title')}
+      subtitle={t('shopping.subtitle')}
+      icon="🛒"
+      isLoading={shop.loading}
+    >
+      <div className={styles.container}>
 
       {/* Search Mode Toggle */}
       <div className={styles.modeToggle}>
@@ -671,7 +675,8 @@ const ShoppingAgent: React.FC = () => {
         onConfirm={shop.handleSetPriceAlert}
         onClose={() => shop.setPriceAlertModal(null)}
       />
-    </div>
+      </div>
+    </AgentPageLayout>
   );
 };
 
