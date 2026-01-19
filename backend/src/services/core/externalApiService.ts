@@ -7,6 +7,7 @@
 
 import { getPrisma } from './databaseService';
 import { cacheService, cacheKeys } from './cacheService';
+import { configService } from './configService';
 import logger from '../../utils/logger';
 
 // Cache TTL for API configs (5 minutes)
@@ -394,7 +395,7 @@ const DEFAULT_PROBLEM_APIS: Omit<ExternalApiConfig, 'id' | 'createdAt' | 'update
     name: 'leetcode_graphql',
     displayName: 'LeetCode GraphQL',
     category: 'problems',
-    baseUrl: 'https://leetcode.com/graphql',
+    baseUrl: configService.get('problems.leetcode.graphqlUrl', 'https://leetcode.com/graphql'),
     isEnabled: true,
     isHealthy: true,
     requiresAuth: false,

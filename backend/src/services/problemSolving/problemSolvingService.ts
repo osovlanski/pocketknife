@@ -428,12 +428,14 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
         }
       };
 
-      const response = await axios.post('https://leetcode.com/graphql/', graphqlQuery, {
+      const leetcodeUrl = configService.get('problems.leetcode.graphqlUrl', 'https://leetcode.com/graphql');
+      const leetcodeTimeoutSearch = configService.get('problems.leetcode.timeoutMs', 10000);
+      const response = await axios.post(leetcodeUrl, graphqlQuery, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0'
         },
-        timeout: 10000
+        timeout: leetcodeTimeoutSearch
       });
 
       const questions = response.data?.data?.problemsetQuestionList?.questions || [];
@@ -503,7 +505,8 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       };
 
       const leetcodeTimeout = configService.get('problems.leetcode.timeoutMs', 10000);
-      const response = await axios.post('https://leetcode.com/graphql/', graphqlQuery, {
+      const leetcodeUrlDetail = configService.get('problems.leetcode.graphqlUrl', 'https://leetcode.com/graphql');
+      const response = await axios.post(leetcodeUrlDetail, graphqlQuery, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0'
