@@ -119,6 +119,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
   const isValidImageUrl = (url?: string): boolean => {
     if (!url) return false;
     if (url.includes('undefined') || url.includes('null')) return false;
+    // Filter out known problematic placeholder services
+    if (url.includes('via.placeholder.com')) return false;
+    if (url.includes('placeholder.com')) return false;
+    if (url.includes('placehold.it')) return false;
     // Basic URL check
     return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//');
   };
