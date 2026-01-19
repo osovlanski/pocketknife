@@ -12,6 +12,23 @@ export { default as Header } from './Header';
 export { default as NavTabs } from './NavTabs';
 export { default as UserMenu } from './UserMenu';
 export { default as MobileNav } from './MobileNav';
+export { default as VoiceInputButton } from './VoiceInputButton';
+
+// Agent Page Components
+export { default as AgentPageLayout, AGENT_THEMES } from './AgentPageLayout';
+export type { AgentThemeId } from './AgentPageLayout';
+export { default as AgentTabs } from './AgentTabs';
+export type { TabConfig } from './AgentTabs';
+export { default as AgentCard, CardHeader, CardContent, CardFooter, CardBadge } from './AgentCard';
+export { 
+  LoadingSpinner, 
+  Skeleton, 
+  CardSkeleton, 
+  ListSkeleton, 
+  GridSkeleton,
+  EmptyState,
+  ErrorState 
+} from './LoadingStates';
 
 
 

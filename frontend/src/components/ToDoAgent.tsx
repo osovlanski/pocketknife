@@ -3,6 +3,7 @@
  * 
  * ToDo agent UI with separated concerns:
  * - Uses useTodo hook for business logic
+ * - Uses AgentPageLayout for consistent theming
  * - Uses CSS modules for styling
  */
 
@@ -29,6 +30,7 @@ import {
   CalendarDays,
   Download
 } from 'lucide-react';
+import AgentPageLayout from './common/AgentPageLayout';
 import useTodo from '../hooks/useTodo';
 import type { Task, RoutinePattern, TaskData, CalendarEvent } from '../services/todoApi';
 import styles from '../styles/todo.module.css';
@@ -348,12 +350,36 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ events, date, onImportEve
   );
 };
 
+// =============================================================================
+// RECURRING DAYS HELPER
+// =============================================================================
+
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const getRecurringDaysForRule = (rule: string): string[] => {
+  switch (rule) {
+    case 'daily':
+      return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    case 'weekdays':
+      return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    case 'weekly':
+      // Current day of week
+      const today = new Date();
+      return [DAYS_OF_WEEK[today.getDay()]];
+    case 'monthly':
+      return []; // Monthly doesn't use day of week
+    default:
+      return [];
+  }
+};
+
 interface AddTaskModalProps {
   isOpen: boolean;
   newTask: TaskData;
   onTaskChange: (task: TaskData) => void;
   onCreate: () => void;
   onClose: () => void;
+  isSyncing?: boolean;
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({ 
@@ -361,8 +387,30 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   newTask, 
   onTaskChange, 
   onCreate, 
-  onClose 
+  onClose,
+  isSyncing = false
 }) => {
+  // Auto-update recurring days when recurrence rule changes
+  const handleRecurrenceRuleChange = (rule: string) => {
+    onTaskChange({ 
+      ...newTask, 
+      recurrenceRule: rule
+    });
+  };
+
+  // Handle recurring toggle
+  const handleRecurringToggle = (checked: boolean) => {
+    onTaskChange({ 
+      ...newTask, 
+      isRecurring: checked,
+      recurrenceRule: checked ? (newTask.recurrenceRule || 'daily') : undefined
+    });
+  };
+
+  const recurringDays = newTask.recurrenceRule 
+    ? getRecurringDaysForRule(newTask.recurrenceRule)
+    : [];
+
   if (!isOpen) return null;
 
   return (
@@ -439,33 +487,76 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </div>
           </div>
           
+          {/* Recurring Task Section */}
+          <div className={styles.formSection}>
+            <div className={styles.formRow}>
+              <label className={styles.formCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={newTask.isRecurring}
+                  onChange={(e) => handleRecurringToggle(e.target.checked)}
+                />
+                <Repeat className={styles.iconSmall} />
+                Recurring Task
+              </label>
+              {newTask.isRecurring && (
+                <select
+                  value={newTask.recurrenceRule || 'daily'}
+                  onChange={(e) => handleRecurrenceRuleChange(e.target.value)}
+                  className={styles.formSelect}
+                  style={{ width: 'auto' }}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              )}
+            </div>
+            
+            {/* Show recurring days when recurring is enabled */}
+            {newTask.isRecurring && newTask.recurrenceRule !== 'monthly' && (
+              <div className={styles.recurringDaysDisplay}>
+                {DAYS_OF_WEEK.map((day) => (
+                  <span
+                    key={day}
+                    className={`${styles.dayBadge} ${recurringDays.includes(day) ? styles.dayBadgeActive : styles.dayBadgeInactive}`}
+                  >
+                    {day}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Monthly info */}
+            {newTask.isRecurring && newTask.recurrenceRule === 'monthly' && (
+              <p className={styles.formHint}>
+                📅 Task will repeat on the same day each month
+              </p>
+            )}
+          </div>
+          
+          {/* Google Calendar Sync Checkbox */}
           <div className={styles.formRow}>
             <label className={styles.formCheckbox}>
               <input
                 type="checkbox"
-                checked={newTask.isRecurring}
-                onChange={(e) => onTaskChange({ ...newTask, isRecurring: e.target.checked })}
+                checked={newTask.syncEnabled !== false}
+                onChange={(e) => onTaskChange({ ...newTask, syncEnabled: e.target.checked })}
               />
-              <Repeat className={styles.iconSmall} />
-              Recurring
+              <Calendar className={styles.iconSmall} />
+              Sync to Google Calendar
             </label>
-            {newTask.isRecurring && (
-              <select
-                value={newTask.recurrenceRule || 'daily'}
-                onChange={(e) => onTaskChange({ ...newTask, recurrenceRule: e.target.value })}
-                className={styles.formSelect}
-                style={{ width: 'auto' }}
-              >
-                <option value="daily">Daily</option>
-                <option value="weekdays">Weekdays</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
+            {isSyncing && (
+              <span className={styles.syncingIndicator}>
+                <Loader2 className={`${styles.iconSmall} ${styles.spinner}`} />
+                Syncing...
+              </span>
             )}
           </div>
           
           <p className={styles.formHint}>
-            💡 Use "Sync Calendar" button to sync all tasks to Google Calendar
+            💡 Tasks will auto-sync and AI will learn your patterns in the background
           </p>
         </div>
         
@@ -512,10 +603,24 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
         dueTime: task.dueTime || '',
         duration: task.duration,
         isRecurring: task.isRecurring,
-        recurrenceRule: task.recurrenceRule
+        recurrenceRule: task.recurrenceRule,
+        syncEnabled: task.syncEnabled
       });
     }
   }, [task]);
+
+  // Handle recurring toggle
+  const handleRecurringToggle = (checked: boolean) => {
+    setEditData({ 
+      ...editData, 
+      isRecurring: checked,
+      recurrenceRule: checked ? (editData.recurrenceRule || 'daily') : undefined
+    });
+  };
+
+  const recurringDays = editData.recurrenceRule 
+    ? getRecurringDaysForRule(editData.recurrenceRule)
+    : [];
 
   if (!isOpen || !task) return null;
 
@@ -598,29 +703,66 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
             </div>
           </div>
           
+          {/* Recurring Task Section */}
+          <div className={styles.formSection}>
+            <div className={styles.formRow}>
+              <label className={styles.formCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={editData.isRecurring}
+                  onChange={(e) => handleRecurringToggle(e.target.checked)}
+                />
+                <Repeat className={styles.iconSmall} />
+                Recurring Task
+              </label>
+              {editData.isRecurring && (
+                <select
+                  value={editData.recurrenceRule || 'daily'}
+                  onChange={(e) => setEditData({ ...editData, recurrenceRule: e.target.value })}
+                  className={styles.formSelect}
+                  style={{ width: 'auto' }}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              )}
+            </div>
+            
+            {/* Show recurring days when recurring is enabled */}
+            {editData.isRecurring && editData.recurrenceRule !== 'monthly' && (
+              <div className={styles.recurringDaysDisplay}>
+                {DAYS_OF_WEEK.map((day) => (
+                  <span
+                    key={day}
+                    className={`${styles.dayBadge} ${recurringDays.includes(day) ? styles.dayBadgeActive : styles.dayBadgeInactive}`}
+                  >
+                    {day}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Monthly info */}
+            {editData.isRecurring && editData.recurrenceRule === 'monthly' && (
+              <p className={styles.formHint}>
+                📅 Task will repeat on the same day each month
+              </p>
+            )}
+          </div>
+          
+          {/* Sync toggle */}
           <div className={styles.formRow}>
             <label className={styles.formCheckbox}>
               <input
                 type="checkbox"
-                checked={editData.isRecurring}
-                onChange={(e) => setEditData({ ...editData, isRecurring: e.target.checked })}
+                checked={editData.syncEnabled !== false}
+                onChange={(e) => setEditData({ ...editData, syncEnabled: e.target.checked })}
               />
-              <Repeat className={styles.iconSmall} />
-              Recurring
+              <Calendar className={styles.iconSmall} />
+              Sync to Google Calendar
             </label>
-            {editData.isRecurring && (
-              <select
-                value={editData.recurrenceRule || 'daily'}
-                onChange={(e) => setEditData({ ...editData, recurrenceRule: e.target.value })}
-                className={styles.formSelect}
-                style={{ width: 'auto' }}
-              >
-                <option value="daily">Daily</option>
-                <option value="weekdays">Weekdays</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            )}
           </div>
         </div>
         
@@ -646,14 +788,15 @@ const ToDoAgent: React.FC = () => {
   const calendarEvents = todo.agenda?.calendarEvents || [];
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>✅ ToDo Agent</h1>
-        <p className={styles.subtitle}>Manage tasks, learn your routines, sync with Google Calendar</p>
-      </div>
-
-      {/* Action Buttons */}
+    <AgentPageLayout
+      agentId="todo"
+      title="ToDo Agent"
+      subtitle="Manage tasks, learn your routines, sync with Google Calendar"
+      icon="✅"
+      isLoading={todo.loading}
+    >
+      <div className={styles.container}>
+        {/* Action Buttons */}
       <div className={styles.actions}>
         <button
           onClick={() => todo.setShowAddTask(true)}
@@ -663,10 +806,18 @@ const ToDoAgent: React.FC = () => {
           Add Task
         </button>
         <button
+          onClick={() => todo.setShowRoutines(!todo.showRoutines)}
+          className={`${styles.actionButton} ${todo.showRoutines ? styles.actionButtonActive : styles.actionButtonSecondary}`}
+        >
+          <Sparkles className={styles.icon} />
+          Routines {todo.routines.length > 0 && `(${todo.routines.length})`}
+        </button>
+        {/* Manual sync button - secondary, since auto-sync is enabled by default */}
+        <button
           onClick={todo.handleSyncCalendar}
           disabled={todo.syncing}
           className={`${styles.actionButton} ${todo.lastSyncAt ? styles.actionButtonSuccess : styles.actionButtonSecondary}`}
-          title={todo.lastSyncAt ? `Last synced: ${new Date(todo.lastSyncAt).toLocaleTimeString()}` : 'Sync tasks to Google Calendar'}
+          title={todo.lastSyncAt ? `Last synced: ${new Date(todo.lastSyncAt).toLocaleTimeString()}` : 'Manually sync all tasks to Google Calendar'}
         >
           {todo.syncing ? (
             <Loader2 className={`${styles.icon} ${styles.spinner}`} />
@@ -675,22 +826,17 @@ const ToDoAgent: React.FC = () => {
           ) : (
             <Calendar className={styles.icon} />
           )}
-          {todo.lastSyncAt ? 'Synced ✓' : 'Sync Calendar'}
+          {todo.syncing ? 'Syncing...' : todo.lastSyncAt ? 'Synced ✓' : 'Sync All'}
         </button>
+        {/* Manual learn patterns button - secondary, since auto-learn happens after task creation */}
         <button
           onClick={todo.handleLearnPatterns}
           disabled={todo.learningPatterns}
           className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+          title="Manually analyze your task history to find patterns"
         >
           {todo.learningPatterns ? <Loader2 className={`${styles.icon} ${styles.spinner}`} /> : <Brain className={styles.icon} />}
-          Learn Patterns
-        </button>
-        <button
-          onClick={() => todo.setShowRoutines(!todo.showRoutines)}
-          className={`${styles.actionButton} ${todo.showRoutines ? styles.actionButtonActive : styles.actionButtonSecondary}`}
-        >
-          <Sparkles className={styles.icon} />
-          Routines {todo.routines.length > 0 && `(${todo.routines.length})`}
+          {todo.learningPatterns ? 'Learning...' : 'Learn Patterns'}
         </button>
       </div>
 
@@ -701,6 +847,7 @@ const ToDoAgent: React.FC = () => {
         onTaskChange={todo.setNewTask}
         onCreate={todo.handleCreateTask}
         onClose={() => todo.setShowAddTask(false)}
+        isSyncing={todo.syncing}
       />
 
       {/* Edit Task Modal */}
@@ -814,8 +961,9 @@ const ToDoAgent: React.FC = () => {
           date={todo.formattedDate} 
           onImportEvent={todo.handleImportCalendarEvent}
         />
+        </div>
       </div>
-    </div>
+    </AgentPageLayout>
   );
 };
 

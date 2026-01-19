@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle } from 'lucide-react';
+import { Upload, Search, Briefcase, CheckCircle, AlertCircle, Sliders, StopCircle, MapPin } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
 import { extractTextFromFile } from '../utils/fileParser';
 import { JobSearchFilters, IndustryType, CompanySizeType } from '../types';
 import { API_BASE_URL } from '../config';
+import { useTranslation } from '../i18n';
 import logger from '../services/logger';
 
 // Available company sizes for selection
@@ -38,6 +40,7 @@ interface JobSearchPanelProps {
 }
 
 const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch, onStop, isSearching: externalSearching, isStopping = false }) => {
+  const { t } = useTranslation();
   const [cvText, setCVText] = useState('');
   const [cvData, setCVData] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
@@ -231,14 +234,14 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
     <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
       <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
         <Briefcase className="w-6 h-6" />
-        AI Job Search Agent
+        {t('jobs.title')}
       </h2>
 
       {/* Step 1: Upload CV */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <span className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
-          Upload Your CV
+          {t('jobs.uploadCV')}
         </h3>
         
         <div className="space-y-3">
@@ -253,19 +256,29 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               />
               <div className="flex items-center gap-2 bg-white/5 border border-white/20 rounded-lg px-4 py-3 cursor-pointer hover:bg-white/10 transition-colors">
                 <Upload className="w-5 h-5" />
-                <span>{cvText ? '✅ CV loaded' : 'Choose CV file (txt, pdf, doc)'}</span>
+                <span>{cvText ? `✅ ${t('jobs.cvLoaded')}` : t('jobs.chooseCVFile')}</span>
               </div>
             </label>
           </div>
 
-          <div className="text-center text-sm text-slate-400">OR</div>
+          <div className="text-center text-sm text-slate-400">{t('common.or')}</div>
 
-          <textarea
-            value={cvText}
-            onChange={(e) => setCVText(e.target.value)}
-            placeholder="Paste your CV text here...&#10;&#10;Include:&#10;- Name and contact info&#10;- Skills (Node.js, React, Python, etc.)&#10;- Work experience&#10;- Education"
-            className="w-full h-48 bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={cvText}
+              onChange={(e) => setCVText(e.target.value)}
+              placeholder="Paste your CV text here...&#10;&#10;Include:&#10;- Name and contact info&#10;- Skills (Node.js, React, Python, etc.)&#10;- Work experience&#10;- Education"
+              className="w-full h-48 bg-white/5 border border-white/20 rounded-lg px-4 py-3 pr-14 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 resize-none"
+            />
+            <div className="absolute top-3 right-3">
+              <VoiceInputButton
+                onTranscript={(text) => setCVText(prev => prev ? `${prev} ${text}` : text)}
+                size="sm"
+                title="Speak to add CV content"
+                ariaLabel="Voice input for CV"
+              />
+            </div>
+          </div>
 
           {error && (
             <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
@@ -293,12 +306,12 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
             {uploading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Analyzing CV with AI...
+                {t('jobs.analyzingCV')}
               </>
             ) : (
               <>
                 <CheckCircle className="w-5 h-5" />
-                Analyze CV
+                {t('jobs.analyzeCV')}
               </>
             )}
           </button>
@@ -310,7 +323,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
         <div className="mb-6 bg-green-500/20 border border-green-500/30 rounded-lg p-4">
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-green-300">
             <CheckCircle className="w-5 h-5" />
-            CV Analyzed Successfully!
+            {t('jobs.cvAnalyzed')}
           </h3>
           
           <div className="space-y-2 text-sm">
@@ -319,7 +332,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               <span className="text-white font-semibold">{cvData.name || 'Not found'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-400">Skills Found:</span>
+              <span className="text-slate-400">{t('jobs.skillsFound')}:</span>
               <span className="text-white font-semibold">{cvData.skills.length} skills</span>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -333,7 +346,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               )}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-slate-400">Suggested Roles:</span>
+              <span className="text-slate-400">{t('jobs.suggestedRoles')}:</span>
               <span className="text-white">{cvData.desiredRoles.join(', ')}</span>
             </div>
           </div>
@@ -346,18 +359,25 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
           <span className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-sm">
             {cvData ? '2' : '2'}
           </span>
-          Search for Jobs
+          {t('jobs.searchJobs')}
         </h3>
         
         {/* Location Filter */}
         <div className="space-y-3 mb-4">
           <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-slate-400" />
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location (e.g., Tel Aviv, Israel)"
+              placeholder={t('jobs.locationPlaceholder')}
               className="flex-1 bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400"
+            />
+            <VoiceInputButton
+              onTranscript={(text) => setLocation(text)}
+              size="sm"
+              title="Speak location"
+              ariaLabel="Voice input for location"
             />
             <button
               onClick={getLocationFromGPS}
@@ -390,7 +410,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
           
           {/* Work Location Filter */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Work Location</label>
+            <label className="text-sm font-medium">{t('jobs.workLocation')}</label>
             <div className="flex gap-3">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
@@ -400,7 +420,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
                   onChange={() => setRemoteOnly(undefined)}
                   className="w-4 h-4"
                 />
-                <span>All Jobs</span>
+                <span>{t('jobs.allJobs')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
@@ -410,7 +430,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
                   onChange={() => setRemoteOnly(true)}
                   className="w-4 h-4"
                 />
-                <span>Remote Only</span>
+                <span>{t('jobs.remoteOnly')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
@@ -420,7 +440,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
                   onChange={() => setRemoteOnly(false)}
                   className="w-4 h-4"
                 />
-                <span>Office Only</span>
+                <span>{t('jobs.officeOnly')}</span>
               </label>
             </div>
           </div>
@@ -432,7 +452,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
           className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-all mb-3 text-sm border border-white/10"
         >
           <Sliders className="w-4 h-4" />
-          {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
+          {showAdvancedFilters ? t('jobs.hideAdvancedFilters') : t('jobs.showAdvancedFilters')}
         </button>
 
         {/* Advanced Filters Panel */}
@@ -597,12 +617,12 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
             {isCurrentlySearching ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Searching job boards...
+                {t('jobs.searchingJobBoards')}
               </>
             ) : (
               <>
                 <Search className="w-5 h-5" />
-                Search Jobs with Filters
+                {t('jobs.searchJobsWithFilters')}
               </>
             )}
           </button>
@@ -612,17 +632,17 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
               onClick={onStop}
               disabled={isStopping}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 px-6 py-3 rounded-lg transition-all font-semibold disabled:opacity-50"
-              title="Stop Search"
+              title={t('common.stop')}
             >
               <StopCircle className="w-5 h-5" />
-              Stop
+              {t('common.stop')}
             </button>
           )}
         </div>
 
         {!cvData && (
           <p className="text-sm text-slate-400 mt-2 text-center">
-            Upload and analyze your CV first
+            {t('jobs.uploadAndAnalyzeFirst')}
           </p>
         )}
       </div>

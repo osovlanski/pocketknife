@@ -388,3 +388,4 @@ class SpoonacularService {
 export const spoonacularService = new SpoonacularService();
 export default spoonacularService;
 
+

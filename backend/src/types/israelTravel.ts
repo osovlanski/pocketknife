@@ -232,3 +232,4 @@ export interface IsraelBeach {
 
 
 
+

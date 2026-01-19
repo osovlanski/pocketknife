@@ -709,6 +709,93 @@
   height: 1.25rem;
 }
 
+/* -----------------------------------------------------------------------------
+   Language Section
+   ----------------------------------------------------------------------------- */
 
+.languageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
 
+.languageCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  color: white;
+}
 
+.languageCard:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.languageCardActive {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgb(139, 92, 246);
+}
+
+.languageCardActive:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgb(139, 92, 246);
+}
+
+.languageFlag {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.languageInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.languageName {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.languageNative {
+  font-size: 0.8125rem;
+  color: rgb(148, 163, 184);
+}
+
+.languageCheck {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(139, 92, 246);
+}
+
+.languageHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(147, 197, 253);
+}
+
+.languageHintIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.languageHint p {
+  margin: 0;
+  line-height: 1.5;
+}

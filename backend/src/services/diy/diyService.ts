@@ -142,7 +142,8 @@ const getImageForCategory = (category: string, index: number): string => {
   const term = terms[index % terms.length];
   // Using Unsplash Source API (free, no auth required)
   // Adding random seed based on index for variety
-  return `https://source.unsplash.com/400x300/?${encodeURIComponent(term)}&sig=${Date.now()}-${index}`;
+  const unsplashBaseUrl = configService.get('diy.images.unsplashBaseUrl', 'https://source.unsplash.com');
+  return `${unsplashBaseUrl}/400x300/?${encodeURIComponent(term)}&sig=${Date.now()}-${index}`;
 };
 
 // =============================================================================

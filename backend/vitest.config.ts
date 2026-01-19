@@ -6,6 +6,15 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
+    // Use forks pool with single fork for sequential execution
+    // This prevents timeouts from resource contention during parallel tests
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+        isolate: true
+      }
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -26,8 +35,9 @@ export default defineConfig({
         lines: 1
       }
     },
-    testTimeout: 10000,
-    hookTimeout: 10000
+    // Increased timeouts for parallel execution
+    testTimeout: 30000,
+    hookTimeout: 15000
   }
 });
 

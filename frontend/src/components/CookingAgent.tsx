@@ -3,6 +3,7 @@
  * 
  * Kitchen inventory management, shopping lists, recipe discovery, and wishlist.
  * Uses useCooking hook for business logic.
+ * Uses AgentPageLayout for consistent theming.
  */
 
 import React, { useState } from 'react';
@@ -26,7 +27,10 @@ import {
   RefreshCw,
   Star
 } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
+import AgentPageLayout from './common/AgentPageLayout';
 import useCooking from '../hooks/useCooking';
+import { useTranslation } from '../i18n';
 import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
 import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe } from '../services/cookingApi';
 import styles from '../styles/cooking.module.css';
@@ -73,7 +77,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Category</label>
             <select
-              className={`${styles.formSelect} light-select`}
+              className={styles.formSelect}
               value={item.category || 'other'}
               onChange={(e) => onItemChange({ ...item, category: e.target.value })}
             >
@@ -113,7 +117,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Unit</label>
             <select
-              className={`${styles.formSelect} light-select`}
+              className={styles.formSelect}
               value={item.unit || 'pcs'}
               onChange={(e) => onItemChange({ ...item, unit: e.target.value })}
             >
@@ -391,7 +395,7 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
       <div className={styles.listHeader}>
         <h3 className={styles.listName}>{list.name}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+        <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
           {checkedCount}/{list.items.length} items
         </span>
           <button
@@ -457,6 +461,7 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
 // =============================================================================
 
 const CookingAgent: React.FC = () => {
+  const { t } = useTranslation();
   const cooking = useCooking();
   const [recipeSearchMode, setRecipeSearchMode] = useState<'available' | 'custom'>('available');
   const [customIngredients, setCustomIngredients] = useState('');
@@ -478,14 +483,16 @@ const CookingAgent: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>🍳 Cooking Agent</h1>
-        <p className={styles.subtitle}>Manage your inventory, create shopping lists, and discover recipes</p>
-      </div>
-
-      {/* Summary Cards */}
+    <AgentPageLayout
+      agentId="cooking"
+      title={t('cooking.title')}
+      subtitle={t('cooking.subtitle')}
+      icon="🍳"
+      isLoading={cooking.loading}
+      onRefresh={cooking.refresh}
+    >
+      <div className={styles.container}>
+        {/* Summary Cards */}
       {cooking.summary && (
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>
@@ -493,8 +500,8 @@ const CookingAgent: React.FC = () => {
               <Package />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{cooking.summary.totalItems}</div>
-              <div className={styles.summaryLabel}>Total Items</div>
+              <div className={styles.summaryValue}>{cooking.summary.totalItems ?? 0}</div>
+              <div className={styles.summaryLabel}>{t('cooking.totalItems')}</div>
             </div>
           </div>
 
@@ -503,8 +510,8 @@ const CookingAgent: React.FC = () => {
               <Clock />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{cooking.summary.expiringSoon}</div>
-              <div className={styles.summaryLabel}>Expiring Soon</div>
+              <div className={styles.summaryValue}>{cooking.summary.expiringSoon ?? 0}</div>
+              <div className={styles.summaryLabel}>{t('cooking.expiringSoon')}</div>
             </div>
           </div>
 
@@ -513,8 +520,8 @@ const CookingAgent: React.FC = () => {
               <AlertTriangle />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>{cooking.summary.lowStock}</div>
-              <div className={styles.summaryLabel}>Low Stock</div>
+              <div className={styles.summaryValue}>{cooking.summary.lowStock ?? 0}</div>
+              <div className={styles.summaryLabel}>{t('cooking.lowStock')}</div>
             </div>
           </div>
 
@@ -523,8 +530,8 @@ const CookingAgent: React.FC = () => {
               <DollarSign />
             </div>
             <div className={styles.summaryContent}>
-              <div className={styles.summaryValue}>${cooking.summary.totalValue.toFixed(0)}</div>
-              <div className={styles.summaryLabel}>Total Value</div>
+              <div className={styles.summaryValue}>${(cooking.summary.totalValue ?? 0).toFixed(0)}</div>
+              <div className={styles.summaryLabel}>{t('cooking.totalValue')}</div>
             </div>
           </div>
         </div>
@@ -563,28 +570,28 @@ const CookingAgent: React.FC = () => {
           onClick={() => cooking.setActiveTab('inventory')}
         >
           <Package className={styles.icon} />
-          Inventory
+          {t('cooking.inventory')}
         </button>
         <button
           className={`${styles.tab} ${cooking.activeTab === 'lists' ? styles.tabActive : ''}`}
           onClick={() => cooking.setActiveTab('lists')}
         >
           <List className={styles.icon} />
-          Shopping Lists
+          {t('cooking.shoppingLists')}
         </button>
         <button
           className={`${styles.tab} ${cooking.activeTab === 'recipes' ? styles.tabActive : ''}`}
           onClick={() => cooking.setActiveTab('recipes')}
         >
           <BookOpen className={styles.icon} />
-          Recipes
+          {t('cooking.recipes')}
         </button>
         <button
           className={`${styles.tab} ${cooking.activeTab === 'wishlist' ? styles.tabActive : ''}`}
           onClick={() => cooking.setActiveTab('wishlist')}
         >
           <Star className={styles.icon} />
-          Wishlist
+          {t('cooking.wishlist')}
           {cooking.wishlist.length > 0 && (
             <span className={styles.tabBadge}>{cooking.wishlist.length}</span>
           )}
@@ -600,11 +607,11 @@ const CookingAgent: React.FC = () => {
               onClick={() => cooking.setShowAddItem(true)}
             >
               <Plus className={styles.icon} />
-              Add Item
+              {t('cooking.addItem')}
             </button>
             <button className={`${styles.actionButton} ${styles.actionButtonSecondary}`} onClick={cooking.refresh}>
               <RefreshCw className={styles.icon} />
-              Refresh
+              {t('common.refresh')}
             </button>
           </div>
 
@@ -633,8 +640,8 @@ const CookingAgent: React.FC = () => {
           ) : cooking.items.length === 0 ? (
             <div className={styles.emptyState}>
               <ShoppingCart className={styles.emptyIcon} />
-              <p className={styles.emptyTitle}>No items in inventory</p>
-              <p className={styles.emptyHint}>Add your first item to get started!</p>
+              <p className={styles.emptyTitle}>{t('cooking.noItemsInInventory')}</p>
+              <p className={styles.emptyHint}>{t('cooking.addFirstItem')}</p>
             </div>
           ) : (
             <div className={styles.itemGrid}>
@@ -659,22 +666,22 @@ const CookingAgent: React.FC = () => {
               onClick={() => cooking.setShowAddList(true)}
             >
               <Plus className={styles.icon} />
-              New List
+              {t('cooking.newList')}
             </button>
             <button
               className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
               onClick={() => setShowGenerateList(true)}
             >
               <Star className={styles.icon} />
-              Smart Generate
+              {t('cooking.smartGenerate')}
             </button>
           </div>
 
           {cooking.lists.length === 0 ? (
             <div className={styles.emptyState}>
               <List className={styles.emptyIcon} />
-              <p className={styles.emptyTitle}>No shopping lists</p>
-              <p className={styles.emptyHint}>Create a new shopping list or let AI generate one for you!</p>
+              <p className={styles.emptyTitle}>{t('cooking.noShoppingLists')}</p>
+              <p className={styles.emptyHint}>{t('cooking.createListOrGenerate')}</p>
             </div>
           ) : (
             <div className={styles.listsContainer}>
@@ -698,24 +705,32 @@ const CookingAgent: React.FC = () => {
           <div className={styles.actionsBar}>
             <div style={{ display: 'flex', gap: '0.5rem', flex: 1, maxWidth: '600px' }}>
               <select
-                className={`${styles.formSelect} light-select`}
+                className={styles.formSelect}
                 style={{ width: 'auto' }}
                 value={recipeSearchMode}
                 onChange={(e) => setRecipeSearchMode(e.target.value as 'available' | 'custom')}
               >
-                <option value="available">Use my inventory</option>
-                <option value="custom">Custom ingredients</option>
+                <option value="available">{t('cooking.useMyInventory')}</option>
+                <option value="custom">{t('cooking.customIngredients')}</option>
               </select>
 
               {recipeSearchMode === 'custom' && (
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  style={{ flex: 1 }}
-                  placeholder="Enter ingredients (comma separated)"
-                  value={customIngredients}
-                  onChange={(e) => setCustomIngredients(e.target.value)}
-                />
+                <>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    style={{ flex: 1 }}
+                    placeholder={t('cooking.ingredientsPlaceholder')}
+                    value={customIngredients}
+                    onChange={(e) => setCustomIngredients(e.target.value)}
+                  />
+                  <VoiceInputButton
+                    onTranscript={(text) => setCustomIngredients(prev => prev ? `${prev}, ${text}` : text)}
+                    size="md"
+                    title={t('common.voiceInput')}
+                    ariaLabel={t('common.voiceInput')}
+                  />
+                </>
               )}
 
               <button
@@ -728,7 +743,7 @@ const CookingAgent: React.FC = () => {
                 ) : (
                   <Search className={styles.icon} />
                 )}
-                Find Recipes
+                {t('cooking.findRecipes')}
               </button>
             </div>
           </div>
@@ -736,14 +751,14 @@ const CookingAgent: React.FC = () => {
           {cooking.recipes.length === 0 && cooking.savedRecipes.length === 0 ? (
             <div className={styles.emptyState}>
               <ChefHat className={styles.emptyIcon} />
-              <p className={styles.emptyTitle}>No recipes yet</p>
-              <p className={styles.emptyHint}>Search for recipes based on your available ingredients!</p>
+              <p className={styles.emptyTitle}>{t('cooking.noRecipes')}</p>
+              <p className={styles.emptyHint}>{t('cooking.searchRecipesHint')}</p>
             </div>
           ) : (
             <>
               {cooking.recipes.length > 0 && (
                 <>
-                  <h3 style={{ margin: '1rem 0', color: '#374151' }}>🔍 Search Results</h3>
+                  <h3 style={{ margin: '1rem 0', color: 'rgba(255, 255, 255, 0.9)' }}>🔍 {t('cooking.searchResults')}</h3>
                   <div className={styles.recipeGrid}>
                     {cooking.recipes.map((recipe) => (
                       <RecipeCard 
@@ -759,7 +774,7 @@ const CookingAgent: React.FC = () => {
 
               {cooking.savedRecipes.length > 0 && (
                 <>
-                  <h3 style={{ margin: '2rem 0 1rem', color: '#374151' }}>❤️ Saved Recipes</h3>
+                  <h3 style={{ margin: '2rem 0 1rem', color: 'rgba(255, 255, 255, 0.9)' }}>❤️ {t('cooking.savedRecipes')}</h3>
                   <div className={styles.recipeGrid}>
                     {cooking.savedRecipes.map((recipe) => (
                       <RecipeCard key={recipe.id} recipe={recipe} />
@@ -777,12 +792,12 @@ const CookingAgent: React.FC = () => {
           {cooking.wishlist.length === 0 ? (
             <div className={styles.emptyState}>
               <Star className={styles.emptyIcon} />
-              <p className={styles.emptyTitle}>No recipes in wishlist</p>
-              <p className={styles.emptyHint}>Add recipes you want to try later to your wishlist!</p>
+              <p className={styles.emptyTitle}>{t('cooking.noWishlistRecipes')}</p>
+              <p className={styles.emptyHint}>{t('cooking.addRecipesToWishlist')}</p>
             </div>
           ) : (
             <>
-              <h3 style={{ margin: '1rem 0', color: '#374151' }}>⭐ My Recipe Wishlist</h3>
+              <h3 style={{ margin: '1rem 0', color: 'rgba(255, 255, 255, 0.9)' }}>⭐ {t('cooking.myRecipeWishlist')}</h3>
               <div className={styles.recipeGrid}>
                 {cooking.wishlist.map((recipe) => (
                   <RecipeCard 
@@ -811,14 +826,14 @@ const CookingAgent: React.FC = () => {
       {cooking.showAddList && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>Create Shopping List</h3>
+            <h3 className={styles.modalTitle}>{t('cooking.createShoppingList')}</h3>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>List Name</label>
+              <label className={styles.formLabel}>{t('cooking.listName')}</label>
               <input
                 type="text"
                 className={styles.formInput}
-                placeholder="e.g., Weekly Groceries, Party Supplies"
+                placeholder={t('cooking.listNamePlaceholder')}
                 value={cooking.newListName}
                 onChange={(e) => cooking.setNewListName(e.target.value)}
                 autoFocus
@@ -830,13 +845,13 @@ const CookingAgent: React.FC = () => {
                 onClick={() => cooking.setShowAddList(false)}
                 className={`${styles.modalButton} ${styles.modalButtonSecondary}`}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={cooking.handleCreateList}
                 className={`${styles.modalButton} ${styles.modalButtonPrimary}`}
               >
-                Create List
+                {t('cooking.createShoppingList')}
               </button>
             </div>
           </div>
@@ -847,21 +862,31 @@ const CookingAgent: React.FC = () => {
       {showGenerateList && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>🪄 Smart Generate Shopping List</h3>
+            <h3 className={styles.modalTitle}>🪄 {t('cooking.smartGenerateTitle')}</h3>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Describe what you need (optional)</label>
-              <textarea
-                className={styles.formInput}
-                style={{ minHeight: '80px', resize: 'vertical' }}
-                placeholder="e.g., I'm planning a BBQ for 10 people, or I want to make Italian food this week..."
-                value={generatePrompt}
-                onChange={(e) => setGeneratePrompt(e.target.value)}
-              />
+              <label className={styles.formLabel}>{t('cooking.describeNeedsOptional')}</label>
+              <div className="relative">
+                <textarea
+                  className={styles.formInput}
+                  style={{ minHeight: '80px', resize: 'vertical', paddingRight: '3rem' }}
+                  placeholder={t('cooking.smartGeneratePlaceholder')}
+                  value={generatePrompt}
+                  onChange={(e) => setGeneratePrompt(e.target.value)}
+                />
+                <div className="absolute top-2 right-2">
+                  <VoiceInputButton
+                    onTranscript={(text) => setGeneratePrompt(prev => prev ? `${prev} ${text}` : text)}
+                    size="sm"
+                    title={t('common.voiceInput')}
+                    ariaLabel={t('common.voiceInput')}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Auto-add items based on:</label>
+              <label className={styles.formLabel}>{t('cooking.autoAddBasedOn')}</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input
@@ -869,7 +894,7 @@ const CookingAgent: React.FC = () => {
                     checked={generateFromLowStock}
                     onChange={(e) => setGenerateFromLowStock(e.target.checked)}
                   />
-                  <span>🔴 Low stock items ({cooking.lowStockItems.length} items)</span>
+                  <span>🔴 {t('cooking.lowStockItems')} ({cooking.lowStockItems.length} {t('cooking.items')})</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input
@@ -877,7 +902,7 @@ const CookingAgent: React.FC = () => {
                     checked={generateFromExpiring}
                     onChange={(e) => setGenerateFromExpiring(e.target.checked)}
                   />
-                  <span>⏰ Replace expiring items ({cooking.expiringItems.length} items)</span>
+                  <span>⏰ {t('cooking.replaceExpiring')} ({cooking.expiringItems.length} {t('cooking.items')})</span>
                 </label>
               </div>
             </div>
@@ -887,7 +912,7 @@ const CookingAgent: React.FC = () => {
                 onClick={() => setShowGenerateList(false)}
                 className={`${styles.modalButton} ${styles.modalButtonSecondary}`}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -902,13 +927,14 @@ const CookingAgent: React.FC = () => {
                 className={`${styles.modalButton} ${styles.modalButtonPrimary}`}
                 disabled={cooking.loading}
               >
-                {cooking.loading ? 'Generating...' : 'Generate List'}
+                {cooking.loading ? t('cooking.generating') : t('cooking.generateList')}
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AgentPageLayout>
   );
 };
 

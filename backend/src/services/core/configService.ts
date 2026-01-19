@@ -145,6 +145,7 @@ const DEFAULT_CONFIG = {
   'problem.ai.maxTokens': 2000,
   'problems.judge0.timeoutMs': 10000,
   'problems.leetcode.timeoutMs': 10000,
+  'problems.leetcode.graphqlUrl': 'https://leetcode.com/graphql',
   
   // ==========================================================================
   // LEARNING AGENT
@@ -235,6 +236,7 @@ const DEFAULT_CONFIG = {
   'diy.ideas.featuredTokens': 1500,
   'diy.ideas.inspirationTokens': 500,
   'diy.ideas.featuredCount': 8,
+  'diy.images.unsplashBaseUrl': 'https://source.unsplash.com',
   
   // ==========================================================================
   // NOTION INTEGRATION

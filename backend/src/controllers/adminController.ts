@@ -7,6 +7,7 @@
 
 import { Request, Response } from 'express';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import { logAdminAction } from '../middleware/adminMiddleware';
 import externalApiService from '../services/core/externalApiService';
 import logger from '../utils/logger';
@@ -1084,9 +1085,10 @@ export const testExternalApi = async (req: Request, res: Response) => {
         // LeetCode GraphQL - no auth needed
         case 'leetcode_graphql':
           try {
-            const leetcodeRes = await axios.default.post('https://leetcode.com/graphql', 
+            const leetcodeGraphqlUrl = configService.get('problems.leetcode.graphqlUrl', 'https://leetcode.com/graphql');
+            const leetcodeRes = await axios.default.post(leetcodeGraphqlUrl, 
               { query: '{ __typename }' },
-              { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+              { timeout: configService.get('problems.leetcode.timeoutMs', 10000), headers: { 'Content-Type': 'application/json' } }
             );
             isHealthy = leetcodeRes.status === 200;
           } catch {

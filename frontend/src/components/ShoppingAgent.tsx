@@ -3,6 +3,7 @@
  * 
  * Shopping agent UI with separated concerns:
  * - Uses useShopping hook for business logic
+ * - Uses AgentPageLayout for consistent theming
  * - Uses CSS modules for styling
  */
 
@@ -27,7 +28,10 @@ import {
   Bookmark,
   BookmarkCheck
 } from 'lucide-react';
+import VoiceInputButton from './common/VoiceInputButton';
+import AgentPageLayout from './common/AgentPageLayout';
 import useShopping from '../hooks/useShopping';
+import { useTranslation } from '../i18n';
 import type { Product, ProductSuggestion, PriceAlert } from '../services/shoppingApi';
 import styles from '../styles/shopping.module.css';
 
@@ -115,6 +119,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSave, onUnsave, on
   const isValidImageUrl = (url?: string): boolean => {
     if (!url) return false;
     if (url.includes('undefined') || url.includes('null')) return false;
+    // Filter out known problematic placeholder services
+    if (url.includes('via.placeholder.com')) return false;
+    if (url.includes('placeholder.com')) return false;
+    if (url.includes('placehold.it')) return false;
     // Basic URL check
     return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//');
   };
@@ -292,15 +300,18 @@ const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
 // =============================================================================
 
 const ShoppingAgent: React.FC = () => {
+  const { t } = useTranslation();
   const shop = useShopping();
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>🛒 Shopping Agent</h1>
-        <p className={styles.subtitle}>Find deals, track prices, discover products based on your interests</p>
-      </div>
+    <AgentPageLayout
+      agentId="shopping"
+      title={t('shopping.title')}
+      subtitle={t('shopping.subtitle')}
+      icon="🛒"
+      isLoading={shop.loading}
+    >
+      <div className={styles.container}>
 
       {/* Search Mode Toggle */}
       <div className={styles.modeToggle}>
@@ -309,14 +320,14 @@ const ShoppingAgent: React.FC = () => {
           className={`${styles.modeButton} ${shop.searchMode === 'explicit' ? styles.modeButtonExplicit : styles.modeButtonInactive}`}
         >
           <Search className={styles.icon} />
-          Search Products
+          {t('shopping.searchProducts')}
         </button>
         <button
           onClick={() => shop.setSearchMode('hobby')}
           className={`${styles.modeButton} ${shop.searchMode === 'hobby' ? styles.modeButtonHobby : styles.modeButtonInactive}`}
         >
           <Sparkles className={styles.icon} />
-          Search by Hobbies
+          {t('shopping.searchByHobbies')}
         </button>
       </div>
 
@@ -327,28 +338,34 @@ const ShoppingAgent: React.FC = () => {
             <div className={styles.searchRow}>
               <input
                 type="text"
-                placeholder="Search for products... (e.g., 'wireless headphones', 'mechanical keyboard')"
+                placeholder={t('shopping.searchPlaceholder')}
                 value={shop.searchQuery}
                 onChange={(e) => shop.setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && shop.handleSearch()}
                 className={styles.searchInput}
               />
+              <VoiceInputButton
+                onTranscript={(text) => shop.setSearchQuery(text)}
+                size="md"
+                title={t('common.voiceInput')}
+                ariaLabel={t('common.voiceInput')}
+              />
               {shop.loading ? (
                 <button onClick={shop.handleStopSearch} className={`${styles.searchButton} ${styles.searchButtonStop}`}>
                   <Square className={styles.icon} style={{ fill: 'currentColor' }} />
-                  Stop
+                  {t('common.stop')}
                 </button>
               ) : (
                 <button onClick={shop.handleSearch} className={`${styles.searchButton} ${styles.searchButtonPrimary}`}>
                   <Search className={styles.icon} />
-                  Search
+                  {t('common.search')}
                 </button>
               )}
             </div>
 
             {/* Sources */}
             <div className={styles.sources}>
-              <span className={styles.sourcesLabel}>Sources:</span>
+              <span className={styles.sourcesLabel}>{t('shopping.sources')}:</span>
               {['ebay', 'aliexpress', 'amazon'].map((source) => (
                 <button
                   key={source}
@@ -371,9 +388,9 @@ const ShoppingAgent: React.FC = () => {
                     ? `${styles.sourceButtonActive} ${styles.sourceIsraeli}`
                     : styles.sourceButtonInactive
                 }`}
-                title="Search Israeli shops (Zap, KSP, Ivory, Shufersal, etc.)"
+                title={t('shopping.israeliShops')}
               >
-                🇮🇱 Israeli Shops
+                🇮🇱 {t('shopping.israeliShops')}
               </button>
             </div>
           </>
@@ -381,12 +398,12 @@ const ShoppingAgent: React.FC = () => {
           <div className={styles.hobbySection}>
             <div>
               <label className={styles.hobbyLabel}>
-                Add your hobbies and interests, and we'll find products you'll love!
+                {t('shopping.hobbiesDescription')}
               </label>
               <div className={styles.hobbyInputRow}>
                 <input
                   type="text"
-                  placeholder="e.g., gaming, photography, hiking, cooking..."
+                  placeholder={t('shopping.hobbiesPlaceholder')}
                   value={shop.hobbyInput}
                   onChange={(e) => shop.setHobbyInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && shop.addHobby()}
@@ -412,9 +429,9 @@ const ShoppingAgent: React.FC = () => {
             )}
 
             <div>
-              <label className={styles.hobbyLabel}>Or describe what you're looking for:</label>
+              <label className={styles.hobbyLabel}>{t('shopping.describeNeeds')}</label>
               <textarea
-                placeholder="I'm into outdoor activities and looking for gadgets that would make camping more enjoyable..."
+                placeholder={t('shopping.describeNeedsPlaceholder')}
                 value={shop.searchQuery}
                 onChange={(e) => shop.setSearchQuery(e.target.value)}
                 className={styles.hobbyTextarea}
@@ -429,12 +446,12 @@ const ShoppingAgent: React.FC = () => {
               {shop.loading ? (
                 <>
                   <Loader2 className={`${styles.icon} ${styles.spinner}`} />
-                  Finding products...
+                  {t('shopping.findingProducts')}
                 </>
               ) : (
                 <>
                   <Sparkles className={styles.icon} />
-                  Find Products for Me
+                  {t('shopping.findProductsForMe')}
                 </>
               )}
             </button>
@@ -444,19 +461,19 @@ const ShoppingAgent: React.FC = () => {
         {/* Filters Toggle */}
         <button onClick={() => shop.setShowFilters(!shop.showFilters)} className={styles.filtersToggle}>
           <Filter className={styles.iconSmall} />
-          {shop.showFilters ? 'Hide' : 'Show'} Filters
+          {shop.showFilters ? t('shopping.hideFilters') : t('shopping.showFilters')}
         </button>
 
         {shop.showFilters && (
           <div className={styles.filters}>
             <div className={styles.filterGroup}>
-              <label>Category</label>
+              <label>{t('shopping.category')}</label>
               <select
                 value={shop.selectedCategory}
                 onChange={(e) => shop.setSelectedCategory(e.target.value)}
                 className={styles.filterSelect}
               >
-                <option value="">All Categories</option>
+                <option value="">{t('shopping.allCategories')}</option>
                 <option value="Electronics">Electronics</option>
                 <option value="Gaming">Gaming</option>
                 <option value="Fashion">Fashion</option>
@@ -470,7 +487,7 @@ const ShoppingAgent: React.FC = () => {
               </select>
             </div>
             <div className={styles.filterGroup}>
-              <label>Min Price</label>
+              <label>{t('shopping.minPrice')}</label>
               <input
                 type="number"
                 placeholder="$0"
@@ -480,7 +497,7 @@ const ShoppingAgent: React.FC = () => {
               />
             </div>
             <div className={styles.filterGroup}>
-              <label>Max Price</label>
+              <label>{t('shopping.maxPrice')}</label>
               <input
                 type="number"
                 placeholder="$1000"
@@ -490,7 +507,7 @@ const ShoppingAgent: React.FC = () => {
               />
             </div>
             <div className={styles.filterGroup}>
-              <label>Min Deal Score</label>
+              <label>{t('shopping.minDealScore')}</label>
               <input
                 type="range"
                 min="0"
@@ -512,14 +529,14 @@ const ShoppingAgent: React.FC = () => {
           className={`${styles.quickActionButton} ${shop.showSaved ? styles.quickActionSaved : styles.quickActionInactive}`}
         >
           <Heart className={styles.icon} />
-          Saved ({shop.savedProducts.length})
+          {t('shopping.saved')} ({shop.savedProducts.length})
         </button>
         <button
           onClick={() => { shop.setShowAlerts(!shop.showAlerts); shop.setShowSaved(false); }}
           className={`${styles.quickActionButton} ${shop.showAlerts ? styles.quickActionAlerts : styles.quickActionInactive}`}
         >
           <Bell className={styles.icon} />
-          Price Alerts ({shop.priceAlerts.length})
+          {t('shopping.priceAlerts')} ({shop.priceAlerts.length})
         </button>
       </div>
 
@@ -528,10 +545,10 @@ const ShoppingAgent: React.FC = () => {
         <div className={styles.savedPanel}>
           <h3 className={styles.panelTitle}>
             <Heart className={styles.icon} style={{ color: 'rgb(236, 72, 153)' }} />
-            Saved Products
+            {t('shopping.savedProducts')}
           </h3>
           {shop.savedProducts.length === 0 ? (
-            <p className={styles.panelEmpty}>No saved products yet. Save products you like!</p>
+            <p className={styles.panelEmpty}>{t('shopping.noSavedProducts')}</p>
           ) : (
             <div className={styles.productGrid}>
               {shop.savedProducts.map((product) => (
@@ -557,10 +574,10 @@ const ShoppingAgent: React.FC = () => {
         <div className={styles.alertsPanel}>
           <h3 className={styles.panelTitle}>
             <Bell className={styles.icon} style={{ color: 'rgb(96, 165, 250)' }} />
-            Active Price Alerts
+            {t('shopping.activePriceAlerts')}
           </h3>
           {shop.priceAlerts.length === 0 ? (
-            <p className={styles.panelEmpty}>No price alerts set. Set alerts on products you want to track!</p>
+            <p className={styles.panelEmpty}>{t('shopping.noPriceAlerts')}</p>
           ) : (
             <div className={styles.alertsList}>
               {shop.priceAlerts.map((alert) => (
@@ -585,7 +602,7 @@ const ShoppingAgent: React.FC = () => {
         <div className={styles.suggestionsPanel}>
           <h3 className={styles.panelTitle}>
             <Sparkles className={styles.icon} style={{ color: 'rgb(167, 139, 250)' }} />
-            Personalized Suggestions
+            {t('shopping.personalizedSuggestions')}
           </h3>
           <div className={styles.productGrid}>
             {shop.suggestions.map((suggestion, index) => (
@@ -596,7 +613,7 @@ const ShoppingAgent: React.FC = () => {
                   <div className={styles.productPricing}>
                     <span className={styles.productPrice}>${suggestion.product.price.toFixed(2)}</span>
                     <span className={styles.productCategoryBadge} style={{ marginLeft: '0.5rem' }}>
-                      {Math.round(suggestion.matchScore * 100)}% match
+                      {Math.round(suggestion.matchScore * 100)}% {t('shopping.match')}
                     </span>
                   </div>
                 </div>
@@ -610,14 +627,14 @@ const ShoppingAgent: React.FC = () => {
       {shop.loading && (
         <div className={styles.loadingContainer}>
           <Loader2 className={`${styles.iconLarge} ${styles.spinner}`} />
-          <p className={styles.loadingText}>Searching for the best deals...</p>
+          <p className={styles.loadingText}>{t('shopping.scanningDeals')}</p>
         </div>
       )}
 
       {/* Search Results */}
       {!shop.loading && shop.products.length > 0 && (
         <div>
-          <h3 className={styles.resultsTitle}>Found {shop.products.length} Products</h3>
+          <h3 className={styles.resultsTitle}>{t('shopping.foundProducts', { count: shop.products.length })}</h3>
           <div className={styles.productGrid}>
             {shop.products.map((product) => (
               <ProductCard
@@ -640,8 +657,8 @@ const ShoppingAgent: React.FC = () => {
       {!shop.loading && shop.products.length === 0 && !shop.showSaved && !shop.showAlerts && shop.suggestions.length === 0 && shop.searchQuery === '' && (
         <div className={styles.emptyState}>
           <ShoppingCart className={styles.emptyIcon} />
-          <p className={styles.emptyTitle}>Scanning for deals...</p>
-          <p className={styles.emptyHint}>Loading trending products and great deals for you!</p>
+          <p className={styles.emptyTitle}>{t('shopping.scanningDeals')}</p>
+          <p className={styles.emptyHint}>{t('shopping.loadingDeals')}</p>
         </div>
       )}
 
@@ -649,8 +666,8 @@ const ShoppingAgent: React.FC = () => {
       {!shop.loading && shop.products.length === 0 && shop.searchQuery !== '' && (
         <div className={styles.emptyState}>
           <Search className={styles.emptyIcon} />
-          <p className={styles.emptyTitle}>No products found</p>
-          <p className={styles.emptyHint}>Try different keywords or adjust your filters</p>
+          <p className={styles.emptyTitle}>{t('shopping.noProducts')}</p>
+          <p className={styles.emptyHint}>{t('shopping.tryDifferentKeywords')}</p>
         </div>
       )}
 
@@ -662,7 +679,8 @@ const ShoppingAgent: React.FC = () => {
         onConfirm={shop.handleSetPriceAlert}
         onClose={() => shop.setPriceAlertModal(null)}
       />
-    </div>
+      </div>
+    </AgentPageLayout>
   );
 };
 
