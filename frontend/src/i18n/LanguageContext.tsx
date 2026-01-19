@@ -2,23 +2,19 @@
  * LanguageContext
  * 
  * Provides language context for i18n (internationalization) support.
- * Stores the current language and provides translation functions.
+ * Currently English-only, but infrastructure ready for future expansion.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode } from 'react';
 
 // Import translation files
 import en from './translations/en.json';
-import he from './translations/he.json';
-import es from './translations/es.json';
-import fr from './translations/fr.json';
-import de from './translations/de.json';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export type SupportedLanguage = 'en' | 'he' | 'es' | 'fr' | 'de';
+export type SupportedLanguage = 'en';
 
 export interface LanguageInfo {
   code: SupportedLanguage;
@@ -35,7 +31,7 @@ export interface LanguageContextType {
   languageInfo: LanguageInfo;
   /** List of all supported languages */
   supportedLanguages: LanguageInfo[];
-  /** Change the current language */
+  /** Change the current language (no-op for now, single language) */
   setLanguage: (lang: SupportedLanguage) => void;
   /** Translate a key with optional interpolation */
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -49,21 +45,12 @@ export interface LanguageContextType {
 
 export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr', flag: '🇬🇧' },
-  { code: 'he', name: 'Hebrew', nativeName: 'עברית', direction: 'rtl', flag: '🇮🇱' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', direction: 'ltr', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', nativeName: 'Français', direction: 'ltr', flag: '🇫🇷' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr', flag: '🇩🇪' },
 ];
 
 const TRANSLATIONS: Record<SupportedLanguage, Record<string, any>> = {
   en,
-  he,
-  es,
-  fr,
-  de,
 };
 
-const STORAGE_KEY = 'pocketknife-language';
 const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
 
 // =============================================================================
@@ -81,45 +68,14 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  // Initialize language from localStorage or browser preference
-  const [language, setLanguageState] = useState<SupportedLanguage>(() => {
-    // Check localStorage first
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && SUPPORTED_LANGUAGES.some(l => l.code === stored)) {
-      return stored as SupportedLanguage;
-    }
-    
-    // Check browser language
-    const browserLang = navigator.language.split('-')[0];
-    if (SUPPORTED_LANGUAGES.some(l => l.code === browserLang)) {
-      return browserLang as SupportedLanguage;
-    }
-    
-    return DEFAULT_LANGUAGE;
-  });
+  // Fixed to English only
+  const language: SupportedLanguage = DEFAULT_LANGUAGE;
+  const languageInfo = SUPPORTED_LANGUAGES[0];
+  const isRTL = false;
 
-  const languageInfo = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
-  const isRTL = languageInfo.direction === 'rtl';
-
-  // Update document direction and lang attribute when language changes
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    
-    // Add/remove RTL class for styling
-    if (isRTL) {
-      document.body.classList.add('rtl');
-    } else {
-      document.body.classList.remove('rtl');
-    }
-  }, [language, isRTL]);
-
-  // Change language and persist to localStorage
-  const setLanguage = useCallback((lang: SupportedLanguage) => {
-    if (SUPPORTED_LANGUAGES.some(l => l.code === lang)) {
-      setLanguageState(lang);
-      localStorage.setItem(STORAGE_KEY, lang);
-    }
+  // No-op for now since we only support English
+  const setLanguage = useCallback((_lang: SupportedLanguage) => {
+    // Future: implement language switching
   }, []);
 
   // Translation function with nested key support and interpolation
@@ -134,17 +90,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        // Key not found - try English fallback
-        value = TRANSLATIONS.en;
-        for (const fallbackKey of keys) {
-          if (value && typeof value === 'object' && fallbackKey in value) {
-            value = value[fallbackKey];
-          } else {
-            // Return the key itself if not found
-            return key;
-          }
-        }
-        break;
+        // Key not found - return the key itself
+        return key;
       }
     }
 
@@ -197,4 +144,3 @@ export const useTranslation = (): LanguageContextType => {
 export const useLanguage = useTranslation;
 
 export default LanguageContext;
-

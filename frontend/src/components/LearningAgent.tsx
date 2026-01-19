@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import AISummaryModal from './AISummaryModal';
 import MarkdownRenderer from './MarkdownRenderer';
 import { API_BASE_URL, SOCKET_URL } from '../config';
+import { useTranslation } from '../i18n';
 import logger from '../services/logger';
 
 interface LearningResource {
@@ -37,6 +38,7 @@ interface LinkedInInfo {
 }
 
 const LearningAgent = () => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -359,9 +361,9 @@ const LearningAgent = () => {
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-          📚 AI Learning Agent
+          📚 {t('learning.title')}
         </h1>
-        <p className="text-slate-300">Discover and summarize educational content from across the web</p>
+        <p className="text-slate-300">{t('learning.subtitle')}</p>
       </div>
 
       {/* Search Panel */}
@@ -379,15 +381,15 @@ const LearningAgent = () => {
               onFocus={() => setShowAutocomplete(searchQuery.length > 0)}
               onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search for topics (e.g., 'TypeScript best practices', 'system design')"
+              placeholder={t('learning.searchPlaceholder')}
               className="w-full bg-white/5 border border-white/20 rounded-xl pl-12 pr-12 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <VoiceInputButton
                 onTranscript={(text) => setSearchQuery(text)}
                 size="sm"
-                title="Speak to search"
-                ariaLabel="Voice search for learning topics"
+                title={t('learning.speakToSearch')}
+                ariaLabel={t('learning.voiceSearchTopics')}
               />
             </div>
             
@@ -427,13 +429,13 @@ const LearningAgent = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl transition-all"
-              title="Upload a file to analyze"
+              title={t('learning.uploadFileHint')}
             >
               <Upload className="w-5 h-5" />
               {uploadedFile ? (
                 <span className="text-sm truncate max-w-[120px]">{uploadedFile.name}</span>
               ) : (
-                <span className="hidden md:inline">Upload</span>
+                <span className="hidden md:inline">{t('learning.uploadFile')}</span>
               )}
             </button>
             {uploadedFile && (
@@ -454,12 +456,12 @@ const LearningAgent = () => {
             {isSearching ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin" />
-                Searching...
+                {t('common.loading')}
               </>
             ) : (
               <>
                 <Search className="w-5 h-5" />
-                Search
+                {t('common.search')}
               </>
             )}
           </button>
@@ -467,7 +469,7 @@ const LearningAgent = () => {
 
         {/* Suggested Topics */}
         <div className="flex flex-wrap gap-2 mb-4">
-          <span className="text-slate-400 text-sm">Suggestions:</span>
+          <span className="text-slate-400 text-sm">{t('learning.suggestions')}:</span>
           {suggestedTopics.slice(0, 5).map((topic) => (
             <button
               key={topic}
@@ -486,7 +488,7 @@ const LearningAgent = () => {
           {/* Social & Blogs */}
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-400 text-sm w-16">Sources:</span>
+            <span className="text-slate-400 text-sm w-16">{t('learning.sources')}:</span>
             {['linkedin', 'devto', 'medium', 'hackernews', 'reddit'].map((source) => (
               <button
                 key={source}
@@ -517,7 +519,7 @@ const LearningAgent = () => {
           {/* Newsletters */}
           <div className="flex flex-wrap items-center gap-2">
             <Newspaper className="w-4 h-4 text-purple-400" />
-            <span className="text-slate-400 text-sm w-16">Newsletters:</span>
+            <span className="text-slate-400 text-sm w-16">{t('learning.newsletters')}:</span>
             {['newsletters', 'systemdesign', 'bytebytego', 'tldr'].map((source) => (
               <button
                 key={source}
@@ -529,8 +531,8 @@ const LearningAgent = () => {
                 }`}
               >
                 {sourceIcons[source]}
-                {source === 'newsletters' ? 'All Newsletters' : 
-                 source === 'systemdesign' ? 'System Design' :
+                {source === 'newsletters' ? t('learning.allNewsletters') : 
+                 source === 'systemdesign' ? t('learning.systemDesign') :
                  source === 'bytebytego' ? 'ByteByteGo' : 'TLDR'}
               </button>
             ))}
@@ -538,7 +540,7 @@ const LearningAgent = () => {
 
           {/* Time Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-400 text-sm w-16 ml-5">Time:</span>
+            <span className="text-slate-400 text-sm w-16 ml-5">{t('learning.timeRange')}:</span>
             {['day', 'week', 'month', 'year', 'all'].map((range) => (
               <button
                 key={range}
@@ -552,10 +554,10 @@ const LearningAgent = () => {
                     : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
                 }`}
               >
-                {range === 'day' ? 'Today' : 
-                 range === 'week' ? 'This Week' : 
-                 range === 'month' ? 'This Month' : 
-                 range === 'year' ? 'This Year' : 'All Time'}
+                {range === 'day' ? t('learning.today') : 
+                 range === 'week' ? t('learning.thisWeek') : 
+                 range === 'month' ? t('learning.thisMonth') : 
+                 range === 'year' ? t('learning.thisYear') : t('learning.allTime')}
               </button>
             ))}
             {/* Custom Date Button */}
@@ -570,7 +572,7 @@ const LearningAgent = () => {
                   : 'bg-white/5 border border-white/20 text-slate-400 hover:text-white'
               }`}
             >
-              Custom
+              {t('learning.custom')}
             </button>
           </div>
           
@@ -578,7 +580,7 @@ const LearningAgent = () => {
           {showCustomDatePicker && (
             <div className="flex items-center gap-3 ml-5 mt-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">From:</span>
+                <span className="text-xs text-slate-400">{t('learning.from')}:</span>
                 <input
                   type="date"
                   value={filters.customDateFrom || ''}
@@ -587,7 +589,7 @@ const LearningAgent = () => {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">To:</span>
+                <span className="text-xs text-slate-400">{t('learning.to')}:</span>
                 <input
                   type="date"
                   value={filters.customDateTo || ''}
@@ -610,7 +612,7 @@ const LearningAgent = () => {
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold text-blue-300 flex items-center gap-2">
                   <Linkedin className="w-4 h-4" />
-                  LinkedIn Premium Integration
+                  {t('learning.linkedInPremium')}
                   {linkedInInfo.isPremium && <Crown className="w-4 h-4 text-yellow-400" />}
                 </h4>
                 <span className={`text-xs px-2 py-1 rounded-full ${
@@ -618,12 +620,12 @@ const LearningAgent = () => {
                     ? 'bg-green-500/20 text-green-400' 
                     : 'bg-yellow-500/20 text-yellow-400'
                 }`}>
-                  {linkedInInfo.configured ? '✓ Connected' : '⚠ Not Configured'}
+                  {linkedInInfo.configured ? `✓ ${t('learning.connected')}` : `⚠ ${t('learning.notConfigured')}`}
                 </span>
               </div>
               
               <div className="text-xs text-slate-300 space-y-2">
-                <p className="font-semibold">Premium Features:</p>
+                <p className="font-semibold">{t('learning.premiumFeatures')}:</p>
                 <ul className="space-y-1 ml-2">
                   {linkedInInfo.features.map((feature, idx) => (
                     <li key={idx} className="text-slate-400">{feature}</li>
@@ -632,7 +634,7 @@ const LearningAgent = () => {
                 
                 {!linkedInInfo.configured && (
                   <div className="mt-3 p-2 bg-white/5 rounded text-slate-400">
-                    <p className="font-semibold text-slate-300 mb-1">Setup Instructions:</p>
+                    <p className="font-semibold text-slate-300 mb-1">{t('learning.setupInstructions')}:</p>
                     <pre className="text-xs whitespace-pre-wrap">{linkedInInfo.instructions}</pre>
                   </div>
                 )}
@@ -663,12 +665,12 @@ const LearningAgent = () => {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">AI Summary Available</h3>
-                <p className="text-sm text-slate-400">Click to view the full interactive summary for "{searchQuery}"</p>
+                <h3 className="font-semibold text-white">{t('learning.aiSummaryAvailable')}</h3>
+                <p className="text-sm text-slate-400">{t('learning.clickToViewSummary', { topic: searchQuery })}</p>
               </div>
             </div>
             <button className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-4 py-2 rounded-lg transition-colors">
-              Open Summary
+              {t('learning.openSummary')}
             </button>
           </div>
         </div>
@@ -685,12 +687,12 @@ const LearningAgent = () => {
             {isGeneratingSummary ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin" />
-                Generating Summary...
+                {t('learning.generatingSummary')}
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                Generate AI Topic Summary
+                {t('learning.generateSummary')}
               </>
             )}
           </button>
@@ -702,7 +704,7 @@ const LearningAgent = () => {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-amber-400" />
-            Found {resources.length} Learning Resources
+            {t('learning.foundResources', { count: resources.length })}
           </h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -727,7 +729,7 @@ const LearningAgent = () => {
                       </a>
                     </h3>
                     {resource.author && (
-                      <p className="text-sm text-slate-400 mt-1">by {resource.author}</p>
+                      <p className="text-sm text-slate-400 mt-1">{t('learning.byAuthor', { author: resource.author })}</p>
                     )}
                   </div>
                 </div>
@@ -752,16 +754,16 @@ const LearningAgent = () => {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-semibold text-amber-400 flex items-center gap-2">
                         <Sparkles className="w-4 h-4" />
-                        Expert AI Summary
+                        {t('learning.expertAISummary')}
                       </span>
                       <button
                         onClick={() => copyToClipboard(resource.summary!, resource.id)}
                         className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-white/5 px-2 py-1 rounded"
                       >
                         {copiedId === resource.id ? (
-                          <><Check className="w-3 h-3" /> Copied!</>
+                          <><Check className="w-3 h-3" /> {t('learning.copied')}</>
                         ) : (
-                          <><Copy className="w-3 h-3" /> Copy</>
+                          <><Copy className="w-3 h-3" /> {t('learning.copy')}</>
                         )}
                       </button>
                     </div>
@@ -786,17 +788,17 @@ const LearningAgent = () => {
                     {resource.isSummarizing ? (
                       <>
                         <RefreshCw className="w-3 h-3 animate-spin" />
-                        Summarizing...
+                        {t('learning.summarizing')}
                       </>
                     ) : resource.summary ? (
                       <>
                         <Check className="w-3 h-3" />
-                        Summarized
+                        {t('learning.summarized')}
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3 h-3" />
-                        AI Summarize
+                        {t('learning.summarize')}
                       </>
                     )}
                   </button>
@@ -807,9 +809,9 @@ const LearningAgent = () => {
                       className="flex items-center gap-1 text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
                     >
                       {expandedResources.has(resource.id) ? (
-                        <><ChevronUp className="w-3 h-3" /> Hide Summary</>
+                        <><ChevronUp className="w-3 h-3" /> {t('learning.hideSummary')}</>
                       ) : (
-                        <><ChevronDown className="w-3 h-3" /> Show Summary</>
+                        <><ChevronDown className="w-3 h-3" /> {t('learning.showSummary')}</>
                       )}
                     </button>
                   )}
@@ -824,9 +826,9 @@ const LearningAgent = () => {
                     }`}
                   >
                     {savedArticles.some(a => a.id === resource.id) ? (
-                      <><Check className="w-3 h-3" /> Saved</>
+                      <><Check className="w-3 h-3" /> {t('learning.saved')}</>
                     ) : (
-                      <><Save className="w-3 h-3" /> Save</>
+                      <><Save className="w-3 h-3" /> {t('learning.save')}</>
                     )}
                   </button>
 
@@ -837,7 +839,7 @@ const LearningAgent = () => {
                     className="flex items-center gap-1 text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors ml-auto"
                   >
                     <ExternalLink className="w-3 h-3" />
-                    Read Article
+                    {t('learning.readArticle')}
                   </a>
                 </div>
               </div>
@@ -851,8 +853,8 @@ const LearningAgent = () => {
       {resources.length === 0 && !isSearching && (
         <div className="bg-white/5 rounded-xl p-12 text-center">
           <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-slate-400 mb-2">Start Your Learning Journey</h3>
-          <p className="text-slate-500 mb-6">Search for topics you want to learn about and get AI-powered summaries</p>
+          <h3 className="text-xl font-semibold text-slate-400 mb-2">{t('learning.startLearning')}</h3>
+          <p className="text-slate-500 mb-6">{t('learning.startLearningHint')}</p>
           <div className="flex flex-wrap justify-center gap-2">
             {suggestedTopics.map((topic) => (
               <button

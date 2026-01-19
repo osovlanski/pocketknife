@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plane, Calendar, Users, DollarSign, CalendarRange, TrendingDown } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
+import { useTranslation } from '../i18n';
 
 interface TravelSearchPanelProps {
   onSearch: (query: TravelSearchQuery) => void;
@@ -25,6 +26,7 @@ export interface TravelSearchQuery {
 }
 
 const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState<TravelSearchQuery>({
     origin: 'TLV',
     destination: 'BCN',
@@ -46,7 +48,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.departureDate) {
-      alert('Please select a departure date');
+      alert(t('travel.selectDepartureDate'));
       return;
     }
     onSearch(query);
@@ -71,15 +73,15 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
             <Plane className="w-6 h-6 text-blue-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">✈️ Travel Search</h2>
-            <p className="text-sm text-slate-400">Find flights, hotels, and AI-powered trip plans</p>
+            <h2 className="text-2xl font-bold">✈️ {t('travel.searchFlights')}</h2>
+            <p className="text-sm text-slate-400">{t('travel.subtitle')}</p>
           </div>
         </div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="text-sm text-blue-400 hover:text-blue-300"
         >
-          {showAdvanced ? 'Hide' : 'Show'} Advanced
+          {showAdvanced ? t('travel.hideAdvanced') : t('travel.showAdvanced')}
         </button>
       </div>
 
@@ -87,7 +89,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
         {/* Origin & Destination */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">From (Origin)</label>
+            <label className="block text-sm font-medium mb-2">{t('travel.origin')}</label>
             <div className="relative">
               <input
                 type="text"
@@ -102,16 +104,16 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                 <VoiceInputButton
                   onTranscript={(text) => setQuery({ ...query, origin: text.toUpperCase().substring(0, 3) })}
                   size="sm"
-                  title="Speak origin airport"
-                  ariaLabel="Voice input for origin airport"
+                  title={t('common.voiceInput')}
+                  ariaLabel={t('common.voiceInput')}
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-1">3-letter airport code (e.g., TLV for Tel Aviv)</p>
+            <p className="text-xs text-slate-500 mt-1">{t('travel.airportCodeHint')}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">To (Destination)</label>
+            <label className="block text-sm font-medium mb-2">{t('travel.destination')}</label>
             <div className="relative">
               <input
                 type="text"
@@ -126,8 +128,8 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                 <VoiceInputButton
                   onTranscript={(text) => setQuery({ ...query, destination: text.toUpperCase().substring(0, 3) })}
                   size="sm"
-                  title="Speak destination airport"
-                  ariaLabel="Voice input for destination airport"
+                  title={t('common.voiceInput')}
+                  ariaLabel={t('common.voiceInput')}
                 />
               </div>
             </div>
@@ -160,8 +162,8 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
               <div className="flex items-center gap-2">
                 <CalendarRange className="w-5 h-5 text-blue-400" />
                 <div>
-                  <div className="font-medium">Flexible Dates - Find Best Deals!</div>
-                  <div className="text-xs text-slate-400">Search multiple dates to find cheapest flights</div>
+                  <div className="font-medium">{t('travel.flexibleDates')}</div>
+                  <div className="text-xs text-slate-400">{t('travel.flexibleDatesHint')}</div>
                 </div>
               </div>
             </label>
@@ -173,7 +175,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
               <div>
                 <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  Departure Date
+                  {t('travel.departureDate')}
                 </label>
                 <input
                   type="date"
@@ -188,7 +190,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
               <div>
                 <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  Return Date (Optional)
+                  {t('travel.returnDate')}
                 </label>
                 <input
                   type="date"
@@ -197,14 +199,14 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                   min={query.departureDate || new Date().toISOString().split('T')[0]}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-500 mt-1">Leave empty for one-way trip</p>
+                <p className="text-xs text-slate-500 mt-1">{t('travel.returnDateHint')}</p>
               </div>
             </div>
           ) : (
             /* Flexible Date Search Options */
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/5 p-4 rounded-lg border border-white/10">
               <div>
-                <label className="block text-sm font-medium mb-2">Start Date Range</label>
+                <label className="block text-sm font-medium mb-2">{t('travel.startDateRange')}</label>
                 <input
                   type="date"
                   value={query.departureDate}
@@ -213,11 +215,11 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">Earliest departure</p>
+                <p className="text-xs text-slate-500 mt-1">{t('travel.earliestDeparture')}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Flexibility (Days)</label>
+                <label className="block text-sm font-medium mb-2">{t('travel.flexibility')}</label>
                 <select
                   value={query.dateFlexibilityDays || 7}
                   onChange={(e) => setQuery({ ...query, dateFlexibilityDays: parseInt(e.target.value) })}
@@ -228,30 +230,30 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                   <option value="14">±14 days (2 weeks)</option>
                   <option value="30">±30 days (month)</option>
                 </select>
-                <p className="text-xs text-slate-500 mt-1">Search range</p>
+                <p className="text-xs text-slate-500 mt-1">{t('travel.searchRange')}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Trip Duration</label>
+                <label className="block text-sm font-medium mb-2">{t('travel.tripDuration')}</label>
                 <select
                   value={query.tripDuration || 7}
                   onChange={(e) => setQuery({ ...query, tripDuration: parseInt(e.target.value) })}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="3">3 days (weekend)</option>
+                  <option value="3">{t('travel.weekend')}</option>
                   <option value="5">5 days</option>
-                  <option value="7">1 week</option>
+                  <option value="7">{t('travel.oneWeek')}</option>
                   <option value="10">10 days</option>
-                  <option value="14">2 weeks</option>
-                  <option value="21">3 weeks</option>
+                  <option value="14">{t('travel.twoWeeks')}</option>
+                  <option value="21">{t('travel.threeWeeks')}</option>
                 </select>
-                <p className="text-xs text-slate-500 mt-1">How long?</p>
+                <p className="text-xs text-slate-500 mt-1">{t('travel.howLong')}</p>
               </div>
 
               <div className="md:col-span-3 flex items-center gap-2 text-sm bg-blue-500/10 p-3 rounded border border-blue-500/30">
                 <TrendingDown className="w-5 h-5 text-blue-400" />
                 <span>
-                  Will search {(query.dateFlexibilityDays || 7) * 2} different dates to find the best deals!
+                  {t('travel.willSearchDates', { count: (query.dateFlexibilityDays || 7) * 2 })}
                 </span>
               </div>
             </div>
@@ -263,7 +265,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
           <div>
             <label className="block text-sm font-medium mb-2 flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Adults
+              {t('travel.adults')}
             </label>
             <input
               type="number"
@@ -277,7 +279,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Children</label>
+            <label className="block text-sm font-medium mb-2">{t('travel.children')}</label>
             <input
               type="number"
               value={query.children || 0}
@@ -289,16 +291,16 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Travel Class</label>
+            <label className="block text-sm font-medium mb-2">{t('travel.travelClass')}</label>
             <select
               value={query.travelClass}
               onChange={(e) => setQuery({ ...query, travelClass: e.target.value as any })}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ECONOMY">Economy</option>
-              <option value="PREMIUM_ECONOMY">Premium Economy</option>
-              <option value="BUSINESS">Business</option>
-              <option value="FIRST">First Class</option>
+              <option value="ECONOMY">{t('travel.economy')}</option>
+              <option value="PREMIUM_ECONOMY">{t('travel.premiumEconomy')}</option>
+              <option value="BUSINESS">{t('travel.business')}</option>
+              <option value="FIRST">{t('travel.firstClass')}</option>
             </select>
           </div>
         </div>
@@ -310,7 +312,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
               <div>
                 <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
-                  Max Budget (USD)
+                  {t('travel.maxBudget')}
                 </label>
                 <input
                   type="number"
@@ -319,7 +321,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                   placeholder="e.g., 2000"
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-500 mt-1">Leave empty for no budget limit</p>
+                <p className="text-xs text-slate-500 mt-1">{t('travel.noBudgetLimit')}</p>
               </div>
 
               <div className="flex flex-col justify-center space-y-3">
@@ -330,7 +332,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                     onChange={(e) => setQuery({ ...query, directFlights: e.target.checked })}
                     className="w-4 h-4 rounded border-white/20 bg-white/5"
                   />
-                  <span className="text-sm">Direct flights only</span>
+                  <span className="text-sm">{t('travel.directFlights')}</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -340,7 +342,7 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
                     onChange={(e) => setQuery({ ...query, generatePlan: e.target.checked })}
                     className="w-4 h-4 rounded border-white/20 bg-white/5"
                   />
-                  <span className="text-sm">🤖 Generate AI trip plan</span>
+                  <span className="text-sm">🤖 {t('travel.generatePlan')}</span>
                 </label>
               </div>
             </div>
@@ -360,12 +362,12 @@ const TravelSearchPanel: React.FC<TravelSearchPanelProps> = ({ onSearch, loading
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Searching travel options...
+              {t('travel.searchingTravel')}
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
               <Plane className="w-5 h-5" />
-              Search Flights & Hotels
+              {t('travel.searchFlights')}
             </span>
           )}
         </button>

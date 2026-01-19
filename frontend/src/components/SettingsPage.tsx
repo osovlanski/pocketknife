@@ -21,12 +21,8 @@ import {
   Save,
   Loader2,
   Link2,
-  Check,
-  Globe
+  Check
 } from 'lucide-react';
-
-// i18n
-import { useTranslation, type SupportedLanguage } from '../i18n';
 
 // Components
 import IntegrationCard, { IntegrationStatus, IntegrationDetail } from './common/IntegrationCard';
@@ -65,7 +61,6 @@ interface SectionConfig {
 const sections: SectionConfig[] = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'integrations', label: 'Integrations', icon: Link2 },
-  { id: 'language', label: 'Language', icon: Globe },
   { id: 'jobs', label: 'Job Preferences', icon: Briefcase },
   { id: 'travel', label: 'Travel Preferences', icon: Plane },
   { id: 'coding', label: 'Coding Preferences', icon: Code },
@@ -507,50 +502,6 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
     />
   </div>
 );
-
-// =============================================================================
-// LANGUAGE SECTION COMPONENT
-// =============================================================================
-
-const LanguageSection: React.FC = () => {
-  const { language, setLanguage, supportedLanguages, t } = useTranslation();
-
-  return (
-    <div className={styles.sectionContent}>
-      <h2 className={styles.sectionTitle}>{t('settings.language')}</h2>
-      
-      <FormGroup label="Select Language">
-        <div className={styles.languageGrid}>
-          {supportedLanguages.map((lang) => (
-            <button
-              key={lang.code}
-              type="button"
-              onClick={() => setLanguage(lang.code as SupportedLanguage)}
-              className={`${styles.languageCard} ${language === lang.code ? styles.languageCardActive : ''}`}
-            >
-              <span className={styles.languageFlag}>{lang.flag}</span>
-              <div className={styles.languageInfo}>
-                <span className={styles.languageName}>{lang.name}</span>
-                <span className={styles.languageNative}>{lang.nativeName}</span>
-              </div>
-              {language === lang.code && (
-                <Check className={styles.languageCheck} />
-              )}
-            </button>
-          ))}
-        </div>
-      </FormGroup>
-
-      <div className={styles.languageHint}>
-        <Globe className={styles.languageHintIcon} />
-        <p>
-          Your language preference will be saved and applied across the entire application.
-          Text direction (LTR/RTL) will adjust automatically based on your selection.
-        </p>
-      </div>
-    </div>
-  );
-};
 
 interface JobPreferencesSectionProps {
   preferences: Partial<UserPreferences>;
@@ -1101,8 +1052,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUserUpdate }) => {
             onRetryFacebook={loadFacebookStatus}
           />
         );
-      case 'language':
-        return <LanguageSection />;
       case 'jobs':
         return <JobPreferencesSection preferences={settings.preferences} onChange={handlePreferencesChange} />;
       case 'travel':

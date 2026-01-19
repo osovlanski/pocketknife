@@ -361,6 +361,204 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* -----------------------------------------------------------------------------
+   Micro-Interactions & Hover Effects
+   ----------------------------------------------------------------------------- */
+
+/* Lift Effect - Cards that rise on hover */
+.hoverLift {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hoverLift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+/* Scale Effect - Subtle scale on hover */
+.hoverScale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hoverScale:hover {
+  transform: scale(1.02);
+}
+
+/* Glow Effect - Purple glow on hover */
+.hoverGlow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hoverGlow:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4),
+              0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+/* Shine Effect - Animated shine sweep */
+.hoverShine {
+  position: relative;
+  overflow: hidden;
+}
+
+.hoverShine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.hoverShine:hover::before {
+  left: 100%;
+}
+
+/* Border Glow - Animated border glow */
+.hoverBorderGlow {
+  transition: border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.hoverBorderGlow:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.1);
+}
+
+/* Button Press Effect */
+.pressable {
+  transition: transform 0.1s ease;
+}
+
+.pressable:active {
+  transform: scale(0.97);
+}
+
+/* Icon Rotation */
+.hoverRotate {
+  transition: transform 0.3s ease;
+}
+
+.hoverRotate:hover {
+  transform: rotate(15deg);
+}
+
+/* Icon Bounce */
+.hoverBounce {
+  transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.hoverBounce:hover {
+  transform: translateY(-3px);
+}
+
+/* Text Gradient Animation */
+.animatedGradientText {
+  background: linear-gradient(
+    90deg,
+    rgb(139, 92, 246),
+    rgb(236, 72, 153),
+    rgb(139, 92, 246)
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientMove 3s linear infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Fade In Up - Entry animation */
+.fadeInUp {
+  animation: fadeInUpAnim 0.4s ease-out forwards;
+}
+
+@keyframes fadeInUpAnim {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pop In - Bouncy entry animation */
+.popIn {
+  animation: popInAnim 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+@keyframes popInAnim {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Stagger Children - For list animations */
+.staggerChildren > *:nth-child(1) { animation-delay: 0ms; }
+.staggerChildren > *:nth-child(2) { animation-delay: 50ms; }
+.staggerChildren > *:nth-child(3) { animation-delay: 100ms; }
+.staggerChildren > *:nth-child(4) { animation-delay: 150ms; }
+.staggerChildren > *:nth-child(5) { animation-delay: 200ms; }
+.staggerChildren > *:nth-child(6) { animation-delay: 250ms; }
+.staggerChildren > *:nth-child(7) { animation-delay: 300ms; }
+.staggerChildren > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Focus Ring - Accessible focus indicator */
+.focusRing:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
+}
+
+/* Ripple Effect Container */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.ripple:active::after {
+  width: 200px;
+  height: 200px;
+  opacity: 0;
+}
+
 /* =============================================================================
    MOBILE RESPONSIVE STYLES
    ============================================================================= */

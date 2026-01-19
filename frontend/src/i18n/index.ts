@@ -1,10 +1,11 @@
 /**
  * i18n (Internationalization) Module
  * 
- * Provides multi-language support for the Pocketknife application.
+ * Provides translation support for the Pocketknife application.
+ * Currently English-only, but infrastructure is ready for future expansion.
  * 
  * Usage:
- * 1. Wrap your app with LanguageProvider
+ * 1. Wrap your app with LanguageProvider (in main.tsx)
  * 2. Use the useTranslation hook to get the t() function
  * 3. Use t('key.path') to get translated strings
  * 
@@ -13,14 +14,9 @@
  * import { useTranslation } from '../i18n';
  * 
  * const MyComponent = () => {
- *   const { t, language, setLanguage } = useTranslation();
+ *   const { t } = useTranslation();
  *   
- *   return (
- *     <div>
- *       <h1>{t('common.welcome')}</h1>
- *       <button onClick={() => setLanguage('he')}>עברית</button>
- *     </div>
- *   );
+ *   return <h1>{t('common.welcome')}</h1>;
  * };
  * ```
  */
@@ -37,8 +33,3 @@ export {
 
 // Export translations for direct access if needed
 export { default as enTranslations } from './translations/en.json';
-export { default as heTranslations } from './translations/he.json';
-export { default as esTranslations } from './translations/es.json';
-export { default as frTranslations } from './translations/fr.json';
-export { default as deTranslations } from './translations/de.json';
-

@@ -54,7 +54,8 @@ export interface UseTodoReturn {
 const DEFAULT_NEW_TASK: TaskData = {
   title: '',
   priority: 'medium',
-  category: 'personal'
+  category: 'personal',
+  syncEnabled: true  // Auto-sync to Google Calendar enabled by default
 };
 
 export const useTodo = (): UseTodoReturn => {
@@ -130,6 +131,8 @@ export const useTodo = (): UseTodoReturn => {
 
     try {
       setLoading(true);
+      const shouldSync = newTask.syncEnabled !== false; // Default to true
+      
       await todoApi.createTask({
         ...newTask,
         dueDate: selectedDate.toISOString()
@@ -137,14 +140,43 @@ export const useTodo = (): UseTodoReturn => {
       
       setNewTask(DEFAULT_NEW_TASK);
       setShowAddTask(false);
+      
+      // Refresh data
       await Promise.all([loadAgendaData(), loadTasksData()]);
+      
+      // Auto-sync to Google Calendar if enabled
+      if (shouldSync) {
+        setSyncing(true);
+        try {
+          const result = await todoApi.syncCalendar();
+          setLastSyncAt(result.lastSyncAt || new Date().toISOString());
+          await loadAgendaData(); // Refresh to show synced events
+        } catch (syncError) {
+          logger.warn('Auto-sync to calendar failed', { error: syncError });
+          // Don't alert - silent failure for auto-sync
+        } finally {
+          setSyncing(false);
+        }
+      }
+      
+      // Auto-learn patterns in background (silent, no alerts)
+      todoApi.learnPatterns()
+        .then((result) => {
+          if (result.patternsLearned > 0) {
+            loadRoutinesData(); // Refresh routines if new patterns learned
+          }
+        })
+        .catch((err) => {
+          logger.debug('Background pattern learning skipped', { error: err });
+        });
+        
     } catch (error) {
       logger.error('Failed to create task', { error });
       alert('Failed to create task. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [newTask, selectedDate, loadAgendaData, loadTasksData]);
+  }, [newTask, selectedDate, loadAgendaData, loadTasksData, loadRoutinesData]);
 
   const handleCompleteTask = useCallback(async (taskId: string, currentStatus: string) => {
     try {

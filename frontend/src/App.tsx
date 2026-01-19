@@ -18,6 +18,9 @@ import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL, SOCKET_URL } from './config';
 import logger from './services/logger';
 
+// i18n
+import { useTranslation } from './i18n';
+
 // Hooks
 import useAuth from './hooks/useAuth';
 import useNotification from './hooks/useNotification';
@@ -81,18 +84,19 @@ interface LogEntry {
 // TAB CONFIGURATION
 // =============================================================================
 
-const agentTabs: TabConfig[] = [
-  { id: 'email', label: 'Email', icon: Mail, color: 'blue', path: '/agents/email' },
-  { id: 'jobs', label: 'Jobs', icon: Briefcase, color: 'purple', path: '/agents/jobs' },
-  { id: 'travel', label: 'Travel', icon: Plane, color: 'green', path: '/agents/travel' },
-  { id: 'learning', label: 'Learning', icon: BookOpen, color: 'amber', path: '/agents/learning' },
+// Agent tabs configuration - labels will be translated in component
+const getAgentTabs = (t: (key: string) => string): TabConfig[] => [
+  { id: 'email', label: t('nav.email'), icon: Mail, color: 'blue', path: '/agents/email' },
+  { id: 'jobs', label: t('nav.jobs'), icon: Briefcase, color: 'purple', path: '/agents/jobs' },
+  { id: 'travel', label: t('nav.travel'), icon: Plane, color: 'green', path: '/agents/travel' },
+  { id: 'learning', label: t('nav.learning'), icon: BookOpen, color: 'amber', path: '/agents/learning' },
   // Problems/Coding Practice is now part of Jobs > Mock Interview > Coding Practice tab
-  { id: 'todo', label: 'ToDo', icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
-  { id: 'shopping', label: 'Shopping', icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
-  { id: 'cooking', label: 'Cooking', icon: Utensils, color: 'lime', path: '/agents/cooking' },
-  { id: 'news', label: 'News', icon: Newspaper, color: 'red', path: '/agents/news' },
-  { id: 'diy', label: 'DIY', icon: Wrench, color: 'amber', path: '/agents/diy' },
-  { id: 'canvas', label: 'Canvas', icon: PenTool, color: 'indigo', path: '/tools/canvas' }
+  { id: 'todo', label: t('nav.todo'), icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
+  { id: 'shopping', label: t('nav.shopping'), icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
+  { id: 'cooking', label: t('nav.cooking'), icon: Utensils, color: 'lime', path: '/agents/cooking' },
+  { id: 'news', label: t('nav.news'), icon: Newspaper, color: 'red', path: '/agents/news' },
+  { id: 'diy', label: t('nav.diy'), icon: Wrench, color: 'amber', path: '/agents/diy' },
+  { id: 'canvas', label: t('nav.canvas'), icon: PenTool, color: 'indigo', path: '/tools/canvas' }
 ];
 
 // =============================================================================
@@ -159,6 +163,7 @@ const App: React.FC = () => {
   const auth = useAuth();
   const notifications = useNotification();
   const jobSearchController = useSearchController('jobs');
+  const { t } = useTranslation();
 
   // ---------------------------------------------------------------------------
   // State
@@ -197,6 +202,23 @@ const App: React.FC = () => {
       const mode = params.get('mode');
       if (mode === 'interview') {
         setJobsMode('interview');
+      } else if (mode === 'search') {
+        setJobsMode('search');
+      }
+    }
+  }, [location]);
+
+  // Check URL for mode parameter on travel page
+  useEffect(() => {
+    if (location.pathname === '/agents/travel') {
+      const params = new URLSearchParams(location.search);
+      const mode = params.get('mode');
+      if (mode === 'ski') {
+        setTravelMode('ski');
+      } else if (mode === 'israel') {
+        setTravelMode('israel');
+      } else if (mode === 'flights') {
+        setTravelMode('flights');
       }
     }
   }, [location]);
@@ -211,6 +233,9 @@ const App: React.FC = () => {
   const isOnAgentPage = isAgentRoute(location.pathname);
   const isOnHomePage = location.pathname === '/';
 
+  // Get translated agent tabs
+  const agentTabs = getAgentTabs(t);
+  
   // Filter agent tabs based on enabled status
   const enabledAgentTabs = agentTabs.filter(tab => 
     agentStatus[tab.id as keyof AgentStatus] !== false
@@ -534,8 +559,8 @@ const App: React.FC = () => {
           {/* Jobs Agent */}
           <Route path="/agents/jobs" element={
             <AgentLayout
-              title="🤖 AI Job Search Agent"
-              subtitle="Upload your CV, search jobs, and practice interviews with AI"
+              title={`🤖 ${t('jobs.title')}`}
+              subtitle={t('jobs.subtitle')}
               gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
             >
               {/* Jobs Mode Switcher */}
@@ -551,7 +576,7 @@ const App: React.FC = () => {
                              }`}
                 >
                   <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Job Search</span>
+                  <span>{t('jobs.jobSearch')}</span>
                 </button>
                 <button
                   onClick={() => setJobsMode('interview')}
@@ -564,7 +589,7 @@ const App: React.FC = () => {
                              }`}
                 >
                   <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Mock Interview</span>
+                  <span>{t('jobs.mockInterview')}</span>
                 </button>
               </div>
 
@@ -588,8 +613,8 @@ const App: React.FC = () => {
           {/* Travel Agent */}
           <Route path="/agents/travel" element={
             <AgentLayout
-              title="✈️ AI Travel Deals Agent"
-              subtitle="Find the best flight and hotel deals with AI-powered trip planning"
+              title={`✈️ ${t('travel.title')}`}
+              subtitle={t('travel.subtitle')}
               gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
             >
               {/* Travel Mode Switcher */}
