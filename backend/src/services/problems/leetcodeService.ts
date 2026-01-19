@@ -59,7 +59,7 @@ export interface ProblemListFilters {
 // =============================================================================
 
 class LeetCodeService {
-  private readonly baseUrl = 'https://leetcode.com/graphql';
+  private readonly baseUrl = configService.get('problems.leetcode.graphqlUrl', 'https://leetcode.com/graphql');
   private readonly timeout = configService.get('problems.leetcode.timeoutMs', 10000);
 
   /**
@@ -418,4 +418,5 @@ class LeetCodeService {
 // Export singleton
 export const leetcodeService = new LeetCodeService();
 export default leetcodeService;
+
 
