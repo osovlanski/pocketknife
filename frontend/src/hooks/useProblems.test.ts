@@ -25,7 +25,8 @@ vi.mock('../config', () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
 
 vi.mock('../services/logger', () => ({
   default: {
@@ -37,14 +38,14 @@ vi.mock('../services/logger', () => ({
 }));
 
 // Mock window.alert
-global.alert = vi.fn();
+vi.stubGlobal('alert', vi.fn());
 
 describe('useProblems', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
     // Setup default fetch mock
-    (global.fetch as any).mockResolvedValue({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ problems: [] })
     });

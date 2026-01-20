@@ -24,6 +24,21 @@ vi.mock('../../src/services/core/databaseService', () => ({
   }
 }));
 
+vi.mock('../../src/utils/logger', () => ({
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    fail: vi.fn(),
+    search: vi.fn(),
+    processing: vi.fn(),
+    api: vi.fn(),
+    db: vi.fn(),
+    success: vi.fn(),
+    found: vi.fn()
+  }
+}));
+
 describe('Shopping Controller', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
@@ -31,7 +46,6 @@ describe('Shopping Controller', () => {
   let mockStatus: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    vi.resetModules();
     vi.clearAllMocks();
     
     mockJson = vi.fn();
@@ -147,6 +161,7 @@ describe('Shopping Controller', () => {
 
       const { getDeals } = await import('../../src/controllers/shoppingController');
 
+      mockReq.query = { userId: 'user-123' };
       await getDeals(mockReq as Request, mockRes as Response);
 
       expect(mockJson).toHaveBeenCalled();
@@ -158,6 +173,7 @@ describe('Shopping Controller', () => {
       const { getDeals } = await import('../../src/controllers/shoppingController');
       
       mockReq.query = {
+        userId: 'user-123',
         source: 'amazon',
         category: 'electronics',
         minPrice: '100',
@@ -189,7 +205,7 @@ describe('Shopping Controller', () => {
       const { saveProduct } = await import('../../src/controllers/shoppingController');
       
       mockReq.params = { id: 'prod-1' };
-      mockReq.body = {};
+      mockReq.body = { userId: 'user-123' };
 
       await saveProduct(mockReq as Request, mockRes as Response);
 
@@ -221,7 +237,7 @@ describe('Shopping Controller', () => {
       const { unsaveProduct } = await import('../../src/controllers/shoppingController');
       
       mockReq.params = { id: 'prod-1' };
-      mockReq.body = {};
+      mockReq.body = { userId: 'user-123' };
 
       await unsaveProduct(mockReq as Request, mockRes as Response);
 
@@ -239,6 +255,7 @@ describe('Shopping Controller', () => {
 
       const { getSavedProducts } = await import('../../src/controllers/shoppingController');
 
+      mockReq.query = { userId: 'user-123' };
       await getSavedProducts(mockReq as Request, mockRes as Response);
 
       expect(mockJson).toHaveBeenCalled();
@@ -255,7 +272,7 @@ describe('Shopping Controller', () => {
       const { setPriceAlert } = await import('../../src/controllers/shoppingController');
       
       mockReq.params = { id: 'prod-1' };
-      mockReq.body = { targetPrice: 500 };
+      mockReq.body = { userId: 'user-123', targetPrice: 500 };
 
       await setPriceAlert(mockReq as Request, mockRes as Response);
 
@@ -273,6 +290,7 @@ describe('Shopping Controller', () => {
 
       const { getPriceAlerts } = await import('../../src/controllers/shoppingController');
 
+      mockReq.query = { userId: 'user-123' };
       await getPriceAlerts(mockReq as Request, mockRes as Response);
 
       expect(mockJson).toHaveBeenCalled();
@@ -288,7 +306,7 @@ describe('Shopping Controller', () => {
 
       const { updateInterests } = await import('../../src/controllers/shoppingController');
       
-      mockReq.body = { interests: ['electronics', 'gaming'] };
+      mockReq.body = { userId: 'user-123', interests: ['electronics', 'gaming'] };
 
       await updateInterests(mockReq as Request, mockRes as Response);
 
@@ -306,6 +324,7 @@ describe('Shopping Controller', () => {
 
       const { getSuggestions } = await import('../../src/controllers/shoppingController');
 
+      mockReq.query = { userId: 'user-123' };
       await getSuggestions(mockReq as Request, mockRes as Response);
 
       expect(mockJson).toHaveBeenCalled();

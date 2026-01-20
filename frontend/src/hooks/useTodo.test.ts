@@ -37,7 +37,7 @@ vi.mock('../services/logger', () => ({
 }));
 
 // Mock window.alert
-global.alert = vi.fn();
+vi.stubGlobal('alert', vi.fn());
 
 describe('useTodo', () => {
   beforeEach(() => {
