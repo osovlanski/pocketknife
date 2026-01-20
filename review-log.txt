@@ -15767,3 +15767,1871 @@ diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-
 [2026-01-19T09:26:32.921Z] 
 [2026-01-19T09:26:32.926Z] BLOCKED - Automated score: 25/100 (min: 80)
 [2026-01-19T11:26:34+02:00] Push BLOCKED - Exit code: 1
+[2026-01-19T11:39:30+02:00] Pre-push hook triggered
+[2026-01-19T09:39:32.341Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T09:39:32.357Z] 📋 Minimum passing score: 80/100
+[2026-01-19T09:39:32.359Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T09:39:32.363Z] 
+[2026-01-19T09:39:32.365Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:39:32.366Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T09:39:32.368Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:39:32.370Z] 
+[2026-01-19T09:39:32.419Z] 📅 Review started at: 1/19/2026, 11:39:32 AM
+[2026-01-19T09:39:32.421Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T09:39:32.423Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T09:39:32.425Z] ────────────────────────────────────────
+[2026-01-19T09:39:32.990Z] ✅ Git repository detected
+[2026-01-19T09:39:32.993Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T09:39:32.995Z] ────────────────────────────────────────
+[2026-01-19T09:39:33.584Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T09:39:33.587Z] 🎯 Comparing against: main
+[2026-01-19T09:39:34.184Z] ✅ Base branch 'main' exists
+[2026-01-19T09:39:34.186Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T09:39:34.188Z] ────────────────────────────────────────
+[2026-01-19T09:39:38.961Z] 
+▶ Step 4: Change Summary
+[2026-01-19T09:39:38.964Z] ────────────────────────────────────────
+[2026-01-19T09:39:38.967Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  218 +-
+ frontend/src/components/DIYAgent.tsx               |  213 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  101 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |   59 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  132 +-
+ frontend/src/components/ToDoAgent.tsx              |  236 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/index.css                             |   82 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 112 files changed, 17426 insertions(+), 2651 deletions(-)
+
+[2026-01-19T09:39:38.970Z] 📊 Files changed: 112
+[2026-01-19T09:39:38.972Z] ➕ Lines added: 17426
+[2026-01-19T09:39:38.975Z] ➖ Lines removed: 2651
+[2026-01-19T09:39:38.977Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T09:39:38.979Z] ────────────────────────────────────────
+[2026-01-19T09:39:38.987Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:39:38.989Z] index f4d90a8..365eb7e 100644
+[2026-01-19T09:39:38.991Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:39:38.993Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:39:38.995Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T09:39:38.998Z]  
+[2026-01-19T09:39:39.000Z]  ---
+[2026-01-19T09:39:39.002Z]  
+[2026-01-19T09:39:39.004Z] -## Step 6: Configuration
+[2026-01-19T09:39:39.006Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T09:39:39.010Z]  
+[2026-01-19T09:39:39.013Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:39:39.015Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T09:39:39.017Z] +
+[2026-01-19T09:39:39.020Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T09:39:39.022Z] +
+[2026-01-19T09:39:39.029Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:39:39.032Z]  
+[2026-01-19T09:39:39.034Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T09:39:39.036Z]  
+[2026-01-19T09:39:39.038Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T09:39:39.044Z]    'yourAgent.maxResults': 20,
+[2026-01-19T09:39:39.046Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T09:39:39.048Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T09:39:39.049Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T09:39:39.051Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T09:39:39.053Z]  } as const;
+[2026-01-19T09:39:39.054Z]  ```
+[2026-01-19T09:39:39.056Z]  
+[2026-01-19T09:39:39.063Z] +### 6b. Using Config in Your Agent
+[2026-01-19T09:39:39.065Z] +
+[2026-01-19T09:39:39.067Z] +```typescript
+[2026-01-19T09:39:39.069Z] +// In your agent or service
+[2026-01-19T09:39:39.071Z] +import { configService } from '../services/core/configService';
+[2026-01-19T09:39:39.073Z] +
+[2026-01-19T09:39:39.075Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T09:39:39.077Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T09:39:39.079Z] +```
+[2026-01-19T09:39:39.081Z] +
+[2026-01-19T09:39:39.083Z] +### 6c. Business Rules (Optional)
+[2026-01-19T09:39:39.084Z] +
+[2026-01-19T09:39:39.086Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T09:39:39.087Z] +
+[2026-01-19T09:39:39.089Z] +```typescript
+[2026-01-19T09:39:39.090Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T09:39:39.092Z] +
+[2026-01-19T09:39:39.094Z] +const context: RuleContext = {
+[2026-01-19T09:39:39.096Z] +  agentId: 'your-agent',
+[2026-01-19T09:39:39.099Z] +  action: 'score-item',
+[2026-01-19T09:39:39.101Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T09:39:39.103Z] +};
+[2026-01-19T09:39:39.105Z] +
+[2026-01-19T09:39:39.107Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T09:39:39.110Z] +const score = result.finalContext.data.score;
+[2026-01-19T09:39:39.115Z] +```
+[2026-01-19T09:39:39.117Z] +
+[2026-01-19T09:39:39.132Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T09:39:39.138Z] +
+[2026-01-19T09:39:39.141Z] +For feature toggles or A/B tests:
+[2026-01-19T09:39:39.143Z] +
+[2026-01-19T09:39:39.145Z] +```typescript
+[2026-01-19T09:39:39.147Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T09:39:39.149Z] +
+[2026-01-19T09:39:39.151Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T09:39:39.153Z] +  // New implementation
+[2026-01-19T09:39:39.154Z] +}
+[2026-01-19T09:39:39.156Z] +```
+[2026-01-19T09:39:39.157Z] +
+[2026-01-19T09:39:39.159Z]  ---
+[2026-01-19T09:39:39.161Z]  
+[2026-01-19T09:39:39.163Z]  ## Step 7: Frontend API Service
+[2026-01-19T09:39:39.167Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:39:39.169Z] index 03c1829..c6f8771 100644
+[2026-01-19T09:39:39.171Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:39:39.173Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:39:39.176Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T09:39:39.177Z]  ]);
+[2026-01-19T09:39:39.180Z]  ```
+[2026-01-19T09:39:39.183Z]  
+[2026-01-19T09:39:39.186Z] -### Configuration Management
+[2026-01-19T09:39:39.188Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T09:39:39.190Z] +
+[2026-01-19T09:39:39.192Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T09:39:39.194Z] +
+[2026-01-19T09:39:39.198Z] +| Tier | Service | Use For |
+[2026-01-19T09:39:39.200Z] +| :--- | :--- | :--- |
+[2026-01-19T09:39:39.202Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T09:39:39.205Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T09:39:39.207Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T09:39:39.209Z]  
+[2026-01-19T09:39:39.211Z]  ```typescript
+[2026-01-19T09:39:39.213Z] -// NEVER hardcode values
+[2026-01-19T09:39:39.215Z] -// Bad
+[2026-01-19T09:39:39.218Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T09:39:39.220Z]  const timeout = 5000;
+[2026-01-19T09:39:39.221Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T09:39:39.223Z] +const maxResults = 100;
+[2026-01-19T09:39:39.224Z] +if (score > 80) { /* ... */ }
+[2026-01-19T09:39:39.226Z]  
+[2026-01-19T09:39:39.230Z] -// Good - use configService or environment variables
+[2026-01-19T09:39:39.247Z] 
+... and 24617 more lines
+[2026-01-19T09:39:39.248Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T09:39:39.250Z] ────────────────────────────────────────
+[2026-01-19T09:39:39.251Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T09:39:39.253Z]    Checking backend types...
+[2026-01-19T09:41:39.272Z]    ✅ Backend type check passed (with warnings)
+[2026-01-19T09:41:39.281Z]    Checking frontend types...
+[2026-01-19T09:42:41.535Z]    ✅ Frontend type check passed
+[2026-01-19T09:42:41.543Z] ✅ All type checks passed!
+[2026-01-19T09:42:41.546Z] 
+▶ Step 7: Running Tests
+[2026-01-19T09:42:41.548Z] ────────────────────────────────────────
+[2026-01-19T09:42:41.550Z] 🧪 Running test suites...
+[2026-01-19T09:42:41.552Z]    Running backend tests...
+[2026-01-19T09:43:45.970Z]    ✅ Backend tests passed
+[2026-01-19T09:43:45.981Z]    Running frontend tests...
+[2026-01-19T09:45:23.017Z]    ✅ Frontend tests passed
+[2026-01-19T09:45:23.025Z] ✅ All tests passed!
+[2026-01-19T09:45:23.027Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T09:45:23.029Z] ────────────────────────────────────────
+[2026-01-19T09:45:23.221Z] 
+🔴 Critical Issues Found:
+[2026-01-19T09:45:23.224Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-19T09:45:23.226Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-19T09:45:23.228Z]    🔴 Hardcoded external URL: Found 3 instance(s)
+[2026-01-19T09:45:23.231Z] 
+🟡 Warnings:
+[2026-01-19T09:45:23.233Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T09:45:23.235Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T09:45:23.238Z] 
+📊 Automated Pre-Score: 55/100
+[2026-01-19T09:45:23.240Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T09:45:23.242Z] ────────────────────────────────────────
+[2026-01-19T09:45:23.244Z] 
+[2026-01-19T09:45:23.246Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:45:23.249Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T09:45:23.251Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T09:45:23.253Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T09:45:23.256Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:45:23.258Z] 
+[2026-01-19T09:45:23.260Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T09:45:23.262Z] 
+[2026-01-19T09:45:23.264Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T09:45:23.266Z] 
+[2026-01-19T09:45:23.268Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T09:45:23.269Z] ────────────────────────────────────────
+[2026-01-19T09:45:23.275Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T09:45:23.277Z] 📝 Pre-push automated score: 55
+[2026-01-19T09:45:23.279Z] 
+[2026-01-19T09:45:23.280Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:45:23.283Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-19T09:45:23.285Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:45:23.287Z] 
+[2026-01-19T09:45:23.290Z]    Score: 55/100 (Minimum required: 80)
+[2026-01-19T09:45:23.291Z] 
+[2026-01-19T09:45:23.293Z]    Fix the following issues before pushing:
+[2026-01-19T09:45:23.295Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-19T09:45:23.297Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-19T09:45:23.299Z]    🔴 Hardcoded external URL: Found 3 instance(s)
+[2026-01-19T09:45:23.301Z] 
+[2026-01-19T09:45:23.303Z]    Also consider fixing these warnings:
+[2026-01-19T09:45:23.305Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T09:45:23.307Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T09:45:23.309Z] 
+[2026-01-19T09:45:23.312Z]    After fixing, run: git push
+[2026-01-19T09:45:23.314Z] 
+[2026-01-19T09:45:23.316Z] BLOCKED - Automated score: 55/100 (min: 80)
+[2026-01-19T11:45:23+02:00] Push BLOCKED - Exit code: 1
+[2026-01-19T09:47:24.029Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T09:47:24.039Z] 📋 Minimum passing score: 80/100
+[2026-01-19T09:47:24.040Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T09:47:24.043Z] 
+[2026-01-19T09:47:24.045Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:47:24.046Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T09:47:24.048Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:47:24.049Z] 
+[2026-01-19T09:47:24.077Z] 📅 Review started at: 1/19/2026, 11:47:24 AM
+[2026-01-19T09:47:24.079Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T09:47:24.080Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T09:47:24.081Z] ────────────────────────────────────────
+[2026-01-19T09:47:24.626Z] ✅ Git repository detected
+[2026-01-19T09:47:24.628Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T09:47:24.629Z] ────────────────────────────────────────
+[2026-01-19T09:47:25.207Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T09:47:25.208Z] 🎯 Comparing against: main
+[2026-01-19T09:47:25.670Z] ✅ Base branch 'main' exists
+[2026-01-19T09:47:25.670Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T09:47:25.671Z] ────────────────────────────────────────
+[2026-01-19T09:47:28.964Z] 
+▶ Step 4: Change Summary
+[2026-01-19T09:47:28.965Z] ────────────────────────────────────────
+[2026-01-19T09:47:28.966Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  218 +-
+ frontend/src/components/DIYAgent.tsx               |  213 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  101 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |   59 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  132 +-
+ frontend/src/components/ToDoAgent.tsx              |  236 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/index.css                             |   82 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 112 files changed, 17426 insertions(+), 2651 deletions(-)
+
+[2026-01-19T09:47:28.967Z] 📊 Files changed: 112
+[2026-01-19T09:47:28.968Z] ➕ Lines added: 17426
+[2026-01-19T09:47:28.969Z] ➖ Lines removed: 2651
+[2026-01-19T09:47:28.970Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T09:47:28.971Z] ────────────────────────────────────────
+[2026-01-19T09:47:28.976Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:47:28.977Z] index f4d90a8..365eb7e 100644
+[2026-01-19T09:47:28.978Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:47:28.979Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:47:28.980Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T09:47:28.981Z]  
+[2026-01-19T09:47:28.982Z]  ---
+[2026-01-19T09:47:28.983Z]  
+[2026-01-19T09:47:28.984Z] -## Step 6: Configuration
+[2026-01-19T09:47:28.986Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T09:47:28.987Z]  
+[2026-01-19T09:47:28.988Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:47:28.989Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T09:47:28.991Z] +
+[2026-01-19T09:47:28.992Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T09:47:28.993Z] +
+[2026-01-19T09:47:28.994Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:47:28.995Z]  
+[2026-01-19T09:47:28.996Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T09:47:28.997Z]  
+[2026-01-19T09:47:28.998Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T09:47:28.999Z]    'yourAgent.maxResults': 20,
+[2026-01-19T09:47:29.000Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T09:47:29.001Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T09:47:29.002Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T09:47:29.003Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T09:47:29.004Z]  } as const;
+[2026-01-19T09:47:29.005Z]  ```
+[2026-01-19T09:47:29.007Z]  
+[2026-01-19T09:47:29.008Z] +### 6b. Using Config in Your Agent
+[2026-01-19T09:47:29.009Z] +
+[2026-01-19T09:47:29.010Z] +```typescript
+[2026-01-19T09:47:29.011Z] +// In your agent or service
+[2026-01-19T09:47:29.012Z] +import { configService } from '../services/core/configService';
+[2026-01-19T09:47:29.013Z] +
+[2026-01-19T09:47:29.015Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T09:47:29.016Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T09:47:29.017Z] +```
+[2026-01-19T09:47:29.018Z] +
+[2026-01-19T09:47:29.019Z] +### 6c. Business Rules (Optional)
+[2026-01-19T09:47:29.020Z] +
+[2026-01-19T09:47:29.021Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T09:47:29.023Z] +
+[2026-01-19T09:47:29.024Z] +```typescript
+[2026-01-19T09:47:29.025Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T09:47:29.026Z] +
+[2026-01-19T09:47:29.028Z] +const context: RuleContext = {
+[2026-01-19T09:47:29.030Z] +  agentId: 'your-agent',
+[2026-01-19T09:47:29.031Z] +  action: 'score-item',
+[2026-01-19T09:47:29.032Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T09:47:29.033Z] +};
+[2026-01-19T09:47:29.034Z] +
+[2026-01-19T09:47:29.035Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T09:47:29.037Z] +const score = result.finalContext.data.score;
+[2026-01-19T09:47:29.038Z] +```
+[2026-01-19T09:47:29.040Z] +
+[2026-01-19T09:47:29.041Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T09:47:29.042Z] +
+[2026-01-19T09:47:29.043Z] +For feature toggles or A/B tests:
+[2026-01-19T09:47:29.045Z] +
+[2026-01-19T09:47:29.046Z] +```typescript
+[2026-01-19T09:47:29.048Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T09:47:29.049Z] +
+[2026-01-19T09:47:29.051Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T09:47:29.052Z] +  // New implementation
+[2026-01-19T09:47:29.053Z] +}
+[2026-01-19T09:47:29.055Z] +```
+[2026-01-19T09:47:29.056Z] +
+[2026-01-19T09:47:29.058Z]  ---
+[2026-01-19T09:47:29.059Z]  
+[2026-01-19T09:47:29.060Z]  ## Step 7: Frontend API Service
+[2026-01-19T09:47:29.061Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:47:29.062Z] index 03c1829..c6f8771 100644
+[2026-01-19T09:47:29.064Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:47:29.065Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:47:29.067Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T09:47:29.068Z]  ]);
+[2026-01-19T09:47:29.070Z]  ```
+[2026-01-19T09:47:29.071Z]  
+[2026-01-19T09:47:29.072Z] -### Configuration Management
+[2026-01-19T09:47:29.073Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T09:47:29.075Z] +
+[2026-01-19T09:47:29.076Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T09:47:29.077Z] +
+[2026-01-19T09:47:29.079Z] +| Tier | Service | Use For |
+[2026-01-19T09:47:29.080Z] +| :--- | :--- | :--- |
+[2026-01-19T09:47:29.082Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T09:47:29.083Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T09:47:29.086Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T09:47:29.088Z]  
+[2026-01-19T09:47:29.089Z]  ```typescript
+[2026-01-19T09:47:29.090Z] -// NEVER hardcode values
+[2026-01-19T09:47:29.091Z] -// Bad
+[2026-01-19T09:47:29.093Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T09:47:29.094Z]  const timeout = 5000;
+[2026-01-19T09:47:29.096Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T09:47:29.098Z] +const maxResults = 100;
+[2026-01-19T09:47:29.100Z] +if (score > 80) { /* ... */ }
+[2026-01-19T09:47:29.101Z]  
+[2026-01-19T09:47:29.103Z] -// Good - use configService or environment variables
+[2026-01-19T09:47:29.113Z] 
+... and 24617 more lines
+[2026-01-19T09:47:29.114Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T09:47:29.116Z] ────────────────────────────────────────
+[2026-01-19T09:47:29.117Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T09:47:29.118Z]    Checking backend types...
+[2026-01-19T09:48:17.202Z]    ✅ Backend type check passed
+[2026-01-19T09:48:17.205Z]    Checking frontend types...
+[2026-01-19T09:48:40.554Z]    ✅ Frontend type check passed
+[2026-01-19T09:48:40.557Z] ✅ All type checks passed!
+[2026-01-19T09:48:40.558Z] 
+▶ Step 7: Running Tests
+[2026-01-19T09:48:40.559Z] ────────────────────────────────────────
+[2026-01-19T09:48:40.560Z] 🧪 Running test suites...
+[2026-01-19T09:48:40.561Z]    Running backend tests...
+[2026-01-19T09:49:10.822Z]    ✅ Backend tests passed
+[2026-01-19T09:49:10.827Z]    Running frontend tests...
+[2026-01-19T09:50:23.030Z]    ✅ Frontend tests passed
+[2026-01-19T09:50:23.036Z] ✅ All tests passed!
+[2026-01-19T09:50:23.039Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T09:50:23.042Z] ────────────────────────────────────────
+[2026-01-19T09:50:23.241Z] 
+🔴 Critical Issues Found:
+[2026-01-19T09:50:23.244Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-19T09:50:23.246Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-19T09:50:23.255Z]    🔴 Hardcoded external URL: Found 3 instance(s)
+[2026-01-19T09:50:23.263Z] 
+🟡 Warnings:
+[2026-01-19T09:50:23.266Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T09:50:23.268Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T09:50:23.270Z] 
+📊 Automated Pre-Score: 55/100
+[2026-01-19T09:50:23.272Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T09:50:23.274Z] ────────────────────────────────────────
+[2026-01-19T09:50:23.276Z] 
+[2026-01-19T09:50:23.278Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:50:23.280Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T09:50:23.282Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T09:50:23.284Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T09:50:23.287Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:50:23.289Z] 
+[2026-01-19T09:50:23.291Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T09:50:23.299Z] 
+[2026-01-19T09:50:23.302Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T09:50:23.304Z] 
+[2026-01-19T09:50:23.306Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T09:50:23.308Z] ────────────────────────────────────────
+[2026-01-19T09:50:23.318Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T09:50:23.321Z] 📝 Pre-push automated score: 55
+[2026-01-19T09:50:23.324Z] 
+[2026-01-19T09:50:23.337Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:50:23.340Z] ║  🚫 PUSH BLOCKED BY PRINCIPAL ARCHITECT                          ║
+[2026-01-19T09:50:23.342Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:50:23.344Z] 
+[2026-01-19T09:50:23.348Z]    Score: 55/100 (Minimum required: 80)
+[2026-01-19T09:50:23.351Z] 
+[2026-01-19T09:50:23.354Z]    Fix the following issues before pushing:
+[2026-01-19T09:50:23.357Z]    🔴 Hardcoded port number: Found 2 instance(s)
+[2026-01-19T09:50:23.359Z]    🔴 Hardcoded localhost URL: Found 2 instance(s)
+[2026-01-19T09:50:23.362Z]    🔴 Hardcoded external URL: Found 3 instance(s)
+[2026-01-19T09:50:23.367Z] 
+[2026-01-19T09:50:23.370Z]    Also consider fixing these warnings:
+[2026-01-19T09:50:23.373Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T09:50:23.376Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T09:50:23.378Z] 
+[2026-01-19T09:50:23.381Z]    After fixing, run: git push
+[2026-01-19T09:50:23.384Z] 
+[2026-01-19T09:50:23.386Z] BLOCKED - Automated score: 55/100 (min: 80)
+[2026-01-19T09:53:23.658Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T09:53:23.696Z] 📋 Minimum passing score: 80/100
+[2026-01-19T09:53:23.710Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T09:53:23.717Z] 
+[2026-01-19T09:53:23.722Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:53:23.725Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T09:53:23.737Z] ════════════════════════════════════════════════════════════
+[2026-01-19T09:53:23.742Z] 
+[2026-01-19T09:53:23.821Z] 📅 Review started at: 1/19/2026, 11:53:23 AM
+[2026-01-19T09:53:23.856Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T09:53:23.866Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T09:53:23.870Z] ────────────────────────────────────────
+[2026-01-19T09:53:26.005Z] ✅ Git repository detected
+[2026-01-19T09:53:26.008Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T09:53:26.011Z] ────────────────────────────────────────
+[2026-01-19T09:53:27.963Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T09:53:27.965Z] 🎯 Comparing against: main
+[2026-01-19T09:53:29.803Z] ✅ Base branch 'main' exists
+[2026-01-19T09:53:29.806Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T09:53:29.809Z] ────────────────────────────────────────
+[2026-01-19T09:53:39.039Z] 
+▶ Step 4: Change Summary
+[2026-01-19T09:53:39.045Z] ────────────────────────────────────────
+[2026-01-19T09:53:39.047Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  218 +-
+ frontend/src/components/DIYAgent.tsx               |  213 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  101 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |   59 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  132 +-
+ frontend/src/components/ToDoAgent.tsx              |  236 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/index.css                             |   82 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 112 files changed, 17426 insertions(+), 2651 deletions(-)
+
+[2026-01-19T09:53:39.050Z] 📊 Files changed: 112
+[2026-01-19T09:53:39.052Z] ➕ Lines added: 17426
+[2026-01-19T09:53:39.054Z] ➖ Lines removed: 2651
+[2026-01-19T09:53:39.057Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T09:53:39.059Z] ────────────────────────────────────────
+[2026-01-19T09:53:39.066Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:53:39.069Z] index f4d90a8..365eb7e 100644
+[2026-01-19T09:53:39.072Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:53:39.074Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T09:53:39.077Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T09:53:39.079Z]  
+[2026-01-19T09:53:39.082Z]  ---
+[2026-01-19T09:53:39.084Z]  
+[2026-01-19T09:53:39.086Z] -## Step 6: Configuration
+[2026-01-19T09:53:39.089Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T09:53:39.092Z]  
+[2026-01-19T09:53:39.095Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:53:39.097Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T09:53:39.100Z] +
+[2026-01-19T09:53:39.103Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T09:53:39.106Z] +
+[2026-01-19T09:53:39.108Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T09:53:39.111Z]  
+[2026-01-19T09:53:39.113Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T09:53:39.115Z]  
+[2026-01-19T09:53:39.117Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T09:53:39.120Z]    'yourAgent.maxResults': 20,
+[2026-01-19T09:53:39.122Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T09:53:39.125Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T09:53:39.127Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T09:53:39.129Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T09:53:39.132Z]  } as const;
+[2026-01-19T09:53:39.134Z]  ```
+[2026-01-19T09:53:39.137Z]  
+[2026-01-19T09:53:39.140Z] +### 6b. Using Config in Your Agent
+[2026-01-19T09:53:39.143Z] +
+[2026-01-19T09:53:39.145Z] +```typescript
+[2026-01-19T09:53:39.147Z] +// In your agent or service
+[2026-01-19T09:53:39.149Z] +import { configService } from '../services/core/configService';
+[2026-01-19T09:53:39.152Z] +
+[2026-01-19T09:53:39.154Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T09:53:39.156Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T09:53:39.158Z] +```
+[2026-01-19T09:53:39.160Z] +
+[2026-01-19T09:53:39.162Z] +### 6c. Business Rules (Optional)
+[2026-01-19T09:53:39.164Z] +
+[2026-01-19T09:53:39.166Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T09:53:39.169Z] +
+[2026-01-19T09:53:39.171Z] +```typescript
+[2026-01-19T09:53:39.173Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T09:53:39.176Z] +
+[2026-01-19T09:53:39.178Z] +const context: RuleContext = {
+[2026-01-19T09:53:39.183Z] +  agentId: 'your-agent',
+[2026-01-19T09:53:39.185Z] +  action: 'score-item',
+[2026-01-19T09:53:39.188Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T09:53:39.191Z] +};
+[2026-01-19T09:53:39.194Z] +
+[2026-01-19T09:53:39.196Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T09:53:39.199Z] +const score = result.finalContext.data.score;
+[2026-01-19T09:53:39.203Z] +```
+[2026-01-19T09:53:39.207Z] +
+[2026-01-19T09:53:39.210Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T09:53:39.212Z] +
+[2026-01-19T09:53:39.216Z] +For feature toggles or A/B tests:
+[2026-01-19T09:53:39.218Z] +
+[2026-01-19T09:53:39.221Z] +```typescript
+[2026-01-19T09:53:39.224Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T09:53:39.228Z] +
+[2026-01-19T09:53:39.232Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T09:53:39.236Z] +  // New implementation
+[2026-01-19T09:53:39.241Z] +}
+[2026-01-19T09:53:39.244Z] +```
+[2026-01-19T09:53:39.247Z] +
+[2026-01-19T09:53:39.250Z]  ---
+[2026-01-19T09:53:39.252Z]  
+[2026-01-19T09:53:39.255Z]  ## Step 7: Frontend API Service
+[2026-01-19T09:53:39.257Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:53:39.259Z] index 03c1829..c6f8771 100644
+[2026-01-19T09:53:39.261Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:53:39.267Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T09:53:39.270Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T09:53:39.274Z]  ]);
+[2026-01-19T09:53:39.278Z]  ```
+[2026-01-19T09:53:39.281Z]  
+[2026-01-19T09:53:39.285Z] -### Configuration Management
+[2026-01-19T09:53:39.288Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T09:53:39.290Z] +
+[2026-01-19T09:53:39.292Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T09:53:39.294Z] +
+[2026-01-19T09:53:39.296Z] +| Tier | Service | Use For |
+[2026-01-19T09:53:39.299Z] +| :--- | :--- | :--- |
+[2026-01-19T09:53:39.301Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T09:53:39.304Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T09:53:39.307Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T09:53:39.309Z]  
+[2026-01-19T09:53:39.312Z]  ```typescript
+[2026-01-19T09:53:39.313Z] -// NEVER hardcode values
+[2026-01-19T09:53:39.315Z] -// Bad
+[2026-01-19T09:53:39.317Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T09:53:39.319Z]  const timeout = 5000;
+[2026-01-19T09:53:39.321Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T09:53:39.323Z] +const maxResults = 100;
+[2026-01-19T09:53:39.326Z] +if (score > 80) { /* ... */ }
+[2026-01-19T09:53:39.327Z]  
+[2026-01-19T09:53:39.329Z] -// Good - use configService or environment variables
+[2026-01-19T09:53:39.342Z] 
+... and 24617 more lines
+[2026-01-19T09:53:39.345Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T09:53:39.347Z] ────────────────────────────────────────
+[2026-01-19T09:53:39.349Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T09:53:39.351Z]    Checking backend types...
+[2026-01-19T09:55:13.611Z]    ✅ Backend type check passed
+[2026-01-19T09:55:13.621Z]    Checking frontend types...
+[2026-01-19T09:56:00.296Z]    ✅ Frontend type check passed
+[2026-01-19T09:56:00.300Z] ✅ All type checks passed!
+[2026-01-19T09:56:00.302Z] 
+▶ Step 7: Running Tests
+[2026-01-19T09:56:00.305Z] ────────────────────────────────────────
+[2026-01-19T09:56:00.307Z] 🧪 Running test suites...
+[2026-01-19T09:56:00.309Z]    Running backend tests...
+[2026-01-19T09:56:59.108Z]    ✅ Backend tests passed
+[2026-01-19T09:56:59.114Z]    Running frontend tests...
+[2026-01-19T09:58:06.337Z]    ✅ Frontend tests passed
+[2026-01-19T09:58:06.343Z] ✅ All tests passed!
+[2026-01-19T09:58:06.344Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T09:58:06.346Z] ────────────────────────────────────────
+[2026-01-19T09:58:06.507Z] 
+🟡 Warnings:
+[2026-01-19T09:58:06.511Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T09:58:06.515Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T09:58:06.518Z] 
+📊 Automated Pre-Score: 90/100
+[2026-01-19T09:58:06.520Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T09:58:06.522Z] ────────────────────────────────────────
+[2026-01-19T09:58:06.524Z] 
+[2026-01-19T09:58:06.526Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:58:06.528Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T09:58:06.530Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T09:58:06.532Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T09:58:06.534Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:58:06.536Z] 
+[2026-01-19T09:58:06.538Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T09:58:06.539Z] 
+[2026-01-19T09:58:06.541Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T09:58:06.542Z] 
+[2026-01-19T09:58:06.544Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T09:58:06.545Z] ────────────────────────────────────────
+[2026-01-19T09:58:06.553Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T09:58:06.555Z] 📝 Pre-push automated score: 90
+[2026-01-19T09:58:06.558Z] 
+[2026-01-19T09:58:06.559Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T09:58:06.561Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-19T09:58:06.563Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T09:58:06.565Z] 
+[2026-01-19T09:58:06.567Z] ✅ Automated checks passed - Push proceeding
+[2026-01-19T09:58:06.569Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-19T12:19:36+02:00] Pre-push hook triggered
+[2026-01-19T10:19:38.189Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T10:19:38.205Z] 📋 Minimum passing score: 80/100
+[2026-01-19T10:19:38.207Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T10:19:38.211Z] 
+[2026-01-19T10:19:38.214Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:19:38.216Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T10:19:38.218Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:19:38.221Z] 
+[2026-01-19T10:19:38.270Z] 📅 Review started at: 1/19/2026, 12:19:38 PM
+[2026-01-19T10:19:38.271Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T10:19:38.273Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T10:19:38.274Z] ────────────────────────────────────────
+[2026-01-19T10:19:39.018Z] ✅ Git repository detected
+[2026-01-19T10:19:39.020Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T10:19:39.021Z] ────────────────────────────────────────
+[2026-01-19T10:19:39.432Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T10:19:39.433Z] 🎯 Comparing against: main
+[2026-01-19T10:19:39.861Z] ✅ Base branch 'main' exists
+[2026-01-19T10:19:39.863Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T10:19:39.864Z] ────────────────────────────────────────
+[2026-01-19T10:19:44.107Z] 
+▶ Step 4: Change Summary
+[2026-01-19T10:19:44.109Z] ────────────────────────────────────────
+[2026-01-19T10:19:44.110Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  237 +-
+ frontend/src/components/DIYAgent.tsx               |  247 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  158 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |  114 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  147 +-
+ frontend/src/components/ToDoAgent.tsx              |  258 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/index.css                             |   82 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 112 files changed, 17535 insertions(+), 2744 deletions(-)
+
+[2026-01-19T10:19:44.112Z] 📊 Files changed: 112
+[2026-01-19T10:19:44.113Z] ➕ Lines added: 17535
+[2026-01-19T10:19:44.115Z] ➖ Lines removed: 2744
+[2026-01-19T10:19:44.117Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T10:19:44.118Z] ────────────────────────────────────────
+[2026-01-19T10:19:44.123Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:19:44.124Z] index f4d90a8..365eb7e 100644
+[2026-01-19T10:19:44.126Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:19:44.127Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:19:44.128Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T10:19:44.129Z]  
+[2026-01-19T10:19:44.131Z]  ---
+[2026-01-19T10:19:44.133Z]  
+[2026-01-19T10:19:44.135Z] -## Step 6: Configuration
+[2026-01-19T10:19:44.136Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T10:19:44.138Z]  
+[2026-01-19T10:19:44.139Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:19:44.140Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T10:19:44.142Z] +
+[2026-01-19T10:19:44.143Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T10:19:44.144Z] +
+[2026-01-19T10:19:44.146Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:19:44.148Z]  
+[2026-01-19T10:19:44.149Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T10:19:44.151Z]  
+[2026-01-19T10:19:44.152Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T10:19:44.153Z]    'yourAgent.maxResults': 20,
+[2026-01-19T10:19:44.155Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T10:19:44.156Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T10:19:44.157Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T10:19:44.158Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T10:19:44.159Z]  } as const;
+[2026-01-19T10:19:44.160Z]  ```
+[2026-01-19T10:19:44.162Z]  
+[2026-01-19T10:19:44.164Z] +### 6b. Using Config in Your Agent
+[2026-01-19T10:19:44.166Z] +
+[2026-01-19T10:19:44.167Z] +```typescript
+[2026-01-19T10:19:44.168Z] +// In your agent or service
+[2026-01-19T10:19:44.169Z] +import { configService } from '../services/core/configService';
+[2026-01-19T10:19:44.171Z] +
+[2026-01-19T10:19:44.172Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T10:19:44.173Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T10:19:44.175Z] +```
+[2026-01-19T10:19:44.176Z] +
+[2026-01-19T10:19:44.177Z] +### 6c. Business Rules (Optional)
+[2026-01-19T10:19:44.178Z] +
+[2026-01-19T10:19:44.179Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T10:19:44.181Z] +
+[2026-01-19T10:19:44.183Z] +```typescript
+[2026-01-19T10:19:44.184Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T10:19:44.185Z] +
+[2026-01-19T10:19:44.187Z] +const context: RuleContext = {
+[2026-01-19T10:19:44.188Z] +  agentId: 'your-agent',
+[2026-01-19T10:19:44.189Z] +  action: 'score-item',
+[2026-01-19T10:19:44.190Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T10:19:44.191Z] +};
+[2026-01-19T10:19:44.193Z] +
+[2026-01-19T10:19:44.194Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T10:19:44.195Z] +const score = result.finalContext.data.score;
+[2026-01-19T10:19:44.197Z] +```
+[2026-01-19T10:19:44.198Z] +
+[2026-01-19T10:19:44.199Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T10:19:44.201Z] +
+[2026-01-19T10:19:44.202Z] +For feature toggles or A/B tests:
+[2026-01-19T10:19:44.203Z] +
+[2026-01-19T10:19:44.204Z] +```typescript
+[2026-01-19T10:19:44.205Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T10:19:44.207Z] +
+[2026-01-19T10:19:44.208Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T10:19:44.209Z] +  // New implementation
+[2026-01-19T10:19:44.210Z] +}
+[2026-01-19T10:19:44.211Z] +```
+[2026-01-19T10:19:44.212Z] +
+[2026-01-19T10:19:44.214Z]  ---
+[2026-01-19T10:19:44.215Z]  
+[2026-01-19T10:19:44.216Z]  ## Step 7: Frontend API Service
+[2026-01-19T10:19:44.218Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:19:44.219Z] index 03c1829..c6f8771 100644
+[2026-01-19T10:19:44.220Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:19:44.221Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:19:44.222Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T10:19:44.223Z]  ]);
+[2026-01-19T10:19:44.225Z]  ```
+[2026-01-19T10:19:44.226Z]  
+[2026-01-19T10:19:44.227Z] -### Configuration Management
+[2026-01-19T10:19:44.228Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T10:19:44.229Z] +
+[2026-01-19T10:19:44.231Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T10:19:44.233Z] +
+[2026-01-19T10:19:44.234Z] +| Tier | Service | Use For |
+[2026-01-19T10:19:44.236Z] +| :--- | :--- | :--- |
+[2026-01-19T10:19:44.237Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T10:19:44.238Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T10:19:44.240Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T10:19:44.241Z]  
+[2026-01-19T10:19:44.242Z]  ```typescript
+[2026-01-19T10:19:44.243Z] -// NEVER hardcode values
+[2026-01-19T10:19:44.244Z] -// Bad
+[2026-01-19T10:19:44.245Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T10:19:44.247Z]  const timeout = 5000;
+[2026-01-19T10:19:44.249Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T10:19:44.250Z] +const maxResults = 100;
+[2026-01-19T10:19:44.252Z] +if (score > 80) { /* ... */ }
+[2026-01-19T10:19:44.253Z]  
+[2026-01-19T10:19:44.254Z] -// Good - use configService or environment variables
+[2026-01-19T10:19:44.264Z] 
+... and 24914 more lines
+[2026-01-19T10:19:44.266Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T10:19:44.268Z] ────────────────────────────────────────
+[2026-01-19T10:19:44.269Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T10:19:44.270Z]    Checking backend types...
+[2026-01-19T10:21:04.410Z]    ✅ Backend type check passed
+[2026-01-19T10:21:04.414Z]    Checking frontend types...
+[2026-01-19T10:21:43.827Z]    ✅ Frontend type check passed
+[2026-01-19T10:21:43.835Z] ✅ All type checks passed!
+[2026-01-19T10:21:43.837Z] 
+▶ Step 7: Running Tests
+[2026-01-19T10:21:43.839Z] ────────────────────────────────────────
+[2026-01-19T10:21:43.840Z] 🧪 Running test suites...
+[2026-01-19T10:21:43.841Z]    Running backend tests...
+[2026-01-19T10:22:09.627Z]    ✅ Backend tests passed
+[2026-01-19T10:22:09.630Z]    Running frontend tests...
+[2026-01-19T10:23:28.488Z]    ✅ Frontend tests passed
+[2026-01-19T10:23:28.493Z] ✅ All tests passed!
+[2026-01-19T10:23:28.494Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T10:23:28.496Z] ────────────────────────────────────────
+[2026-01-19T10:23:28.619Z] 
+🟡 Warnings:
+[2026-01-19T10:23:28.621Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T10:23:28.623Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T10:23:28.624Z] 
+📊 Automated Pre-Score: 90/100
+[2026-01-19T10:23:28.626Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T10:23:28.627Z] ────────────────────────────────────────
+[2026-01-19T10:23:28.629Z] 
+[2026-01-19T10:23:28.631Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:23:28.633Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T10:23:28.636Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T10:23:28.638Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T10:23:28.641Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:23:28.643Z] 
+[2026-01-19T10:23:28.645Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T10:23:28.647Z] 
+[2026-01-19T10:23:28.650Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T10:23:28.652Z] 
+[2026-01-19T10:23:28.655Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T10:23:28.657Z] ────────────────────────────────────────
+[2026-01-19T10:23:28.662Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T10:23:28.665Z] 📝 Pre-push automated score: 90
+[2026-01-19T10:23:28.668Z] 
+[2026-01-19T10:23:28.670Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:23:28.672Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-19T10:23:28.674Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:23:28.676Z] 
+[2026-01-19T10:23:28.678Z] ✅ Automated checks passed - Push proceeding
+[2026-01-19T10:23:28.680Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-19T12:23:29+02:00] Push APPROVED
+[2026-01-19T12:27:57+02:00] Pre-push hook triggered
+[2026-01-19T10:28:01.400Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T10:28:01.435Z] 📋 Minimum passing score: 80/100
+[2026-01-19T10:28:01.439Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T10:28:01.451Z] 
+[2026-01-19T10:28:01.454Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:28:01.457Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T10:28:01.461Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:28:01.465Z] 
+[2026-01-19T10:28:01.576Z] 📅 Review started at: 1/19/2026, 12:28:01 PM
+[2026-01-19T10:28:01.580Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T10:28:01.583Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T10:28:01.585Z] ────────────────────────────────────────
+[2026-01-19T10:28:02.845Z] ✅ Git repository detected
+[2026-01-19T10:28:02.847Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T10:28:02.851Z] ────────────────────────────────────────
+[2026-01-19T10:28:04.461Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T10:28:04.463Z] 🎯 Comparing against: main
+[2026-01-19T10:28:05.540Z] ✅ Base branch 'main' exists
+[2026-01-19T10:28:05.543Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T10:28:05.545Z] ────────────────────────────────────────
+[2026-01-19T10:28:17.770Z] 
+▶ Step 4: Change Summary
+[2026-01-19T10:28:17.777Z] ────────────────────────────────────────
+[2026-01-19T10:28:17.779Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  237 +-
+ frontend/src/components/DIYAgent.tsx               |  247 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  158 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |  114 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  147 +-
+ frontend/src/components/ToDoAgent.tsx              |  258 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/index.css                             |   84 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 112 files changed, 17536 insertions(+), 2745 deletions(-)
+
+[2026-01-19T10:28:17.782Z] 📊 Files changed: 112
+[2026-01-19T10:28:17.784Z] ➕ Lines added: 17536
+[2026-01-19T10:28:17.787Z] ➖ Lines removed: 2745
+[2026-01-19T10:28:17.790Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T10:28:17.792Z] ────────────────────────────────────────
+[2026-01-19T10:28:17.805Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:28:17.807Z] index f4d90a8..365eb7e 100644
+[2026-01-19T10:28:17.809Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:28:17.811Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:28:17.813Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T10:28:17.815Z]  
+[2026-01-19T10:28:17.818Z]  ---
+[2026-01-19T10:28:17.820Z]  
+[2026-01-19T10:28:17.822Z] -## Step 6: Configuration
+[2026-01-19T10:28:17.824Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T10:28:17.826Z]  
+[2026-01-19T10:28:17.828Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:28:17.831Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T10:28:17.833Z] +
+[2026-01-19T10:28:17.836Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T10:28:17.838Z] +
+[2026-01-19T10:28:17.841Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:28:17.844Z]  
+[2026-01-19T10:28:17.846Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T10:28:17.850Z]  
+[2026-01-19T10:28:17.865Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T10:28:17.874Z]    'yourAgent.maxResults': 20,
+[2026-01-19T10:28:17.878Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T10:28:17.891Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T10:28:17.912Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T10:28:17.916Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T10:28:17.921Z]  } as const;
+[2026-01-19T10:28:17.928Z]  ```
+[2026-01-19T10:28:17.931Z]  
+[2026-01-19T10:28:17.934Z] +### 6b. Using Config in Your Agent
+[2026-01-19T10:28:17.939Z] +
+[2026-01-19T10:28:17.946Z] +```typescript
+[2026-01-19T10:28:17.951Z] +// In your agent or service
+[2026-01-19T10:28:17.959Z] +import { configService } from '../services/core/configService';
+[2026-01-19T10:28:17.962Z] +
+[2026-01-19T10:28:17.965Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T10:28:17.968Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T10:28:17.972Z] +```
+[2026-01-19T10:28:17.976Z] +
+[2026-01-19T10:28:17.978Z] +### 6c. Business Rules (Optional)
+[2026-01-19T10:28:17.991Z] +
+[2026-01-19T10:28:18.040Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T10:28:18.044Z] +
+[2026-01-19T10:28:18.052Z] +```typescript
+[2026-01-19T10:28:18.057Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T10:28:18.061Z] +
+[2026-01-19T10:28:18.065Z] +const context: RuleContext = {
+[2026-01-19T10:28:18.074Z] +  agentId: 'your-agent',
+[2026-01-19T10:28:18.079Z] +  action: 'score-item',
+[2026-01-19T10:28:18.086Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T10:28:18.109Z] +};
+[2026-01-19T10:28:18.112Z] +
+[2026-01-19T10:28:18.123Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T10:28:18.129Z] +const score = result.finalContext.data.score;
+[2026-01-19T10:28:18.133Z] +```
+[2026-01-19T10:28:18.136Z] +
+[2026-01-19T10:28:18.139Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T10:28:18.142Z] +
+[2026-01-19T10:28:18.144Z] +For feature toggles or A/B tests:
+[2026-01-19T10:28:18.147Z] +
+[2026-01-19T10:28:18.153Z] +```typescript
+[2026-01-19T10:28:18.160Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T10:28:18.169Z] +
+[2026-01-19T10:28:18.176Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T10:28:18.181Z] +  // New implementation
+[2026-01-19T10:28:18.185Z] +}
+[2026-01-19T10:28:18.190Z] +```
+[2026-01-19T10:28:18.196Z] +
+[2026-01-19T10:28:18.200Z]  ---
+[2026-01-19T10:28:18.204Z]  
+[2026-01-19T10:28:18.209Z]  ## Step 7: Frontend API Service
+[2026-01-19T10:28:18.212Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:28:18.217Z] index 03c1829..c6f8771 100644
+[2026-01-19T10:28:18.223Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:28:18.230Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:28:18.239Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T10:28:18.241Z]  ]);
+[2026-01-19T10:28:18.247Z]  ```
+[2026-01-19T10:28:18.262Z]  
+[2026-01-19T10:28:18.271Z] -### Configuration Management
+[2026-01-19T10:28:18.274Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T10:28:18.277Z] +
+[2026-01-19T10:28:18.280Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T10:28:18.288Z] +
+[2026-01-19T10:28:18.297Z] +| Tier | Service | Use For |
+[2026-01-19T10:28:18.302Z] +| :--- | :--- | :--- |
+[2026-01-19T10:28:18.305Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T10:28:18.307Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T10:28:18.337Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T10:28:18.342Z]  
+[2026-01-19T10:28:18.367Z]  ```typescript
+[2026-01-19T10:28:18.371Z] -// NEVER hardcode values
+[2026-01-19T10:28:18.373Z] -// Bad
+[2026-01-19T10:28:18.376Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T10:28:18.379Z]  const timeout = 5000;
+[2026-01-19T10:28:18.382Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T10:28:18.386Z] +const maxResults = 100;
+[2026-01-19T10:28:18.392Z] +if (score > 80) { /* ... */ }
+[2026-01-19T10:28:18.399Z]  
+[2026-01-19T10:28:18.406Z] -// Good - use configService or environment variables
+[2026-01-19T10:28:18.437Z] 
+... and 24917 more lines
+[2026-01-19T10:28:18.442Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T10:28:18.445Z] ────────────────────────────────────────
+[2026-01-19T10:28:18.447Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T10:28:18.450Z]    Checking backend types...
+[2026-01-19T10:30:18.493Z]    ✅ Backend type check passed (with warnings)
+[2026-01-19T10:30:18.508Z]    Checking frontend types...
+[2026-01-19T10:32:18.532Z]    ✅ Frontend type check passed (with warnings)
+[2026-01-19T10:32:18.541Z] ✅ All type checks passed!
+[2026-01-19T10:32:18.543Z] 
+▶ Step 7: Running Tests
+[2026-01-19T10:32:18.546Z] ────────────────────────────────────────
+[2026-01-19T10:32:18.548Z] 🧪 Running test suites...
+[2026-01-19T10:32:18.550Z]    Running backend tests...
+[2026-01-19T10:32:58.066Z]    ✅ Backend tests passed
+[2026-01-19T10:32:58.071Z]    Running frontend tests...
+[2026-01-19T10:34:12.532Z]    ✅ Frontend tests passed
+[2026-01-19T10:34:12.539Z] ✅ All tests passed!
+[2026-01-19T10:34:12.541Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T10:34:12.543Z] ────────────────────────────────────────
+[2026-01-19T10:34:12.761Z] 
+🟡 Warnings:
+[2026-01-19T10:34:12.766Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T10:34:12.769Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T10:34:12.772Z] 
+📊 Automated Pre-Score: 90/100
+[2026-01-19T10:34:12.774Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T10:34:12.776Z] ────────────────────────────────────────
+[2026-01-19T10:34:12.779Z] 
+[2026-01-19T10:34:12.781Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:34:12.784Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T10:34:12.787Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T10:34:12.789Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T10:34:12.791Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:34:12.794Z] 
+[2026-01-19T10:34:12.796Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T10:34:12.798Z] 
+[2026-01-19T10:34:12.801Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T10:34:12.803Z] 
+[2026-01-19T10:34:12.805Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T10:34:12.807Z] ────────────────────────────────────────
+[2026-01-19T10:34:12.815Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T10:34:12.818Z] 📝 Pre-push automated score: 90
+[2026-01-19T10:34:12.821Z] 
+[2026-01-19T10:34:12.823Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:34:12.825Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-19T10:34:12.828Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:34:12.831Z] 
+[2026-01-19T10:34:12.835Z] ✅ Automated checks passed - Push proceeding
+[2026-01-19T10:34:12.837Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-19T12:34:13+02:00] Push APPROVED
+[2026-01-19T12:43:34+02:00] Pre-push hook triggered
+[2026-01-19T10:43:37.548Z] 
+🚀 Quality Check Script v1.0.0
+[2026-01-19T10:43:37.574Z] 📋 Minimum passing score: 80/100
+[2026-01-19T10:43:37.576Z] 📂 Log file: C:\agents\gmail-agent\pocketknife\review-log.txt
+[2026-01-19T10:43:37.583Z] 
+[2026-01-19T10:43:37.585Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:43:37.587Z]   🏛️  PRINCIPAL ARCHITECT CODE REVIEW
+[2026-01-19T10:43:37.589Z] ════════════════════════════════════════════════════════════
+[2026-01-19T10:43:37.591Z] 
+[2026-01-19T10:43:37.676Z] 📅 Review started at: 1/19/2026, 12:43:37 PM
+[2026-01-19T10:43:37.678Z] 📁 Working directory: C:\agents\gmail-agent\pocketknife
+[2026-01-19T10:43:37.684Z] 
+▶ Step 1: Validating Git Repository
+[2026-01-19T10:43:37.696Z] ────────────────────────────────────────
+[2026-01-19T10:43:38.669Z] ✅ Git repository detected
+[2026-01-19T10:43:38.676Z] 
+▶ Step 2: Checking Branch Information
+[2026-01-19T10:43:38.678Z] ────────────────────────────────────────
+[2026-01-19T10:43:39.675Z] 📍 Current branch: feature/ux-enhancements-voice-multilang
+[2026-01-19T10:43:39.678Z] 🎯 Comparing against: main
+[2026-01-19T10:43:40.561Z] ✅ Base branch 'main' exists
+[2026-01-19T10:43:40.564Z] 
+▶ Step 3: Analyzing Changes
+[2026-01-19T10:43:40.566Z] ────────────────────────────────────────
+[2026-01-19T10:43:49.832Z] 
+▶ Step 4: Change Summary
+[2026-01-19T10:43:49.841Z] ────────────────────────────────────────
+[2026-01-19T10:43:49.864Z]  .cursor/rules/add-new-agent.mdc                    |   48 +-
+ .cursor/rules/backend-nodejs-standards.mdc         |   48 +-
+ .cursor/rules/dynamic-configuration.mdc            |  397 ++
+ .cursor/rules/project-overview.mdc                 |   29 +-
+ .gitignore                                         |    1 +
+ ARCHITECTURE.md                                    |   74 +-
+ backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md     |  760 ++++
+ backend/prisma/schema.prisma                       |  154 +-
+ backend/src/agents/AbstractAgent.ts                |   32 +-
+ backend/src/agents/DIYAgent.ts                     |   62 +-
+ backend/src/agents/JobsAgent.ts                    |   18 +-
+ backend/src/agents/ShoppingAgent.ts                |   49 +-
+ backend/src/controllers/adminController.ts         |    6 +-
+ backend/src/controllers/diyController.ts           |   40 +-
+ backend/src/controllers/interviewController.ts     |   34 +
+ backend/src/controllers/jobController.ts           |    3 +-
+ .../src/controllers/problemSolvingController.ts    |   31 +
+ backend/src/routes/jobs.ts                         |    1 +
+ backend/src/routes/news.ts                         |    1 +
+ backend/src/routes/problemSolving.ts               |    4 +
+ backend/src/services/cooking/cookingService.ts     | 1174 +-----
+ backend/src/services/cooking/spoonacularService.ts |    1 +
+ backend/src/services/core/configService.ts         |   86 +-
+ backend/src/services/core/externalApiService.ts    |    3 +-
+ backend/src/services/core/googleSearchService.ts   |    3 +-
+ backend/src/services/diy/diyService.ts             |  116 +-
+ backend/src/services/diy/index.ts                  |    1 +
+ backend/src/services/email/emailPatternService.ts  |    4 +-
+ .../services/featureFlags/featureFlagService.ts    |  586 +++
+ backend/src/services/featureFlags/index.ts         |    9 +
+ backend/src/services/featureFlags/types.ts         |  147 +
+ .../src/services/jobs/diagramGenerationService.ts  |  423 +++
+ backend/src/services/jobs/glassdoorService.ts      |    1 +
+ .../services/jobs/systemDesignEvaluationService.ts |  114 +-
+ backend/src/services/learning/youtubeService.ts    |    1 +
+ backend/src/services/news/index.ts                 |    1 +
+ backend/src/services/news/newsService.ts           |  100 +-
+ .../problemSolving/problemSolvingService.ts        |  144 +-
+ backend/src/services/problems/index.ts             |    1 +
+ backend/src/services/problems/leetcodeService.ts   |    3 +-
+ backend/src/services/rules/index.ts                |    9 +
+ backend/src/services/rules/ruleEngineService.ts    |  698 ++++
+ backend/src/services/rules/types.ts                |  193 +
+ backend/src/services/shopping/ebayService.ts       |    1 +
+ .../src/services/shopping/israeliShopsService.ts   |    4 +-
+ .../services/shopping/productAggregatorService.ts  |   83 +-
+ backend/src/services/shopping/zapScraperService.ts |    4 +-
+ backend/src/types/constants.ts                     |  154 +
+ backend/src/types/index.ts                         |    3 +
+ backend/src/types/israelTravel.ts                  |    1 +
+ backend/src/utils/retry.ts                         |    1 +
+ backend/src/utils/telemetry.ts                     |    1 +
+ backend/tests/agents/abstractAgent.test.ts         |    1 +
+ backend/tests/agents/cookingAgent.test.ts          |    2 +-
+ backend/tests/api/routes.test.ts                   |   50 +
+ backend/tests/services/cookingService.test.ts      |  457 +--
+ backend/tests/services/notionService.test.ts       |    2 +-
+ backend/tests/utils/logger.test.ts                 |    1 +
+ backend/tests/utils/retry.test.ts                  |    1 +
+ backend/tests/utils/telemetry.test.ts              |    1 +
+ backend/vitest.config.ts                           |   14 +-
+ docs/AGENT_FEATURES.md                             |    1 +
+ docs/design/mock-interview-enhancements.md         |    1 +
+ frontend/package-lock.json                         | 3805 +++++++++++++++++++-
+ frontend/package.json                              |    2 +
+ frontend/src/App.tsx                               |   85 +-
+ frontend/src/components/CanvasTool.tsx             |  298 ++
+ frontend/src/components/CookingAgent.tsx           |  237 +-
+ frontend/src/components/DIYAgent.tsx               |  247 +-
+ frontend/src/components/JobSearchPanel.tsx         |   76 +-
+ frontend/src/components/LearningAgent.tsx          |  158 +-
+ frontend/src/components/MockInterviewPanel.tsx     |  363 +-
+ frontend/src/components/NewsAgent.tsx              |  114 +-
+ frontend/src/components/ProblemSolvingAgent.tsx    |  368 +-
+ frontend/src/components/ShoppingAgent.tsx          |  151 +-
+ frontend/src/components/ToDoAgent.tsx              |  258 +-
+ frontend/src/components/TravelSearchPanel.tsx      |  131 +-
+ frontend/src/components/common/AgentCard.tsx       |  263 ++
+ frontend/src/components/common/AgentPageLayout.tsx |  200 +
+ frontend/src/components/common/AgentTabs.tsx       |  197 +
+ frontend/src/components/common/IntegrationCard.tsx |    1 +
+ frontend/src/components/common/LoadingStates.tsx   |  246 ++
+ .../src/components/common/VoiceInputButton.tsx     |  131 +
+ frontend/src/components/common/index.ts            |   17 +
+ .../components/shared/SystemDesignWhiteboard.tsx   | 2434 +++++++++++--
+ frontend/src/hooks/index.ts                        |    2 +
+ frontend/src/hooks/useCooking.ts                   |   42 +
+ frontend/src/hooks/useDIY.ts                       |   74 +-
+ frontend/src/hooks/useShopping.ts                  |   16 +-
+ frontend/src/hooks/useTodo.ts                      |   36 +-
+ frontend/src/hooks/useVoiceInput.ts                |  249 ++
+ frontend/src/i18n/LanguageContext.tsx              |  146 +
+ frontend/src/i18n/index.ts                         |   35 +
+ frontend/src/i18n/translations/en.json             |  357 ++
+ frontend/src/index.css                             |   84 +-
+ frontend/src/main.tsx                              |    5 +-
+ frontend/src/services/cookingApi.ts                |   24 +
+ frontend/src/services/diyApi.ts                    |  105 +-
+ frontend/src/services/logger.ts                    |    1 +
+ frontend/src/services/mockInterviewApi.ts          |   50 +
+ frontend/src/services/newsApi.ts                   |   12 +-
+ frontend/src/services/problemSolvingApi.ts         |   25 +-
+ frontend/src/services/shoppingApi.ts               |   29 +-
+ frontend/src/services/travelApi.ts                 |   56 +-
+ frontend/src/styles/animations.css                 |  372 ++
+ frontend/src/styles/common.module.css              |  198 +
+ frontend/src/styles/cooking.module.css             |  363 +-
+ frontend/src/styles/diy.module.css                 |  140 +-
+ frontend/src/styles/news.module.css                |    9 +
+ frontend/src/styles/problems.module.css            |  183 +
+ frontend/src/styles/settings.module.css            |   87 +
+ frontend/src/styles/todo.module.css                |   46 +
+ frontend/tsconfig.json                             |    1 +
+ review-log.txt                                     | 1721 +++++++++
+ 114 files changed, 17898 insertions(+), 2745 deletions(-)
+
+[2026-01-19T10:43:49.869Z] 📊 Files changed: 114
+[2026-01-19T10:43:49.871Z] ➕ Lines added: 17898
+[2026-01-19T10:43:49.873Z] ➖ Lines removed: 2745
+[2026-01-19T10:43:49.876Z] 
+▶ Step 5: Diff Preview (first 100 lines)
+[2026-01-19T10:43:49.879Z] ────────────────────────────────────────
+[2026-01-19T10:43:49.895Z] 
+diff --git a/.cursor/rules/add-new-agent.mdc b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:43:49.898Z] index f4d90a8..365eb7e 100644
+[2026-01-19T10:43:49.901Z] --- a/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:43:49.903Z] +++ b/.cursor/rules/add-new-agent.mdc
+[2026-01-19T10:43:49.910Z] @@ -357,9 +357,13 @@ router.use('/your-agent', yourAgentRoutes);
+[2026-01-19T10:43:49.912Z]  
+[2026-01-19T10:43:49.916Z]  ---
+[2026-01-19T10:43:49.919Z]  
+[2026-01-19T10:43:49.922Z] -## Step 6: Configuration
+[2026-01-19T10:43:49.925Z] +## Step 6: Configuration (Three-Tier System)
+[2026-01-19T10:43:49.928Z]  
+[2026-01-19T10:43:49.931Z] -### File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:43:49.934Z] +Your agent should use the dynamic configuration system. See `.cursor/rules/dynamic-configuration.mdc` for full details.
+[2026-01-19T10:43:49.937Z] +
+[2026-01-19T10:43:49.940Z] +### 6a. Config Service (Simple Values)
+[2026-01-19T10:43:49.943Z] +
+[2026-01-19T10:43:49.945Z] +File: `backend/src/services/core/configService.ts`
+[2026-01-19T10:43:49.961Z]  
+[2026-01-19T10:43:49.967Z]  Add your agent's config entries in `DEFAULT_CONFIG`:
+[2026-01-19T10:43:49.970Z]  
+[2026-01-19T10:43:49.973Z] @@ -373,10 +377,50 @@ const DEFAULT_CONFIG = {
+[2026-01-19T10:43:49.977Z]    'yourAgent.maxResults': 20,
+[2026-01-19T10:43:49.980Z]    'yourAgent.cacheMinutes': 30,
+[2026-01-19T10:43:49.983Z]    'yourAgent.ai.maxTokens': 2000,
+[2026-01-19T10:43:49.986Z] +  'yourAgent.api.timeoutMs': 10000,
+[2026-01-19T10:43:49.996Z]    'yourAgent.feature.enabled': true,
+[2026-01-19T10:43:49.998Z]  } as const;
+[2026-01-19T10:43:50.000Z]  ```
+[2026-01-19T10:43:50.004Z]  
+[2026-01-19T10:43:50.009Z] +### 6b. Using Config in Your Agent
+[2026-01-19T10:43:50.012Z] +
+[2026-01-19T10:43:50.031Z] +```typescript
+[2026-01-19T10:43:50.035Z] +// In your agent or service
+[2026-01-19T10:43:50.039Z] +import { configService } from '../services/core/configService';
+[2026-01-19T10:43:50.045Z] +
+[2026-01-19T10:43:50.049Z] +const maxResults = configService.get('yourAgent.maxResults', 20);
+[2026-01-19T10:43:50.054Z] +const aiTokens = configService.get('yourAgent.ai.maxTokens', 2000);
+[2026-01-19T10:43:50.063Z] +```
+[2026-01-19T10:43:50.076Z] +
+[2026-01-19T10:43:50.078Z] +### 6c. Business Rules (Optional)
+[2026-01-19T10:43:50.083Z] +
+[2026-01-19T10:43:50.086Z] +If your agent has complex conditional logic (scoring, filtering), use the Rule Engine:
+[2026-01-19T10:43:50.100Z] +
+[2026-01-19T10:43:50.128Z] +```typescript
+[2026-01-19T10:43:50.134Z] +import { ruleEngineService, RuleContext } from '../services/rules';
+[2026-01-19T10:43:50.137Z] +
+[2026-01-19T10:43:50.141Z] +const context: RuleContext = {
+[2026-01-19T10:43:50.145Z] +  agentId: 'your-agent',
+[2026-01-19T10:43:50.149Z] +  action: 'score-item',
+[2026-01-19T10:43:50.153Z] +  data: { price: item.price, category: item.category }
+[2026-01-19T10:43:50.155Z] +};
+[2026-01-19T10:43:50.161Z] +
+[2026-01-19T10:43:50.164Z] +const result = await ruleEngineService.evaluate(context, 'scoring');
+[2026-01-19T10:43:50.167Z] +const score = result.finalContext.data.score;
+[2026-01-19T10:43:50.168Z] +```
+[2026-01-19T10:43:50.171Z] +
+[2026-01-19T10:43:50.179Z] +### 6d. Feature Flags (Optional)
+[2026-01-19T10:43:50.183Z] +
+[2026-01-19T10:43:50.187Z] +For feature toggles or A/B tests:
+[2026-01-19T10:43:50.192Z] +
+[2026-01-19T10:43:50.197Z] +```typescript
+[2026-01-19T10:43:50.299Z] +import { featureFlagService } from '../services/featureFlags';
+[2026-01-19T10:43:50.317Z] +
+[2026-01-19T10:43:50.393Z] +if (await featureFlagService.isEnabled('yourAgent.newAlgorithm')) {
+[2026-01-19T10:43:50.418Z] +  // New implementation
+[2026-01-19T10:43:50.463Z] +}
+[2026-01-19T10:43:50.473Z] +```
+[2026-01-19T10:43:50.475Z] +
+[2026-01-19T10:43:50.530Z]  ---
+[2026-01-19T10:43:50.547Z]  
+[2026-01-19T10:43:50.552Z]  ## Step 7: Frontend API Service
+[2026-01-19T10:43:50.582Z] 
+diff --git a/.cursor/rules/backend-nodejs-standards.mdc b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:43:50.584Z] index 03c1829..c6f8771 100644
+[2026-01-19T10:43:50.595Z] --- a/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:43:50.598Z] +++ b/.cursor/rules/backend-nodejs-standards.mdc
+[2026-01-19T10:43:50.601Z] @@ -180,17 +180,55 @@ const [users, jobs, stats] = await Promise.all([
+[2026-01-19T10:43:50.603Z]  ]);
+[2026-01-19T10:43:50.610Z]  ```
+[2026-01-19T10:43:50.613Z]  
+[2026-01-19T10:43:50.621Z] -### Configuration Management
+[2026-01-19T10:43:50.638Z] +### Configuration Management (Three-Tier System)
+[2026-01-19T10:43:50.651Z] +
+[2026-01-19T10:43:50.668Z] +**NEVER hardcode values. Use the appropriate configuration tier:**
+[2026-01-19T10:43:50.682Z] +
+[2026-01-19T10:43:50.695Z] +| Tier | Service | Use For |
+[2026-01-19T10:43:50.712Z] +| :--- | :--- | :--- |
+[2026-01-19T10:43:50.737Z] +| **ConfigService** | `configService` | Timeouts, limits, URLs, thresholds |
+[2026-01-19T10:43:50.743Z] +| **Rule Engine** | `ruleEngineService` | Scoring, filtering, validation logic |
+[2026-01-19T10:43:50.746Z] +| **Feature Flags** | `featureFlagService` | Feature toggles, A/B tests, rollouts |
+[2026-01-19T10:43:50.751Z]  
+[2026-01-19T10:43:50.754Z]  ```typescript
+[2026-01-19T10:43:50.756Z] -// NEVER hardcode values
+[2026-01-19T10:43:50.760Z] -// Bad
+[2026-01-19T10:43:50.762Z] +// ❌ BAD - Hardcoded values
+[2026-01-19T10:43:50.764Z]  const timeout = 5000;
+[2026-01-19T10:43:50.767Z]  const apiUrl = 'https://api.example.com';
+[2026-01-19T10:43:50.772Z] +const maxResults = 100;
+[2026-01-19T10:43:50.780Z] +if (score > 80) { /* ... */ }
+[2026-01-19T10:43:50.783Z]  
+[2026-01-19T10:43:50.787Z] -// Good - use configService or environment variables
+[2026-01-19T10:43:50.815Z] 
+... and 25296 more lines
+[2026-01-19T10:43:50.819Z] 
+▶ Step 6: TypeScript Type Check
+[2026-01-19T10:43:50.830Z] ────────────────────────────────────────
+[2026-01-19T10:43:50.834Z] 🔍 Running TypeScript type check (tsc --noEmit)...
+[2026-01-19T10:43:50.838Z]    Checking backend types...
+[2026-01-19T10:45:50.867Z]    ✅ Backend type check passed (with warnings)
+[2026-01-19T10:45:50.879Z]    Checking frontend types...
+[2026-01-19T10:47:29.880Z]    ✅ Frontend type check passed
+[2026-01-19T10:47:29.928Z] ✅ All type checks passed!
+[2026-01-19T10:47:29.932Z] 
+▶ Step 7: Running Tests
+[2026-01-19T10:47:29.934Z] ────────────────────────────────────────
+[2026-01-19T10:47:29.937Z] 🧪 Running test suites...
+[2026-01-19T10:47:29.939Z]    Running backend tests...
+[2026-01-19T10:49:04.789Z]    ✅ Backend tests passed
+[2026-01-19T10:49:04.869Z]    Running frontend tests...
+[2026-01-19T10:51:24.363Z]    ✅ Frontend tests passed
+[2026-01-19T10:51:24.372Z] ✅ All tests passed!
+[2026-01-19T10:51:24.374Z] 
+▶ Step 8: Automated Quality Checks
+[2026-01-19T10:51:24.377Z] ────────────────────────────────────────
+[2026-01-19T10:51:24.583Z] 
+🟡 Warnings:
+[2026-01-19T10:51:24.586Z]    🟡 console.log usage: 8 instance(s) - Consider using proper logger
+[2026-01-19T10:51:24.588Z]    🟡 'any' type usage: 32 instance(s) - Prefer explicit types
+[2026-01-19T10:51:24.590Z] 
+📊 Automated Pre-Score: 90/100
+[2026-01-19T10:51:24.594Z] 
+▶ Step 9: Manual Review Required
+[2026-01-19T10:51:24.597Z] ────────────────────────────────────────
+[2026-01-19T10:51:24.599Z] 
+[2026-01-19T10:51:24.601Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:51:24.603Z] ║                    🏛️  MANUAL REVIEW REQUIRED                    ║
+[2026-01-19T10:51:24.607Z] ╠══════════════════════════════════════════════════════════════════╣
+[2026-01-19T10:51:24.615Z] ║  Copy the following command into Cursor Chat for full review:   ║
+[2026-01-19T10:51:24.617Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:51:24.619Z] 
+[2026-01-19T10:51:24.621Z]   "Review my changes for push using the Principal Architect rule"
+[2026-01-19T10:51:24.623Z] 
+[2026-01-19T10:51:24.625Z]   OR run: git diff main...HEAD | clip (to copy full diff)
+[2026-01-19T10:51:24.628Z] 
+[2026-01-19T10:51:24.630Z] 
+▶ Step 10: Push Confirmation
+[2026-01-19T10:51:24.632Z] ────────────────────────────────────────
+[2026-01-19T10:51:24.638Z] ⚠️ Non-interactive mode detected (git hook)
+[2026-01-19T10:51:24.640Z] 📝 Pre-push automated score: 90
+[2026-01-19T10:51:24.642Z] 
+[2026-01-19T10:51:24.645Z] ╔══════════════════════════════════════════════════════════════════╗
+[2026-01-19T10:51:24.648Z] ║  ✅ PUSH APPROVED BY PRINCIPAL ARCHITECT                         ║
+[2026-01-19T10:51:24.650Z] ╚══════════════════════════════════════════════════════════════════╝
+[2026-01-19T10:51:24.652Z] 
+[2026-01-19T10:51:24.654Z] ✅ Automated checks passed - Push proceeding
+[2026-01-19T10:51:24.656Z] ⚠️ Remember to do a full manual review in Cursor before merging!
+[2026-01-19T12:51:25+02:00] Push APPROVED

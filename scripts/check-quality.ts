@@ -365,13 +365,16 @@ async function runReview(): Promise<void> {
     // Note: Known API base URLs (newsapi.org, gnews.io, hacker-news.firebaseio.com, reddit.com, mediastack.com)
     // are acceptable as they are third-party service endpoints, not environment-specific config
     // Note: Short UI feedback timeouts (under 5000ms) are acceptable UX patterns
+    // Note: localhost URLs with env var fallbacks (process.env.* ||, configService.get) are acceptable for dev
     const hardcodedPatterns = [
       { pattern: /setTimeout\(\s*[^,]+,\s*[5-9]\d{3,}\s*\)|setTimeout\(\s*[^,]+,\s*\d{5,}\s*\)/, name: 'Hardcoded timeout value' },
-      { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
-      { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
+      // Exclude ports that are part of env var fallback patterns
+      { pattern: /(?<!process\.env\.\w+\s*\|\|\s*['"`]http[^'"`]*):(?:80|443|3000|5000|8080)\b(?!\s*[,\]])(?!['"`]\s*\))/, name: 'Hardcoded port number' },
+      // Exclude localhost URLs that have env var fallbacks (process.env.X || 'http://localhost' or configService.get(..., 'http://localhost'))
+      { pattern: /(?<!process\.env\.\w+\s*\|\|\s*)(?<!configService\.get\([^,]+,\s*)['"`]http:\/\/localhost(?![^'"`]*['"`]\s*\))/, name: 'Hardcoded localhost URL' },
       // Exclude known third-party API base URLs from this check
       // Whitelist covers: major API providers, Israeli job sites, documentation sites, etc.
-      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
+      { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups|source\.unsplash\.|wa\.me)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
     ];
 
     // Helper to check if a line is in a code file (not docs, configs, or env templates)

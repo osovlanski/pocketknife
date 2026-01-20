@@ -535,12 +535,13 @@ export class ToDoAgent extends AbstractAgent {
         };
       }
 
-      // Get all pending tasks with due dates
+      // Get all pending tasks with due dates that have sync enabled
       const tasksToSync = await prisma.task.findMany({
         where: {
           userId,
           status: { not: 'completed' },
-          dueDate: { not: null }
+          dueDate: { not: null },
+          syncEnabled: true
         },
         orderBy: { dueDate: 'asc' }
       });
