@@ -6,43 +6,144 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Prisma
-const mockPrisma = {
-  solvedProblem: {
-    create: vi.fn().mockResolvedValue({ id: 'problem-1', title: 'Two Sum' }),
-    findMany: vi.fn().mockResolvedValue([]),
-    update: vi.fn().mockResolvedValue({})
-  },
-  userPreferences: {
-    upsert: vi.fn().mockResolvedValue({ preferredLanguage: 'JavaScript' })
-  },
-  agentActivity: {
-    create: vi.fn().mockResolvedValue({})
-  }
-};
+// Use vi.hoisted to ensure mocks are available when vi.mock runs
+const { mockPrisma, mockGetPrisma, mockGoogleSearch } = vi.hoisted(() => {
+  const prisma = {
+    solvedProblem: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn()
+    },
+    userPreferences: {
+      upsert: vi.fn()
+    },
+    agentActivity: {
+      create: vi.fn()
+    }
+  };
+
+  const googleSearch = {
+    search: vi.fn(),
+    searchAndParse: vi.fn(),
+    isAvailable: () => true,  // Use plain function, not vi.fn mock
+    hasQuota: () => true,
+    getQuotaStatus: () => ({ remaining: 100, limit: 100 })
+  };
+
+  return {
+    mockPrisma: prisma,
+    mockGetPrisma: vi.fn(() => prisma),
+    mockGoogleSearch: googleSearch
+  };
+});
 
 vi.mock('../../src/services/core/databaseService', () => ({
-  getPrisma: vi.fn().mockReturnValue(mockPrisma),
+  getPrisma: mockGetPrisma,
   databaseService: {
     logActivity: vi.fn().mockResolvedValue({})
   }
 }));
 
+// Mock retry utilities to prevent async waits
+vi.mock('../../src/utils/retry', () => {
+  class MockRateLimiter {
+    async acquire(): Promise<boolean> { return true; }
+    async waitForToken(): Promise<void> { return; }
+    getAvailableTokens(): number { return 60; }
+  }
+  
+  class MockCircuitBreaker {
+    async execute<T>(fn: () => Promise<T>): Promise<T> { return fn(); }
+    getState(): string { return 'closed'; }
+    reset(): void {}
+  }
+
+  return {
+    withRetry: async <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    RateLimiter: MockRateLimiter,
+    CircuitBreaker: MockCircuitBreaker,
+    isDefaultRetryable: () => false
+  };
+});
+
+// Mock telemetry to prevent actual telemetry calls
+vi.mock('../../src/utils/telemetry', () => ({
+  telemetryService: {
+    recordAgentExecution: vi.fn(),
+    recordRateLimitHit: vi.fn(),
+    recordRetry: vi.fn(),
+    recordCircuitBreakerTrip: vi.fn(),
+    setAgentState: vi.fn()
+  }
+}));
+
 vi.mock('../../src/services/core/googleSearchService', () => ({
-  googleSearchService: {
-    search: vi.fn().mockResolvedValue([
+  googleSearchService: mockGoogleSearch
+}));
+
+vi.mock('../../src/services/core/configService', () => ({
+  configService: {
+    get: vi.fn().mockImplementation((key: string, defaultValue: any) => {
+      // Return sensible defaults for timeout-related config
+      if (key.includes('timeout') || key.includes('Timeout')) {
+        return defaultValue || 5000;
+      }
+      return defaultValue ?? 10;
+    })
+  }
+}));
+
+// Mock logger to prevent console noise
+vi.mock('../../src/utils/logger', () => ({
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    success: vi.fn(),
+    fail: vi.fn(),
+    agent: vi.fn(),
+    start: vi.fn(),
+    api: vi.fn(),
+    db: vi.fn()
+  }
+}));
+
+// Import agent AFTER mocks are set up
+import { ProblemsAgent } from '../../src/agents/ProblemsAgent';
+
+describe('Problems Agent', () => {
+  let agent: ProblemsAgent;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    agent = new ProblemsAgent();
+    
+    // Set up default mock implementations
+    mockPrisma.solvedProblem.create.mockResolvedValue({ id: 'problem-1', title: 'Two Sum' });
+    mockPrisma.solvedProblem.findMany.mockResolvedValue([]);
+    mockPrisma.solvedProblem.update.mockResolvedValue({});
+    mockPrisma.solvedProblem.upsert.mockResolvedValue({ id: 'problem-1', title: 'Two Sum', source: 'LeetCode' });
+    mockPrisma.userPreferences.upsert.mockResolvedValue({ preferredLanguage: 'JavaScript' });
+    mockPrisma.agentActivity.create.mockResolvedValue({});
+    
+    mockGoogleSearch.search.mockResolvedValue([
       {
         title: 'Two Sum - LeetCode',
         link: 'https://leetcode.com/problems/two-sum/',
         snippet: 'Given an array of integers...'
       }
-    ])
-  }
-}));
-
-describe('Problems Agent', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    ]);
+    mockGoogleSearch.searchAndParse.mockResolvedValue([
+      {
+        title: 'Two Sum - LeetCode Solution',
+        description: 'Given an array of integers...',
+        url: 'https://leetcode.com/problems/two-sum/',
+        source: 'LeetCode',
+        metadata: { language: 'JavaScript', concepts: ['Arrays', 'Hash Maps'] }
+      }
+    ]);
   });
 
   afterEach(() => {
@@ -50,10 +151,7 @@ describe('Problems Agent', () => {
   });
 
   describe('Metadata', () => {
-    it('should have correct metadata', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-      
+    it('should have correct metadata', () => {
       expect(agent.metadata.id).toBe('problems');
       expect(agent.metadata.name).toBe('Problems Agent');
       expect(agent.metadata.icon).toBe('💻');
@@ -62,9 +160,6 @@ describe('Problems Agent', () => {
 
   describe('save-solution action', () => {
     it('should save a solution successfully', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'save-solution',
         userId: 'user-123',
@@ -81,9 +176,6 @@ describe('Problems Agent', () => {
     });
 
     it('should fail without userId', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'save-solution',
         problemData: { title: 'Test' },
@@ -95,9 +187,6 @@ describe('Problems Agent', () => {
     });
 
     it('should fail without problem data', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'save-solution',
         userId: 'user-123',
@@ -116,9 +205,6 @@ describe('Problems Agent', () => {
         { id: 'p2', title: 'Add Two Numbers', difficulty: 'Medium' }
       ]);
 
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'get-solved',
         userId: 'user-123'
@@ -129,9 +215,6 @@ describe('Problems Agent', () => {
     });
 
     it('should filter by difficulty', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       await agent.execute({
         action: 'get-solved',
         userId: 'user-123',
@@ -144,9 +227,6 @@ describe('Problems Agent', () => {
 
   describe('search-solutions action', () => {
     it('should search for solutions', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'search-solutions',
         query: 'two sum solution'
@@ -157,9 +237,6 @@ describe('Problems Agent', () => {
     });
 
     it('should fail without query', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'search-solutions'
       });
@@ -171,9 +248,6 @@ describe('Problems Agent', () => {
 
   describe('update-preferences action', () => {
     it('should update user preferences', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'update-preferences',
         userId: 'user-123',
@@ -189,9 +263,6 @@ describe('Problems Agent', () => {
 
   describe('unknown action', () => {
     it('should return error for unknown action', async () => {
-      const { ProblemsAgent } = await import('../../src/agents/ProblemsAgent');
-      const agent = new ProblemsAgent();
-
       const result = await agent.execute({
         action: 'unknown-action' as any
       });
@@ -201,4 +272,3 @@ describe('Problems Agent', () => {
     });
   });
 });
-

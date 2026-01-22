@@ -6,30 +6,108 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Prisma
-const mockPrisma = {
-  emailStats: {
-    findUnique: vi.fn().mockResolvedValue({
-      userId: 'user-123',
-      totalProcessed: 100,
-      totalClassified: 95
-    })
-  },
-  agentActivity: {
-    create: vi.fn().mockResolvedValue({})
-  }
-};
+// Use vi.hoisted to ensure mocks are available when vi.mock runs
+const { mockPrisma, mockGetPrisma } = vi.hoisted(() => {
+  const prisma = {
+    emailStats: {
+      findUnique: vi.fn()
+    },
+    agentActivity: {
+      create: vi.fn()
+    }
+  };
+
+  return {
+    mockPrisma: prisma,
+    mockGetPrisma: vi.fn(() => prisma)
+  };
+});
 
 vi.mock('../../src/services/core/databaseService', () => ({
-  getPrisma: vi.fn().mockReturnValue(mockPrisma),
+  getPrisma: mockGetPrisma,
   databaseService: {
     logActivity: vi.fn().mockResolvedValue({})
   }
 }));
 
+// Mock retry utilities to prevent async waits
+vi.mock('../../src/utils/retry', () => {
+  class MockRateLimiter {
+    async acquire(): Promise<boolean> { return true; }
+    async waitForToken(): Promise<void> { return; }
+    getAvailableTokens(): number { return 60; }
+  }
+  
+  class MockCircuitBreaker {
+    async execute<T>(fn: () => Promise<T>): Promise<T> { return fn(); }
+    getState(): string { return 'closed'; }
+    reset(): void {}
+  }
+
+  return {
+    withRetry: async <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    RateLimiter: MockRateLimiter,
+    CircuitBreaker: MockCircuitBreaker,
+    isDefaultRetryable: () => false
+  };
+});
+
+// Mock telemetry to prevent actual telemetry calls
+vi.mock('../../src/utils/telemetry', () => ({
+  telemetryService: {
+    recordAgentExecution: vi.fn(),
+    recordRateLimitHit: vi.fn(),
+    recordRetry: vi.fn(),
+    recordCircuitBreakerTrip: vi.fn(),
+    setAgentState: vi.fn()
+  }
+}));
+
+vi.mock('../../src/services/core/configService', () => ({
+  configService: {
+    get: vi.fn().mockImplementation((key: string, defaultValue: any) => {
+      // Return sensible defaults for timeout-related config
+      if (key.includes('timeout') || key.includes('Timeout')) {
+        return defaultValue || 5000;
+      }
+      return defaultValue ?? 10;
+    })
+  }
+}));
+
+// Mock logger to prevent console noise
+vi.mock('../../src/utils/logger', () => ({
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    success: vi.fn(),
+    fail: vi.fn(),
+    agent: vi.fn(),
+    start: vi.fn(),
+    api: vi.fn(),
+    db: vi.fn()
+  }
+}));
+
+// Import agent AFTER mocks are set up
+import { EmailAgent } from '../../src/agents/EmailAgent';
+
 describe('Email Agent', () => {
+  let agent: EmailAgent;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    agent = new EmailAgent();
+    
+    // Set up default mock implementations
+    mockPrisma.emailStats.findUnique.mockResolvedValue({
+      userId: 'user-123',
+      totalProcessed: 100,
+      totalClassified: 95
+    });
+    mockPrisma.agentActivity.create.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -37,10 +115,7 @@ describe('Email Agent', () => {
   });
 
   describe('Metadata', () => {
-    it('should have correct metadata', async () => {
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-      
+    it('should have correct metadata', () => {
       expect(agent.metadata.id).toBe('email');
       expect(agent.metadata.name).toBe('Email Agent');
       expect(agent.metadata.icon).toBe('📧');
@@ -49,9 +124,6 @@ describe('Email Agent', () => {
 
   describe('process action', () => {
     it('should handle process action (delegated to endpoint)', async () => {
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-
       const result = await agent.execute({
         action: 'process',
         userId: 'user-123'
@@ -63,9 +135,6 @@ describe('Email Agent', () => {
 
   describe('get-stats action', () => {
     it('should get email stats', async () => {
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-
       const result = await agent.execute({
         action: 'get-stats',
         userId: 'user-123'
@@ -78,9 +147,6 @@ describe('Email Agent', () => {
     it('should return null stats when user not found', async () => {
       mockPrisma.emailStats.findUnique.mockResolvedValue(null);
 
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-
       const result = await agent.execute({
         action: 'get-stats',
         userId: 'unknown-user'
@@ -91,10 +157,8 @@ describe('Email Agent', () => {
     });
 
     it('should handle database errors', async () => {
-      mockPrisma.emailStats.findUnique.mockRejectedValue(new Error('DB Error'));
-
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
+      // Configure mock to reject
+      mockPrisma.emailStats.findUnique.mockRejectedValueOnce(new Error('DB Error'));
 
       const result = await agent.execute({
         action: 'get-stats',
@@ -106,9 +170,6 @@ describe('Email Agent', () => {
     });
 
     it('should return null when no userId provided', async () => {
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-
       const result = await agent.execute({
         action: 'get-stats'
       });
@@ -120,9 +181,6 @@ describe('Email Agent', () => {
 
   describe('unknown action', () => {
     it('should return error for unknown action', async () => {
-      const { EmailAgent } = await import('../../src/agents/EmailAgent');
-      const agent = new EmailAgent();
-
       const result = await agent.execute({
         action: 'unknown-action' as any
       });
@@ -132,4 +190,3 @@ describe('Email Agent', () => {
     });
   });
 });
-
