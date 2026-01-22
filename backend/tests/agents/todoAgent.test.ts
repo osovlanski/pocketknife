@@ -872,4 +872,542 @@ describe('ToDoAgent', () => {
       expect(result.error).toContain('Unknown action');
     });
   });
+
+  describe('import-calendar-event action', () => {
+    it('should require userId', async () => {
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        calendarEventData: { id: 'event-1', title: 'Meeting', start: '2026-01-25T10:00:00', end: '2026-01-25T11:00:00' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('User ID is required');
+    });
+
+    it('should require calendarEventData', async () => {
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Calendar event data is required');
+    });
+
+    it('should import calendar event as task', async () => {
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'imported-task-1',
+        title: 'Team Meeting',
+        status: 'pending',
+        googleEventId: 'gcal-event-1'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123',
+        calendarEventData: {
+          id: 'gcal-event-1',
+          title: 'Team Meeting',
+          description: 'Weekly sync',
+          start: '2026-01-25T10:00:00',
+          end: '2026-01-25T11:00:00',
+          isAllDay: false
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.task).toBeDefined();
+      expect(mockPrisma.task.create).toHaveBeenCalled();
+    });
+
+    it('should return existing task if event already imported', async () => {
+      mockPrisma.task.findFirst.mockResolvedValue({
+        id: 'existing-task-1',
+        title: 'Team Meeting',
+        googleEventId: 'gcal-event-1'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123',
+        calendarEventData: {
+          id: 'gcal-event-1',
+          title: 'Team Meeting',
+          start: '2026-01-25T10:00:00',
+          end: '2026-01-25T11:00:00'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.task?.id).toBe('existing-task-1');
+      expect(mockPrisma.task.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle all-day events', async () => {
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'all-day-task',
+        title: 'All Day Event',
+        dueTime: undefined
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123',
+        calendarEventData: {
+          id: 'gcal-allday-1',
+          title: 'All Day Event',
+          start: '2026-01-25',
+          end: '2026-01-26',
+          isAllDay: true
+        }
+      });
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle import errors', async () => {
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockRejectedValue(new Error('Import failed'));
+      
+      const result = await todoAgent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123',
+        calendarEventData: {
+          id: 'gcal-fail-1',
+          title: 'Failing Event',
+          start: '2026-01-25T10:00:00',
+          end: '2026-01-25T11:00:00'
+        }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Import failed');
+    });
+  });
+
+  describe('recurring task completion', () => {
+    it('should create next occurrence for recurring task after completion', async () => {
+      const recurringTask = {
+        id: 'recurring-1',
+        title: 'Daily Standup',
+        status: 'pending',
+        isRecurring: true,
+        recurrenceRule: 'daily',
+        dueDate: new Date('2026-01-22'),
+        completedCount: 0
+      };
+      
+      mockPrisma.task.findUnique.mockResolvedValue(recurringTask);
+      mockPrisma.task.update.mockResolvedValue({
+        ...recurringTask,
+        status: 'completed',
+        completedAt: new Date(),
+        completedCount: 1
+      });
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'recurring-1-next',
+        title: 'Daily Standup',
+        dueDate: new Date('2026-01-23')
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'recurring-1'
+      });
+      
+      expect(result.success).toBe(true);
+      // Should create next occurrence
+      expect(mockPrisma.task.create).toHaveBeenCalled();
+    });
+
+    it('should handle weekly recurrence', async () => {
+      const weeklyTask = {
+        id: 'weekly-1',
+        title: 'Weekly Review',
+        status: 'pending',
+        isRecurring: true,
+        recurrenceRule: 'weekly',
+        dueDate: new Date('2026-01-22'),
+        completedCount: 0
+      };
+      
+      mockPrisma.task.findUnique.mockResolvedValue(weeklyTask);
+      mockPrisma.task.update.mockResolvedValue({
+        ...weeklyTask,
+        status: 'completed'
+      });
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'weekly-1-next'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'weekly-1'
+      });
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle monthly recurrence', async () => {
+      const monthlyTask = {
+        id: 'monthly-1',
+        title: 'Monthly Report',
+        status: 'pending',
+        isRecurring: true,
+        recurrenceRule: 'monthly',
+        dueDate: new Date('2026-01-22'),
+        completedCount: 0
+      };
+      
+      mockPrisma.task.findUnique.mockResolvedValue(monthlyTask);
+      mockPrisma.task.update.mockResolvedValue({
+        ...monthlyTask,
+        status: 'completed'
+      });
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'monthly-1-next'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'monthly-1'
+      });
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle weekdays recurrence', async () => {
+      const weekdaysTask = {
+        id: 'weekdays-1',
+        title: 'Weekday Task',
+        status: 'pending',
+        isRecurring: true,
+        recurrenceRule: 'weekdays',
+        dueDate: new Date('2026-01-23'), // Friday
+        completedCount: 0
+      };
+      
+      mockPrisma.task.findUnique.mockResolvedValue(weekdaysTask);
+      mockPrisma.task.update.mockResolvedValue({
+        ...weekdaysTask,
+        status: 'completed'
+      });
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'weekdays-1-next'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'weekdays-1'
+      });
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle custom recurrence pattern', async () => {
+      const customTask = {
+        id: 'custom-1',
+        title: 'Custom Task',
+        status: 'pending',
+        isRecurring: true,
+        recurrenceRule: 'custom:MON,WED,FRI',
+        dueDate: new Date('2026-01-22'), // Wednesday
+        completedCount: 0
+      };
+      
+      mockPrisma.task.findUnique.mockResolvedValue(customTask);
+      mockPrisma.task.update.mockResolvedValue({
+        ...customTask,
+        status: 'completed'
+      });
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'custom-1-next'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'custom-1'
+      });
+      
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('create-task with calendar sync', () => {
+    it('should create calendar event when syncEnabled is true', async () => {
+      mockCalendarService.isAvailable.mockReturnValue(true);
+      mockCalendarService.createEvent.mockResolvedValue('new-event-id');
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'synced-task-1',
+        title: 'Synced Task',
+        dueDate: new Date('2026-01-25'),
+        syncEnabled: true
+      });
+      mockPrisma.task.update.mockResolvedValue({});
+      
+      const result = await todoAgent.execute({
+        action: 'create-task',
+        userId: 'user-123',
+        taskData: {
+          title: 'Synced Task',
+          dueDate: '2026-01-25',
+          syncEnabled: true
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(mockCalendarService.createEvent).toHaveBeenCalled();
+    });
+
+    it('should handle calendar event creation failure gracefully', async () => {
+      mockCalendarService.isAvailable.mockReturnValue(true);
+      mockCalendarService.createEvent.mockRejectedValue(new Error('Calendar API error'));
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'task-without-event',
+        title: 'Task Without Event'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'create-task',
+        userId: 'user-123',
+        taskData: {
+          title: 'Task Without Event',
+          dueDate: '2026-01-25',
+          syncEnabled: true
+        }
+      });
+      
+      // Task creation should still succeed
+      expect(result.success).toBe(true);
+    });
+
+    it('should skip calendar event when calendar not available', async () => {
+      mockCalendarService.isAvailable.mockReturnValue(false);
+      mockPrisma.task.findFirst.mockResolvedValue(null);
+      mockPrisma.task.create.mockResolvedValue({
+        id: 'no-cal-task',
+        title: 'No Calendar Task'
+      });
+      
+      const result = await todoAgent.execute({
+        action: 'create-task',
+        userId: 'user-123',
+        taskData: {
+          title: 'No Calendar Task',
+          dueDate: '2026-01-25',
+          syncEnabled: true
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(mockCalendarService.createEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('get-daily-agenda with calendar events', () => {
+    it('should include calendar events in agenda', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([
+        { id: 'task-1', title: 'Task 1', sourceType: 'manual', status: 'pending' }
+      ]);
+      mockCalendarService.getDayEvents.mockResolvedValue([
+        {
+          id: 'cal-event-1',
+          title: 'Meeting',
+          description: 'Team meeting',
+          start: new Date('2026-01-25T10:00:00'),
+          end: new Date('2026-01-25T11:00:00'),
+          isAllDay: false,
+          isPocketknifeTask: false,
+          htmlLink: 'https://calendar.google.com/event/1'
+        }
+      ]);
+      
+      const result = await todoAgent.execute({
+        action: 'get-daily-agenda',
+        userId: 'user-123',
+        date: '2026-01-25'
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.agenda?.calendarEvents).toHaveLength(1);
+    });
+
+    it('should handle calendar fetch errors gracefully', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([]);
+      mockCalendarService.getDayEvents.mockRejectedValue(new Error('Calendar fetch failed'));
+      
+      const result = await todoAgent.execute({
+        action: 'get-daily-agenda',
+        userId: 'user-123',
+        date: '2026-01-25'
+      });
+      
+      // Should still succeed with empty calendar events
+      expect(result.success).toBe(true);
+      expect(result.data?.agenda).toBeDefined();
+    });
+  });
+
+  describe('database unavailable', () => {
+    it('should handle database not available for create-task', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new ToDoAgent();
+      const result = await agent.execute({
+        action: 'create-task',
+        userId: 'user-123',
+        taskData: { title: 'Test Task' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+
+    it('should handle database not available for get-tasks', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new ToDoAgent();
+      const result = await agent.execute({
+        action: 'get-tasks',
+        userId: 'user-123'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+
+    it('should handle database not available for complete-task', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new ToDoAgent();
+      const result = await agent.execute({
+        action: 'complete-task',
+        userId: 'user-123',
+        taskId: 'task-123'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+
+    it('should handle database not available for import-calendar-event', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new ToDoAgent();
+      const result = await agent.execute({
+        action: 'import-calendar-event',
+        userId: 'user-123',
+        calendarEventData: {
+          id: 'event-1',
+          title: 'Meeting',
+          start: '2026-01-25T10:00:00',
+          end: '2026-01-25T11:00:00'
+        }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+  });
+
+  describe('get-tasks with date filters', () => {
+    it('should filter tasks by date range', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([]);
+      
+      await todoAgent.execute({
+        action: 'get-tasks',
+        userId: 'user-123',
+        filters: {
+          dateFrom: '2026-01-20',
+          dateTo: '2026-01-25'
+        }
+      });
+      
+      expect(mockPrisma.task.findMany).toHaveBeenCalled();
+    });
+
+    it('should filter tasks by dateFrom only', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([]);
+      
+      await todoAgent.execute({
+        action: 'get-tasks',
+        userId: 'user-123',
+        filters: {
+          dateFrom: '2026-01-20'
+        }
+      });
+      
+      expect(mockPrisma.task.findMany).toHaveBeenCalled();
+    });
+
+    it('should filter tasks by dateTo only', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([]);
+      
+      await todoAgent.execute({
+        action: 'get-tasks',
+        userId: 'user-123',
+        filters: {
+          dateTo: '2026-01-25'
+        }
+      });
+      
+      expect(mockPrisma.task.findMany).toHaveBeenCalled();
+    });
+
+    it('should include completed tasks when includeCompleted is true', async () => {
+      mockPrisma.task.findMany.mockResolvedValue([
+        { id: 'task-1', status: 'completed' },
+        { id: 'task-2', status: 'pending' }
+      ]);
+      
+      const result = await todoAgent.execute({
+        action: 'get-tasks',
+        userId: 'user-123',
+        filters: {
+          includeCompleted: true
+        }
+      });
+      
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('agent lifecycle', () => {
+    it('should return initial state', () => {
+      const state = todoAgent.getState();
+      expect(state).toBeDefined();
+      expect(['idle', 'running', 'stopped', 'error']).toContain(state.status);
+    });
+
+    it('should return metrics', () => {
+      const metrics = todoAgent.getMetrics();
+      expect(metrics).toBeDefined();
+    });
+
+    it('should be able to stop', async () => {
+      todoAgent.stop();
+      expect(todoAgent.getState().status).toBeDefined();
+    });
+  });
 });

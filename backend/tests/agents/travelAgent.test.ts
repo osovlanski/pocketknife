@@ -42,12 +42,21 @@ const { mockPrisma, mockTravelSearchService, mockTripPlanningService, mockSpecia
     getTrails: vi.fn(),
     getBeaches: vi.fn(),
     getAIRecommendations: vi.fn(),
-    search: vi.fn()
+    search: vi.fn(),
+    getDestinationsByRegion: vi.fn(),
+    getDestinationsByActivity: vi.fn(),
+    getDayTripSuggestions: vi.fn(),
+    getWeekendGetaways: vi.fn(),
+    getAllDestinations: vi.fn(),
+    getHikingTrails: vi.fn(),
+    getAISuggestions: vi.fn()
   },
   mockGoogleSearchService: {
     search: vi.fn(),
+    searchAndParse: vi.fn(),
     isAvailable: vi.fn(),
-    hasQuota: vi.fn()
+    hasQuota: vi.fn(),
+    getQuotaStatus: vi.fn()
   }
 }));
 
@@ -172,8 +181,15 @@ describe('TravelAgent', () => {
     mockGoogleSearchService.search.mockResolvedValue([
       { title: 'Local Attraction', description: 'A great place', url: 'https://example.com' }
     ]);
+    mockGoogleSearchService.searchAndParse.mockResolvedValue([
+      { title: 'Great Restaurant', description: 'Amazing food and dining', url: 'https://example.com/1', source: 'google' },
+      { title: 'Luxury Hotel', description: 'Best hotel stay', url: 'https://example.com/2', source: 'google' },
+      { title: 'City Tour', description: 'Experience and activity', url: 'https://example.com/3', source: 'google' },
+      { title: 'Famous Museum', description: 'Historic landmark park', url: 'https://example.com/4', source: 'google' }
+    ]);
     mockGoogleSearchService.isAvailable.mockReturnValue(true);
     mockGoogleSearchService.hasQuota.mockReturnValue(true);
+    mockGoogleSearchService.getQuotaStatus.mockReturnValue({ remaining: 90, limit: 100 });
     
     travelAgent = new TravelAgent();
   });
@@ -355,12 +371,12 @@ describe('TravelAgent', () => {
     });
 
     it('should handle local search errors', async () => {
-      mockGoogleSearchService.search.mockRejectedValue(new Error('Search error'));
+      mockGoogleSearchService.searchAndParse.mockRejectedValue(new Error('Search error'));
       
       const result = await travelAgent.execute({
         action: 'search-local',
-        localSearchParams: {
-          destination: 'Haifa',
+        localSearchRequest: {
+          city: 'Haifa',
           type: 'hotels'
         }
       });
@@ -642,6 +658,558 @@ describe('TravelAgent', () => {
       
       // Restore mock
       (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+
+    it('should handle database not available for save-trip', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new TravelAgent();
+      const result = await agent.execute({
+        action: 'save-trip',
+        userId: 'user-123',
+        tripData: { destination: 'Paris' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+
+    it('should handle database not available for update-preferences', async () => {
+      const { getPrisma } = await import('../../src/services/core/databaseService');
+      (getPrisma as any).mockReturnValue(null);
+      
+      const agent = new TravelAgent();
+      const result = await agent.execute({
+        action: 'update-preferences',
+        userId: 'user-123',
+        preferences: { homeAirport: 'TLV' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database not available');
+      
+      (getPrisma as any).mockReturnValue(mockPrisma);
+    });
+  });
+
+  describe('get-israel-destinations with various filters', () => {
+    it('should get destinations by single region', async () => {
+      mockIsraelTravelService.getDestinationsByRegion.mockReturnValue([
+        { id: 'dest-1', name: 'Tel Aviv', region: 'center' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          regions: ['center']
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelDestinations).toHaveLength(1);
+      expect(mockIsraelTravelService.getDestinationsByRegion).toHaveBeenCalledWith('center');
+    });
+
+    it('should get destinations by single activity type', async () => {
+      mockIsraelTravelService.getDestinationsByActivity.mockReturnValue([
+        { id: 'dest-1', name: 'Eilat', activityType: 'beach' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          activityTypes: ['beach']
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelDestinations).toHaveLength(1);
+      expect(mockIsraelTravelService.getDestinationsByActivity).toHaveBeenCalledWith('beach');
+    });
+
+    it('should get day trip suggestions', async () => {
+      mockIsraelTravelService.getDayTripSuggestions.mockReturnValue([
+        { id: 'trip-1', name: 'Dead Sea Day Trip' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          duration: 'day_trip'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelDestinations).toHaveLength(1);
+      expect(mockIsraelTravelService.getDayTripSuggestions).toHaveBeenCalled();
+    });
+
+    it('should get weekend getaways', async () => {
+      mockIsraelTravelService.getWeekendGetaways.mockReturnValue([
+        { id: 'getaway-1', name: 'Galilee Weekend' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          duration: 'weekend',
+          budget: 'moderate'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelDestinations).toHaveLength(1);
+      expect(mockIsraelTravelService.getWeekendGetaways).toHaveBeenCalledWith('moderate');
+    });
+
+    it('should get extended stay options', async () => {
+      mockIsraelTravelService.getWeekendGetaways.mockReturnValue([
+        { id: 'extended-1', name: 'Extended Negev Tour' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          duration: 'extended'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(mockIsraelTravelService.getWeekendGetaways).toHaveBeenCalled();
+    });
+
+    it('should get all destinations when no specific filter', async () => {
+      mockIsraelTravelService.getAllDestinations.mockReturnValue([
+        { id: 'dest-1', name: 'Jerusalem' },
+        { id: 'dest-2', name: 'Haifa' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {}
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelDestinations).toHaveLength(2);
+      expect(mockIsraelTravelService.getAllDestinations).toHaveBeenCalled();
+    });
+
+    it('should get all destinations when multiple regions specified', async () => {
+      mockIsraelTravelService.getAllDestinations.mockReturnValue([
+        { id: 'dest-1', name: 'Multi-region result' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations',
+        israelFilters: {
+          regions: ['center', 'north']
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(mockIsraelTravelService.getAllDestinations).toHaveBeenCalled();
+    });
+
+    it('should handle getIsraelDestinations errors', async () => {
+      mockIsraelTravelService.getAllDestinations.mockImplementation(() => {
+        throw new Error('Service unavailable');
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-destinations'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Service unavailable');
+    });
+  });
+
+  describe('get-israel-trails with filters', () => {
+    it('should get trails with difficulty filter', async () => {
+      mockIsraelTravelService.getHikingTrails.mockReturnValue([
+        { id: 'trail-1', name: 'Ein Gedi Trail', difficulty: 'moderate' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-trails',
+        israelTrailsFilter: {
+          difficulty: 'moderate',
+          maxLength: 15
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelTrails).toHaveLength(1);
+      expect(mockIsraelTravelService.getHikingTrails).toHaveBeenCalledWith({
+        difficulty: 'moderate',
+        maxLength: 15
+      });
+    });
+
+    it('should handle getIsraelTrails errors', async () => {
+      mockIsraelTravelService.getHikingTrails.mockImplementation(() => {
+        throw new Error('Trail service error');
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-trails',
+        israelTrailsFilter: { difficulty: 'hard' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Trail service error');
+    });
+  });
+
+  describe('get-israel-beaches with filters', () => {
+    it('should get beaches with type filter', async () => {
+      mockIsraelTravelService.getBeaches.mockReturnValue([
+        { id: 'beach-1', name: 'Gordon Beach', type: 'mediterranean' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-beaches',
+        israelBeachesFilter: {
+          type: 'mediterranean'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelBeaches).toHaveLength(1);
+    });
+
+    it('should handle getIsraelBeaches errors', async () => {
+      mockIsraelTravelService.getBeaches.mockImplementation(() => {
+        throw new Error('Beach service error');
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'get-israel-beaches',
+        israelBeachesFilter: { type: 'dead_sea' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Beach service error');
+    });
+  });
+
+  describe('search-israel-ai action', () => {
+    it('should require israelSearchRequest with prompt', async () => {
+      const result = await travelAgent.execute({
+        action: 'search-israel-ai',
+        userId: 'user-123'
+      });
+      
+      expect(result.success).toBe(false);
+    });
+
+    it('should get AI-powered Israel suggestions', async () => {
+      mockIsraelTravelService.getAISuggestions.mockResolvedValue({
+        suggestions: [
+          { name: 'AI Suggestion 1', description: 'Great place' }
+        ],
+        aiSummary: 'Here are your personalized suggestions'
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'search-israel-ai',
+        userId: 'user-123',
+        israelSearchRequest: {
+          prompt: 'Where can I go for a romantic weekend?'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelSuggestions).toBeDefined();
+    });
+
+    it('should handle AI suggestions without aiSummary', async () => {
+      mockIsraelTravelService.getAISuggestions.mockResolvedValue({
+        suggestions: [
+          { name: 'Suggestion 1' }
+        ]
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'search-israel-ai',
+        userId: 'user-123',
+        israelSearchRequest: {
+          prompt: 'Budget friendly destinations'
+        }
+      });
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle AI suggestions errors', async () => {
+      mockIsraelTravelService.getAISuggestions.mockRejectedValue(new Error('AI service unavailable'));
+      
+      const result = await travelAgent.execute({
+        action: 'search-israel-ai',
+        userId: 'user-123',
+        israelSearchRequest: {
+          prompt: 'Family vacation ideas'
+        }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('AI service unavailable');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle save-trip database errors', async () => {
+      mockPrisma.tripPlan.create.mockRejectedValue(new Error('Database write error'));
+      
+      const result = await travelAgent.execute({
+        action: 'save-trip',
+        userId: 'user-123',
+        tripData: { destination: 'Rome' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Database write error');
+    });
+
+    it('should handle get-trips database errors', async () => {
+      mockPrisma.tripPlan.findMany.mockRejectedValue(new Error('Query failed'));
+      
+      const result = await travelAgent.execute({
+        action: 'get-trips',
+        userId: 'user-123'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Query failed');
+    });
+
+    it('should handle update-preferences database errors', async () => {
+      mockPrisma.userPreferences.upsert.mockRejectedValue(new Error('Upsert failed'));
+      
+      const result = await travelAgent.execute({
+        action: 'update-preferences',
+        userId: 'user-123',
+        preferences: { homeAirport: 'JFK' }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Upsert failed');
+    });
+
+    it('should handle search flight errors', async () => {
+      mockTravelSearchService.searchFlights.mockRejectedValue(new Error('Flight API error'));
+      
+      const result = await travelAgent.execute({
+        action: 'search',
+        userId: 'user-123',
+        searchRequest: {
+          origin: 'TLV',
+          destinations: ['NYC'],
+          departureDate: '2026-06-01',
+          travelers: 2
+        }
+      });
+      
+      expect(result.success).toBe(false);
+    });
+
+    it('should handle generate-plan errors', async () => {
+      mockTripPlanningService.generatePlan.mockRejectedValue(new Error('Plan generation failed'));
+      
+      const result = await travelAgent.execute({
+        action: 'generate-plan',
+        searchRequest: {
+          origin: 'TLV',
+          destinations: ['ROM'],
+          departureDate: '2026-06-01',
+          returnDate: '2026-06-07',
+          travelers: 2
+        }
+      });
+      
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('agent lifecycle', () => {
+    it('should return initial state', () => {
+      const state = travelAgent.getState();
+      expect(state).toBeDefined();
+      expect(['idle', 'running', 'stopped', 'error']).toContain(state.status);
+    });
+
+    it('should return metrics', () => {
+      const metrics = travelAgent.getMetrics();
+      expect(metrics).toBeDefined();
+    });
+
+    it('should be able to stop', async () => {
+      travelAgent.stop();
+      expect(travelAgent.getState().status).toBeDefined();
+    });
+  });
+
+  describe('search-israel action', () => {
+    it('should search Israel destinations with filters', async () => {
+      mockIsraelTravelService.searchDestinations.mockResolvedValue({
+        suggestions: [
+          { name: 'Jerusalem', description: 'Historic city' }
+        ]
+      });
+      
+      const result = await travelAgent.execute({
+        action: 'search-israel',
+        userId: 'user-123',
+        israelSearchRequest: {
+          query: 'historic sites'
+        },
+        israelFilters: {
+          regions: ['center']
+        }
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.israelSuggestions).toBeDefined();
+    });
+
+    it('should handle search-israel errors', async () => {
+      mockIsraelTravelService.searchDestinations.mockRejectedValue(new Error('Search failed'));
+      
+      const result = await travelAgent.execute({
+        action: 'search-israel',
+        userId: 'user-123',
+        israelSearchRequest: {
+          query: 'beaches'
+        }
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Search failed');
+    });
+  });
+
+  describe('search-local action', () => {
+    it('should search for local restaurants', async () => {
+      mockGoogleSearchService.search.mockResolvedValue([
+        { title: 'Best Restaurant in Paris', description: 'Amazing food and dining experience', url: 'https://example.com/1' }
+      ]);
+      mockGoogleSearchService.isAvailable.mockReturnValue(true);
+      
+      const result = await travelAgent.execute({
+        action: 'search-local',
+        userId: 'user-123',
+        localSearchRequest: {
+          city: 'Paris',
+          type: 'restaurants'
+        }
+      });
+      
+      expect(result).toBeDefined();
+    });
+
+    it('should search for local hotels', async () => {
+      mockGoogleSearchService.search.mockResolvedValue([
+        { title: 'Luxury Hotel Stay in Rome', description: 'Great accommodation', url: 'https://example.com/2' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'search-local',
+        userId: 'user-123',
+        localSearchRequest: {
+          city: 'Rome',
+          type: 'hotels'
+        }
+      });
+      
+      expect(result).toBeDefined();
+    });
+
+    it('should search for local activities', async () => {
+      mockGoogleSearchService.search.mockResolvedValue([
+        { title: 'Tour Guide Experience', description: 'Amazing activity and tour', url: 'https://example.com/3' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'search-local',
+        userId: 'user-123',
+        localSearchRequest: {
+          city: 'Tokyo',
+          type: 'activities'
+        }
+      });
+      
+      expect(result).toBeDefined();
+    });
+
+    it('should search for local attractions', async () => {
+      mockGoogleSearchService.search.mockResolvedValue([
+        { title: 'Famous Museum', description: 'Historic landmark and park', url: 'https://example.com/4' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'search-local',
+        userId: 'user-123',
+        localSearchRequest: {
+          city: 'London',
+          type: 'attractions'
+        }
+      });
+      
+      expect(result).toBeDefined();
+    });
+
+    it('should search for all types', async () => {
+      mockGoogleSearchService.search.mockResolvedValue([
+        { title: 'General Result', description: 'Something interesting', url: 'https://example.com/5' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'search-local',
+        userId: 'user-123',
+        localSearchRequest: {
+          city: 'Barcelona',
+          type: 'all'
+        }
+      });
+      
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('search-ski action with filters', () => {
+    it('should search for ski deals with resort filter', async () => {
+      mockSpecializedTravelService.searchSkiDeals.mockResolvedValue([
+        { resort: 'Zermatt', price: 1500, country: 'Switzerland' }
+      ]);
+      
+      const result = await travelAgent.execute({
+        action: 'search-ski',
+        userId: 'user-123',
+        skiFilters: {
+          destination: 'Switzerland',
+          difficulty: 'advanced'
+        }
+      });
+      
+      expect(result).toBeDefined();
+      expect(typeof result.success).toBe('boolean');
+    });
+
+    it('should handle ski search errors', async () => {
+      mockSpecializedTravelService.searchSkiDeals.mockRejectedValue(new Error('Ski API error'));
+      
+      const result = await travelAgent.execute({
+        action: 'search-ski',
+        userId: 'user-123',
+        skiFilters: {
+          destination: 'Alps'
+        }
+      });
+      
+      expect(result.success).toBe(false);
     });
   });
 });
