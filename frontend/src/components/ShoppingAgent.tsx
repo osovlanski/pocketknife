@@ -551,9 +551,9 @@ const ShoppingAgent: React.FC = () => {
             <p className={styles.panelEmpty}>{t('shopping.noSavedProducts')}</p>
           ) : (
             <div className={styles.productGrid}>
-              {shop.savedProducts.map((product) => (
+              {shop.savedProducts.map((product, index) => (
                 <ProductCard
-                  key={product.id}
+                  key={`saved-${product.id}-${product.source}-${index}`}
                   product={product}
                   onSave={shop.handleSaveProduct}
                   onUnsave={shop.handleUnsaveProduct}
@@ -606,7 +606,7 @@ const ShoppingAgent: React.FC = () => {
           </h3>
           <div className={styles.productGrid}>
             {shop.suggestions.map((suggestion, index) => (
-              <div key={`suggestion-${suggestion.product.id || index}-${suggestion.matchScore}`} className={styles.productCard}>
+              <div key={`suggestion-${index}-${suggestion.product.title?.slice(0, 10) || 'item'}`} className={styles.productCard}>
                 <div className={styles.productContent}>
                   <h3 className={styles.productTitle}>{suggestion.product.title}</h3>
                   <p className={styles.productReason}>{suggestion.reason}</p>
@@ -636,9 +636,9 @@ const ShoppingAgent: React.FC = () => {
         <div>
           <h3 className={styles.resultsTitle}>{t('shopping.foundProducts', { count: shop.products.length })}</h3>
           <div className={styles.productGrid}>
-            {shop.products.map((product) => (
+            {shop.products.map((product, index) => (
               <ProductCard
-                key={product.id}
+                key={`product-${product.id}-${product.source}-${index}`}
                 product={product}
                 onSave={shop.handleSaveProduct}
                 onUnsave={shop.handleUnsaveProduct}
