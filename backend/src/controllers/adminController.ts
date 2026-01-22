@@ -1433,3 +1433,406 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
   }
 };
 
+// =============================================================================
+// EXTERNAL DATA MANAGEMENT (Companies, Communities, etc.)
+// =============================================================================
+
+// Import external company service
+import { externalCompanyService } from '../services/jobs/externalCompanyService';
+import comeetCareersService from '../services/jobs/comeetCareersService';
+
+/**
+ * List external companies
+ */
+export const listCompanies = async (req: Request, res: Response) => {
+  try {
+    const { status, atsProvider, size, limit } = req.query;
+    const companies = await externalCompanyService.searchCompanies({
+      status: status as any,
+      atsProvider: atsProvider as any,
+      size: size as any
+    }, limit ? parseInt(limit as string) : 100);
+    
+    res.json({ success: true, count: companies.length, companies });
+  } catch (error: any) {
+    console.error('❌ Error listing companies:', error.message);
+    res.status(500).json({ error: 'Failed to list companies' });
+  }
+};
+
+/**
+ * Get single company
+ */
+export const getCompany = async (req: Request, res: Response) => {
+  try {
+    const company = await externalCompanyService.getCompanyById(req.params.id);
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+    res.json({ success: true, company });
+  } catch (error: any) {
+    console.error('❌ Error getting company:', error.message);
+    res.status(500).json({ error: 'Failed to get company' });
+  }
+};
+
+/**
+ * Create company
+ */
+export const createCompany = async (req: Request, res: Response) => {
+  try {
+    const company = await externalCompanyService.createCompany(req.body);
+    res.status(201).json({ success: true, company });
+  } catch (error: any) {
+    console.error('❌ Error creating company:', error.message);
+    res.status(500).json({ error: 'Failed to create company' });
+  }
+};
+
+/**
+ * Update company
+ */
+export const updateCompany = async (req: Request, res: Response) => {
+  try {
+    const company = await externalCompanyService.updateCompany(req.params.id, req.body);
+    res.json({ success: true, company });
+  } catch (error: any) {
+    console.error('❌ Error updating company:', error.message);
+    res.status(500).json({ error: 'Failed to update company' });
+  }
+};
+
+/**
+ * Delete company
+ */
+export const deleteCompany = async (req: Request, res: Response) => {
+  try {
+    await externalCompanyService.deleteCompany(req.params.id);
+    res.json({ success: true, message: 'Company deleted' });
+  } catch (error: any) {
+    console.error('❌ Error deleting company:', error.message);
+    res.status(500).json({ error: 'Failed to delete company' });
+  }
+};
+
+/**
+ * Verify company
+ */
+export const verifyCompany = async (req: Request, res: Response) => {
+  try {
+    const result = await externalCompanyService.verifyCompany(req.params.id);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('❌ Error verifying company:', error.message);
+    res.status(500).json({ error: 'Failed to verify company' });
+  }
+};
+
+/**
+ * Enrich company with Crunchbase data
+ */
+export const enrichCompany = async (req: Request, res: Response) => {
+  try {
+    const company = await externalCompanyService.enrichFromCrunchbase(req.params.id);
+    res.json({ success: true, company });
+  } catch (error: any) {
+    console.error('❌ Error enriching company:', error.message);
+    res.status(500).json({ error: 'Failed to enrich company' });
+  }
+};
+
+/**
+ * Run company discovery
+ */
+export const runDiscovery = async (req: Request, res: Response) => {
+  try {
+    const { query = 'Israel tech startup', maxResults = 10 } = req.body;
+    const result = await externalCompanyService.runDiscovery(query, maxResults);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('❌ Error running discovery:', error.message);
+    res.status(500).json({ error: 'Failed to run discovery' });
+  }
+};
+
+/**
+ * Migrate hardcoded companies
+ */
+export const migrateHardcodedCompanies = async (req: Request, res: Response) => {
+  try {
+    const migratedCount = await comeetCareersService.migrateToDatabase();
+    res.json({ success: true, message: `Migrated ${migratedCount} companies`, migratedCount });
+  } catch (error: any) {
+    console.error('❌ Error migrating companies:', error.message);
+    res.status(500).json({ error: 'Failed to migrate companies' });
+  }
+};
+
+/**
+ * Refresh company data
+ */
+export const refreshCompanyData = async (req: Request, res: Response) => {
+  try {
+    const { maxCompanies = 50 } = req.body;
+    const enrichedCount = await externalCompanyService.refreshCompanyData(maxCompanies);
+    res.json({ success: true, message: `Refreshed ${enrichedCount} companies`, enrichedCount });
+  } catch (error: any) {
+    console.error('❌ Error refreshing companies:', error.message);
+    res.status(500).json({ error: 'Failed to refresh companies' });
+  }
+};
+
+/**
+ * Get company stats
+ */
+export const getCompanyStats = async (req: Request, res: Response) => {
+  try {
+    const stats = await externalCompanyService.getStats();
+    res.json({ success: true, stats });
+  } catch (error: any) {
+    console.error('❌ Error getting company stats:', error.message);
+    res.status(500).json({ error: 'Failed to get company stats' });
+  }
+};
+
+/**
+ * Get ATS providers
+ */
+export const getATSProviders = async (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    providers: [
+      { id: 'COMEET', name: 'Comeet', urlPattern: 'www.comeet.com/jobs/{companyId}/{token}' },
+      { id: 'GREENHOUSE', name: 'Greenhouse', urlPattern: 'boards.greenhouse.io/{companyId}' },
+      { id: 'LEVER', name: 'Lever', urlPattern: 'jobs.lever.co/{companyId}' },
+      { id: 'WORKDAY', name: 'Workday', urlPattern: '{company}.wd5.myworkdayjobs.com' },
+      { id: 'OTHER', name: 'Other', urlPattern: null }
+    ]
+  });
+};
+
+/**
+ * Get size categories
+ */
+export const getSizeCategories = async (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    sizes: [
+      { id: 'STARTUP', name: 'Startup', range: '1-50 employees' },
+      { id: 'MIDSIZE', name: 'Mid-size', range: '51-500 employees' },
+      { id: 'ENTERPRISE', name: 'Enterprise', range: '500+ employees' }
+    ]
+  });
+};
+
+/**
+ * Migrate all hardcoded data
+ */
+export const migrateAllHardcodedData = async (req: Request, res: Response) => {
+  try {
+    const results: Record<string, number> = {};
+    
+    // Migrate companies
+    try {
+      results.companies = await comeetCareersService.migrateToDatabase();
+    } catch (e: any) {
+      console.error('Companies migration error:', e.message);
+      results.companies = 0;
+    }
+    
+    // Migrate communities
+    try {
+      const israeliTechCommunityService = (await import('../services/jobs/israeliTechCommunityService')).default;
+      results.communities = await israeliTechCommunityService.migrateToDatabase();
+    } catch (e: any) {
+      console.error('Communities migration error:', e.message);
+      results.communities = 0;
+    }
+    
+    // Migrate YouTube channels
+    try {
+      const youtubeService = (await import('../services/learning/youtubeService')).default;
+      results.youtubeChannels = await youtubeService.migrateToDatabase();
+    } catch (e: any) {
+      console.error('YouTube channels migration error:', e.message);
+      results.youtubeChannels = 0;
+    }
+    
+    // Migrate search sites
+    try {
+      const { googleSearchService } = await import('../services/core/googleSearchService');
+      results.searchSites = await googleSearchService.migrateToDatabase();
+    } catch (e: any) {
+      console.error('Search sites migration error:', e.message);
+      results.searchSites = 0;
+    }
+    
+    // Migrate stores
+    try {
+      const israeliShopsService = (await import('../services/shopping/israeliShopsService')).default;
+      results.stores = await israeliShopsService.migrateToDatabase();
+    } catch (e: any) {
+      console.error('Stores migration error:', e.message);
+      results.stores = 0;
+    }
+    
+    const total = Object.values(results).reduce((a, b) => a + b, 0);
+    res.json({ success: true, message: `Migrated ${total} total items`, results });
+  } catch (error: any) {
+    console.error('❌ Error during migration:', error.message);
+    res.status(500).json({ error: 'Failed to migrate hardcoded data' });
+  }
+};
+
+/**
+ * Get external data stats
+ */
+export const getExternalDataStats = async (req: Request, res: Response) => {
+  try {
+    const { externalDataStats } = await import('../services/core/externalDataService');
+    const stats = await externalDataStats.getAll();
+    res.json({ success: true, stats });
+  } catch (error: any) {
+    console.error('❌ Error getting external data stats:', error.message);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+};
+
+/**
+ * List communities
+ */
+export const listCommunities = async (req: Request, res: Response) => {
+  try {
+    const { communityService } = await import('../services/core/externalDataService');
+    const { type, status, focus, country, limit } = req.query;
+    const communities = await communityService.search({
+      type: type as any,
+      status: status as any,
+      focus: focus as string,
+      country: country as string,
+      limit: limit ? parseInt(limit as string) : 100
+    });
+    res.json({ success: true, count: communities.length, communities });
+  } catch (error: any) {
+    console.error('❌ Error listing communities:', error.message);
+    res.status(500).json({ error: 'Failed to list communities' });
+  }
+};
+
+/**
+ * Create community
+ */
+export const createCommunity = async (req: Request, res: Response) => {
+  try {
+    const { communityService } = await import('../services/core/externalDataService');
+    const community = await communityService.create(req.body);
+    res.status(201).json({ success: true, community });
+  } catch (error: any) {
+    console.error('❌ Error creating community:', error.message);
+    res.status(500).json({ error: 'Failed to create community' });
+  }
+};
+
+/**
+ * List learning resources
+ */
+export const listLearningResources = async (req: Request, res: Response) => {
+  try {
+    const { learningResourceService } = await import('../services/core/externalDataService');
+    const { type, status, focus, difficulty, limit } = req.query;
+    const resources = await learningResourceService.search({
+      type: type as any,
+      status: status as any,
+      focus: focus as string,
+      difficulty: difficulty as string,
+      limit: limit ? parseInt(limit as string) : 100
+    });
+    res.json({ success: true, count: resources.length, resources });
+  } catch (error: any) {
+    console.error('❌ Error listing learning resources:', error.message);
+    res.status(500).json({ error: 'Failed to list learning resources' });
+  }
+};
+
+/**
+ * Create learning resource
+ */
+export const createLearningResource = async (req: Request, res: Response) => {
+  try {
+    const { learningResourceService } = await import('../services/core/externalDataService');
+    const resource = await learningResourceService.create(req.body);
+    res.status(201).json({ success: true, resource });
+  } catch (error: any) {
+    console.error('❌ Error creating learning resource:', error.message);
+    res.status(500).json({ error: 'Failed to create learning resource' });
+  }
+};
+
+/**
+ * List search site configs
+ */
+export const listSearchSiteConfigs = async (req: Request, res: Response) => {
+  try {
+    const { searchSiteConfigService } = await import('../services/core/externalDataService');
+    const { agentType, isActive, country, limit } = req.query;
+    const configs = await searchSiteConfigService.search({
+      agentType: agentType as any,
+      isActive: isActive === 'true',
+      country: country as string,
+      limit: limit ? parseInt(limit as string) : 100
+    });
+    res.json({ success: true, count: configs.length, configs });
+  } catch (error: any) {
+    console.error('❌ Error listing search site configs:', error.message);
+    res.status(500).json({ error: 'Failed to list search site configs' });
+  }
+};
+
+/**
+ * Create search site config
+ */
+export const createSearchSiteConfig = async (req: Request, res: Response) => {
+  try {
+    const { searchSiteConfigService } = await import('../services/core/externalDataService');
+    const config = await searchSiteConfigService.create(req.body);
+    res.status(201).json({ success: true, config });
+  } catch (error: any) {
+    console.error('❌ Error creating search site config:', error.message);
+    res.status(500).json({ error: 'Failed to create search site config' });
+  }
+};
+
+/**
+ * List external stores
+ */
+export const listExternalStores = async (req: Request, res: Response) => {
+  try {
+    const { externalStoreService } = await import('../services/core/externalDataService');
+    const { status, country, category, limit } = req.query;
+    const stores = await externalStoreService.search({
+      status: status as any,
+      country: country as string,
+      category: category as string,
+      limit: limit ? parseInt(limit as string) : 100
+    });
+    res.json({ success: true, count: stores.length, stores });
+  } catch (error: any) {
+    console.error('❌ Error listing stores:', error.message);
+    res.status(500).json({ error: 'Failed to list stores' });
+  }
+};
+
+/**
+ * Create external store
+ */
+export const createExternalStore = async (req: Request, res: Response) => {
+  try {
+    const { externalStoreService } = await import('../services/core/externalDataService');
+    const store = await externalStoreService.create(req.body);
+    res.status(201).json({ success: true, store });
+  } catch (error: any) {
+    console.error('❌ Error creating store:', error.message);
+    res.status(500).json({ error: 'Failed to create store' });
+  }
+};
+

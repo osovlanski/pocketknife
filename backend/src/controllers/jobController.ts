@@ -525,6 +525,279 @@ export const enrichCompanies = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Search by company name - find company info and their job openings
+ */
+export const searchCompany = async (req: Request, res: Response) => {
+  try {
+    const { companyName, includeJobs = true } = req.body;
+    const io = req.app.get('io');
+
+    if (!companyName) {
+      return res.status(400).json({ error: 'Company name is required' });
+    }
+
+    emitLog(io, `🔍 Searching for company: ${companyName}...`, 'info');
+
+    // Get company info
+    const companyInfo = await companyEnrichmentService.getCompanyInfo(companyName);
+
+    if (companyInfo) {
+      emitLog(io, `✅ Found company: ${companyInfo.name}`, 'success');
+    } else {
+      emitLog(io, `⚠️ Limited info available for: ${companyName}`, 'warning');
+    }
+
+    let jobs: any[] = [];
+    
+    if (includeJobs) {
+      emitLog(io, '🔍 Searching for job openings...', 'info');
+      
+      // Search for jobs at this company
+      const allJobs = await jobSourceService.searchAllSources(
+        companyName,
+        { query: companyName },
+        io
+      );
+      
+      // Filter to only include jobs from this company
+      const companyNameLower = companyName.toLowerCase();
+      jobs = allJobs.filter(job => 
+        job.company.toLowerCase().includes(companyNameLower) ||
+        companyNameLower.includes(job.company.toLowerCase())
+      );
+
+      emitLog(io, `✅ Found ${jobs.length} job openings at ${companyName}`, 'success');
+    }
+
+    // Log activity
+    const user = await databaseService.getDefaultUser();
+    if (user) {
+      await databaseService.logActivity({
+        userId: user.id,
+        agent: 'jobs',
+        action: 'company-search',
+        details: `Company search: ${companyName}`,
+        metadata: {
+          companyName,
+          hasInfo: !!companyInfo,
+          jobsFound: jobs.length
+        },
+        status: 'success'
+      });
+    }
+
+    res.json({
+      success: true,
+      company: companyInfo || { name: companyName },
+      jobs,
+      stats: {
+        jobsFound: jobs.length,
+        hasCompanyInfo: !!companyInfo
+      }
+    });
+  } catch (error: any) {
+    logger.fail('Company search error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get list of companies with job openings (for autocomplete)
+ * Supports filtering by: prefix, sizes, industries
+ */
+export const getCompaniesWithJobs = async (req: Request, res: Response) => {
+  try {
+    const { prefix, sizes, industries } = req.query;
+
+    // Parse filter arrays
+    const sizeFilter = sizes && typeof sizes === 'string' 
+      ? sizes.split(',').map(s => s.trim().toLowerCase()) 
+      : [];
+    const industryFilter = industries && typeof industries === 'string' 
+      ? industries.split(',').map(i => i.trim().toLowerCase()) 
+      : [];
+
+    logger.info('Company list request', { prefix, sizeFilter, industryFilter });
+
+    // Get companies from Comeet (known to have active job listings)
+    const comeetService = await import('../services/jobs/comeetCareersService');
+    const comeetCompanies = comeetService.default.getAvailableCompanies();
+
+    // Get companies from Israeli tech service
+    const israeliService = await import('../services/jobs/israeliJobsService');
+    const israeliCompanies = israeliService.default.getTopIsraeliCompanies();
+
+    // Combine companies with enriched data
+    const allCompanies = [
+      ...comeetCompanies.map(c => ({ 
+        name: c.name, 
+        industry: c.industry, 
+        size: c.size,
+        employeeCountMin: c.employeeCountMin,
+        employeeCountMax: c.employeeCountMax
+      })),
+      ...israeliCompanies.map(c => ({ 
+        name: c.name, 
+        industry: 'Tech', 
+        size: 'enterprise' as const,
+        employeeCountMin: 500,
+        employeeCountMax: 10000
+      }))
+    ];
+
+    // Filter by prefix if provided
+    let filtered = allCompanies;
+    if (prefix && typeof prefix === 'string') {
+      const prefixLower = prefix.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.name.toLowerCase().includes(prefixLower)
+      );
+    }
+
+    // Filter by company size - use employee count ranges
+    if (sizeFilter.length > 0) {
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(c => {
+        // Define size ranges
+        const getSizeCategory = (minEmp?: number, maxEmp?: number, textSize?: string): string | null => {
+          // Use employee count if available
+          if (maxEmp !== undefined) {
+            if (maxEmp <= 50) return 'startup';
+            if (maxEmp <= 500) return 'midsize';
+            return 'enterprise';
+          }
+          if (minEmp !== undefined) {
+            if (minEmp >= 500) return 'enterprise';
+            if (minEmp >= 51) return 'midsize';
+            return 'startup';
+          }
+          // Fall back to text-based size
+          if (textSize) return textSize.toLowerCase();
+          return null;
+        };
+
+        const category = getSizeCategory(c.employeeCountMin, c.employeeCountMax, c.size);
+        if (!category) return false; // Exclude if no size info
+        
+        return sizeFilter.includes(category);
+      });
+      logger.info('Size filter applied', { 
+        sizeFilter, 
+        beforeCount, 
+        afterCount: filtered.length,
+        sample: filtered.slice(0, 3).map(c => ({ name: c.name, size: c.size, emp: c.employeeCountMax }))
+      });
+    }
+
+    // Filter by industry
+    if (industryFilter.length > 0) {
+      filtered = filtered.filter(c => {
+        if (!c.industry) return false;
+        const industryLower = c.industry.toLowerCase();
+        return industryFilter.some(filter => industryLower.includes(filter));
+      });
+    }
+
+    // Dedupe by name
+    const unique = filtered.filter((c, i, arr) => 
+      arr.findIndex(x => x.name.toLowerCase() === c.name.toLowerCase()) === i
+    );
+
+    res.json({
+      success: true,
+      companies: unique.slice(0, 50), // Limit to 50
+      totalCount: unique.length,
+      filters: {
+        sizes: sizeFilter,
+        industries: industryFilter
+      }
+    });
+  } catch (error: any) {
+    logger.fail('Get companies error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get trending companies based on period
+ * Shows companies with highest activity/score changes
+ */
+export const getTrendingCompanies = async (req: Request, res: Response) => {
+  try {
+    const { period = 'week' } = req.query;
+    
+    logger.info('Fetching trending companies', { period });
+
+    // Get companies from Comeet service
+    const comeetService = await import('../services/jobs/comeetCareersService');
+    const comeetCompanies = comeetService.default.getAvailableCompanies();
+
+    // Get companies from Israeli tech service
+    const israeliService = await import('../services/jobs/israeliJobsService');
+    const israeliCompanies = israeliService.default.getTopIsraeliCompanies();
+
+    // Combine all companies with metadata
+    const allCompanies = [
+      ...comeetCompanies.map(c => ({
+        name: c.name,
+        industry: c.industry,
+        size: c.size,
+        employeeCountMin: c.employeeCountMin,
+        employeeCountMax: c.employeeCountMax,
+        score: Math.floor(Math.random() * 30) + 70, // Simulated score 70-100 for now
+        trend: 'up' as const,
+        changePercent: Math.floor(Math.random() * 20) + 1 // Simulated change 1-20%
+      })),
+      ...israeliCompanies.map(c => ({
+        name: c.name,
+        industry: 'Tech',
+        size: 'enterprise' as const,
+        employeeCountMin: 500,
+        employeeCountMax: 10000,
+        score: Math.floor(Math.random() * 30) + 70,
+        trend: 'up' as const,
+        changePercent: Math.floor(Math.random() * 15) + 1
+      }))
+    ];
+
+    // Sort by score (descending) and take top results
+    const sorted = allCompanies.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    // Apply period-based filtering/limiting
+    let limit = 12;
+    switch (period) {
+      case 'day':
+        limit = 6;
+        break;
+      case 'week':
+        limit = 12;
+        break;
+      case 'month':
+        limit = 18;
+        break;
+      case 'year':
+        limit = 24;
+        break;
+    }
+
+    // Dedupe by name
+    const unique = sorted.filter((c, i, arr) => 
+      arr.findIndex(x => x.name.toLowerCase() === c.name.toLowerCase()) === i
+    );
+
+    res.json({
+      success: true,
+      period,
+      companies: unique.slice(0, limit),
+      totalCount: unique.length
+    });
+  } catch (error: any) {
+    logger.fail('Get trending companies error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // =============================================================================
 // MOCK INTERVIEW ENDPOINTS (re-exported from interviewController)
 // =============================================================================

@@ -1,0 +1,251 @@
+---
+description: Data-driven architecture patterns. Avoid hardcoded lists of external data (companies, products, scrapers). Use database tables for external entity management. Triggered by 'company', 'external data', 'hardcoded', 'scraper', 'ATS'.
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Data-Driven Architecture
+
+Pocketknife follows a data-driven architecture for all **external entity data** (companies, products, configurations). This ensures maintainability, discoverability, and runtime flexibility.
+
+## 🚫 NEVER Hardcode These Types of Data
+
+| Type | Bad Example | Correct Approach |
+| :--- | :--- | :--- |
+| **Company Lists** | `const companies = [{ name: 'Wix', ... }]` | Store in `ExternalCompany` database table |
+| **ATS Credentials** | `{ uid: 'company', token: 'xyz' }` | Store in `ExternalCompany.atsCompanyId` / `atsToken` |
+| **Scraper Targets** | `const sites = ['site1.com', 'site2.com']` | Store in database with status flags |
+| **API Endpoints** | `const url = 'https://api.example.com'` | Use `configService.get()` |
+| **Industry Categories** | `const industries = ['tech', 'fintech']` | Store in reference table or config |
+
+---
+
+## Database Tables for External Data
+
+### ExternalCompany Table
+
+The `ExternalCompany` table is the **single source of truth** for all external company data:
+
+```prisma
+model ExternalCompany {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  
+  // ATS Configuration
+  atsProvider       ATSProvider  // COMEET, GREENHOUSE, LEVER, etc.
+  atsCompanyId      String       // Company ID in the ATS
+  atsToken          String?      // Public API token
+  
+  // Company Metadata (enriched from Crunchbase, LinkedIn, etc.)
+  description       String?
+  industry          String?
+  size              CompanySizeCategory?  // STARTUP, MIDSIZE, ENTERPRISE
+  employeeCountMin  Int?
+  employeeCountMax  Int?
+  fundingStage      String?
+  totalFunding      String?
+  headquarters      String?
+  website           String?
+  
+  // Status and Discovery
+  status            ExternalCompanyStatus  // ACTIVE, INACTIVE, INVALID, PENDING
+  discoverySource   String?  // "google_search", "manual", "migration"
+  lastEnrichedAt    DateTime?
+  
+  // ... more fields
+}
+```
+
+### Key Services
+
+| Service | Purpose | Location |
+| :--- | :--- | :--- |
+| `externalCompanyService` | CRUD operations, discovery, enrichment | `services/jobs/externalCompanyService.ts` |
+| `comeetCareersService` | Fetch jobs from Comeet ATS | `services/jobs/comeetCareersService.ts` |
+| `companyEnrichmentService` | Enrich company data from multiple sources | `services/jobs/companyEnrichmentService.ts` |
+
+---
+
+## Migration Pattern: Hardcoded → Database
+
+When refactoring existing hardcoded data to database:
+
+### Step 1: Keep Fallback Array
+
+```typescript
+// Keep the hardcoded list as a FALLBACK
+private fallbackCompanies = [
+  { name: 'Company A', uid: 'company-a', token: 'token-a' },
+  // ...
+];
+```
+
+### Step 2: Create Database Query Method
+
+```typescript
+private async getCompaniesFromDatabase(): Promise<Company[]> {
+  try {
+    const dbCompanies = await prisma.externalCompany.findMany({
+      where: { atsProvider: 'COMEET', status: 'ACTIVE' }
+    });
+    
+    if (dbCompanies.length > 0) {
+      return dbCompanies.map(c => ({
+        name: c.name,
+        uid: c.atsCompanyId,
+        token: c.atsToken || ''
+      }));
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not fetch from database');
+  }
+  
+  return []; // Return empty to trigger fallback
+}
+```
+
+### Step 3: Prioritize Database, Fallback to Hardcoded
+
+```typescript
+async searchCompanies(query: string): Promise<JobListing[]> {
+  // Try database first
+  let companies = await this.getCompaniesFromDatabase();
+  
+  // Fallback to hardcoded if database is empty
+  if (companies.length === 0) {
+    console.log('ℹ️ Using fallback company list');
+    companies = this.fallbackCompanies;
+  }
+  
+  // Continue with business logic...
+}
+```
+
+### Step 4: Create Migration Endpoint
+
+```typescript
+// In adminController.ts
+export const migrateHardcodedCompanies = async (req: Request, res: Response) => {
+  const migratedCount = await comeetCareersService.migrateToDatabase();
+  res.json({ success: true, migratedCount });
+};
+```
+
+---
+
+## Discovery Pattern
+
+Use the `externalCompanyService.runDiscovery()` method to automatically discover new companies:
+
+```typescript
+// Discover new Comeet companies via Google Search
+const newCompanies = await externalCompanyService.runDiscovery([
+  'Israel tech startup',
+  'Israel cybersecurity',
+  'Israel fintech'
+]);
+```
+
+---
+
+## Enrichment Pattern
+
+Use Crunchbase and other sources to keep company data fresh:
+
+```typescript
+// Enrich a single company
+await externalCompanyService.enrichFromCrunchbase(companyId);
+
+// Refresh stale companies (older than 7 days)
+await externalCompanyService.refreshCompanyData(50); // max 50 companies
+```
+
+---
+
+## Admin API Endpoints
+
+| Endpoint | Method | Purpose |
+| :--- | :--- | :--- |
+| `/api/admin/companies` | GET | List all companies with filters |
+| `/api/admin/companies/:id` | GET | Get single company |
+| `/api/admin/companies` | POST | Create new company |
+| `/api/admin/companies/:id` | PUT | Update company |
+| `/api/admin/companies/:id` | DELETE | Delete company |
+| `/api/admin/companies/:id/verify` | POST | Verify ATS credentials |
+| `/api/admin/companies/:id/enrich` | POST | Enrich from Crunchbase |
+| `/api/admin/discovery/run` | POST | Run discovery for new companies |
+| `/api/admin/migration/hardcoded-companies` | POST | Migrate hardcoded to DB |
+| `/api/admin/stats/companies` | GET | Get company statistics |
+
+---
+
+## Checklist for Adding New External Data Sources
+
+When adding a new external data source (e.g., new job board, new product catalog):
+
+- [ ] **Create database model** in `prisma/schema.prisma`
+- [ ] **Run migration**: `npx prisma migrate dev --name add_your_model`
+- [ ] **Create service** with CRUD operations and discovery methods
+- [ ] **Add fallback list** for initial data / offline mode
+- [ ] **Create migration endpoint** to move hardcoded data to database
+- [ ] **Add admin endpoints** for management
+- [ ] **Document the source** in service JSDoc comments
+- [ ] **Add tests** for database operations and fallback behavior
+
+---
+
+## Quick Reference
+
+### Import Patterns
+
+```typescript
+// External Company Service
+import { externalCompanyService } from '../services/jobs/externalCompanyService';
+
+// Prisma Client for direct queries
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
+// Config Service for simple settings
+import { configService } from '../services/core/configService';
+```
+
+### Common Patterns
+
+```typescript
+// Pattern 1: Database-first with fallback
+const companies = await this.getCompaniesFromDatabase();
+if (companies.length === 0) {
+  companies = this.fallbackList;
+}
+
+// Pattern 2: Create or update (upsert)
+const company = await externalCompanyService.createCompany({
+  name: 'New Company',
+  atsProvider: 'COMEET',
+  atsCompanyId: 'new-company',
+  discoverySource: 'manual'
+});
+
+// Pattern 3: Filter by status
+const activeCompanies = await externalCompanyService.searchCompanies({
+  status: 'ACTIVE',
+  size: 'STARTUP'
+});
+
+// Pattern 4: Scheduled refresh (in a cron job)
+await externalCompanyService.refreshCompanyData(100);
+```
+
+---
+
+## Why This Matters
+
+| Hardcoded | Database-Driven |
+| :--- | :--- |
+| Requires code deployment to update | Update at runtime via API |
+| Data becomes stale quickly | Automated enrichment keeps data fresh |
+| Limited to developer knowledge | Discovery finds new sources automatically |
+| Difficult to track changes | Full audit trail in database |
+| No user management | Admin UI for CRUD operations |

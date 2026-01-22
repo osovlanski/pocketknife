@@ -80,14 +80,79 @@ class IsraelTechScraperService {
   }
 
   /**
-   * Scrape jobs from Calcalist Tech Jobs (Ynet sister site)
-   * Uses RSS/API if available, fallback to page scraping
+   * Scrape jobs from Calcalist Jobs (tech-focused job board)
+   * https://www.calcalist.co.il/calcalistech/jobs
    */
   async scrapeCalcalist(query?: string): Promise<ScrapedJob[]> {
     try {
-      console.log('🔍 Fetching jobs from Calcalist Tech...');
+      console.log('🔍 Fetching jobs from Calcalist Tech Jobs...');
       
-      // Try to get RSS feed first
+      // Calcalist Tech Jobs page
+      const url = 'https://www.calcalist.co.il/calcalistech/jobs';
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'text/html',
+          'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
+        },
+        timeout: 15000
+      });
+
+      const $ = cheerio.load(response.data);
+      const jobs: ScrapedJob[] = [];
+
+      // Parse job listings from Calcalist job board
+      $('[class*="job"], .card, .listing, article, .result-item').each((i, elem) => {
+        if (i >= 30) return;
+        
+        const title = $(elem).find('h2, h3, h4, .title, [class*="title"]').first().text().trim();
+        const company = $(elem).find('[class*="company"], .employer, .source').first().text().trim();
+        const location = $(elem).find('[class*="location"], .place').first().text().trim();
+        const link = $(elem).find('a').first().attr('href') || '';
+        const description = $(elem).find('p, .description, .excerpt, .summary').first().text().trim();
+
+        if (title && title.length > 3) {
+          // Filter by query if provided
+          const matchesQuery = !query || 
+            `${title} ${company} ${description}`.toLowerCase().split(/\s+/).some(word =>
+              query.toLowerCase().split(/\s+/).some(qw => qw.length > 2 && word.includes(qw))
+            );
+          
+          if (matchesQuery) {
+            jobs.push({
+              id: `calcalist-${i}-${Date.now()}`,
+              source: 'Calcalist Tech',
+              title: this.stripHtml(title),
+              company: company || 'Israeli Tech Company',
+              location: location || 'Israel',
+              remote: location?.toLowerCase().includes('remote') || location?.toLowerCase().includes('מרחוק'),
+              description: this.stripHtml(description) || `${title} position`,
+              applyUrl: link.startsWith('http') ? link : `https://www.calcalist.co.il${link}`,
+              postedAt: new Date().toISOString()
+            });
+          }
+        }
+      });
+
+      // Fallback to RSS if no jobs found from HTML
+      if (jobs.length === 0) {
+        return this.scrapeCalcalistRSS(query);
+      }
+
+      console.log(`✅ Found ${jobs.length} jobs from Calcalist Tech`);
+      return jobs;
+    } catch (error: any) {
+      console.error('❌ Calcalist scraping failed:', error.message);
+      return this.scrapeCalcalistRSS(query);
+    }
+  }
+
+  /**
+   * Fallback: Scrape Calcalist via RSS feed
+   */
+  private async scrapeCalcalistRSS(query?: string): Promise<ScrapedJob[]> {
+    try {
       const rssUrl = 'https://www.calcalist.co.il/GeneralRSS/0,16716,L-5251,00.xml';
       
       const response = await axios.get(rssUrl, {
@@ -102,7 +167,7 @@ class IsraelTechScraperService {
       const jobs: ScrapedJob[] = [];
 
       $('item').each((i, item) => {
-        if (i >= 20) return; // Limit results
+        if (i >= 20) return;
         
         const title = $(item).find('title').text();
         const link = $(item).find('link').text();
@@ -110,17 +175,19 @@ class IsraelTechScraperService {
         const pubDate = $(item).find('pubDate').text();
 
         // Filter for job-related articles
-        const isJobRelated = /hiring|job|career|position|developer|engineer/i.test(title + description);
+        const text = `${title} ${description}`.toLowerCase();
+        const isJobRelated = /hiring|job|career|position|developer|engineer|looking for|מגייס|דרוש/i.test(text);
         
         if (query) {
-          const matchesQuery = title.toLowerCase().includes(query.toLowerCase()) ||
-                              description.toLowerCase().includes(query.toLowerCase());
+          const matchesQuery = query.split(/\s+/).some(word => 
+            word.length > 2 && text.includes(word.toLowerCase())
+          );
           if (!matchesQuery) return;
         }
 
         if (isJobRelated) {
           jobs.push({
-            id: `calcalist-${i}-${Date.now()}`,
+            id: `calcalist-rss-${i}-${Date.now()}`,
             source: 'Calcalist Tech',
             title: this.stripHtml(title),
             company: 'Various (See Article)',
@@ -133,10 +200,122 @@ class IsraelTechScraperService {
         }
       });
 
-      console.log(`✅ Found ${jobs.length} tech news from Calcalist`);
       return jobs;
     } catch (error: any) {
-      console.error('❌ Calcalist scraping failed:', error.message);
+      console.debug('⚠️ Calcalist RSS fallback failed:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Scrape jobs from Geektime Insider (premium job board)
+   * https://www.geektime.co.il/insider/
+   */
+  async scrapeGeektimeInsider(query?: string): Promise<ScrapedJob[]> {
+    try {
+      console.log('🔍 Fetching jobs from Geektime Insider...');
+      
+      // Try Geektime Insider API endpoint
+      const url = 'https://www.geektime.co.il/wp-json/developer-api/get-insider-jobs';
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'application/json'
+        },
+        timeout: 15000,
+        validateStatus: (status) => status < 500
+      });
+
+      if (response.status !== 200 || !response.data) {
+        // Fallback to page scraping
+        return this.scrapeGeektimeInsiderPage(query);
+      }
+
+      const jobs = response.data || [];
+      
+      const formatted = jobs
+        .filter((job: any) => {
+          if (!query) return true;
+          const text = `${job.title} ${job.company_name} ${job.description || ''}`.toLowerCase();
+          return query.split(/\s+/).some(word => 
+            word.length > 2 && text.includes(word.toLowerCase())
+          );
+        })
+        .slice(0, 40)
+        .map((job: any) => ({
+          id: `geektime-insider-${job.id}`,
+          source: 'Geektime Insider',
+          title: job.title,
+          company: job.company_name,
+          location: job.location || 'Israel',
+          remote: job.remote || job.location?.toLowerCase().includes('remote') || false,
+          description: this.stripHtml(job.description || job.excerpt || ''),
+          applyUrl: job.link || job.apply_url || `https://www.geektime.co.il/insider/jobs/${job.slug}`,
+          postedAt: job.date || new Date().toISOString(),
+          tags: ['insider', 'premium', ...(job.categories || [])]
+        }));
+
+      console.log(`✅ Found ${formatted.length} jobs from Geektime Insider`);
+      return formatted;
+    } catch (error: any) {
+      console.debug('⚠️ Geektime Insider API failed, trying page scrape:', error.message);
+      return this.scrapeGeektimeInsiderPage(query);
+    }
+  }
+
+  /**
+   * Fallback: Scrape Geektime Insider via page
+   */
+  private async scrapeGeektimeInsiderPage(query?: string): Promise<ScrapedJob[]> {
+    try {
+      const url = 'https://www.geektime.co.il/insider/jobs/';
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'text/html',
+          'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
+        },
+        timeout: 15000
+      });
+
+      const $ = cheerio.load(response.data);
+      const jobs: ScrapedJob[] = [];
+
+      $('[class*="job"], .card, .listing, article').each((i, elem) => {
+        if (i >= 30) return;
+        
+        const title = $(elem).find('h2, h3, .title, [class*="title"]').first().text().trim();
+        const company = $(elem).find('[class*="company"], .employer').first().text().trim();
+        const location = $(elem).find('[class*="location"]').first().text().trim();
+        const link = $(elem).find('a').first().attr('href') || '';
+
+        if (title && title.length > 3) {
+          const matchesQuery = !query || 
+            `${title} ${company}`.toLowerCase().includes(query.toLowerCase());
+          
+          if (matchesQuery) {
+            jobs.push({
+              id: `geektime-insider-page-${i}-${Date.now()}`,
+              source: 'Geektime Insider',
+              title,
+              company: company || 'Israeli Startup',
+              location: location || 'Israel',
+              remote: location?.toLowerCase().includes('remote'),
+              description: `${title} at ${company || 'Israeli Startup'}`,
+              applyUrl: link.startsWith('http') ? link : `https://www.geektime.co.il${link}`,
+              postedAt: new Date().toISOString(),
+              tags: ['insider', 'premium']
+            });
+          }
+        }
+      });
+
+      console.log(`✅ Found ${jobs.length} jobs from Geektime Insider (page)`);
+      return jobs;
+    } catch (error: any) {
+      console.debug('⚠️ Geektime Insider page scrape failed:', error.message);
       return [];
     }
   }
@@ -609,14 +788,16 @@ class IsraelTechScraperService {
     console.log('🇮🇱 Fetching from Israeli tech job sources (startups focus)...');
     
     const results = await Promise.allSettled([
-      this.scrapeGeektime(query),       // Startup-focused tech news jobs
-      this.scrapeAllJobs(query),        // Major Israeli job board
-      this.scrapeGoozali(query),        // Israeli tech community aggregator
-      this.scrapeDrushim(query),        // Popular Israeli job board
-      this.scrapeF6S(query),            // Global startup platform
-      this.scrapeWellfound(query),      // AngelList/Wellfound startups
-      this.scrapeSecretTelAviv(query),  // Community job board for internationals
-      this.scrapeHiTechJobs(query)      // Israeli high-tech specialized board
+      this.scrapeGeektime(query),         // Startup-focused tech news jobs
+      this.scrapeGeektimeInsider(query),  // Premium Geektime Insider jobs
+      this.scrapeCalcalist(query),        // Calcalist Tech jobs board
+      this.scrapeAllJobs(query),          // Major Israeli job board
+      this.scrapeGoozali(query),          // Israeli tech community aggregator
+      this.scrapeDrushim(query),          // Popular Israeli job board
+      this.scrapeF6S(query),              // Global startup platform
+      this.scrapeWellfound(query),        // AngelList/Wellfound startups
+      this.scrapeSecretTelAviv(query),    // Community job board for internationals
+      this.scrapeHiTechJobs(query)        // Israeli high-tech specialized board
     ]);
 
     const allJobs: ScrapedJob[] = [];

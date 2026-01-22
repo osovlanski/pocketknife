@@ -5,11 +5,16 @@
  * 
  * API: https://developers.google.com/youtube/v3
  * Free tier: 10,000 units/day (search costs 100 units)
+ * 
+ * NOTE: Recommended channels are now stored in the database (LearningResource table).
+ * The hardcoded fallback list is kept for initial migration and offline mode.
  */
 
 import axios, { AxiosInstance } from 'axios';
 import { cacheService } from '../core/cacheService';
 import { configService } from '../core/configService';
+import { learningResourceService } from '../core/externalDataService';
+import { getPrisma } from '../core/databaseService';
 import logger from '../../utils/logger';
 
 // =============================================================================
@@ -260,9 +265,46 @@ class YouTubeService {
   }
 
   /**
-   * Get popular tech channels for learning
+   * Get popular tech channels for learning (sync fallback version)
    */
   getRecommendedTechChannels(): { name: string; id: string; focus: string }[] {
+    return this.getFallbackTechChannels();
+  }
+
+  /**
+   * Get tech channels from database, fallback to hardcoded
+   */
+  async getRecommendedTechChannelsAsync(): Promise<{ name: string; id: string; focus: string }[]> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.getFallbackTechChannels();
+      
+      const dbChannels = await (prisma as any).learningResource.findMany({
+        where: {
+          type: 'YOUTUBE_CHANNEL',
+          status: 'ACTIVE'
+        },
+        orderBy: { qualityScore: 'desc' }
+      });
+      
+      if (dbChannels.length > 0) {
+        return dbChannels.map((c: any) => ({
+          name: c.name,
+          id: c.externalId || '',
+          focus: c.focus?.[0] || 'General'
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch YouTube channels from database');
+    }
+    
+    return this.getFallbackTechChannels();
+  }
+
+  /**
+   * Fallback: Hardcoded popular tech channels
+   */
+  private getFallbackTechChannels(): { name: string; id: string; focus: string }[] {
     return [
       { name: 'Traversy Media', id: 'UC29ju8bIPH5as8OGnQzwJyA', focus: 'Web Development' },
       { name: 'Fireship', id: 'UCsBjURrPoezykLs9EqgamOA', focus: 'Modern Web & Firebase' },
@@ -278,13 +320,43 @@ class YouTubeService {
   }
 
   /**
+   * Migrate hardcoded channels to database
+   */
+  async migrateToDatabase(): Promise<number> {
+    const channels = this.getFallbackTechChannels();
+    let count = 0;
+    
+    for (const channel of channels) {
+      try {
+        await learningResourceService.create({
+          name: channel.name,
+          type: 'YOUTUBE_CHANNEL',
+          externalId: channel.id,
+          url: `https://www.youtube.com/channel/${channel.id}`,
+          focus: [channel.focus],
+          discoverySource: 'migration'
+        });
+        count++;
+      } catch (error: any) {
+        if (error.code !== 'P2002') {
+          console.error(`Error migrating channel ${channel.name}:`, error.message);
+        }
+      }
+    }
+    
+    console.log(`✅ Migrated ${count} YouTube channels to database`);
+    return count;
+  }
+
+  /**
    * Search videos from recommended channels
    */
   async searchFromRecommendedChannels(
     query: string, 
     maxResults: number = 10
   ): Promise<YouTubeVideo[]> {
-    const channels = this.getRecommendedTechChannels();
+    // Use database-first approach
+    const channels = await this.getRecommendedTechChannelsAsync();
     const allVideos: YouTubeVideo[] = [];
 
     // Search a few channels to avoid hitting rate limits

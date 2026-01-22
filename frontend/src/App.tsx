@@ -10,7 +10,7 @@ import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, Mountain, Square, Utensils,
-  Newspaper, Wrench, MapPin, MessageCircle, PenTool
+  Newspaper, Wrench, MapPin, MessageCircle, PenTool, Building2
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -39,6 +39,7 @@ import SettingsPage from './components/SettingsPage';
 import GmailAgent from './components/GmailAgent';
 import JobSearchPanel from './components/JobSearchPanel';
 import JobListings from './components/JobListings';
+import CompanySearchPanel from './components/CompanySearchPanel';
 import MockInterviewPanel from './components/MockInterviewPanel';
 import TravelSearchPanel from './components/TravelSearchPanel';
 import FlightResults from './components/FlightResults';
@@ -193,7 +194,23 @@ const App: React.FC = () => {
   const [travelMode, setTravelMode] = useState<'flights' | 'ski' | 'israel'>('flights');
   
   // Jobs agent mode
-  const [jobsMode, setJobsMode] = useState<'search' | 'interview'>('search');
+  const [jobsMode, setJobsMode] = useState<'search' | 'company' | 'interview'>('search');
+  
+  // Job search persistent state (preserved across tab switches)
+  const [jobCVText, setJobCVText] = useState('');
+  const [jobCVData, setJobCVData] = useState<any>(null);
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobRemoteOnly, setJobRemoteOnly] = useState<boolean | undefined>(false);
+  const [jobFilters, setJobFilters] = useState<JobSearchFilters>({
+    companySize: 'any',
+    companySizes: [],
+    industry: 'any',
+    industries: [],
+    salaryMin: undefined,
+    salaryMax: undefined,
+    experienceLevel: 'any',
+    jobType: 'any'
+  });
   
   // Check URL for mode parameter on jobs page
   useEffect(() => {
@@ -202,6 +219,8 @@ const App: React.FC = () => {
       const mode = params.get('mode');
       if (mode === 'interview') {
         setJobsMode('interview');
+      } else if (mode === 'company') {
+        setJobsMode('company');
       } else if (mode === 'search') {
         setJobsMode('search');
       }
@@ -564,31 +583,47 @@ const App: React.FC = () => {
               gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
             >
               {/* Jobs Mode Switcher */}
-              <div className="flex justify-center gap-2 mb-4 px-2">
+              <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
                 <button
                   onClick={() => setJobsMode('search')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3
-                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                             rounded-lg font-semibold text-sm border-none cursor-pointer
                              transition-all duration-200 touch-manipulation active:scale-95
                              ${jobsMode === 'search'
                                 ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
                                 : 'bg-white/10 text-slate-300 hover:bg-white/20'
                              }`}
+                  aria-pressed={jobsMode === 'search'}
                 >
-                  <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Briefcase className="w-4 h-4" />
                   <span>{t('jobs.jobSearch')}</span>
                 </button>
                 <button
+                  onClick={() => setJobsMode('company')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                             rounded-lg font-semibold text-sm border-none cursor-pointer
+                             transition-all duration-200 touch-manipulation active:scale-95
+                             ${jobsMode === 'company'
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                             }`}
+                  aria-pressed={jobsMode === 'company'}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Company Search</span>
+                </button>
+                <button
                   onClick={() => setJobsMode('interview')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3
-                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                             rounded-lg font-semibold text-sm border-none cursor-pointer
                              transition-all duration-200 touch-manipulation active:scale-95
                              ${jobsMode === 'interview'
                                 ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
                                 : 'bg-white/10 text-slate-300 hover:bg-white/20'
                              }`}
+                  aria-pressed={jobsMode === 'interview'}
                 >
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <MessageCircle className="w-4 h-4" />
                   <span>{t('jobs.mockInterview')}</span>
                 </button>
               </div>
@@ -601,9 +636,22 @@ const App: React.FC = () => {
                     onStop={handleStopJobSearch}
                     isSearching={jobSearchController.state.isSearching}
                     isStopping={jobSearchController.state.isStopping}
+                    // Lifted state for persistence across tab switches
+                    cvText={jobCVText}
+                    onCVTextChange={setJobCVText}
+                    cvData={jobCVData}
+                    onCVDataChange={setJobCVData}
+                    location={jobLocation}
+                    onLocationChange={setJobLocation}
+                    remoteOnly={jobRemoteOnly}
+                    onRemoteOnlyChange={setJobRemoteOnly}
+                    filters={jobFilters}
+                    onFiltersChange={setJobFilters}
                   />
                   {jobs.length > 0 && <JobListings jobs={jobs} />}
                 </>
+              ) : jobsMode === 'company' ? (
+                <CompanySearchPanel onJobsFound={(foundJobs) => setJobs(foundJobs)} />
               ) : (
                 <MockInterviewPanel />
               )}

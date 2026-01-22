@@ -3,10 +3,15 @@
  * 
  * Provides Google Custom Search capabilities to all agents.
  * Manages a shared quota of 100 free queries/day across all agents.
+ * 
+ * NOTE: Search site configurations are now stored in the database (SearchSiteConfig table).
+ * The hardcoded fallback configs are kept for initial migration and offline mode.
  */
 
 import axios from 'axios';
 import claudeService from './claudeService';
+import { searchSiteConfigService } from './externalDataService';
+import { getPrisma } from './databaseService';
 import logger from '../../utils/logger';
 
 // =============================================================================
@@ -145,7 +150,8 @@ const quotaManager = new QuotaManager();
 // AGENT-SPECIFIC SEARCH CONFIGURATIONS
 // =============================================================================
 
-const AGENT_SEARCH_CONFIGS: Record<AgentType, {
+// Fallback hardcoded configs (used when database is empty)
+const FALLBACK_AGENT_SEARCH_CONFIGS: Record<AgentType, {
   sites: string[];
   description: string;
   parsePrompt: string;
@@ -202,6 +208,88 @@ const AGENT_SEARCH_CONFIGS: Record<AgentType, {
     parsePrompt: `Extract key information: title, description, source, main topic.`
   }
 };
+
+/**
+ * Get search config from database, fallback to hardcoded
+ */
+async function getAgentSearchConfig(agentType: AgentType): Promise<{
+  sites: string[];
+  description: string;
+  parsePrompt: string;
+}> {
+  const agentTypeMap: Record<AgentType, string> = {
+    shopping: 'SHOPPING',
+    travel: 'TRAVEL',
+    learning: 'LEARNING',
+    problems: 'PROBLEMS',
+    jobs: 'JOBS',
+    general: 'GENERAL'
+  };
+  
+  try {
+    const prisma = getPrisma();
+    if (!prisma) return FALLBACK_AGENT_SEARCH_CONFIGS[agentType];
+    
+    const dbConfigs = await (prisma as any).searchSiteConfig.findMany({
+      where: {
+        agentType: agentTypeMap[agentType],
+        isActive: true
+      },
+      orderBy: { priority: 'asc' }
+    });
+    
+    if (dbConfigs.length > 0) {
+      const sites = dbConfigs.map((c: any) => c.domain);
+      const parsePrompt = dbConfigs[0]?.parsePrompt || FALLBACK_AGENT_SEARCH_CONFIGS[agentType].parsePrompt;
+      
+      return {
+        sites,
+        description: FALLBACK_AGENT_SEARCH_CONFIGS[agentType].description,
+        parsePrompt
+      };
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not fetch search site configs from database');
+  }
+  
+  return FALLBACK_AGENT_SEARCH_CONFIGS[agentType];
+}
+
+/**
+ * Migrate hardcoded search configs to database
+ */
+async function migrateSearchConfigsToDatabase(): Promise<number> {
+  let count = 0;
+  
+  for (const [agentType, config] of Object.entries(FALLBACK_AGENT_SEARCH_CONFIGS)) {
+    const agentTypeMap: Record<string, string> = {
+      shopping: 'SHOPPING',
+      travel: 'TRAVEL',
+      learning: 'LEARNING',
+      problems: 'PROBLEMS',
+      jobs: 'JOBS',
+      general: 'GENERAL'
+    };
+    
+    for (const domain of config.sites) {
+      try {
+        await searchSiteConfigService.create({
+          agentType: agentTypeMap[agentType] as any,
+          domain,
+          parsePrompt: config.parsePrompt
+        });
+        count++;
+      } catch (error: any) {
+        if (error.code !== 'P2002') {
+          console.error(`Error migrating site ${domain}:`, error.message);
+        }
+      }
+    }
+  }
+  
+  console.log(`✅ Migrated ${count} search site configs to database`);
+  return count;
+}
 
 // =============================================================================
 // GOOGLE SEARCH SERVICE CLASS
@@ -272,7 +360,8 @@ class GoogleSearchService {
     }
 
     const { maxResults = 10, siteRestrict, geolocation, language } = options;
-    const config = AGENT_SEARCH_CONFIGS[agent];
+    // Use database config if available, fallback to hardcoded
+    const config = await getAgentSearchConfig(agent);
 
     let siteQuery = '';
     const sites = siteRestrict || config.sites;
@@ -349,7 +438,8 @@ class GoogleSearchService {
       return [];
     }
 
-    const config = AGENT_SEARCH_CONFIGS[agent];
+    // Use database config if available, fallback to hardcoded
+    const config = await getAgentSearchConfig(agent);
 
     try {
       const prompt = `Parse these search results for a ${agent} agent.
@@ -404,8 +494,25 @@ Respond ONLY with valid JSON (no markdown):
     }
   }
 
+  /**
+   * Get agent config (sync - uses fallback only)
+   */
   getAgentConfig(agent: AgentType) {
-    return AGENT_SEARCH_CONFIGS[agent];
+    return FALLBACK_AGENT_SEARCH_CONFIGS[agent];
+  }
+
+  /**
+   * Get agent config (async - database first)
+   */
+  async getAgentConfigAsync(agent: AgentType) {
+    return getAgentSearchConfig(agent);
+  }
+
+  /**
+   * Migrate hardcoded configs to database
+   */
+  async migrateToDatabase() {
+    return migrateSearchConfigsToDatabase();
   }
 }
 

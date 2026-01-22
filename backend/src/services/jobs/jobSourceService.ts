@@ -19,6 +19,8 @@ interface JobListing {
   postedAt: string;
   tags?: string[];
   companySize?: 'startup' | 'midsize' | 'enterprise';
+  employeeCountMin?: number; // Actual employee count range for filtering
+  employeeCountMax?: number;
   industry?: string[];
   experienceLevel?: 'junior' | 'mid' | 'senior';
   jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship';
@@ -207,15 +209,43 @@ class JobSourceService {
         }
       }
       
-      // Company size filter - support multiple selections
+      // Company size filter - support multiple selections with proper employee count matching
+      // Categories: startup (1-50), midsize (51-500), enterprise (500+)
       const companySizesToFilter = options.companySizes?.length 
         ? options.companySizes 
         : (options.companySize && options.companySize !== 'any' ? [options.companySize] : []);
       
       if (companySizesToFilter.length > 0) {
-        // If job has no company size detected, include it (be permissive)
-        // Only exclude if job has a size AND it's not in the filter list
-        if (job.companySize && !companySizesToFilter.includes(job.companySize)) {
+        // Define employee count ranges for each category
+        const sizeRanges: Record<CompanySize, { min: number; max: number }> = {
+          'startup': { min: 1, max: 50 },
+          'midsize': { min: 51, max: 500 },
+          'enterprise': { min: 501, max: Infinity }
+        };
+        
+        // Check if job matches any of the selected size filters
+        let matchesSize = false;
+        
+        // First, try to match by actual employee count if available
+        if (job.employeeCountMin !== undefined && job.employeeCountMax !== undefined) {
+          for (const size of companySizesToFilter) {
+            const range = sizeRanges[size];
+            // Job matches if its employee range overlaps with the filter range
+            const overlaps = job.employeeCountMin <= range.max && job.employeeCountMax >= range.min;
+            if (overlaps) {
+              matchesSize = true;
+              break;
+            }
+          }
+        } else if (job.companySize) {
+          // Fall back to text-based company size if no employee count
+          matchesSize = companySizesToFilter.includes(job.companySize);
+        } else {
+          // If job has no company size info, include it (be permissive)
+          matchesSize = true;
+        }
+        
+        if (!matchesSize) {
           return false;
         }
       }

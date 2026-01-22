@@ -23,6 +23,10 @@ Pocketknife uses a three-tier configuration system for runtime flexibility:
 | AI Tokens | `maxTokens: 1500` | `configService.get('shopping.ai.maxTokens', 1500)` |
 | Thresholds | `if (score > 80)` | Use Rule Engine for conditional logic |
 | Feature toggles | `if (isNewFeature)` | `featureFlagService.isEnabled('new_feature')` |
+| **Company Lists** | `const companies = [...]` | Store in `ExternalCompany` DB table |
+| **External Data** | `const sites = [...]` | Store in database, use discovery |
+
+> **Note**: For external entity data (companies, scrapers, products), see the **data-driven-architecture.mdc** rule for database patterns.
 
 ---
 

@@ -1,124 +1,53 @@
 /**
  * Admin Controller Tests
  * 
- * Tests for the Admin controller HTTP handlers.
+ * Tests for administrative endpoints including:
+ * - Company CRUD operations
+ * - Discovery and migration
+ * - Statistics
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response } from 'express';
 
-// Use vi.hoisted to ensure mocks are available when vi.mock runs
-const { mockPrisma, mockGetPrisma, mockExternalApiService } = vi.hoisted(() => {
-  const prisma = {
-    user: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      count: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn()
-    },
-    systemSetting: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
-      upsert: vi.fn()
-    },
-    adminAuditLog: {
-      findMany: vi.fn(),
-      count: vi.fn()
-    },
-    task: {
-      count: vi.fn()
-    },
-    product: {
-      count: vi.fn()
-    },
-    savedJob: {
-      count: vi.fn()
-    },
-    tripPlan: {
-      count: vi.fn()
-    },
-    activityLog: {
-      count: vi.fn(),
-      groupBy: vi.fn()
-    },
-    userPreferences: {
-      create: vi.fn()
-    }
-  };
-
-  const externalApiService = {
-    getAll: vi.fn(),
-    getByName: vi.fn(),
-    update: vi.fn(),
-    toggle: vi.fn(),
-    updateHealth: vi.fn(),
-    initializeDefaults: vi.fn()
-  };
-
-  return {
-    mockPrisma: prisma,
-    mockGetPrisma: vi.fn(() => prisma),
-    mockExternalApiService: externalApiService
-  };
-});
-
-// Mock dependencies
-vi.mock('../../src/services/core/databaseService', () => ({
-  getPrisma: mockGetPrisma,
-  databaseService: {
-    getDefaultUser: vi.fn().mockResolvedValue({ id: 'user-123' })
-  }
-}));
-
-vi.mock('../../src/services/core/configService', () => ({
-  configService: {
-    get: vi.fn().mockReturnValue('test-value')
-  }
-}));
-
-vi.mock('../../src/middleware/adminMiddleware', () => ({
-  logAdminAction: vi.fn().mockResolvedValue({})
-}));
-
-vi.mock('../../src/services/core/externalApiService', () => ({
-  default: mockExternalApiService
-}));
-
-vi.mock('../../src/utils/logger', () => ({
+// Mock external company service
+vi.mock('../../src/services/jobs/externalCompanyService', () => ({
+  externalCompanyService: {
+    searchCompanies: vi.fn(),
+    getCompanyById: vi.fn(),
+    createCompany: vi.fn(),
+    updateCompany: vi.fn(),
+    deleteCompany: vi.fn(),
+    verifyCompany: vi.fn(),
+    enrichFromCrunchbase: vi.fn(),
+    runDiscovery: vi.fn(),
+    refreshCompanyData: vi.fn(),
+    getStats: vi.fn()
+  },
   default: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    fail: vi.fn(),
-    success: vi.fn(),
-    api: vi.fn(),
-    found: vi.fn(),
-    init: vi.fn(),
-    start: vi.fn(),
-    debug: vi.fn()
+    searchCompanies: vi.fn(),
+    getCompanyById: vi.fn(),
+    createCompany: vi.fn(),
+    updateCompany: vi.fn(),
+    deleteCompany: vi.fn(),
+    verifyCompany: vi.fn(),
+    enrichFromCrunchbase: vi.fn(),
+    runDiscovery: vi.fn(),
+    refreshCompanyData: vi.fn(),
+    getStats: vi.fn()
   }
 }));
 
-// Import controller AFTER mocks are set up
-import {
-  getUsers,
-  getUser,
-  createUser,
-  updateUser,
-  deleteUser,
-  getSettings,
-  updateSetting,
-  getAuditLogs,
-  getStats,
-  getCurrentUser,
-  getExternalApis,
-  getExternalApi,
-  updateExternalApi,
-  toggleExternalApi
-} from '../../src/controllers/adminController';
+// Mock comeet careers service
+vi.mock('../../src/services/jobs/comeetCareersService', () => ({
+  default: {
+    migrateToDatabase: vi.fn()
+  }
+}));
+
+import * as adminController from '../../src/controllers/adminController';
+import { externalCompanyService } from '../../src/services/jobs/externalCompanyService';
+import comeetCareersService from '../../src/services/jobs/comeetCareersService';
 
 describe('Admin Controller', () => {
   let mockReq: Partial<Request>;
@@ -127,37 +56,6 @@ describe('Admin Controller', () => {
   let mockStatus: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    
-    // Set up default mock implementations
-    mockPrisma.user.findMany.mockResolvedValue([]);
-    mockPrisma.user.findUnique.mockResolvedValue(null);
-    mockPrisma.user.count.mockResolvedValue(0);
-    mockPrisma.user.create.mockResolvedValue({ id: 'user-1', email: 'test@test.com' });
-    mockPrisma.user.update.mockResolvedValue({ id: 'user-1', email: 'test@test.com' });
-    mockPrisma.user.delete.mockResolvedValue({ id: 'user-1' });
-    
-    mockPrisma.systemSetting.findMany.mockResolvedValue([]);
-    mockPrisma.systemSetting.findUnique.mockResolvedValue(null);
-    mockPrisma.systemSetting.update.mockResolvedValue({});
-    mockPrisma.systemSetting.upsert.mockResolvedValue({});
-    
-    mockPrisma.adminAuditLog.findMany.mockResolvedValue([]);
-    mockPrisma.adminAuditLog.count.mockResolvedValue(0);
-    
-    mockPrisma.task.count.mockResolvedValue(0);
-    mockPrisma.product.count.mockResolvedValue(0);
-    mockPrisma.savedJob.count.mockResolvedValue(0);
-    mockPrisma.tripPlan.count.mockResolvedValue(0);
-    mockPrisma.activityLog.count.mockResolvedValue(0);
-    mockPrisma.activityLog.groupBy.mockResolvedValue([]);
-    mockPrisma.userPreferences.create.mockResolvedValue({});
-    
-    mockExternalApiService.getAll.mockResolvedValue([]);
-    mockExternalApiService.getByName.mockResolvedValue(null);
-    mockExternalApiService.update.mockResolvedValue({});
-    mockExternalApiService.toggle.mockResolvedValue({});
-    
     mockJson = vi.fn();
     mockStatus = vi.fn().mockReturnValue({ json: mockJson });
     mockRes = {
@@ -165,384 +63,284 @@ describe('Admin Controller', () => {
       status: mockStatus
     };
     mockReq = {
-      body: {},
       params: {},
       query: {},
-      headers: {},
-      user: { id: 'admin-1', email: 'admin@test.com', role: 'SUPER_ADMIN' }
+      body: {}
     };
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  describe('getUsers', () => {
-    it('should return users with pagination', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([
-        { id: 'user-1', email: 'test@test.com', name: 'Test User' }
-      ]);
-      mockPrisma.user.count.mockResolvedValue(1);
+  describe('listCompanies', () => {
+    it('should return list of companies', async () => {
+      const mockCompanies = [
+        { id: '1', name: 'Company A' },
+        { id: '2', name: 'Company B' }
+      ];
+      (externalCompanyService.searchCompanies as any).mockResolvedValue(mockCompanies);
 
-      mockReq.query = { page: '1', limit: '20' };
+      mockReq.query = { limit: '100', offset: '0' };
 
-      await getUsers(mockReq as Request, mockRes as Response);
+      await adminController.listCompanies(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should filter users by role', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([]);
-      mockPrisma.user.count.mockResolvedValue(0);
-
-      mockReq.query = { role: 'ADMIN' };
-
-      await getUsers(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
-    });
-  });
-
-  describe('getUser', () => {
-    it('should return user by id', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-1',
-        email: 'test@test.com',
-        name: 'Test User'
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        count: 2,
+        companies: mockCompanies
       });
-
-      mockReq.params = { id: 'user-1' };
-
-      await getUser(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
     });
 
-    it('should return 404 when user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+    it('should apply filters from query params', async () => {
+      (externalCompanyService.searchCompanies as any).mockResolvedValue([]);
 
-      mockReq.params = { id: 'nonexistent' };
+      mockReq.query = {
+        atsProvider: 'COMEET',
+        status: 'ACTIVE',
+        size: 'STARTUP',
+        limit: '50'
+      };
 
-      await getUser(mockReq as Request, mockRes as Response);
+      await adminController.listCompanies(mockReq as Request, mockRes as Response);
+
+      expect(externalCompanyService.searchCompanies).toHaveBeenCalledWith(
+        expect.objectContaining({
+          atsProvider: 'COMEET',
+          status: 'ACTIVE',
+          size: 'STARTUP'
+        }),
+        50
+      );
+    });
+
+    it('should handle errors gracefully', async () => {
+      (externalCompanyService.searchCompanies as any).mockRejectedValue(new Error('Database error'));
+
+      await adminController.listCompanies(mockReq as Request, mockRes as Response);
+
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to list companies' });
+    });
+  });
+
+  describe('getCompany', () => {
+    it('should return company by ID', async () => {
+      const mockCompany = { id: 'company-123', name: 'Test Company' };
+      (externalCompanyService.getCompanyById as any).mockResolvedValue(mockCompany);
+
+      mockReq.params = { id: 'company-123' };
+
+      await adminController.getCompany(mockReq as Request, mockRes as Response);
+
+      expect(mockJson).toHaveBeenCalledWith({ success: true, company: mockCompany });
+    });
+
+    it('should return 404 for non-existent company', async () => {
+      (externalCompanyService.getCompanyById as any).mockResolvedValue(null);
+
+      mockReq.params = { id: 'non-existent' };
+
+      await adminController.getCompany(mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Company not found' });
     });
   });
 
-  describe('createUser', () => {
-    it('should create user successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-      mockPrisma.user.create.mockResolvedValue({
-        id: 'new-user',
-        email: 'new@test.com',
-        name: 'New User'
-      });
+  describe('createCompany', () => {
+    it('should create a new company', async () => {
+      const mockCompany = { id: 'new-123', name: 'New Company' };
+      (externalCompanyService.createCompany as any).mockResolvedValue(mockCompany);
 
-      mockReq.body = { email: 'new@test.com', name: 'New User' };
+      mockReq.body = {
+        name: 'New Company',
+        atsProvider: 'COMEET',
+        atsCompanyId: 'new-uid',
+        atsToken: 'new-token'
+      };
 
-      await createUser(mockReq as Request, mockRes as Response);
+      await adminController.createCompany(mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(201);
+      expect(mockJson).toHaveBeenCalledWith({ success: true, company: mockCompany });
     });
 
-    it('should return 400 when email missing', async () => {
-      mockReq.body = { name: 'New User' };
+    it('should handle error when service fails', async () => {
+      (externalCompanyService.createCompany as any).mockRejectedValue(new Error('DB Error'));
+      mockReq.body = { name: 'Test', atsProvider: 'COMEET', atsCompanyId: '123' };
 
-      await createUser(mockReq as Request, mockRes as Response);
+      await adminController.createCompany(mockReq as Request, mockRes as Response);
 
-      expect(mockStatus).toHaveBeenCalledWith(400);
-    });
-
-    it('should return 400 when user already exists', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing', email: 'existing@test.com' });
-
-      mockReq.body = { email: 'existing@test.com' };
-
-      await createUser(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockStatus).toHaveBeenCalledWith(500);
     });
   });
 
-  describe('updateUser', () => {
-    it('should update user successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-1',
-        email: 'test@test.com',
-        role: 'USER'
-      });
-      mockPrisma.user.update.mockResolvedValue({
-        id: 'user-1',
-        email: 'test@test.com',
-        name: 'Updated Name'
-      });
+  describe('updateCompany', () => {
+    it('should update company data', async () => {
+      const updatedCompany = { id: 'company-123', name: 'Updated Name' };
+      (externalCompanyService.updateCompany as any).mockResolvedValue(updatedCompany);
 
-      mockReq.params = { id: 'user-1' };
+      mockReq.params = { id: 'company-123' };
       mockReq.body = { name: 'Updated Name' };
 
-      await updateUser(mockReq as Request, mockRes as Response);
+      await adminController.updateCompany(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should return 404 when user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      mockReq.params = { id: 'nonexistent' };
-      mockReq.body = { name: 'Updated' };
-
-      await updateUser(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ success: true, company: updatedCompany });
     });
   });
 
-  describe('deleteUser', () => {
-    it('should delete user successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-1',
-        email: 'test@test.com',
-        role: 'USER'
-      });
+  describe('deleteCompany', () => {
+    it('should delete a company', async () => {
+      (externalCompanyService.deleteCompany as any).mockResolvedValue(undefined);
 
-      mockReq.params = { id: 'user-1' };
+      mockReq.params = { id: 'company-123' };
 
-      await deleteUser(mockReq as Request, mockRes as Response);
+      await adminController.deleteCompany(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalledWith({ success: true });
-    });
-
-    it('should return 404 when user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      mockReq.params = { id: 'nonexistent' };
-
-      await deleteUser(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
-    });
-
-    it('should prevent self-deletion', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'SUPER_ADMIN'
-      });
-
-      mockReq.params = { id: 'admin-1' };
-
-      await deleteUser(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ success: true, message: 'Company deleted' });
     });
   });
 
-  describe('getSettings', () => {
-    it('should return settings grouped by category', async () => {
-      mockPrisma.systemSetting.findMany.mockResolvedValue([
-        { id: 'general.name', category: 'general', name: 'Name', value: 'Test' }
-      ]);
+  describe('verifyCompany', () => {
+    it('should verify and activate company', async () => {
+      const result = { verified: true, status: 'ACTIVE' };
+      (externalCompanyService.verifyCompany as any).mockResolvedValue(result);
 
-      await getSettings(mockReq as Request, mockRes as Response);
+      mockReq.params = { id: 'company-123' };
 
-      expect(mockJson).toHaveBeenCalled();
+      await adminController.verifyCompany(mockReq as Request, mockRes as Response);
+
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        success: true
+      }));
     });
   });
 
-  describe('updateSetting', () => {
-    it('should update setting successfully', async () => {
-      mockPrisma.systemSetting.findUnique.mockResolvedValue({
-        id: 'test-setting',
-        value: 'old-value',
-        isEditable: true
-      });
-      mockPrisma.systemSetting.update.mockResolvedValue({
-        id: 'test-setting',
-        value: 'new-value'
-      });
+  describe('enrichCompany', () => {
+    it('should enrich company with Crunchbase data', async () => {
+      const enrichedCompany = { id: 'company-123', description: 'Enriched description' };
+      (externalCompanyService.enrichFromCrunchbase as any).mockResolvedValue(enrichedCompany);
 
-      mockReq.params = { id: 'test-setting' };
-      mockReq.body = { value: 'new-value' };
+      mockReq.params = { id: 'company-123' };
 
-      await updateSetting(mockReq as Request, mockRes as Response);
+      await adminController.enrichCompany(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should return 404 when setting not found', async () => {
-      mockPrisma.systemSetting.findUnique.mockResolvedValue(null);
-
-      mockReq.params = { id: 'nonexistent' };
-      mockReq.body = { value: 'new-value' };
-
-      await updateSetting(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
-    });
-
-    it('should return 400 when setting is not editable', async () => {
-      mockPrisma.systemSetting.findUnique.mockResolvedValue({
-        id: 'readonly-setting',
-        isEditable: false
-      });
-
-      mockReq.params = { id: 'readonly-setting' };
-      mockReq.body = { value: 'new-value' };
-
-      await updateSetting(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        company: enrichedCompany
+      }));
     });
   });
 
-  describe('getAuditLogs', () => {
-    it('should return audit logs with pagination', async () => {
-      mockPrisma.adminAuditLog.findMany.mockResolvedValue([
-        { id: 'log-1', action: 'create_user', createdAt: new Date() }
-      ]);
-      mockPrisma.adminAuditLog.count.mockResolvedValue(1);
+  describe('runDiscovery', () => {
+    it('should run discovery with default parameters', async () => {
+      const mockResult = { discovered: 5, created: 3 };
+      (externalCompanyService.runDiscovery as any).mockResolvedValue(mockResult);
 
-      mockReq.query = { page: '1', limit: '50' };
+      mockReq.body = {};
 
-      await getAuditLogs(mockReq as Request, mockRes as Response);
+      await adminController.runDiscovery(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
+      expect(externalCompanyService.runDiscovery).toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        success: true
+      }));
+    });
+
+    it('should use custom query when provided', async () => {
+      const mockResult = { discovered: 3, created: 2 };
+      (externalCompanyService.runDiscovery as any).mockResolvedValue(mockResult);
+
+      mockReq.body = { query: 'custom query', maxResults: 20 };
+
+      await adminController.runDiscovery(mockReq as Request, mockRes as Response);
+
+      expect(externalCompanyService.runDiscovery).toHaveBeenCalledWith('custom query', 20);
     });
   });
 
-  describe('getStats', () => {
-    it('should return platform statistics', async () => {
-      mockPrisma.user.count.mockResolvedValue(10);
-      mockPrisma.task.count.mockResolvedValue(50);
-      mockPrisma.product.count.mockResolvedValue(20);
-      mockPrisma.savedJob.count.mockResolvedValue(15);
-      mockPrisma.tripPlan.count.mockResolvedValue(5);
-      mockPrisma.activityLog.count.mockResolvedValue(100);
-      mockPrisma.activityLog.groupBy.mockResolvedValue([]);
+  describe('migrateHardcodedCompanies', () => {
+    it('should migrate hardcoded companies', async () => {
+      (comeetCareersService.migrateToDatabase as any).mockResolvedValue(50);
 
-      await getStats(mockReq as Request, mockRes as Response);
+      await adminController.migrateHardcodedCompanies(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        migratedCount: 50
+      }));
     });
   });
 
-  describe('getCurrentUser', () => {
-    it('should return current user info', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@test.com',
-        role: 'SUPER_ADMIN'
+  describe('refreshCompanyData', () => {
+    it('should refresh company data with default limit', async () => {
+      (externalCompanyService.refreshCompanyData as any).mockResolvedValue(25);
+
+      mockReq.body = {};
+
+      await adminController.refreshCompanyData(mockReq as Request, mockRes as Response);
+
+      expect(externalCompanyService.refreshCompanyData).toHaveBeenCalledWith(50);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Refreshed 25 companies',
+        enrichedCount: 25
       });
-
-      await getCurrentUser(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
     });
 
-    it('should return 401 when not authenticated', async () => {
-      mockReq.user = undefined;
+    it('should use custom max companies limit', async () => {
+      (externalCompanyService.refreshCompanyData as any).mockResolvedValue(10);
 
-      await getCurrentUser(mockReq as Request, mockRes as Response);
+      mockReq.body = { maxCompanies: 10 };
 
-      expect(mockStatus).toHaveBeenCalledWith(401);
+      await adminController.refreshCompanyData(mockReq as Request, mockRes as Response);
+
+      expect(externalCompanyService.refreshCompanyData).toHaveBeenCalledWith(10);
     });
   });
 
-  describe('getExternalApis', () => {
-    it('should return external APIs grouped by category', async () => {
-      mockExternalApiService.getAll.mockResolvedValue([
-        { name: 'api1', category: 'jobs', displayName: 'API 1' }
-      ]);
+  describe('getCompanyStats', () => {
+    it('should return company statistics', async () => {
+      const mockStats = {
+        total: 100,
+        byStatus: { ACTIVE: 80, PENDING: 20 },
+        byProvider: { COMEET: 90 },
+        bySize: { STARTUP: 50 },
+        needingEnrichment: 15
+      };
+      (externalCompanyService.getStats as any).mockResolvedValue(mockStats);
 
-      await getExternalApis(mockReq as Request, mockRes as Response);
+      await adminController.getCompanyStats(mockReq as Request, mockRes as Response);
 
-      expect(mockJson).toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith({ success: true, stats: mockStats });
     });
   });
 
-  describe('getExternalApi', () => {
-    it('should return single API config', async () => {
-      mockExternalApiService.getByName.mockResolvedValue({
-        name: 'test-api',
-        displayName: 'Test API'
+  describe('getATSProviders', () => {
+    it('should return list of ATS providers', async () => {
+      await adminController.getATSProviders(mockReq as Request, mockRes as Response);
+
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        providers: expect.arrayContaining([
+          expect.objectContaining({ id: 'COMEET', name: 'Comeet' })
+        ])
       });
-
-      mockReq.params = { name: 'test-api' };
-
-      await getExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should return 404 when API not found', async () => {
-      mockExternalApiService.getByName.mockResolvedValue(null);
-
-      mockReq.params = { name: 'nonexistent' };
-
-      await getExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
     });
   });
 
-  describe('updateExternalApi', () => {
-    it('should update API config successfully', async () => {
-      mockExternalApiService.getByName.mockResolvedValue({
-        name: 'test-api',
-        isEnabled: true
+  describe('getSizeCategories', () => {
+    it('should return list of size categories', async () => {
+      await adminController.getSizeCategories(mockReq as Request, mockRes as Response);
+
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        sizes: expect.arrayContaining([
+          { id: 'STARTUP', name: 'Startup', range: '1-50 employees' }
+        ])
       });
-      mockExternalApiService.update.mockResolvedValue({
-        name: 'test-api',
-        isEnabled: false
-      });
-
-      mockReq.params = { name: 'test-api' };
-      mockReq.body = { isEnabled: false };
-
-      await updateExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should return 404 when API not found', async () => {
-      mockExternalApiService.getByName.mockResolvedValue(null);
-
-      mockReq.params = { name: 'nonexistent' };
-      mockReq.body = { isEnabled: false };
-
-      await updateExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
-    });
-  });
-
-  describe('toggleExternalApi', () => {
-    it('should toggle API enabled status', async () => {
-      mockExternalApiService.getByName.mockResolvedValue({
-        name: 'test-api',
-        displayName: 'Test API',
-        isEnabled: true
-      });
-      mockExternalApiService.toggle.mockResolvedValue({
-        name: 'test-api',
-        isEnabled: false
-      });
-
-      mockReq.params = { name: 'test-api' };
-
-      await toggleExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockJson).toHaveBeenCalled();
-    });
-
-    it('should return 404 when API not found', async () => {
-      mockExternalApiService.getByName.mockResolvedValue(null);
-
-      mockReq.params = { name: 'nonexistent' };
-
-      await toggleExternalApi(mockReq as Request, mockRes as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(404);
     });
   });
 });
