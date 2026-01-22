@@ -491,3 +491,4 @@ const checkAgentHealth = async () => {
 6. **Log with context** - Use `this.emitLog()` for real-time logging
 
 
+

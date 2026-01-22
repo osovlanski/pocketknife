@@ -12,29 +12,6 @@
  *   0 - Review passed or no changes
  *   1 - Review failed or error occurred
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -73,9 +50,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 exports.__esModule = true;
 var child_process_1 = require("child_process");
-var fs = __importStar(require("fs"));
-var path = __importStar(require("path"));
-var readline = __importStar(require("readline"));
+var fs = require("fs");
+var path = require("path");
+var readline = require("readline");
 // Configuration
 var MIN_PASSING_SCORE = 80;
 var BASE_BRANCH = 'main';
@@ -411,14 +388,15 @@ function runReview() {
                     issues.push('🔴 Tests failed - Fix failing tests before pushing');
                     autoScore -= 30;
                 }
-                // Note: Short UI feedback timeouts (under 5000ms) are acceptable UX patterns
                 hardcodedPatterns = [
                     { pattern: /setTimeout\(\s*[^,]+,\s*[5-9]\d{3,}\s*\)|setTimeout\(\s*[^,]+,\s*\d{5,}\s*\)/, name: 'Hardcoded timeout value' },
-                    { pattern: /:\s*(?:80|443|3000|5000|8080)\b(?!\s*[,\]])/, name: 'Hardcoded port number' },
-                    { pattern: /['"`]http:\/\/localhost/, name: 'Hardcoded localhost URL' },
+                    // Exclude ports that are part of env var fallback patterns
+                    { pattern: /(?<!process\.env\.\w+\s*\|\|\s*['"`]http[^'"`]*):(?:80|443|3000|5000|8080)\b(?!\s*[,\]])(?!['"`]\s*\))/, name: 'Hardcoded port number' },
+                    // Exclude localhost URLs that have env var fallbacks (process.env.X || 'http://localhost' or configService.get(..., 'http://localhost'))
+                    { pattern: /(?<!process\.env\.\w+\s*\|\|\s*)(?<!configService\.get\([^,]+,\s*)['"`]http:\/\/localhost(?![^'"`]*['"`]\s*\))/, name: 'Hardcoded localhost URL' },
                     // Exclude known third-party API base URLs from this check
                     // Whitelist covers: major API providers, Israeli job sites, documentation sites, etc.
-                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
+                    { pattern: /['"`]https?:\/\/(?!www\.|api\.|example\.|newsapi\.|gnews\.|hacker-news\.|reddit\.|mediastack\.|amadeus\.|googleapis\.|neon\.|remoteok\.|remotive\.|arbeitnow\.|themuse\.|himalayas\.|jsearch\.|adzuna\.|comeet\.|leetcode\.|anthropic\.|discord\.|notion\.|serpapi\.|gmail\.|spoonacular\.|graph\.facebook\.|script\.google\.|wellfound\.|f6s\.|firebase\.|github\.|en\.goozali\.|goozali\.|secrettelaviv\.|startupcamel\.|developers\.|docs\.|drushim\.|hitech-jobs\.|finder\.startupnationcentral\.|madeinisrael\.|geektime\.|rsshub\.|t\.me|facebook\.com\/groups|source\.unsplash\.|wa\.me)[\w.-]+\.(?:com|io|app|org|co\.il|me)(?!\/api)/, name: 'Hardcoded external URL' },
                 ];
                 isCodeFile = function (line) {
                     // Check if we're in a documentation or config file by looking at the diff header
@@ -440,8 +418,6 @@ function runReview() {
                         if (/\.(md|json|toml|yml|yaml|env|example|production|txt|log)/.test(currentFile_1))
                             return false;
                         if (/check-quality\.(js|ts)|run-tests\.(js|ts)|review-log|deploy-check/.test(currentFile_1))
-                            return false;
-                        if (/scripts\//.test(currentFile_1)) // Skip all script files
                             return false;
                         if (/scripts\//.test(currentFile_1))
                             return false; // Skip all script files

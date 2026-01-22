@@ -801,10 +801,13 @@ Respond ONLY with valid JSON:
   }
 
   /**
-   * Score a batch of products for deal quality using AI
+   * Score a batch of products for deal quality using AI with algorithmic fallback
    */
   private async scoreDealsBatch(products: Product[]): Promise<Product[]> {
     if (products.length === 0) return [];
+
+    // First, apply algorithmic scoring as a baseline
+    const scoredProducts = this.scoreDealsBatchWithAlgorithm(products);
 
     try {
       const prompt = `Score these products as deals (0-100). Consider:
@@ -814,7 +817,7 @@ Respond ONLY with valid JSON:
 - Product quality indicators
 
 Products:
-${products.slice(0, 20).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''}`).join('\n')}
+${scoredProducts.slice(0, 20).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''}`).join('\n')}
 
 Respond ONLY with valid JSON:
 {
@@ -827,21 +830,81 @@ Respond ONLY with valid JSON:
       const cleanResponse = response.replace(/```json|```/g, '').trim();
       const analysis = JSON.parse(cleanResponse);
 
-      // Apply scores to products
+      // Apply AI scores to products (overrides algorithmic scores)
       for (const scoreData of analysis.scores || []) {
-        if (products[scoreData.index]) {
-          products[scoreData.index].dealScore = scoreData.score;
-          products[scoreData.index].dealReason = scoreData.reason;
+        if (scoredProducts[scoreData.index] && typeof scoreData.score === 'number') {
+          scoredProducts[scoreData.index].dealScore = scoreData.score;
+          scoredProducts[scoreData.index].dealReason = scoreData.reason;
         }
       }
 
       // Sort by deal score
-      return products.sort((a, b) => (b.dealScore || 0) - (a.dealScore || 0));
+      return scoredProducts.sort((a, b) => (b.dealScore || 0) - (a.dealScore || 0));
     } catch (error) {
-      console.error('Failed to score deals:', error);
-      // Return products without scores
-      return products;
+      console.error('AI scoring failed, using algorithmic scores:', error);
+      // Return products with algorithmic scores as fallback
+      return scoredProducts.sort((a, b) => (b.dealScore || 0) - (a.dealScore || 0));
     }
+  }
+
+  /**
+   * Algorithmic scoring for deals (fast, reliable fallback)
+   */
+  private scoreDealsBatchWithAlgorithm(products: Product[]): Product[] {
+    return products.map(product => {
+      let score = 50; // Base score
+      const reasons: string[] = [];
+
+      // Discount scoring (max +25)
+      if (product.discount) {
+        if (product.discount >= 50) {
+          score += 25;
+          reasons.push('50%+ off');
+        } else if (product.discount >= 30) {
+          score += 18;
+          reasons.push('30%+ off');
+        } else if (product.discount >= 15) {
+          score += 10;
+          reasons.push('15%+ off');
+        } else {
+          score += 5;
+        }
+      }
+
+      // Original price exists (indicates a discount)
+      if (product.originalPrice && product.originalPrice > product.price) {
+        const calcDiscount = Math.round((1 - product.price / product.originalPrice) * 100);
+        if (!product.discount && calcDiscount >= 15) {
+          score += 10;
+          reasons.push(`${calcDiscount}% discount`);
+        }
+      }
+
+      // Price-based scoring (budget items with good specs score higher)
+      if (product.price < 30) {
+        score += 8;
+        reasons.push('Budget-friendly');
+      } else if (product.price < 100) {
+        score += 5;
+        reasons.push('Good value range');
+      }
+
+      // Category relevance boost
+      if (product.category) {
+        score += 3;
+      }
+
+      // Tags boost
+      if (product.tags && product.tags.length > 0) {
+        score += 2;
+      }
+
+      return {
+        ...product,
+        dealScore: Math.min(100, Math.max(0, score)),
+        dealReason: reasons.length > 0 ? reasons.join(', ') : 'Good deal'
+      };
+    });
   }
 
   /**

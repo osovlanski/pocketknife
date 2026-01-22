@@ -2022,7 +2022,7 @@ const SimpleCanvas: React.FC<{
                   className="bg-slate-700 text-white px-4 py-3 rounded border border-slate-600 outline-none text-sm 
                            w-[320px] min-h-[120px] resize focus:border-blue-500 leading-relaxed"
                   placeholder="Type your text here...&#10;Use Shift+Enter for new lines"
-                  style={{ color: selectedColor }}
+                  style={{ color: selectedColor, fontFamily: 'Inter, system-ui, sans-serif' }}
                   autoFocus
                   rows={5}
                 />

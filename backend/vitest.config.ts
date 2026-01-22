@@ -6,12 +6,13 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
-    // Use forks pool with single fork for sequential execution
-    // This prevents timeouts from resource contention during parallel tests
-    pool: 'forks',
+    // Setup file for global mocks
+    setupFiles: ['./tests/setup.ts'],
+    // Use threads pool for faster parallel execution
+    pool: 'threads',
     poolOptions: {
-      forks: {
-        singleFork: true,
+      threads: {
+        singleThread: false,
         isolate: true
       }
     },
@@ -27,7 +28,6 @@ export default defineConfig({
       ],
       // Thresholds set to current coverage levels + buffer
       // These should be gradually increased as more tests are added
-      // TODO: Increase thresholds incrementally as coverage improves
       thresholds: {
         statements: 1,
         branches: 15,
@@ -35,9 +35,9 @@ export default defineConfig({
         lines: 1
       }
     },
-    // Increased timeouts for parallel execution
-    testTimeout: 30000,
-    hookTimeout: 15000
+    // Reduced timeouts for faster feedback on unmocked calls
+    testTimeout: 10000,
+    hookTimeout: 5000
   }
 });
 

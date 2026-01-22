@@ -147,11 +147,32 @@ describe('Route Registration Verification', () => {
       expect(routePaths).toContain('POST /tasks');
     });
     
-    it('should have calendar import route registered', () => {
+    it('should have task CRUD routes registered', () => {
       const routes = extractRoutes(todoRoutePath);
       const routePaths = routes.map(r => `${r.method} ${r.path}`);
       
+      expect(routePaths).toContain('PUT /tasks/:id');
+      expect(routePaths).toContain('DELETE /tasks/:id');
+      expect(routePaths).toContain('POST /tasks/:id/complete');
+      expect(routePaths).toContain('POST /tasks/:id/uncomplete');
+    });
+    
+    it('should have calendar sync routes registered', () => {
+      const routes = extractRoutes(todoRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('POST /calendar/sync');
       expect(routePaths).toContain('POST /calendar/import');
+    });
+    
+    it('should have routine pattern routes registered', () => {
+      const routes = extractRoutes(todoRoutePath);
+      const routePaths = routes.map(r => `${r.method} ${r.path}`);
+      
+      expect(routePaths).toContain('GET /routines');
+      expect(routePaths).toContain('POST /routines/:id/approve');
+      expect(routePaths).toContain('POST /routines/:id/dismiss');
+      expect(routePaths).toContain('POST /patterns/learn');
     });
   });
 

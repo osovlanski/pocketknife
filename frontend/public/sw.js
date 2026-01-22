@@ -44,8 +44,15 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
+  // Skip non-HTTP(S) requests (e.g., chrome-extension://)
+  const url = new URL(event.request.url);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // Skip API requests (don't cache dynamic data)
   if (event.request.url.includes('/api/')) return;
+
+  // Skip cross-origin requests that might fail CORS
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)
@@ -53,10 +60,12 @@ self.addEventListener('fetch', (event) => {
         // Clone the response before caching
         const responseToCache = response.clone();
         
-        // Cache successful responses
-        if (response.status === 200) {
+        // Cache successful responses (only same-origin)
+        if (response.status === 200 && response.type === 'basic') {
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
+          }).catch(() => {
+            // Silently fail if caching fails
           });
         }
         
