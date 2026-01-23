@@ -109,9 +109,9 @@ describe('Admin Controller', () => {
         expect.objectContaining({
           atsProvider: 'COMEET',
           status: 'ACTIVE',
-          size: 'STARTUP'
-        }),
-        50
+          size: 'STARTUP',
+          limit: 50
+        })
       );
     });
 
@@ -236,28 +236,34 @@ describe('Admin Controller', () => {
 
   describe('runDiscovery', () => {
     it('should run discovery with default parameters', async () => {
-      const mockResult = { discovered: 5, created: 3 };
+      const mockResult = 5; // runDiscovery returns number of new companies
       (externalCompanyService.runDiscovery as any).mockResolvedValue(mockResult);
 
       mockReq.body = {};
 
       await adminController.runDiscovery(mockReq as Request, mockRes as Response);
 
-      expect(externalCompanyService.runDiscovery).toHaveBeenCalled();
+      expect(externalCompanyService.runDiscovery).toHaveBeenCalledWith([
+        'Israel tech startup',
+        'Israel cybersecurity', 
+        'Israel fintech',
+        'Israel AI'
+      ]);
       expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
-        success: true
+        success: true,
+        newCompaniesCount: 5
       }));
     });
 
-    it('should use custom query when provided', async () => {
-      const mockResult = { discovered: 3, created: 2 };
+    it('should use custom queries when provided', async () => {
+      const mockResult = 5;
       (externalCompanyService.runDiscovery as any).mockResolvedValue(mockResult);
 
-      mockReq.body = { query: 'custom query', maxResults: 20 };
+      mockReq.body = { queries: ['custom query 1', 'custom query 2'] };
 
       await adminController.runDiscovery(mockReq as Request, mockRes as Response);
 
-      expect(externalCompanyService.runDiscovery).toHaveBeenCalledWith('custom query', 20);
+      expect(externalCompanyService.runDiscovery).toHaveBeenCalledWith(['custom query 1', 'custom query 2']);
     });
   });
 
