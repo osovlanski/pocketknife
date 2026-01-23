@@ -168,7 +168,7 @@ router.get('/frontend', async (req: Request, res: Response) => {
         { id: 'politics', label: 'Politics', icon: '🏛️' },
         { id: 'money', label: 'Finance', icon: '💰' }
       ],
-      sources: configService.get('news.sources.default', ['hackernews', 'reddit', 'gnews', 'mediastack']) as string[]
+      sources: ['hackernews', 'reddit', 'gnews', 'mediastack', 'lobsters', 'devto']
     };
 
     // Travel options

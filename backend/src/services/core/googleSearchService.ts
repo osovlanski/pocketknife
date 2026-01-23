@@ -73,8 +73,7 @@ interface QuotaState {
   usageByAgent: Record<string, number>;
 }
 
-import { configService } from './configService';
-
+// Note: configService is imported at top of file
 const getDailyLimit = () => configService.get('google.cse.dailyLimit', 100);
 
 class QuotaManager {

@@ -327,7 +327,8 @@ const TECH_ONLY_SOURCES_FALLBACK = ['hackernews', 'lobsters', 'devto'];
  */
 const getSourcesForTopics = (topics: string[] | undefined, requestedSources?: string[]): string[] => {
   // Default sources if none specified
-  const defaultSources = configService.get('news.sources.default', ['reddit', 'newsapi', 'gnews', 'mediastack']) as string[];
+  // Default sources - can be extended via database config
+  const defaultSources = ['reddit', 'newsapi', 'gnews', 'mediastack'];
   
   if (!topics || topics.length === 0) {
     // No topics specified - use all sources
