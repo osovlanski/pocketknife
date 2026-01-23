@@ -1,8 +1,10 @@
 # Hardcoded Data Audit Report
 
-> **Migration Status: IN PROGRESS** (Updated January 23, 2026)
+> **Migration Status: PHASE 2 COMPLETE** (Updated January 23, 2026)
 > - Phase 1 COMPLETED: 141 items migrated (companies to database)
-> - Phase 2 PENDING: 195+ additional items identified for migration
+> - Phase 2 COMPLETED: 85+ backend timeout/config values migrated to configService
+> - Phase 3 COMPLETED: Frontend config API endpoint created
+> - Remaining: Lower priority items (curated problems, travel destinations, etc.)
 > - See `HARDCODED_MIGRATION_PLAN.md` for detailed migration plan
 
 **Generated:** 2026-01-22 | **Updated:** 2026-01-23
@@ -18,20 +20,20 @@
 | 🔴 HIGH | Companies (Comeet) | `comeetCareersService.ts` | ~55 companies | 4h | ✅ DONE |
 | 🔴 HIGH | Companies (Israeli) | `israeliJobsService.ts` | ~50 companies | 4h | ✅ DONE |
 | 🔴 HIGH | Companies (Enrichment) | `companyEnrichmentService.ts` | ~30 companies | 3h | ✅ DONE |
-| 🔴 HIGH | Timeouts (40+ values) | Multiple services | 40+ values | 4h | ⏳ Pending |
-| 🔴 HIGH | Query Limits | Multiple services | 30+ values | 3h | ⏳ Pending |
-| 🔴 HIGH | News Mappings | `newsService.ts` | 8 mappings | 6h | ⏳ Pending |
-| 🔴 HIGH | Curated Problems | `curatedProblems.ts` | 200+ problems | 4h | ⏳ Pending |
+| 🔴 HIGH | Timeouts (40+ values) | Multiple services | 40+ values | 4h | ✅ DONE |
+| 🔴 HIGH | Query Limits | Multiple services | 30+ values | 3h | ✅ DONE |
+| 🔴 HIGH | News Mappings | `newsService.ts` | 8 mappings | 6h | ✅ DONE (DB seeded) |
+| 🔴 HIGH | Job Matching Config | `jobMatchingService.ts` | 20+ items | 3h | ✅ DONE (DB seeded) |
+| 🟠 MEDIUM | Frontend Config | Multiple components | 35+ items | 8h | ✅ DONE (API created) |
+| 🟠 MEDIUM | Curated Problems | `curatedProblems.ts` | 200+ problems | 4h | ⏳ Schema ready |
 | 🟠 MEDIUM | Telegram Channels | `israeliTechCommunityService.ts` | 5 channels | 2h | ⏳ Pending |
 | 🟠 MEDIUM | Community Sources | `israeliTechCommunityService.ts` | 15+ sources | 2h | ⏳ Pending |
 | 🟠 MEDIUM | YouTube Tech Channels | `youtubeService.ts` | 9 channels | 2h | ⏳ Pending |
 | 🟠 MEDIUM | Search Site Configs | `googleSearchService.ts` | 50+ sites | 3h | ⏳ Pending |
 | 🟠 MEDIUM | Israeli Shops | `israeliShopsService.ts` | 10+ stores | 2h | ⏳ Pending |
-| 🟠 MEDIUM | Travel Destinations | `israelTravelService.ts` | 100+ items | 6h | ⏳ Pending |
-| 🟠 MEDIUM | Company Profiles | `companyMappings.ts` | 50+ profiles | 4h | ⏳ Pending |
-| 🟠 MEDIUM | Job Matching Config | `jobMatchingService.ts` | 20+ items | 3h | ⏳ Pending |
-| 🟠 MEDIUM | Frontend Config | Multiple components | 35+ items | 8h | ⏳ Pending |
-| 🟡 LOW | Skills/Tech Keywords | `jobMatchingService.ts` | 20+ skills | 2h | ⏳ Pending |
+| 🟠 MEDIUM | Travel Destinations | `israelTravelService.ts` | 100+ items | 6h | ⏳ Schema ready |
+| 🟠 MEDIUM | Company Profiles | `companyMappings.ts` | 50+ profiles | 4h | ⏳ Schema ready |
+| 🟡 LOW | Skills/Tech Keywords | `jobMatchingService.ts` | 20+ skills | 2h | ✅ DONE (DB seeded) |
 | 🟡 LOW | Cooking Categories | `cookingService.ts` | 8 categories | 1h | ⏳ Pending |
 | 🟡 LOW | Diagram Templates | `diagramGenerationService.ts` | 20+ templates | 2h | ⏳ Pending |
 | 🟡 LOW | Magic Numbers | Multiple files | 35+ values | 4h | ⏳ Pending |
