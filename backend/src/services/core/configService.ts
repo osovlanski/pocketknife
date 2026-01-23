@@ -309,6 +309,70 @@ const DEFAULT_CONFIG = {
   'ruleEngine.audit.enabled': true,
   
   // ==========================================================================
+  // EXTERNAL API TIMEOUTS (Phase 1 Migration)
+  // ==========================================================================
+  'api.default.timeoutMs': 10000,
+  'api.longOperation.timeoutMs': 30000,
+  
+  // Jobs API timeouts
+  'jobs.api.timeoutMs': 15000,
+  'jobs.scraper.timeoutMs': 15000,
+  'jobs.company.timeoutMs': 10000,
+  'jobs.enrichment.timeoutMs': 10000,
+  'jobs.community.timeoutMs': 10000,
+  'jobs.filter.maxAgeDays': 30,
+  'jobs.search.maxResults': 20,
+  'jobs.community.limit': 20,
+  'jobs.scraper.limit': 50,
+  'jobs.company.take': 50,
+  
+  // Job Matching Weights (Phase 1 Migration)
+  'jobs.matching.skillWeight': 50,
+  'jobs.matching.roleBonus': 25,
+  'jobs.matching.seniorityBonus': 15,
+  'jobs.matching.techIndicatorBonus': 10,
+  'jobs.matching.maxScore': 100,
+  'jobs.matching.defaultThreshold': 75,
+  'jobs.matching.maxMatchedSkills': 10,
+  'jobs.matching.maxMissingSkills': 5,
+  
+  // Company Scoring (Phase 1 Migration)
+  'company.scoring.startupMaxEmployees': 50,
+  'company.scoring.midsizeMaxEmployees': 500,
+  'company.scoring.baseScore': 50,
+  
+  // Problems API (Phase 1 Migration)
+  'problems.codeforces.timeoutMs': 10000,
+  'problems.codeforces.url': 'https://codeforces.com/api/problemset.problems',
+  'problems.difficulty.thresholds.easy': 1200,
+  'problems.difficulty.thresholds.medium': 1800,
+  
+  // Learning API (Phase 1 Migration)
+  'learning.api.timeoutMs': 10000,
+  'learning.search.limit': 15,
+  
+  // Travel API (Phase 1 Migration)
+  'travel.flights.limit': 20,
+  
+  // Notifications (Phase 1 Migration)
+  'notifications.telegram.timeoutMs': 5000,
+  'notifications.discord.timeoutMs': 5000,
+  'notifications.facebook.timeoutMs': 5000,
+  
+  // Google Search (Phase 1 Migration)
+  'google.search.timeoutMs': 10000,
+  
+  // Cache (Phase 1 Migration)
+  'cache.apiConfig.ttl': 300,
+  
+  // External URLs (Phase 1 Migration)
+  'urls.leetcode.base': 'https://leetcode.com',
+  'urls.leetcode.graphql': 'https://leetcode.com/graphql',
+  'urls.codeforces.api': 'https://codeforces.com/api',
+  'urls.crunchbase.base': 'https://api.crunchbase.com/api/v4',
+  'urls.nominatim.base': 'https://nominatim.openstreetmap.org',
+  
+  // ==========================================================================
   // DEVELOPMENT CORS ORIGINS
   // ==========================================================================
   'cors.devOrigins': ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']

@@ -1327,6 +1327,206 @@ model FeatureFlag {
 }
 
 // =============================================================================
+// CONFIGURABLE DATA (Migrated from hardcoded values)
+// =============================================================================
+
+// News topic/source/category mappings (migrated from newsService.ts)
+model NewsConfig {
+  id           String   @id @default(uuid())
+  
+  // Configuration type
+  configType   String   // 'topic_mapping', 'source_mapping', 'subreddit', 'api_category'
+  
+  // Mapping keys
+  sourceKey    String   // Internal key, e.g., 'tech', 'business', 'politics'
+  targetSource String   // Target source/API, e.g., 'newsapi', 'gnews', 'reddit', 'mediastack'
+  targetValue  String   // Mapped value, e.g., 'technology', 'business', 'world'
+  
+  // Additional data (for arrays like subreddits)
+  metadata     Json?    // { subreddits: ['technology', 'programming'], keywords: [...] }
+  
+  // Status
+  isActive     Boolean  @default(true)
+  priority     Int      @default(100)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([configType, sourceKey, targetSource])
+  @@index([configType, isActive])
+  @@index([sourceKey])
+}
+
+// Curated coding problems (Blind75, NeetCode150, Grind75)
+model CuratedProblem {
+  id           String   @id @default(uuid())
+  
+  // Problem identification
+  externalId   String   // LeetCode/Codeforces problem ID or slug
+  source       String   // 'leetcode', 'codeforces', 'hackerrank'
+  
+  // Problem details
+  title        String
+  titleSlug    String
+  url          String
+  
+  // Difficulty and categorization
+  difficulty   String   // 'Easy', 'Medium', 'Hard'
+  category     String   // 'arrays', 'strings', 'trees', 'dynamic-programming', etc.
+  tags         String[] // Additional tags
+  
+  // Company associations
+  companies    String[] // Companies that ask this problem
+  
+  // Curated list membership
+  listName     String   // 'blind75', 'neetcode150', 'grind75'
+  listOrder    Int      // Order within the list (1-based)
+  
+  // Status
+  isActive     Boolean  @default(true)
+  
+  // Metadata
+  description  String?  @db.Text
+  hints        String[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([externalId, listName])
+  @@index([listName, isActive, listOrder])
+  @@index([difficulty])
+  @@index([category])
+  @@index([companies])
+}
+
+// Israel travel destinations, hiking trails, beaches
+model TravelDestination {
+  id           String   @id @default(uuid())
+  
+  // Identification
+  name         String
+  nameHe       String?  // Hebrew name
+  slug         String   @unique
+  
+  // Type classification
+  type         String   // 'destination', 'hiking_trail', 'beach', 'attraction', 'restaurant'
+  subType      String?  // More specific type, e.g., 'mediterranean', 'desert'
+  
+  // Location
+  region       String   // 'north', 'center', 'jerusalem', 'dead_sea', 'negev', 'eilat'
+  city         String?
+  address      String?
+  coordinates  Json?    // { lat: number, lng: number }
+  
+  // Description
+  description  String?  @db.Text
+  shortDesc    String?
+  
+  // Media
+  imageUrl     String?
+  imageUrls    String[]
+  
+  // Activities and features
+  activities   String[] // ['hiking', 'swimming', 'camping', 'snorkeling']
+  amenities    String[] // ['parking', 'restrooms', 'food', 'showers']
+  
+  // Best times
+  bestSeason   String?  // 'spring', 'summer', 'fall', 'winter', 'year_round'
+  bestMonths   Int[]    // [3, 4, 5] for March-May
+  
+  // Difficulty (for trails)
+  difficulty   String?  // 'easy', 'moderate', 'challenging', 'expert'
+  distance     Float?   // km for trails
+  duration     Int?     // minutes estimated
+  elevation    Int?     // meters for trails
+  
+  // Ratings
+  rating       Float?   // 1-5 stars
+  reviewCount  Int?
+  
+  // Status
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  priority     Int      @default(100)
+  
+  // External links
+  websiteUrl   String?
+  googleMapsUrl String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([type, region, isActive])
+  @@index([difficulty])
+  @@index([isFeatured])
+}
+
+// Job matching configuration (skills, weights, thresholds)
+model JobMatchingConfig {
+  id           String   @id @default(uuid())
+  
+  // Configuration type
+  configType   String   // 'skill', 'synonym', 'seniority', 'role_word', 'stop_word', 'weight', 'threshold'
+  
+  // Key-value pair
+  key          String   // e.g., 'common_tech', 'senior_keywords', 'skill_weight'
+  value        Json     // Flexible JSON value - array, object, or primitive
+  
+  // Description
+  description  String?
+  
+  // Status
+  isActive     Boolean  @default(true)
+  priority     Int      @default(100)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([configType, key])
+  @@index([configType, isActive])
+}
+
+// Company interview profiles (for problem solving agent)
+model CompanyProfile {
+  id            String   @id @default(uuid())
+  
+  // Company identification
+  name          String   @unique
+  slug          String   @unique
+  
+  // Interview focus areas
+  focusAreas    String[] // ['algorithms', 'system-design', 'behavioral']
+  topCategories String[] // ['arrays', 'trees', 'dynamic-programming']
+  topTags       String[] // ['two-pointers', 'bfs', 'dfs']
+  
+  // Difficulty distribution
+  difficultyBreakdown Json?  // { easy: 20, medium: 50, hard: 30 }
+  
+  // Interview process info
+  interviewFocus    Json?  // { coding: 40, system_design: 30, behavioral: 30 }
+  interviewRounds   Int?
+  avgTimeToHire     Int?   // days
+  
+  // Tips and resources
+  tips          String[]
+  resources     Json?    // [{ type: 'video', url: '...', title: '...' }]
+  
+  // Statistics
+  problemCount  Int      @default(0)
+  reportCount   Int      @default(0)
+  
+  // Status
+  isActive      Boolean  @default(true)
+  isVerified    Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([isActive])
+  @@index([focusAreas])
+}
+
+// =============================================================================
 // EXTERNAL COMPANIES (Comeet, Greenhouse, Lever, etc.)
 // =============================================================================
 

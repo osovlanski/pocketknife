@@ -5,6 +5,7 @@
  * - Default user
  * - Default preferences
  * - Sample app config
+ * - Configurable data (migrated from hardcoded values)
  * 
  * Run with: npm run db:seed
  */
@@ -13,6 +14,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import { seedNewsConfig, seedJobMatchingConfig } from './seeds';
 
 // Prisma 7 requires an adapter for direct database connections
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -87,7 +89,34 @@ async function main() {
     }
   });
 
-  console.log('✅ Database seeded successfully!');
+  // ==========================================================================
+  // SEED CONFIGURABLE DATA (Migrated from hardcoded values)
+  // ==========================================================================
+  
+  console.log('\n📦 Seeding configurable data...');
+  
+  // Seed news configuration (topic mappings, subreddits, API categories)
+  try {
+    const newsConfigCount = await seedNewsConfig(prisma);
+    console.log(`✅ Seeded ${newsConfigCount} news config entries`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed news config:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed job matching configuration (skills, synonyms, weights)
+  try {
+    const jobConfigCount = await seedJobMatchingConfig(prisma);
+    console.log(`✅ Seeded ${jobConfigCount} job matching config entries`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed job matching config:', error instanceof Error ? error.message : error);
+  }
+  
+  // Future seed functions will be added here as migrations progress:
+  // - seedCuratedProblems(prisma)
+  // - seedTravelDestinations(prisma)
+  // - seedCompanyProfiles(prisma)
+
+  console.log('\n✅ Database seeded successfully!');
 }
 
 main()
