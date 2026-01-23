@@ -226,8 +226,10 @@ class ProblemSolvingService {
    */
   private async searchCodeforces(query: string, difficulty?: string): Promise<CodingProblem[]> {
     try {
-      const response = await axios.get('https://codeforces.com/api/problemset.problems', {
-        timeout: 10000
+      const codeforcesUrl = configService.get('problems.codeforces.url', 'https://codeforces.com/api/problemset.problems');
+      const timeout = configService.get('problems.codeforces.timeoutMs', 10000);
+      const response = await axios.get(codeforcesUrl, {
+        timeout
       });
 
       if (response.data.status !== 'OK') {

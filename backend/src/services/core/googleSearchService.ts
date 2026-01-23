@@ -13,6 +13,10 @@ import claudeService from './claudeService';
 import { searchSiteConfigService } from './externalDataService';
 import { getPrisma } from './databaseService';
 import logger from '../../utils/logger';
+import { configService } from './configService';
+
+// Get timeout from config
+const GOOGLE_SEARCH_TIMEOUT = () => configService.get('google.search.timeoutMs', 10000);
 
 // =============================================================================
 // TYPES
@@ -386,7 +390,7 @@ class GoogleSearchService {
             lr: language ? `lang_${language}` : undefined,
             num: Math.min(maxResults, 10)
           },
-          timeout: 10000
+          timeout: GOOGLE_SEARCH_TIMEOUT()
         }
       );
 
