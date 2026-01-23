@@ -1450,8 +1450,9 @@ export const listCompanies = async (req: Request, res: Response) => {
     const companies = await externalCompanyService.searchCompanies({
       status: status as any,
       atsProvider: atsProvider as any,
-      size: size as any
-    }, limit ? parseInt(limit as string) : 100);
+      size: size as any,
+      limit: limit ? parseInt(limit as string) : 100
+    });
     
     res.json({ success: true, count: companies.length, companies });
   } catch (error: any) {
@@ -1520,8 +1521,8 @@ export const deleteCompany = async (req: Request, res: Response) => {
  */
 export const verifyCompany = async (req: Request, res: Response) => {
   try {
-    const result = await externalCompanyService.verifyCompany(req.params.id);
-    res.json({ success: true, ...result });
+    const verified = await externalCompanyService.verifyCompany(req.params.id);
+    res.json({ success: true, verified });
   } catch (error: any) {
     console.error('❌ Error verifying company:', error.message);
     res.status(500).json({ error: 'Failed to verify company' });
@@ -1546,9 +1547,9 @@ export const enrichCompany = async (req: Request, res: Response) => {
  */
 export const runDiscovery = async (req: Request, res: Response) => {
   try {
-    const { query = 'Israel tech startup', maxResults = 10 } = req.body;
-    const result = await externalCompanyService.runDiscovery(query, maxResults);
-    res.json({ success: true, ...result });
+    const { queries = ['Israel tech startup', 'Israel cybersecurity', 'Israel fintech', 'Israel AI'] } = req.body;
+    const newCompaniesCount = await externalCompanyService.runDiscovery(queries);
+    res.json({ success: true, newCompaniesCount });
   } catch (error: any) {
     console.error('❌ Error running discovery:', error.message);
     res.status(500).json({ error: 'Failed to run discovery' });

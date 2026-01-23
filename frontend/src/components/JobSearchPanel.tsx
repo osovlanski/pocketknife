@@ -313,7 +313,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({
             />
             <div className="absolute top-3 right-3">
               <VoiceInputButton
-                onTranscript={(text) => setCVText(prev => prev ? `${prev} ${text}` : text)}
+                onTranscript={(text) => setCVText(cvText ? `${cvText} ${text}` : text)}
                 size="sm"
                 title="Speak to add CV content"
                 ariaLabel="Voice input for CV"

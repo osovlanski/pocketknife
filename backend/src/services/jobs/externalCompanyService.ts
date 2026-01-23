@@ -577,9 +577,9 @@ class ExternalCompanyService {
 
     return {
       total,
-      byStatus: Object.fromEntries(byStatus.map(s => [s.status, s._count])),
-      byProvider: Object.fromEntries(byProvider.map(p => [p.atsProvider, p._count])),
-      bySize: Object.fromEntries(bySize.filter(s => s.size).map(s => [s.size!, s._count])),
+      byStatus: Object.fromEntries(byStatus.map((s: { status: string; _count: number }) => [s.status, s._count])),
+      byProvider: Object.fromEntries(byProvider.map((p: { atsProvider: string | null; _count: number }) => [p.atsProvider, p._count])),
+      bySize: Object.fromEntries(bySize.filter((s: { size: string | null; _count: number }) => s.size).map((s: { size: string | null; _count: number }) => [s.size!, s._count])),
       needingEnrichment
     };
   }
