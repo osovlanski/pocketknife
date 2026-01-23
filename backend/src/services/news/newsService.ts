@@ -73,7 +73,106 @@ export interface NewsTrend {
 }
 
 // =============================================================================
-// NEWS SOURCES CONFIGURATION
+// DATABASE-FIRST CONFIG HELPERS
+// =============================================================================
+
+// Cache for database config to avoid repeated queries
+let newsConfigCache: Map<string, unknown> | null = null;
+let newsConfigCacheTime = 0;
+const NEWS_CONFIG_CACHE_TTL = 300000; // 5 minutes
+
+/**
+ * Get news config from database with fallback to hardcoded defaults
+ */
+const getNewsConfigFromDb = async (
+  configType: string,
+  sourceKey: string,
+  targetSource: string
+): Promise<{ targetValue: string; metadata: Record<string, unknown> } | null> => {
+  const prisma = getPrisma();
+  if (!prisma) return null;
+
+  try {
+    // Use type assertion since NewsConfig model may not be in generated client yet
+    const config = await (prisma as any).newsConfig.findUnique({
+      where: {
+        configType_sourceKey_targetSource: {
+          configType,
+          sourceKey: sourceKey.toLowerCase(),
+          targetSource
+        }
+      }
+    });
+
+    if (config && config.isActive) {
+      return {
+        targetValue: config.targetValue,
+        metadata: (config.metadata as Record<string, unknown>) || {}
+      };
+    }
+  } catch (error) {
+    logger.warn('Failed to get news config from database', { configType, sourceKey, targetSource });
+  }
+
+  return null;
+};
+
+/**
+ * Get API category mapping from database with fallback
+ */
+const getApiCategory = async (
+  topic: string,
+  apiSource: string,
+  fallbackMapping: Record<string, string>
+): Promise<string> => {
+  const dbConfig = await getNewsConfigFromDb('api_category', topic, apiSource);
+  if (dbConfig) {
+    return dbConfig.targetValue;
+  }
+  return fallbackMapping[topic.toLowerCase()] || 'general';
+};
+
+/**
+ * Get subreddits for topic from database with fallback
+ */
+const getSubredditsForTopic = async (
+  topic: string,
+  fallbackSubreddits: Record<string, string[]>
+): Promise<string[]> => {
+  const dbConfig = await getNewsConfigFromDb('subreddit', topic, 'reddit');
+  if (dbConfig && dbConfig.metadata?.subreddits) {
+    return dbConfig.metadata.subreddits as string[];
+  }
+  return fallbackSubreddits[topic.toLowerCase()] || ['technology', 'worldnews'];
+};
+
+/**
+ * Get sources for topic from database with fallback
+ */
+const getSourcesForTopicFromDb = async (
+  topic: string,
+  fallbackMapping: Record<string, string[]>
+): Promise<string[]> => {
+  const dbConfig = await getNewsConfigFromDb('source_mapping', topic, 'all');
+  if (dbConfig && dbConfig.metadata?.sources) {
+    return dbConfig.metadata.sources as string[];
+  }
+  return fallbackMapping[topic.toLowerCase()] || ['reddit', 'newsapi', 'gnews'];
+};
+
+/**
+ * Get tech-only sources from database with fallback
+ */
+const getTechOnlySourcesFromDb = async (): Promise<string[]> => {
+  const dbConfig = await getNewsConfigFromDb('source_mapping', 'tech_only', 'all');
+  if (dbConfig && dbConfig.metadata?.sources) {
+    return dbConfig.metadata.sources as string[];
+  }
+  return TECH_ONLY_SOURCES_FALLBACK;
+};
+
+// =============================================================================
+// NEWS SOURCES CONFIGURATION (FALLBACKS)
 // =============================================================================
 
 // Base URLs are registered in externalApiService.ts for centralized management
@@ -125,8 +224,13 @@ const NEWS_BASE_URLS = {
   currentsapi: configService.get('news.api.currentsapi.baseUrl', 'https://api.currentsapi.services/v1')
 };
 
-// Topic to category mapping (general keywords)
-const TOPIC_MAPPINGS: Record<string, string[]> = {
+// =============================================================================
+// FALLBACK MAPPINGS (Used when database is unavailable)
+// These will be migrated to database via NewsConfig table
+// =============================================================================
+
+// Topic to category mapping (general keywords) - FALLBACK
+const TOPIC_MAPPINGS_FALLBACK: Record<string, string[]> = {
   tech: ['technology', 'programming', 'startups', 'ai', 'software'],
   business: ['business', 'finance', 'economy', 'markets', 'investing'],
   politics: ['politics', 'government', 'elections', 'policy'],
@@ -137,14 +241,8 @@ const TOPIC_MAPPINGS: Record<string, string[]> = {
   money: ['finance', 'crypto', 'stocks', 'investing', 'economy']
 };
 
-// =============================================================================
-// UNIFIED API CATEGORY MAPPINGS
-// Maps internal topic IDs to external API category names
-// Centralized here for DRY principle - each API function uses these
-// =============================================================================
-
-/** Reddit subreddits for each topic */
-const REDDIT_SUBREDDITS: Record<string, string[]> = {
+/** Reddit subreddits for each topic - FALLBACK */
+const REDDIT_SUBREDDITS_FALLBACK: Record<string, string[]> = {
   tech: ['technology', 'programming', 'gadgets', 'webdev'],
   business: ['business', 'entrepreneur', 'smallbusiness', 'economics'],
   politics: ['politics', 'worldnews', 'news', 'geopolitics'],
@@ -155,8 +253,8 @@ const REDDIT_SUBREDDITS: Record<string, string[]> = {
   money: ['personalfinance', 'investing', 'stocks', 'cryptocurrency', 'wallstreetbets']
 };
 
-/** NewsAPI category mapping (valid: business, entertainment, general, health, science, sports, technology) */
-const NEWSAPI_CATEGORIES: Record<string, string> = {
+/** NewsAPI category mapping - FALLBACK */
+const NEWSAPI_CATEGORIES_FALLBACK: Record<string, string> = {
   tech: 'technology',
   technology: 'technology',
   business: 'business',
@@ -168,8 +266,8 @@ const NEWSAPI_CATEGORIES: Record<string, string> = {
   money: 'business'
 };
 
-/** GNews topic mapping (valid: breaking-news, world, nation, business, technology, entertainment, sports, science, health) */
-const GNEWS_TOPICS: Record<string, string> = {
+/** GNews topic mapping - FALLBACK */
+const GNEWS_TOPICS_FALLBACK: Record<string, string> = {
   tech: 'technology',
   technology: 'technology',
   business: 'business',
@@ -181,8 +279,8 @@ const GNEWS_TOPICS: Record<string, string> = {
   money: 'business'
 };
 
-/** MediaStack category mapping (valid: general, business, entertainment, health, science, sports, technology) */
-const MEDIASTACK_CATEGORIES: Record<string, string> = {
+/** MediaStack category mapping - FALLBACK */
+const MEDIASTACK_CATEGORIES_FALLBACK: Record<string, string> = {
   tech: 'technology',
   technology: 'technology',
   business: 'business',
@@ -194,8 +292,8 @@ const MEDIASTACK_CATEGORIES: Record<string, string> = {
   money: 'business'
 };
 
-/** CurrentsAPI category mapping (valid: technology, business, politics, sports, science, health, entertainment, finance, etc.) */
-const CURRENTSAPI_CATEGORIES: Record<string, string> = {
+/** CurrentsAPI category mapping - FALLBACK */
+const CURRENTSAPI_CATEGORIES_FALLBACK: Record<string, string> = {
   tech: 'technology',
   technology: 'technology',
   business: 'business',
@@ -207,13 +305,8 @@ const CURRENTSAPI_CATEGORIES: Record<string, string> = {
   money: 'finance'
 };
 
-// =============================================================================
-// TOPIC-SOURCE MAPPING
-// =============================================================================
-
-// Topic to source mapping - which sources support which topics
-// Tech-only sources should NOT be used for non-tech topics
-const TOPIC_SOURCE_MAPPING: Record<string, string[]> = {
+// Topic to source mapping - FALLBACK
+const TOPIC_SOURCE_MAPPING_FALLBACK: Record<string, string[]> = {
   tech: ['hackernews', 'reddit', 'lobsters', 'devto', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
   business: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
   politics: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
@@ -224,16 +317,17 @@ const TOPIC_SOURCE_MAPPING: Record<string, string[]> = {
   money: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi']
 };
 
-// Sources that ONLY return tech content (should be excluded for non-tech topics)
-const TECH_ONLY_SOURCES = ['hackernews', 'lobsters', 'devto'];
+// Sources that ONLY return tech content - FALLBACK
+const TECH_ONLY_SOURCES_FALLBACK = ['hackernews', 'lobsters', 'devto'];
 
 /**
  * Get appropriate sources for the given topics
  * Filters out tech-only sources when non-tech topics are selected
+ * Uses database config with fallback to hardcoded defaults
  */
 const getSourcesForTopics = (topics: string[] | undefined, requestedSources?: string[]): string[] => {
   // Default sources if none specified
-  const defaultSources = ['reddit', 'newsapi', 'gnews', 'mediastack'];
+  const defaultSources = configService.get('news.sources.default', ['reddit', 'newsapi', 'gnews', 'mediastack']) as string[];
   
   if (!topics || topics.length === 0) {
     // No topics specified - use all sources
@@ -252,13 +346,13 @@ const getSourcesForTopics = (topics: string[] | undefined, requestedSources?: st
     const validSources = new Set<string>();
     
     for (const topic of topics) {
-      const sourcesForTopic = TOPIC_SOURCE_MAPPING[topic.toLowerCase()] || defaultSources;
+      const sourcesForTopic = TOPIC_SOURCE_MAPPING_FALLBACK[topic.toLowerCase()] || defaultSources;
       sourcesForTopic.forEach(s => validSources.add(s));
     }
     
     // If requested sources specified, filter them
     if (requestedSources) {
-      return requestedSources.filter(s => !TECH_ONLY_SOURCES.includes(s));
+      return requestedSources.filter(s => !TECH_ONLY_SOURCES_FALLBACK.includes(s));
     }
     
     return Array.from(validSources);
@@ -443,7 +537,7 @@ export const newsService = {
       if (topics?.length) {
         const mappedSubreddits = new Set<string>();
         for (const topic of topics) {
-          const subs = REDDIT_SUBREDDITS[topic.toLowerCase()] || [topic];
+          const subs = REDDIT_SUBREDDITS_FALLBACK[topic.toLowerCase()] || [topic];
           subs.forEach(s => mappedSubreddits.add(s));
         }
         subreddits = Array.from(mappedSubreddits);
@@ -526,7 +620,7 @@ export const newsService = {
         params.sortBy = 'publishedAt';
       } else if (topics?.length) {
         // Map topic to NewsAPI category using consolidated mapping
-        const apiCategory = NEWSAPI_CATEGORIES[topics[0].toLowerCase()] || 'general';
+        const apiCategory = NEWSAPI_CATEGORIES_FALLBACK[topics[0].toLowerCase()] || 'general';
         params.category = apiCategory;
         logger.info(`📰 NewsAPI - Topic "${topics[0]}" → Category "${apiCategory}"`);
       }
@@ -589,7 +683,7 @@ export const newsService = {
         params.q = query;
       } else if (topics?.length) {
         // Map topic to GNews topic using consolidated mapping
-        const apiTopic = GNEWS_TOPICS[topics[0].toLowerCase()] || 'breaking-news';
+        const apiTopic = GNEWS_TOPICS_FALLBACK[topics[0].toLowerCase()] || 'breaking-news';
         params.topic = apiTopic;
         logger.info(`📰 GNews - Topic "${topics[0]}" → API Topic "${apiTopic}"`);
       }
@@ -652,7 +746,7 @@ export const newsService = {
       if (topics?.length) {
         // Map topics to MediaStack categories using consolidated mapping
         const apiCategories = topics
-          .map(t => MEDIASTACK_CATEGORIES[t.toLowerCase()] || 'general')
+          .map(t => MEDIASTACK_CATEGORIES_FALLBACK[t.toLowerCase()] || 'general')
           .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
         params.categories = apiCategories.join(',');
         logger.info(`📰 MediaStack - Topics [${topics.join(', ')}] → Categories [${apiCategories.join(', ')}]`);
@@ -842,7 +936,7 @@ export const newsService = {
       
       if (topics?.length) {
         // Map topic to CurrentsAPI category using consolidated mapping
-        const apiCategory = CURRENTSAPI_CATEGORIES[topics[0].toLowerCase()] || 'general';
+        const apiCategory = CURRENTSAPI_CATEGORIES_FALLBACK[topics[0].toLowerCase()] || 'general';
         params.category = apiCategory;
         logger.info(`📰 CurrentsAPI - Topic "${topics[0]}" → Category "${apiCategory}"`);
       }

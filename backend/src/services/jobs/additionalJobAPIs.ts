@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
+
+// Get timeout from config
+const JOB_API_TIMEOUT = () => configService.get('jobs.api.timeoutMs', 15000);
 
 interface JobListing {
   id: string;
@@ -38,7 +42,7 @@ class AdditionalJobAPIs {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         },
-        timeout: 15000,
+        timeout: JOB_API_TIMEOUT(),
         validateStatus: (status) => status < 500 // Accept 4xx errors
       });
 
@@ -103,7 +107,7 @@ class AdditionalJobAPIs {
           'Authorization': 'Token public', // Public access token
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         },
-        timeout: 15000,
+        timeout: JOB_API_TIMEOUT(),
         validateStatus: (status) => status < 500 // Accept 4xx errors
       });
 
@@ -163,7 +167,7 @@ class AdditionalJobAPIs {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         },
-        timeout: 15000,
+        timeout: JOB_API_TIMEOUT(),
         validateStatus: (status) => status < 500 // Accept 4xx errors
       });
 

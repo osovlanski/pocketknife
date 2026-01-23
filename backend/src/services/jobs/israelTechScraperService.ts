@@ -1,5 +1,9 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { configService } from '../core/configService';
+
+// Get timeout from config with fallback
+const SCRAPER_TIMEOUT = () => configService.get('jobs.scraper.timeoutMs', 15000);
 
 interface ScrapedJob {
   id: string;
@@ -43,7 +47,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'application/json'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const jobs = response.data || [];
@@ -96,7 +100,7 @@ class IsraelTechScraperService {
           'Accept': 'text/html',
           'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -160,7 +164,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'application/xml, text/xml'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data, { xmlMode: true });
@@ -223,7 +227,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'application/json'
         },
-        timeout: 15000,
+        timeout: SCRAPER_TIMEOUT(),
         validateStatus: (status) => status < 500
       });
 
@@ -277,7 +281,7 @@ class IsraelTechScraperService {
           'Accept': 'text/html',
           'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -336,7 +340,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'text/html'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -394,7 +398,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'application/json'
         },
-        timeout: 15000,
+        timeout: SCRAPER_TIMEOUT(),
         validateStatus: (status) => status < 500
       });
 
@@ -444,7 +448,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'text/html'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -506,7 +510,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'application/json'
         },
-        timeout: 15000,
+        timeout: SCRAPER_TIMEOUT(),
         validateStatus: (status) => status < 500
       });
 
@@ -561,7 +565,7 @@ class IsraelTechScraperService {
           'Accept': 'text/html',
           'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -630,7 +634,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Content-Type': 'application/json'
         },
-        timeout: 15000,
+        timeout: SCRAPER_TIMEOUT(),
         validateStatus: (status) => status < 500
       });
 
@@ -681,7 +685,7 @@ class IsraelTechScraperService {
           'User-Agent': this.userAgent,
           'Accept': 'text/html'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);
@@ -743,7 +747,7 @@ class IsraelTechScraperService {
           'Accept': 'text/html',
           'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8'
         },
-        timeout: 15000
+        timeout: SCRAPER_TIMEOUT()
       });
 
       const $ = cheerio.load(response.data);

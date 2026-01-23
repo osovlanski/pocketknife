@@ -2,6 +2,10 @@ import axios from 'axios';
 import Anthropic from '@anthropic-ai/sdk';
 import { CompanySizeCategory } from '@prisma/client';
 import { getPrisma } from '../core/databaseService';
+import { configService } from '../core/configService';
+
+// Get timeout from config
+const ENRICHMENT_TIMEOUT = () => configService.get('jobs.enrichment.timeoutMs', 10000);
 
 interface CompanyInfo {
   name: string;
@@ -172,7 +176,7 @@ class CompanyEnrichmentService {
         headers: {
           'X-cb-user-key': apiKey
         },
-        timeout: 10000
+        timeout: ENRICHMENT_TIMEOUT()
       });
 
       const entities = searchResponse.data?.entities || [];
@@ -188,7 +192,7 @@ class CompanyEnrichmentService {
         headers: {
           'X-cb-user-key': apiKey
         },
-        timeout: 10000
+        timeout: ENRICHMENT_TIMEOUT()
       });
 
       const properties = detailResponse.data?.properties || {};
