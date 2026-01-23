@@ -37,34 +37,75 @@ interface JobSearchPanelProps {
   onStop?: () => void;
   isSearching?: boolean;
   isStopping?: boolean;
+  // Lifted state for persistence across tab switches
+  cvText?: string;
+  onCVTextChange?: (text: string) => void;
+  cvData?: any;
+  onCVDataChange?: (data: any) => void;
+  location?: string;
+  onLocationChange?: (location: string) => void;
+  remoteOnly?: boolean | undefined;
+  onRemoteOnlyChange?: (value: boolean | undefined) => void;
+  filters?: JobSearchFilters;
+  onFiltersChange?: (filters: JobSearchFilters) => void;
 }
 
-const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch, onStop, isSearching: externalSearching, isStopping = false }) => {
+const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ 
+  onCVUploaded, 
+  onSearch, 
+  onStop, 
+  isSearching: externalSearching, 
+  isStopping = false,
+  // Lifted state props
+  cvText: externalCVText,
+  onCVTextChange,
+  cvData: externalCVData,
+  onCVDataChange,
+  location: externalLocation,
+  onLocationChange,
+  remoteOnly: externalRemoteOnly,
+  onRemoteOnlyChange,
+  filters: externalFilters,
+  onFiltersChange
+}) => {
   const { t } = useTranslation();
-  const [cvText, setCVText] = useState('');
-  const [cvData, setCVData] = useState<any>(null);
-  const [uploading, setUploading] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [location, setLocation] = useState('');
-  const [remoteOnly, setRemoteOnly] = useState<boolean | undefined>(false); // Default: Office Only
-  const [useGPS, setUseGPS] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
-  // Use external searching state if provided
-  const isCurrentlySearching = externalSearching !== undefined ? externalSearching : searching;
-  
-  // Advanced filters
-  const [filters, setFilters] = useState<JobSearchFilters>({
+  // Local state (used if no external state provided)
+  const [localCVText, setLocalCVText] = useState('');
+  const [localCVData, setLocalCVData] = useState<any>(null);
+  const [localLocation, setLocalLocation] = useState('');
+  const [localRemoteOnly, setLocalRemoteOnly] = useState<boolean | undefined>(false);
+  const [localFilters, setLocalFilters] = useState<JobSearchFilters>({
     companySize: 'any',
-    companySizes: [],  // NEW: Multiple company sizes
+    companySizes: [],
     industry: 'any',
-    industries: [],    // Multiple industries
+    industries: [],
     salaryMin: undefined,
     salaryMax: undefined,
     experienceLevel: 'any',
     jobType: 'any'
   });
+  
+  // Use external state if provided, otherwise local
+  const cvText = externalCVText !== undefined ? externalCVText : localCVText;
+  const setCVText = onCVTextChange || setLocalCVText;
+  const cvData = externalCVData !== undefined ? externalCVData : localCVData;
+  const setCVData = onCVDataChange || setLocalCVData;
+  const location = externalLocation !== undefined ? externalLocation : localLocation;
+  const setLocation = onLocationChange || setLocalLocation;
+  const remoteOnly = externalRemoteOnly !== undefined ? externalRemoteOnly : localRemoteOnly;
+  const setRemoteOnly = onRemoteOnlyChange || setLocalRemoteOnly;
+  const filters = externalFilters !== undefined ? externalFilters : localFilters;
+  const setFilters = onFiltersChange || setLocalFilters;
+  
+  const [uploading, setUploading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [useGPS, setUseGPS] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Use external searching state if provided
+  const isCurrentlySearching = externalSearching !== undefined ? externalSearching : searching;
   
   // Toggle company size selection
   const handleCompanySizeToggle = (size: CompanySizeType) => {
@@ -272,7 +313,7 @@ const JobSearchPanel: React.FC<JobSearchPanelProps> = ({ onCVUploaded, onSearch,
             />
             <div className="absolute top-3 right-3">
               <VoiceInputButton
-                onTranscript={(text) => setCVText(prev => prev ? `${prev} ${text}` : text)}
+                onTranscript={(text) => setCVText(cvText ? `${cvText} ${text}` : text)}
                 size="sm"
                 title="Speak to add CV content"
                 ariaLabel="Voice input for CV"

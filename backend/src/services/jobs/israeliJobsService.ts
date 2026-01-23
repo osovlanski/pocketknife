@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getPrisma } from '../core/databaseService';
 
 interface JobListing {
   id: string;
@@ -18,15 +19,24 @@ interface JobListing {
   jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship';
 }
 
+interface IsraeliCompany {
+  name: string;
+  domain: string;
+  careersUrl: string;
+}
+
 /**
  * Israeli Job Boards Integration Service
  * 
  * This service provides methods to search Israeli job boards and tech companies.
  * Note: Some Israeli job sites don't have public APIs, so we use alternative methods.
+ * 
+ * NOTE: Companies are now stored in the database (ExternalCompany table).
+ * The hardcoded fallback list is kept for initial migration and offline mode.
  */
 class IsraeliJobsService {
-  // Top 100 Israeli tech companies to search for careers
-  private topIsraeliCompanies = [
+  // Fallback list of top Israeli tech companies (used when DB is empty)
+  private fallbackIsraeliCompanies: IsraeliCompany[] = [
     { name: 'Wix', domain: 'wix.com', careersUrl: 'https://www.wix.com/jobs' },
     { name: 'Check Point', domain: 'checkpoint.com', careersUrl: 'https://careers.checkpoint.com' },
     { name: 'Monday.com', domain: 'monday.com', careersUrl: 'https://monday.com/careers' },
@@ -81,9 +91,48 @@ class IsraeliJobsService {
 
   /**
    * Get curated list of top Israeli tech companies with careers pages
+   * Fetches from database first, falls back to hardcoded list
    */
-  getTopIsraeliCompanies() {
-    return this.topIsraeliCompanies;
+  getTopIsraeliCompanies(): IsraeliCompany[] {
+    // Sync method - returns fallback, use getTopIsraeliCompaniesAsync for DB
+    return this.fallbackIsraeliCompanies;
+  }
+
+  /**
+   * Get companies from database (async version)
+   */
+  async getTopIsraeliCompaniesAsync(): Promise<IsraeliCompany[]> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.fallbackIsraeliCompanies;
+      
+      const dbCompanies = await (prisma as any).externalCompany.findMany({
+        where: {
+          status: 'ACTIVE',
+          OR: [
+            { headquarters: { contains: 'Israel', mode: 'insensitive' } },
+            { locations: { hasSome: ['Israel', 'Tel Aviv', 'Herzliya', 'Ra\'anana'] } }
+          ]
+        },
+        select: {
+          name: true,
+          website: true,
+          careersUrl: true
+        }
+      });
+      
+      if (dbCompanies.length > 0) {
+        return dbCompanies.map((c: any) => ({
+          name: c.name,
+          domain: c.website ? new URL(c.website).hostname : '',
+          careersUrl: c.careersUrl || c.website || ''
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch Israeli companies from database');
+    }
+    
+    return this.fallbackIsraeliCompanies;
   }
 
   /**
@@ -135,7 +184,8 @@ class IsraeliJobsService {
     const roleTitle = this.extractRoleTitle(query);
 
     // Match companies based on relevance to query
-    const relevantCompanies = this.topIsraeliCompanies.filter(company => {
+    const allCompanies = this.fallbackIsraeliCompanies;
+    const relevantCompanies = allCompanies.filter(company => {
       const companyLower = company.name.toLowerCase();
       // Include if company name matches or if query contains common tech terms
       return keywords.some(kw => companyLower.includes(kw)) || 
@@ -143,7 +193,7 @@ class IsraeliJobsService {
     });
 
     // Take all companies if no specific match (generic developer search)
-    const companies = relevantCompanies.length > 0 ? relevantCompanies : this.topIsraeliCompanies;
+    const companies = relevantCompanies.length > 0 ? relevantCompanies : allCompanies;
 
     return companies.slice(0, 30).map((company, index) => ({
       id: `il-company-${index}-${company.name.toLowerCase().replace(/\s+/g, '-')}`,
@@ -156,7 +206,9 @@ class IsraeliJobsService {
       applyUrl: company.careersUrl,
       postedAt: new Date().toISOString(),
       tags: ['israel', 'tech', 'startup'],
-      companySize: 'enterprise',
+      companySize: 'enterprise' as const, // These are major Israeli tech companies (501+ employees)
+      employeeCountMin: 501,
+      employeeCountMax: 10000,
       industry: ['tech', 'startup'],
       experienceLevel: queryLower.includes('senior') ? 'senior' : 
                        queryLower.includes('junior') ? 'junior' : 'mid',

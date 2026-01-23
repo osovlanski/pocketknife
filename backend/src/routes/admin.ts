@@ -73,6 +73,50 @@ router.post('/apis/:name/toggle', authenticate, requireSuperAdmin, adminControll
 // Test a single external API
 router.post('/apis/:name/test', authenticate, requireAdmin, adminController.testExternalApi);
 
+// =============================================================================
+// EXTERNAL DATA MANAGEMENT
+// =============================================================================
+
+// External companies
+router.get('/companies', authenticate, requireAdmin, adminController.listCompanies);
+router.get('/companies/:id', authenticate, requireAdmin, adminController.getCompany);
+router.post('/companies', authenticate, requireAdmin, adminController.createCompany);
+router.put('/companies/:id', authenticate, requireAdmin, adminController.updateCompany);
+router.patch('/companies/:id', authenticate, requireAdmin, adminController.updateCompany);
+router.delete('/companies/:id', authenticate, requireSuperAdmin, adminController.deleteCompany);
+router.post('/companies/:id/verify', authenticate, requireAdmin, adminController.verifyCompany);
+router.post('/companies/:id/enrich', authenticate, requireAdmin, adminController.enrichCompany);
+
+// External communities
+router.get('/communities', authenticate, requireAdmin, adminController.listCommunities);
+router.post('/communities', authenticate, requireAdmin, adminController.createCommunity);
+
+// Learning resources
+router.get('/learning-resources', authenticate, requireAdmin, adminController.listLearningResources);
+router.post('/learning-resources', authenticate, requireAdmin, adminController.createLearningResource);
+
+// Search site configs
+router.get('/search-sites', authenticate, requireAdmin, adminController.listSearchSiteConfigs);
+router.post('/search-sites', authenticate, requireAdmin, adminController.createSearchSiteConfig);
+
+// External stores
+router.get('/stores', authenticate, requireAdmin, adminController.listExternalStores);
+router.post('/stores', authenticate, requireAdmin, adminController.createExternalStore);
+
+// Discovery and migration
+router.post('/discovery/run', authenticate, requireAdmin, adminController.runDiscovery);
+router.post('/migration/hardcoded-companies', authenticate, requireSuperAdmin, adminController.migrateHardcodedCompanies);
+router.post('/migration/all', authenticate, requireSuperAdmin, adminController.migrateAllHardcodedData);
+router.post('/enrichment/refresh', authenticate, requireAdmin, adminController.refreshCompanyData);
+
+// Reference data
+router.get('/reference/ats-providers', adminController.getATSProviders);
+router.get('/reference/size-categories', adminController.getSizeCategories);
+
+// External data statistics
+router.get('/stats/companies', authenticate, requireAdmin, adminController.getCompanyStats);
+router.get('/stats/external-data', authenticate, requireAdmin, adminController.getExternalDataStats);
+
 export default router;
 
 

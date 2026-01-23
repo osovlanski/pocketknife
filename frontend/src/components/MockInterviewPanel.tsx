@@ -66,6 +66,9 @@ interface QuestionStatusData {
   elements?: any[];
   prompt?: string;
   summary?: string;
+  // Persist code for coding questions
+  code?: string;
+  lastSubmissionTime?: string;
 }
 
 // Local storage keys for persisting data
@@ -218,10 +221,14 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
     const description = exQuestion.reasoning || 'Solve the coding problem';
     const hints = exQuestion.keyPoints || [];
     
+    // Get saved code from question status if available
+    const savedStatus = questionStatus.get(title);
+    const savedCode = savedStatus?.code || '';
+    
     const codeQ: CodeQuestion = {
       title,
       description,
-      starterCode: '',
+      starterCode: savedCode, // Use saved code if available
       language: 'javascript',
       hints,
       difficulty: 'Medium',
@@ -229,17 +236,49 @@ const MockInterviewPanel: React.FC<MockInterviewPanelProps> = ({ className }) =>
     };
     setCurrentCodeQuestion(codeQ);
     setCodeEditorOpen(true);
-  }, []);
+    
+    // Update status to in-progress if not already completed/success
+    if (!savedStatus || savedStatus.status === 'not-started') {
+      setQuestionStatus(prev => {
+        const updated = new Map(prev);
+        updated.set(title, {
+          status: 'in-progress',
+          evaluationCount: 0
+        });
+        return updated;
+      });
+    }
+  }, [questionStatus]);
 
   // Handle code submission
   const handleCodeSubmit = useCallback(async (submission: CodeSubmission) => {
+    // Update question status based on submission result
+    if (currentCodeQuestion) {
+      const newStatus: QuestionStatus = submission.passed ? 'success' : 'completed';
+      setQuestionStatus(prev => {
+        const updated = new Map(prev);
+        const currentStatusData = updated.get(currentCodeQuestion.title) || { 
+          status: 'not-started' as QuestionStatus, 
+          evaluationCount: 0 
+        };
+        updated.set(currentCodeQuestion.title, {
+          ...currentStatusData,
+          status: newStatus,
+          evaluationCount: currentStatusData.evaluationCount + 1,
+          code: submission.code, // Preserve submitted code
+          lastSubmissionTime: new Date().toISOString()
+        });
+        return updated;
+      });
+    }
+    
     setCodeEditorOpen(false);
     setCodeEvaluation({
       passed: submission.passed,
       code: submission.code,
       executionTime: submission.executionTime
     });
-  }, []);
+  }, [currentCodeQuestion]);
 
   // Handle opening system design whiteboard
   const handleOpenWhiteboard = useCallback((question: SystemDesignQuestion) => {

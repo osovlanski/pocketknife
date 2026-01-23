@@ -6,12 +6,17 @@
  * Strategy:
  * 1. Primary: Google Custom Search API (100 free queries/day)
  * 2. Fallback: Zap.co.il scraper (when quota exhausted or API fails)
+ * 
+ * NOTE: Store configurations are now stored in the database (ExternalStore table).
+ * The hardcoded fallback data is kept for initial migration and offline mode.
  */
 
 import { googleSearchService, quotaManager } from '../core/googleSearchService';
 import { zapScraperService } from './zapScraperService';
 import claudeService from '../core/claudeService';
 import { configService } from '../core/configService';
+import { externalStoreService } from '../core/externalDataService';
+import { getPrisma } from '../core/databaseService';
 
 interface Product {
   title: string;
@@ -171,10 +176,23 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   }
 
   /**
-   * Extract store name from domain
+   * Extract store name from domain (uses fallback mapping)
    */
   private extractStoreName(displayLink: string): string {
-    const storeNames: Record<string, string> = {
+    const storeNames = this.getFallbackStoreNames();
+
+    for (const [domain, name] of Object.entries(storeNames)) {
+      if (displayLink.includes(domain)) return name;
+    }
+
+    return displayLink.replace(/^www\./, '').split('.')[0] || 'Israeli Shop';
+  }
+
+  /**
+   * Fallback store name mappings
+   */
+  private getFallbackStoreNames(): Record<string, string> {
+    return {
       'zap.co.il': 'Zap',
       'ksp.co.il': 'KSP',
       'ivory.co.il': 'Ivory',
@@ -186,12 +204,32 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
       'homecenter.co.il': 'Home Center',
       'lastprice.co.il': 'Last Price'
     };
+  }
 
-    for (const [domain, name] of Object.entries(storeNames)) {
-      if (displayLink.includes(domain)) return name;
+  /**
+   * Get store name mappings from database
+   */
+  async getStoreNamesAsync(): Promise<Record<string, string>> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.getFallbackStoreNames();
+      
+      const dbStores = await (prisma as any).externalStore.findMany({
+        where: { status: 'ACTIVE', country: 'IL' }
+      });
+      
+      if (dbStores.length > 0) {
+        const mapping: Record<string, string> = {};
+        dbStores.forEach((s: any) => {
+          mapping[s.domain] = s.name;
+        });
+        return mapping;
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch store names from database');
     }
-
-    return displayLink.replace(/^www\./, '').split('.')[0] || 'Israeli Shop';
+    
+    return this.getFallbackStoreNames();
   }
 
   /**
@@ -224,9 +262,16 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   }
 
   /**
-   * Get direct search URLs for Israeli shops
+   * Get direct search URLs for Israeli shops (sync fallback)
    */
   getSearchUrls(query: string): Record<string, string> {
+    return this.getFallbackSearchUrls(query);
+  }
+
+  /**
+   * Fallback search URL patterns
+   */
+  private getFallbackSearchUrls(query: string): Record<string, string> {
     const encodedQuery = encodeURIComponent(query);
     
     return {
@@ -237,6 +282,81 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
       shufersal: `https://www.shufersal.co.il/online/he/search?q=${encodedQuery}`,
       ramiLevy: `https://www.rami-levy.co.il/he/online/search?q=${encodedQuery}`
     };
+  }
+
+  /**
+   * Get search URLs from database
+   */
+  async getSearchUrlsAsync(query: string): Promise<Record<string, string>> {
+    const encodedQuery = encodeURIComponent(query);
+    
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.getFallbackSearchUrls(query);
+      
+      const dbStores = await (prisma as any).externalStore.findMany({
+        where: { 
+          status: 'ACTIVE', 
+          country: 'IL',
+          searchUrlPattern: { not: null }
+        }
+      });
+      
+      if (dbStores.length > 0) {
+        const urls: Record<string, string> = {};
+        dbStores.forEach((s: any) => {
+          if (s.searchUrlPattern) {
+            urls[s.slug] = s.searchUrlPattern.replace('{query}', encodedQuery);
+          }
+        });
+        return urls;
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch search URLs from database');
+    }
+    
+    return this.getFallbackSearchUrls(query);
+  }
+
+  /**
+   * Migrate hardcoded stores to database
+   */
+  async migrateToDatabase(): Promise<number> {
+    const stores = [
+      { name: 'Zap', domain: 'zap.co.il', searchUrlPattern: 'https://www.zap.co.il/search.aspx?keyword={query}', categories: ['electronics', 'comparison'] },
+      { name: 'KSP', domain: 'ksp.co.il', searchUrlPattern: 'https://ksp.co.il/m_action/search/?q={query}', categories: ['electronics', 'computers'] },
+      { name: 'Ivory', domain: 'ivory.co.il', searchUrlPattern: 'https://www.ivory.co.il/search?q={query}', categories: ['electronics', 'appliances'] },
+      { name: 'Bug', domain: 'bug.co.il', searchUrlPattern: 'https://www.bug.co.il/search?q={query}', categories: ['electronics', 'computers'] },
+      { name: 'Shufersal', domain: 'shufersal.co.il', searchUrlPattern: 'https://www.shufersal.co.il/online/he/search?q={query}', categories: ['grocery', 'supermarket'] },
+      { name: 'Rami Levy', domain: 'rami-levy.co.il', searchUrlPattern: 'https://www.rami-levy.co.il/he/online/search?q={query}', categories: ['grocery', 'supermarket'] },
+      { name: 'Azrieli', domain: 'azrieli.com', searchUrlPattern: null, categories: ['mall', 'fashion'] },
+      { name: 'ACE', domain: 'ace.co.il', searchUrlPattern: 'https://www.ace.co.il/catalogsearch/result/?q={query}', categories: ['home', 'hardware'] },
+      { name: 'Home Center', domain: 'homecenter.co.il', searchUrlPattern: 'https://www.homecenter.co.il/search?q={query}', categories: ['home', 'furniture'] },
+      { name: 'Last Price', domain: 'lastprice.co.il', searchUrlPattern: 'https://www.lastprice.co.il/search?q={query}', categories: ['comparison', 'deals'] }
+    ];
+
+    let count = 0;
+    for (const store of stores) {
+      try {
+        await externalStoreService.create({
+          name: store.name,
+          domain: store.domain,
+          websiteUrl: `https://${store.domain}`,
+          searchUrlPattern: store.searchUrlPattern || undefined,
+          country: 'IL',
+          currency: 'ILS',
+          categories: store.categories
+        });
+        count++;
+      } catch (error: any) {
+        if (error.code !== 'P2002') {
+          console.error(`Error migrating store ${store.name}:`, error.message);
+        }
+      }
+    }
+    
+    console.log(`✅ Migrated ${count} Israeli stores to database`);
+    return count;
   }
 
   /**

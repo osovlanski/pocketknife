@@ -197,7 +197,7 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
   const [suggestedCode, setSuggestedCode] = useState('');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isLoadingHint, setIsLoadingHint] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['editor', 'tests']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['editor', 'tests', 'results', 'description']));
 
   // Timer effect
   useEffect(() => {
@@ -539,9 +539,9 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
           </div>
 
           {/* Right Panel - Code Editor */}
-          <div className="flex-1 flex flex-col">
-            {/* Editor */}
-            <div className="flex-1 min-h-0">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Editor - ensure minimum height */}
+            <div className="flex-1 min-h-[300px] relative">
               {showDiff && suggestedCode ? (
                 <DiffEditor
                   height="100%"
@@ -567,74 +567,112 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
               )}
             </div>
 
-            {/* Test Results */}
+            {/* Test Results - Collapsible panel with fixed max height */}
             {testResults.length > 0 && (
-              <div className="border-t border-white/10 bg-slate-800/50 p-3 max-h-40 overflow-y-auto">
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Test Results</h4>
-                <div className="space-y-1">
-                  {testResults.map((result, idx) => (
-                    <div 
-                      key={idx}
-                      className={`flex items-center gap-2 text-xs p-2 rounded ${
-                        result.passed ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'
-                      }`}
-                    >
-                      {result.passed ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-red-400" />
-                      )}
-                      <span className="font-mono">
-                        Test {idx + 1}: {result.passed ? 'Passed' : 'Failed'}
-                        {result.executionTime && ` (${result.executionTime.toFixed(2)}ms)`}
-                      </span>
+              <div className="border-t border-white/10 bg-slate-800/50 flex-shrink-0">
+                <button
+                  onClick={() => toggleSection('results')}
+                  className="w-full flex items-center justify-between px-4 py-2 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-slate-300">Test Results</h4>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      testResults.every(r => r.passed) 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {testResults.filter(r => r.passed).length}/{testResults.length} passed
+                    </span>
+                  </div>
+                  {expandedSections.has('results') ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+                
+                {expandedSections.has('results') && (
+                  <div className="px-4 pb-3 max-h-32 overflow-y-auto">
+                    <div className="space-y-1">
+                      {testResults.map((result, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-center gap-2 text-xs p-2 rounded ${
+                            result.passed ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'
+                          }`}
+                        >
+                          {result.passed ? (
+                            <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                          )}
+                          <span className="font-mono truncate">
+                            Test {idx + 1}: {result.passed ? 'Passed' : 'Failed'}
+                            {result.executionTime && ` (${result.executionTime.toFixed(2)}ms)`}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Actions */}
-            <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between">
+            {/* Actions - Fixed footer */}
+            <div className="border-t border-white/10 bg-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleReset}
                   className="flex items-center gap-2 px-3 py-2 bg-slate-700 text-slate-300 text-sm rounded-lg
                            hover:bg-slate-600 transition-colors"
+                  title="Reset code to starter template"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Reset
+                  <span className="hidden sm:inline">Reset</span>
                 </button>
                 
                 {showTestRunner && (
                   <button
                     onClick={handleRunTests}
-                    disabled={isRunning}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg
-                             hover:bg-blue-500 transition-colors disabled:opacity-50"
+                    disabled={isRunning || isSubmitting}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg
+                             hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Run test cases"
                   >
                     {isRunning ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Running...</span>
+                      </>
                     ) : (
-                      <Play className="w-4 h-4" />
+                      <>
+                        <Play className="w-4 h-4" />
+                        <span>Run Tests</span>
+                      </>
                     )}
-                    Run Tests
                   </button>
                 )}
               </div>
 
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg
-                         hover:bg-green-500 transition-colors disabled:opacity-50 font-medium"
+                disabled={isSubmitting || isRunning}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 
+                         text-white text-sm rounded-lg hover:from-green-500 hover:to-emerald-500 
+                         transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-green-500/20"
+                title="Submit your solution"
               >
                 {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting...</span>
+                  </>
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Submit Solution</span>
+                  </>
                 )}
-                Submit Solution
               </button>
             </div>
           </div>

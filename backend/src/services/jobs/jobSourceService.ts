@@ -19,6 +19,8 @@ interface JobListing {
   postedAt: string;
   tags?: string[];
   companySize?: 'startup' | 'midsize' | 'enterprise';
+  employeeCountMin?: number; // Actual employee count range for filtering
+  employeeCountMax?: number;
   industry?: string[];
   experienceLevel?: 'junior' | 'mid' | 'senior';
   jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship';
@@ -39,6 +41,7 @@ interface SearchOptions {
   salaryMax?: number;
   experienceLevel?: 'junior' | 'mid' | 'senior' | 'any';
   jobType?: 'fulltime' | 'contract' | 'freelance' | 'internship' | 'any';
+  maxAgeDays?: number;                       // Filter out jobs older than X days (default: 30)
 }
 
 class JobSourceService {
@@ -160,10 +163,13 @@ class JobSourceService {
   private enrichJobListing(job: JobListing): JobListing {
     return {
       ...job,
-      companySize: this.detectCompanySize(job),
-      industry: this.detectIndustry(job),
-      experienceLevel: this.detectExperienceLevel(job),
-      jobType: this.detectJobType(job)
+      // Preserve existing values if set, otherwise detect from job description
+      companySize: job.companySize || this.detectCompanySize(job),
+      employeeCountMin: job.employeeCountMin,
+      employeeCountMax: job.employeeCountMax,
+      industry: job.industry?.length ? job.industry : this.detectIndustry(job),
+      experienceLevel: job.experienceLevel || this.detectExperienceLevel(job),
+      jobType: job.jobType || this.detectJobType(job)
     };
   }
 
@@ -171,7 +177,26 @@ class JobSourceService {
    * Filter jobs by advanced criteria
    */
   private filterJobs(jobs: JobListing[], options: SearchOptions): JobListing[] {
+    // Calculate max age cutoff date (default: 30 days)
+    const maxAgeDays = options.maxAgeDays ?? 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
+    
     return jobs.filter(job => {
+      // Freshness filter - exclude jobs older than maxAgeDays
+      // This helps filter out expired/closed positions
+      if (job.postedAt) {
+        try {
+          const postedDate = new Date(job.postedAt);
+          if (!isNaN(postedDate.getTime()) && postedDate < cutoffDate) {
+            // Job is too old, likely expired
+            return false;
+          }
+        } catch {
+          // If we can't parse the date, include the job (be permissive)
+        }
+      }
+      
       // Remote filter - more strict
       if (options.remoteOnly === true) {
         // Only include jobs that are explicitly remote
@@ -207,15 +232,50 @@ class JobSourceService {
         }
       }
       
-      // Company size filter - support multiple selections
+      // Company size filter - support multiple selections with proper employee count matching
+      // Categories: startup (1-50), midsize (51-500), enterprise (500+)
       const companySizesToFilter = options.companySizes?.length 
         ? options.companySizes 
         : (options.companySize && options.companySize !== 'any' ? [options.companySize] : []);
       
+      // Debug: log filter state for first job
+      if (job.company === 'Wix' || job.company === 'Monday.com') {
+        console.log(`🔍 FILTER DEBUG [${job.company}]: options.companySizes=${JSON.stringify(options.companySizes)}, companySizesToFilter=${JSON.stringify(companySizesToFilter)}, job.companySize=${job.companySize}, job.employeeCountMin=${job.employeeCountMin}, job.employeeCountMax=${job.employeeCountMax}`);
+      }
+      
       if (companySizesToFilter.length > 0) {
-        // If job has no company size detected, include it (be permissive)
-        // Only exclude if job has a size AND it's not in the filter list
-        if (job.companySize && !companySizesToFilter.includes(job.companySize)) {
+        // Define employee count ranges for each category
+        const sizeRanges: Record<CompanySize, { min: number; max: number }> = {
+          'startup': { min: 1, max: 50 },
+          'midsize': { min: 51, max: 500 },
+          'enterprise': { min: 501, max: Infinity }
+        };
+        
+        // Check if job matches any of the selected size filters
+        let matchesSize = false;
+        
+        // First, try to match by actual employee count if available
+        // Use minimum employee count as the primary indicator for company size
+        if (job.employeeCountMin !== undefined) {
+          for (const size of companySizesToFilter) {
+            const range = sizeRanges[size];
+            // Job matches if its MINIMUM employee count falls within the filter range
+            // This ensures a 500+ employee company is classified as enterprise, not midsize
+            const fitsRange = job.employeeCountMin >= range.min && job.employeeCountMin <= range.max;
+            if (fitsRange) {
+              matchesSize = true;
+              break;
+            }
+          }
+        } else if (job.companySize) {
+          // Fall back to text-based company size if no employee count
+          matchesSize = companySizesToFilter.includes(job.companySize);
+        } else {
+          // If job has no company size info, include it (be permissive)
+          matchesSize = true;
+        }
+        
+        if (!matchesSize) {
           return false;
         }
       }
@@ -769,10 +829,59 @@ class JobSourceService {
                  url.includes('glassdoor.com');
         })
         .map((result, index) => {
-          // Extract company from title if possible
-          const titleParts = result.title.split(' - ');
-          const title = titleParts[0] || result.title;
-          const company = titleParts[1] || result.displayLink.replace('www.', '').split('.')[0];
+          // Extract company and title from result
+          let title = result.title;
+          let company = 'Unknown Company';
+          
+          // Job board domains where we need to extract company from title, not URL
+          const jobBoardDomains = ['linkedin.com', 'indeed.com', 'glassdoor.com', 'glassdoor.co.il', 'drushim.co.il', 'alljobs.co.il'];
+          const isJobBoard = jobBoardDomains.some(domain => result.displayLink.includes(domain));
+          
+          if (isJobBoard) {
+            // LinkedIn format: "Company hiring Position in Location | LinkedIn"
+            const linkedInMatch = result.title.match(/^(.+?)\s+hiring\s+(.+?)(?:\s+in\s+|$)/i);
+            if (linkedInMatch) {
+              company = linkedInMatch[1].trim();
+              title = linkedInMatch[2].replace(/\s*\|.*$/, '').trim();
+            }
+            // Glassdoor format: "Company hiring Position Job in Location | Glassdoor"
+            else if (result.title.toLowerCase().includes('glassdoor')) {
+              const glassdoorMatch = result.title.match(/^(.+?)\s+hiring\s+(.+?)(?:\s+Job\s+in|\s*\|)/i);
+              if (glassdoorMatch) {
+                company = glassdoorMatch[1].trim();
+                title = glassdoorMatch[2].trim();
+              }
+            }
+            // Generic job board: try "Company - Position" or "Position at Company"
+            else {
+              const atMatch = result.title.match(/(.+?)\s+at\s+(.+?)(?:\s*[-|]|$)/i);
+              if (atMatch) {
+                title = atMatch[1].trim();
+                company = atMatch[2].trim();
+              } else {
+                const dashParts = result.title.split(' - ');
+                if (dashParts.length >= 2) {
+                  title = dashParts[0].trim();
+                  company = dashParts[1].replace(/\|.*$/, '').trim();
+                }
+              }
+            }
+          } else {
+            // Regular website: use domain as company
+            const titleParts = result.title.split(' - ');
+            title = titleParts[0] || result.title;
+            // Get meaningful domain (skip country codes like 'ge', 'il', etc.)
+            const domainParts = result.displayLink.replace('www.', '').split('.');
+            company = domainParts[0].length > 2 ? domainParts[0] : (titleParts[1] || domainParts[0]);
+          }
+          
+          // Clean up company name
+          company = company.replace(/\s*\|.*$/, '').replace(/hiring.*$/i, '').trim();
+          if (company.length < 2 || company === 'Unknown Company') {
+            // Last resort: try extracting from title
+            const hiringMatch = result.title.match(/^(.+?)\s+(?:hiring|is hiring|jobs)/i);
+            if (hiringMatch) company = hiringMatch[1].trim();
+          }
           
           // Detect company size from snippet
           let companySize: 'startup' | 'midsize' | 'enterprise' | undefined;

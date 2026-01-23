@@ -1325,3 +1325,427 @@ model FeatureFlag {
   @@index([enabled])
   @@index([tags])
 }
+
+// =============================================================================
+// EXTERNAL COMPANIES (Comeet, Greenhouse, Lever, etc.)
+// =============================================================================
+
+// Company size enum for job search filtering
+enum CompanySizeCategory {
+  STARTUP       // 1-50 employees
+  MIDSIZE       // 51-500 employees
+  ENTERPRISE    // 500+ employees
+}
+
+// ATS (Applicant Tracking System) provider enum
+enum ATSProvider {
+  COMEET
+  GREENHOUSE
+  LEVER
+  WORKDAY
+  ASHBY
+  OTHER
+}
+
+// Status of the company record
+enum ExternalCompanyStatus {
+  ACTIVE        // Actively fetching jobs
+  INACTIVE      // Temporarily disabled
+  INVALID       // Invalid credentials/config
+  PENDING       // Awaiting verification
+}
+
+model ExternalCompany {
+  id        String   @id @default(uuid())
+  
+  // Company identification
+  name              String
+  slug              String   @unique // URL-friendly identifier
+  
+  // ATS Configuration
+  atsProvider       ATSProvider
+  atsCompanyId      String    // e.g., Comeet's "uid"
+  atsToken          String?   // e.g., Comeet's "token" (public tokens only)
+  atsApiKey         String?   // For private API access (encrypted)
+  atsConfig         Json?     // Additional ATS-specific configuration
+  
+  // Company metadata (can be enriched from Crunchbase, LinkedIn, etc.)
+  description       String?   @db.Text
+  industry          String?
+  industries        String[]  // Multiple industries
+  size              CompanySizeCategory?
+  employeeCountMin  Int?
+  employeeCountMax  Int?
+  employeeCount     String?   // Human-readable, e.g., "500-1000"
+  
+  // Funding information
+  fundingStage      String?   // "Seed", "Series A", "Series B", etc.
+  totalFunding      String?   // "$50M", "$100M", etc.
+  totalFundingUsd   Float?    // Numeric value for filtering
+  lastFundingDate   DateTime?
+  investors         String[]
+  
+  // Company details
+  founded           String?   // Year founded
+  headquarters      String?
+  locations         String[]  // All office locations
+  website           String?
+  
+  // External links
+  crunchbaseUrl     String?
+  linkedinUrl       String?
+  glassdoorUrl      String?
+  careersUrl        String?
+  
+  // Scores and ratings
+  glassdoorRating   Float?    // 1-5
+  growthScore       Int?      // 1-10
+  heatScore         Int?      // 1-10 (trending/hiring activity)
+  companyScore      Int?      // 0-100 (calculated overall score)
+  
+  // Status and validation
+  status            ExternalCompanyStatus @default(PENDING)
+  isVerified        Boolean   @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?   // Admin who verified
+  
+  // Discovery metadata
+  discoveredAt      DateTime  @default(now())
+  discoverySource   String?   // "google_search", "manual", "crunchbase", etc.
+  discoveryUrl      String?   // URL where company was discovered
+  
+  // Data freshness
+  lastEnrichedAt    DateTime?
+  lastJobFetchAt    DateTime?
+  jobFetchErrors    Int       @default(0) // Count of consecutive fetch errors
+  lastErrorMessage  String?
+  
+  // Statistics
+  totalJobsFetched  Int       @default(0)
+  activeJobsCount   Int       @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  jobs      ExternalJob[]
+  
+  @@unique([atsProvider, atsCompanyId])
+  @@index([status])
+  @@index([atsProvider])
+  @@index([size])
+  @@index([industry])
+  @@index([companyScore])
+  @@index([name])
+}
+
+model ExternalJob {
+  id        String   @id @default(uuid())
+  
+  companyId String
+  company   ExternalCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // Job identification
+  externalId        String    // ID from the ATS
+  source            String    // "comeet", "greenhouse", etc.
+  
+  // Job details
+  title             String
+  department        String?
+  location          String
+  locationType      String?   // "onsite", "remote", "hybrid"
+  
+  // Employment details
+  employmentType    String?   // "fulltime", "parttime", "contract", "internship"
+  experienceLevel   String?   // "junior", "mid", "senior", "lead"
+  salaryMin         Float?
+  salaryMax         Float?
+  salaryCurrency    String?
+  
+  // Description
+  description       String    @db.Text
+  requirements      String?   @db.Text
+  niceToHave        String?   @db.Text
+  benefits          String?   @db.Text
+  
+  // Application
+  applyUrl          String
+  
+  // Tags and categories
+  tags              String[]
+  skills            String[]  // Required skills extracted from description
+  
+  // Status
+  isActive          Boolean   @default(true)
+  postedAt          DateTime?
+  expiresAt         DateTime?
+  
+  // Timestamps
+  firstSeenAt       DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([companyId, externalId])
+  @@index([isActive])
+  @@index([title])
+  @@index([location])
+  @@index([experienceLevel])
+  @@index([postedAt])
+}
+
+// =============================================================================
+// EXTERNAL COMMUNITIES (Telegram, Discord, Facebook, Newsletters)
+// =============================================================================
+
+enum CommunityType {
+  TELEGRAM
+  DISCORD
+  FACEBOOK
+  NEWSLETTER
+  JOBBOARD
+  RSS
+  SLACK
+}
+
+enum CommunityStatus {
+  ACTIVE
+  INACTIVE
+  INVALID
+  PENDING
+}
+
+model ExternalCommunity {
+  id            String   @id @default(uuid())
+  
+  // Identification
+  name          String
+  slug          String   @unique
+  type          CommunityType
+  
+  // Platform-specific identifiers
+  identifier    String         // Username, channel ID, invite code, URL
+  url           String?        // Direct URL to the community
+  apiEndpoint   String?        // API endpoint for fetching data
+  
+  // Metadata
+  description   String?   @db.Text
+  focus         String[]       // ['software', 'cybersecurity', 'startups', 'ai']
+  language      String    @default("en")
+  country       String?        // ISO country code
+  
+  // Platform-specific config
+  platformConfig Json?         // Platform-specific settings (e.g., Telegram bot token)
+  
+  // Status
+  status        CommunityStatus @default(PENDING)
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  
+  // Discovery
+  discoverySource   String?    // "manual", "discovery", "user_suggestion"
+  discoveredAt      DateTime   @default(now())
+  
+  // Scraping/Fetching
+  lastFetchedAt     DateTime?
+  fetchFrequencyMin Int        @default(60)  // How often to fetch (minutes)
+  fetchErrors       Int        @default(0)
+  lastErrorMessage  String?
+  
+  // Statistics
+  memberCount       Int?
+  postCount         Int?
+  jobPostCount      Int?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([type, identifier])
+  @@index([type, status])
+  @@index([focus])
+  @@index([country])
+}
+
+// =============================================================================
+// LEARNING RESOURCES (YouTube channels, Courses, Tutorials)
+// =============================================================================
+
+enum LearningResourceType {
+  YOUTUBE_CHANNEL
+  YOUTUBE_PLAYLIST
+  COURSE_PLATFORM
+  TUTORIAL_SITE
+  DOCUMENTATION
+  BLOG
+  PODCAST
+}
+
+enum LearningResourceStatus {
+  ACTIVE
+  INACTIVE
+  DEPRECATED
+  PENDING
+}
+
+model LearningResource {
+  id            String   @id @default(uuid())
+  
+  // Identification
+  name          String
+  slug          String   @unique
+  type          LearningResourceType
+  
+  // Platform-specific identifiers
+  externalId    String?        // Channel ID, course ID, etc.
+  url           String
+  
+  // Metadata
+  description   String?   @db.Text
+  focus         String[]       // ['react', 'backend', 'system-design', 'devops']
+  difficulty    String?        // 'beginner', 'intermediate', 'advanced'
+  language      String    @default("en")
+  
+  // Creator info
+  creatorName   String?
+  creatorUrl    String?
+  
+  // Status
+  status        LearningResourceStatus @default(PENDING)
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  
+  // Platform-specific stats
+  subscriberCount   Int?
+  videoCount        Int?
+  viewCount         Int?
+  lastVideoAt       DateTime?
+  
+  // Quality indicators
+  rating            Float?       // 1-5 stars
+  qualityScore      Int?         // 0-100 calculated score
+  
+  // Discovery
+  discoverySource   String?      // "manual", "youtube_api", "user_suggestion"
+  discoveredAt      DateTime     @default(now())
+  
+  // Refresh
+  lastRefreshedAt   DateTime?
+  refreshErrors     Int          @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([type, externalId])
+  @@index([type, status])
+  @@index([focus])
+  @@index([qualityScore])
+}
+
+// =============================================================================
+// SEARCH SITE CONFIGURATIONS (Google Custom Search sites per agent)
+// =============================================================================
+
+enum AgentTypeEnum {
+  SHOPPING
+  TRAVEL
+  LEARNING
+  PROBLEMS
+  JOBS
+  NEWS
+  COOKING
+  DIY
+  GENERAL
+}
+
+model SearchSiteConfig {
+  id            String   @id @default(uuid())
+  
+  // Agent association
+  agentType     AgentTypeEnum
+  
+  // Site details
+  domain        String
+  displayName   String?
+  
+  // Search configuration
+  searchUrlPattern  String?      // URL template: "https://example.com/search?q={query}"
+  priority          Int          @default(100)  // Lower = higher priority
+  
+  // AI parsing
+  parsePrompt       String?      @db.Text  // Custom AI prompt for parsing results
+  
+  // Status
+  isActive          Boolean      @default(true)
+  lastTestedAt      DateTime?
+  testSuccess       Boolean?
+  
+  // Geolocation
+  country           String?      // ISO country code for geo-specific sites
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([agentType, domain])
+  @@index([agentType, isActive])
+  @@index([priority])
+}
+
+// =============================================================================
+// EXTERNAL STORES (E-commerce sites for Shopping agent)
+// =============================================================================
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+  SCRAPER_BROKEN
+  PENDING
+}
+
+model ExternalStore {
+  id            String   @id @default(uuid())
+  
+  // Identification
+  name          String
+  slug          String   @unique
+  domain        String   @unique
+  
+  // URLs
+  websiteUrl    String
+  searchUrlPattern  String?    // "https://example.com/search?q={query}"
+  
+  // Metadata
+  description   String?
+  logo          String?        // Logo URL
+  country       String?        // ISO country code
+  currency      String         @default("USD")
+  
+  // Categories
+  categories    String[]       // ['electronics', 'home', 'fashion']
+  
+  // Scraping configuration
+  scraperType       String?    // 'api', 'html', 'google_cse'
+  scraperConfig     Json?      // Scraper-specific settings
+  
+  // Status
+  status            StoreStatus @default(PENDING)
+  isVerified        Boolean     @default(false)
+  verifiedAt        DateTime?
+  
+  // Performance
+  avgResponseTime   Int?        // ms
+  successRate       Float?      // 0-1
+  lastTestedAt      DateTime?
+  
+  // Statistics
+  productsScraped   Int         @default(0)
+  lastScrapedAt     DateTime?
+  scrapeErrors      Int         @default(0)
+  lastErrorMessage  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([status])
+  @@index([country])
+  @@index([categories])
+}

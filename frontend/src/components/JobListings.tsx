@@ -140,6 +140,38 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
     return <div className="flex gap-0.5">{bars}</div>;
   };
 
+  // Calculate job freshness (how many days ago it was posted)
+  const getJobFreshness = (postedAt: string): { daysAgo: number; label: string; color: string; isFresh: boolean } => {
+    try {
+      const posted = new Date(postedAt);
+      const now = new Date();
+      const diffMs = now.getTime() - posted.getTime();
+      const daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (daysAgo < 0 || isNaN(daysAgo)) {
+        return { daysAgo: 0, label: 'Just posted', color: 'text-green-400', isFresh: true };
+      }
+      
+      if (daysAgo === 0) {
+        return { daysAgo: 0, label: 'Today', color: 'text-green-400', isFresh: true };
+      } else if (daysAgo === 1) {
+        return { daysAgo: 1, label: 'Yesterday', color: 'text-green-400', isFresh: true };
+      } else if (daysAgo <= 3) {
+        return { daysAgo, label: `${daysAgo} days ago`, color: 'text-green-400', isFresh: true };
+      } else if (daysAgo <= 7) {
+        return { daysAgo, label: `${daysAgo} days ago`, color: 'text-cyan-400', isFresh: true };
+      } else if (daysAgo <= 14) {
+        return { daysAgo, label: `${daysAgo} days ago`, color: 'text-yellow-400', isFresh: false };
+      } else if (daysAgo <= 30) {
+        return { daysAgo, label: `${daysAgo} days ago`, color: 'text-orange-400', isFresh: false };
+      } else {
+        return { daysAgo, label: `${daysAgo} days ago`, color: 'text-red-400', isFresh: false };
+      }
+    } catch {
+      return { daysAgo: 0, label: 'Unknown', color: 'text-slate-400', isFresh: false };
+    }
+  };
+
   if (jobs.length === 0) {
     return (
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 border border-white/20 text-center">
@@ -250,6 +282,11 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
                 <span className="bg-blue-500/20 px-3 py-1 rounded-full text-xs text-blue-300">
                   {job.source}
                 </span>
+                {getJobFreshness(job.postedAt).daysAgo <= 3 && (
+                  <span className="bg-green-500/20 px-2 py-0.5 rounded-full text-xs text-green-300 flex items-center gap-1">
+                    ✨ Fresh
+                  </span>
+                )}
                 {company?.heatScore && company.heatScore >= 7 && (
                   <span className="bg-orange-500/20 px-2 py-0.5 rounded-full text-xs text-orange-300 flex items-center gap-1">
                     🔥 Hot
@@ -418,10 +455,21 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
                 <ExternalLink className="w-4 h-4" />
                 View & Apply
               </a>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                Posted {new Date(job.postedAt).toLocaleDateString()}
-              </span>
+              {(() => {
+                const freshness = getJobFreshness(job.postedAt);
+                return (
+                  <span className={`text-xs flex items-center gap-1.5 ${freshness.color}`}>
+                    <Calendar className="w-3 h-3" />
+                    {freshness.isFresh && <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />}
+                    {freshness.label}
+                    {freshness.daysAgo > 14 && (
+                      <span className="text-orange-400 ml-1" title="This job may no longer be available">
+                        ⚠️
+                      </span>
+                    )}
+                  </span>
+                );
+              })()}
             </div>
           </div>
         );

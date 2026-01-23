@@ -8,10 +8,15 @@
  * - Israeli tech newsletters and job boards
  * 
  * Focused on Israel-based tech communities for local job opportunities.
+ * 
+ * NOTE: Communities are now stored in the database (ExternalCommunity table).
+ * The hardcoded fallback list is kept for initial migration and offline mode.
  */
 
 import axios from 'axios';
 import { configService } from '../core/configService';
+import { communityService } from '../core/externalDataService';
+import { getPrisma } from '../core/databaseService';
 
 interface JobListing {
   id: string;
@@ -50,10 +55,134 @@ class IsraeliTechCommunityService {
   private readonly userAgent = 'PocketknifeJobAgent/1.0';
 
   /**
-   * Known Israeli tech Telegram channels for job postings
+   * Get Telegram channels from database, fallback to hardcoded
+   */
+  async getTelegramChannelsAsync(): Promise<TelegramChannel[]> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.getFallbackTelegramChannels();
+      
+      const dbChannels = await (prisma as any).externalCommunity.findMany({
+        where: {
+          type: 'TELEGRAM',
+          status: 'ACTIVE',
+          country: 'IL'
+        }
+      });
+      
+      if (dbChannels.length > 0) {
+        return dbChannels.map((c: any) => ({
+          name: c.name,
+          username: c.identifier,
+          description: c.description || '',
+          focus: c.focus || []
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch Telegram channels from database');
+    }
+    
+    return this.getFallbackTelegramChannels();
+  }
+
+  /**
+   * Get community sources from database, fallback to hardcoded
+   */
+  async getCommunitySourcesAsync(): Promise<CommunitySource[]> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return this.getFallbackCommunitySources();
+      
+      const dbSources = await (prisma as any).externalCommunity.findMany({
+        where: {
+          status: 'ACTIVE',
+          country: 'IL',
+          type: { not: 'TELEGRAM' }
+        }
+      });
+      
+      if (dbSources.length > 0) {
+        return dbSources.map((c: any) => ({
+          name: c.name,
+          type: c.type.toLowerCase() as CommunitySource['type'],
+          url: c.url || '',
+          apiEndpoint: c.apiEndpoint,
+          description: c.description || ''
+        }));
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch community sources from database');
+    }
+    
+    return this.getFallbackCommunitySources();
+  }
+
+  /**
+   * Migrate hardcoded communities to database
+   */
+  async migrateToDatabase(): Promise<number> {
+    const channels = this.getFallbackTelegramChannels();
+    const sources = this.getFallbackCommunitySources();
+    
+    let count = 0;
+    
+    // Migrate Telegram channels
+    for (const channel of channels) {
+      try {
+        await communityService.create({
+          name: channel.name,
+          type: 'TELEGRAM',
+          identifier: channel.username,
+          url: `https://t.me/${channel.username}`,
+          description: channel.description,
+          focus: channel.focus,
+          country: 'IL',
+          discoverySource: 'migration'
+        });
+        count++;
+      } catch (error: any) {
+        if (error.code !== 'P2002') {
+          console.error(`Error migrating channel ${channel.name}:`, error.message);
+        }
+      }
+    }
+    
+    // Migrate other sources
+    for (const source of sources) {
+      try {
+        const typeMap: Record<string, any> = {
+          'facebook': 'FACEBOOK',
+          'discord': 'DISCORD',
+          'newsletter': 'NEWSLETTER',
+          'jobboard': 'JOBBOARD'
+        };
+        
+        await communityService.create({
+          name: source.name,
+          type: typeMap[source.type] || 'JOBBOARD',
+          identifier: source.url,
+          url: source.url,
+          description: source.description,
+          country: 'IL',
+          discoverySource: 'migration'
+        });
+        count++;
+      } catch (error: any) {
+        if (error.code !== 'P2002') {
+          console.error(`Error migrating source ${source.name}:`, error.message);
+        }
+      }
+    }
+    
+    console.log(`✅ Migrated ${count} communities to database`);
+    return count;
+  }
+
+  /**
+   * Fallback: Known Israeli tech Telegram channels for job postings
    * These are public channels that post job opportunities
    */
-  private getTelegramChannels(): TelegramChannel[] {
+  private getFallbackTelegramChannels(): TelegramChannel[] {
     return [
       {
         name: 'Israel High-Tech Jobs',
@@ -89,9 +218,10 @@ class IsraeliTechCommunityService {
   }
 
   /**
-   * Israeli tech community sources (job boards, Facebook groups, newsletters)
+   * Fallback: Israeli tech community sources (job boards, Facebook groups, newsletters)
+   * NOTE: Use getCommunitySourcesAsync() for database-first approach
    */
-  private getCommunitySourcesInfo(): CommunitySource[] {
+  private getFallbackCommunitySources(): CommunitySource[] {
     return [
       // Job Boards with APIs or RSS
       {
@@ -160,7 +290,8 @@ class IsraeliTechCommunityService {
    */
   async fetchTelegramJobs(query: string): Promise<JobListing[]> {
     const jobs: JobListing[] = [];
-    const channels = this.getTelegramChannels();
+    // Try database first, fallback to hardcoded
+    const channels = await this.getTelegramChannelsAsync();
     const timeout = configService.get('job.community.timeoutMs', 10000);
 
     // Filter channels by query focus
@@ -328,7 +459,7 @@ class IsraeliTechCommunityService {
    * Returns links for manual exploration (Facebook groups, Discord, etc.)
    */
   getCommunityResources(): { name: string; url: string; type: string; description: string }[] {
-    return this.getCommunitySourcesInfo().map(source => ({
+    return this.getFallbackCommunitySources().map(source => ({
       name: source.name,
       url: source.url,
       type: source.type,
@@ -340,7 +471,7 @@ class IsraeliTechCommunityService {
    * Get Telegram channel recommendations
    */
   getTelegramChannels_Public(): { name: string; username: string; description: string }[] {
-    return this.getTelegramChannels().map(ch => ({
+    return this.getFallbackTelegramChannels().map(ch => ({
       name: ch.name,
       username: `@${ch.username}`,
       description: ch.description

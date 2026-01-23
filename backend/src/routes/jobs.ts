@@ -24,6 +24,11 @@ router.post('/israeli-jobs', jobController.searchIsraeliJobs);
 router.get('/company/:companyName', jobController.getCompanyInfo);
 router.post('/companies/enrich', jobController.enrichCompanies);
 
+// Company search (find company info and their jobs)
+router.post('/company/search', jobController.searchCompany);
+router.get('/companies/list', jobController.getCompaniesWithJobs);
+router.get('/companies/trending', jobController.getTrendingCompanies);
+
 // Preferences
 router.put('/preferences', jobController.updateJobPreferences);
 

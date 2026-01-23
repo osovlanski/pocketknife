@@ -125,7 +125,7 @@ const NEWS_BASE_URLS = {
   currentsapi: configService.get('news.api.currentsapi.baseUrl', 'https://api.currentsapi.services/v1')
 };
 
-// Topic to category mapping
+// Topic to category mapping (general keywords)
 const TOPIC_MAPPINGS: Record<string, string[]> = {
   tech: ['technology', 'programming', 'startups', 'ai', 'software'],
   business: ['business', 'finance', 'economy', 'markets', 'investing'],
@@ -135,6 +135,137 @@ const TOPIC_MAPPINGS: Record<string, string[]> = {
   health: ['health', 'medicine', 'fitness', 'wellness'],
   entertainment: ['entertainment', 'movies', 'music', 'gaming', 'celebrities'],
   money: ['finance', 'crypto', 'stocks', 'investing', 'economy']
+};
+
+// =============================================================================
+// UNIFIED API CATEGORY MAPPINGS
+// Maps internal topic IDs to external API category names
+// Centralized here for DRY principle - each API function uses these
+// =============================================================================
+
+/** Reddit subreddits for each topic */
+const REDDIT_SUBREDDITS: Record<string, string[]> = {
+  tech: ['technology', 'programming', 'gadgets', 'webdev'],
+  business: ['business', 'entrepreneur', 'smallbusiness', 'economics'],
+  politics: ['politics', 'worldnews', 'news', 'geopolitics'],
+  sports: ['sports', 'nfl', 'nba', 'soccer', 'baseball', 'hockey'],
+  science: ['science', 'space', 'physics', 'biology', 'chemistry'],
+  health: ['health', 'fitness', 'nutrition', 'medicine'],
+  entertainment: ['entertainment', 'movies', 'music', 'television', 'gaming'],
+  money: ['personalfinance', 'investing', 'stocks', 'cryptocurrency', 'wallstreetbets']
+};
+
+/** NewsAPI category mapping (valid: business, entertainment, general, health, science, sports, technology) */
+const NEWSAPI_CATEGORIES: Record<string, string> = {
+  tech: 'technology',
+  technology: 'technology',
+  business: 'business',
+  politics: 'general',
+  sports: 'sports',
+  science: 'science',
+  health: 'health',
+  entertainment: 'entertainment',
+  money: 'business'
+};
+
+/** GNews topic mapping (valid: breaking-news, world, nation, business, technology, entertainment, sports, science, health) */
+const GNEWS_TOPICS: Record<string, string> = {
+  tech: 'technology',
+  technology: 'technology',
+  business: 'business',
+  politics: 'world',
+  sports: 'sports',
+  science: 'science',
+  health: 'health',
+  entertainment: 'entertainment',
+  money: 'business'
+};
+
+/** MediaStack category mapping (valid: general, business, entertainment, health, science, sports, technology) */
+const MEDIASTACK_CATEGORIES: Record<string, string> = {
+  tech: 'technology',
+  technology: 'technology',
+  business: 'business',
+  politics: 'general',
+  sports: 'sports',
+  science: 'science',
+  health: 'health',
+  entertainment: 'entertainment',
+  money: 'business'
+};
+
+/** CurrentsAPI category mapping (valid: technology, business, politics, sports, science, health, entertainment, finance, etc.) */
+const CURRENTSAPI_CATEGORIES: Record<string, string> = {
+  tech: 'technology',
+  technology: 'technology',
+  business: 'business',
+  politics: 'politics',
+  sports: 'sports',
+  science: 'science',
+  health: 'health',
+  entertainment: 'entertainment',
+  money: 'finance'
+};
+
+// =============================================================================
+// TOPIC-SOURCE MAPPING
+// =============================================================================
+
+// Topic to source mapping - which sources support which topics
+// Tech-only sources should NOT be used for non-tech topics
+const TOPIC_SOURCE_MAPPING: Record<string, string[]> = {
+  tech: ['hackernews', 'reddit', 'lobsters', 'devto', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  business: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  politics: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  sports: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  science: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  health: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  entertainment: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi'],
+  money: ['reddit', 'newsapi', 'gnews', 'mediastack', 'currentsapi']
+};
+
+// Sources that ONLY return tech content (should be excluded for non-tech topics)
+const TECH_ONLY_SOURCES = ['hackernews', 'lobsters', 'devto'];
+
+/**
+ * Get appropriate sources for the given topics
+ * Filters out tech-only sources when non-tech topics are selected
+ */
+const getSourcesForTopics = (topics: string[] | undefined, requestedSources?: string[]): string[] => {
+  // Default sources if none specified
+  const defaultSources = ['reddit', 'newsapi', 'gnews', 'mediastack'];
+  
+  if (!topics || topics.length === 0) {
+    // No topics specified - use all sources
+    return requestedSources || [...defaultSources, 'hackernews', 'lobsters', 'devto'];
+  }
+  
+  // Check if any topic is tech-related
+  const hasTechTopic = topics.some(t => 
+    t.toLowerCase() === 'tech' || 
+    t.toLowerCase() === 'technology' || 
+    t.toLowerCase() === 'programming'
+  );
+  
+  // If ONLY non-tech topics, exclude tech-only sources
+  if (!hasTechTopic) {
+    const validSources = new Set<string>();
+    
+    for (const topic of topics) {
+      const sourcesForTopic = TOPIC_SOURCE_MAPPING[topic.toLowerCase()] || defaultSources;
+      sourcesForTopic.forEach(s => validSources.add(s));
+    }
+    
+    // If requested sources specified, filter them
+    if (requestedSources) {
+      return requestedSources.filter(s => !TECH_ONLY_SOURCES.includes(s));
+    }
+    
+    return Array.from(validSources);
+  }
+  
+  // Tech topics - use all sources including tech-only ones
+  return requestedSources || [...defaultSources, 'hackernews', 'lobsters', 'devto'];
 };
 
 // =============================================================================
@@ -152,7 +283,7 @@ export const newsService = {
     const {
       query,
       topics = [],
-      sources = ['hackernews', 'reddit', 'newsapi'],
+      sources: requestedSources,
       timeRange = 'today',
       geoLocation,
       countryCode,
@@ -160,14 +291,20 @@ export const newsService = {
       maxResults = configService.get('news.search.maxResults', 30)
     } = params;
 
-    const cacheKey = `news:search:${JSON.stringify(params)}`;
+    // Get appropriate sources based on topics
+    // This filters out tech-only sources when non-tech topics are selected
+    const sources = getSourcesForTopics(topics, requestedSources);
+    
+    logger.info(`📰 News search - Topics: [${topics.join(', ')}] → Sources: [${sources.join(', ')}]`);
+
+    const cacheKey = `news:search:${JSON.stringify({ ...params, sources })}`;
     const cached = await cacheService.get<NewsArticle[]>(cacheKey);
     if (cached) return cached;
 
     const allArticles: NewsArticle[] = [];
     const searchPromises: Promise<NewsArticle[]>[] = [];
 
-    // Search each enabled source
+    // Search each enabled source (now filtered by topic compatibility)
     if (sources.includes('hackernews')) {
       searchPromises.push(newsService.searchHackerNews(query, topics, maxResults));
     }
@@ -183,7 +320,7 @@ export const newsService = {
     if (sources.includes('mediastack') && process.env.MEDIASTACK_API_KEY) {
       searchPromises.push(newsService.searchMediaStack(query, topics, countryCode, maxResults));
     }
-    // Free sources - no API key required
+    // Free sources - no API key required (but only for tech topics)
     if (sources.includes('lobsters')) {
       searchPromises.push(newsService.searchLobsters(query, topics, maxResults));
     }
@@ -301,9 +438,20 @@ export const newsService = {
     const apiTimeout = configService.get('news.api.timeoutMs', 5000);
     
     try {
-      const subreddits = topics?.length 
-        ? topics.flatMap(t => TOPIC_MAPPINGS[t] || [t])
-        : NEWS_SOURCE_DEFAULTS.reddit.subreddits;
+      // Map topics to relevant subreddits using consolidated mapping
+      let subreddits: string[];
+      if (topics?.length) {
+        const mappedSubreddits = new Set<string>();
+        for (const topic of topics) {
+          const subs = REDDIT_SUBREDDITS[topic.toLowerCase()] || [topic];
+          subs.forEach(s => mappedSubreddits.add(s));
+        }
+        subreddits = Array.from(mappedSubreddits);
+      } else {
+        subreddits = NEWS_SOURCE_DEFAULTS.reddit.subreddits;
+      }
+      
+      logger.info(`📰 Reddit search - Topics: [${topics?.join(', ')}] → Subreddits: [${subreddits.slice(0, 5).join(', ')}]`);
       
       const articles: NewsArticle[] = [];
       
@@ -377,7 +525,10 @@ export const newsService = {
         params.q = query;
         params.sortBy = 'publishedAt';
       } else if (topics?.length) {
-        params.category = topics[0];
+        // Map topic to NewsAPI category using consolidated mapping
+        const apiCategory = NEWSAPI_CATEGORIES[topics[0].toLowerCase()] || 'general';
+        params.category = apiCategory;
+        logger.info(`📰 NewsAPI - Topic "${topics[0]}" → Category "${apiCategory}"`);
       }
       
       if (countryCode && !query) {
@@ -437,7 +588,10 @@ export const newsService = {
         endpoint = '/search';
         params.q = query;
       } else if (topics?.length) {
-        params.topic = topics[0];
+        // Map topic to GNews topic using consolidated mapping
+        const apiTopic = GNEWS_TOPICS[topics[0].toLowerCase()] || 'breaking-news';
+        params.topic = apiTopic;
+        logger.info(`📰 GNews - Topic "${topics[0]}" → API Topic "${apiTopic}"`);
       }
       
       if (countryCode) {
@@ -496,7 +650,12 @@ export const newsService = {
       }
       
       if (topics?.length) {
-        params.categories = topics.join(',');
+        // Map topics to MediaStack categories using consolidated mapping
+        const apiCategories = topics
+          .map(t => MEDIASTACK_CATEGORIES[t.toLowerCase()] || 'general')
+          .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+        params.categories = apiCategories.join(',');
+        logger.info(`📰 MediaStack - Topics [${topics.join(', ')}] → Categories [${apiCategories.join(', ')}]`);
       }
       
       if (countryCode) {
@@ -682,7 +841,10 @@ export const newsService = {
       }
       
       if (topics?.length) {
-        params.category = topics[0];
+        // Map topic to CurrentsAPI category using consolidated mapping
+        const apiCategory = CURRENTSAPI_CATEGORIES[topics[0].toLowerCase()] || 'general';
+        params.category = apiCategory;
+        logger.info(`📰 CurrentsAPI - Topic "${topics[0]}" → Category "${apiCategory}"`);
       }
       
       if (countryCode) {
