@@ -1,10 +1,10 @@
 # Hardcoded Data Audit Report
 
-> **Migration Status: PHASE 2 COMPLETE** (Updated January 23, 2026)
+> **Migration Status: PHASE 3 COMPLETE** (Updated January 24, 2026)
 > - Phase 1 COMPLETED: 141 items migrated (companies to database)
 > - Phase 2 COMPLETED: 85+ backend timeout/config values migrated to configService
 > - Phase 3 COMPLETED: Frontend config API endpoint created
-> - Remaining: Lower priority items (curated problems, travel destinations, etc.)
+> - Phase 4 COMPLETED: Curated Problems, Travel Destinations, Company Profiles migrated
 > - See `HARDCODED_MIGRATION_PLAN.md` for detailed migration plan
 
 **Generated:** 2026-01-22 | **Updated:** 2026-01-23
@@ -25,14 +25,14 @@
 | 🔴 HIGH | News Mappings | `newsService.ts` | 8 mappings | 6h | ✅ DONE (DB seeded) |
 | 🔴 HIGH | Job Matching Config | `jobMatchingService.ts` | 20+ items | 3h | ✅ DONE (DB seeded) |
 | 🟠 MEDIUM | Frontend Config | Multiple components | 35+ items | 8h | ✅ DONE (API created) |
-| 🟠 MEDIUM | Curated Problems | `curatedProblems.ts` | 200+ problems | 4h | ⏳ Schema ready |
+| 🟠 MEDIUM | Curated Problems | `curatedProblems.ts` | 94 problems | 4h | ✅ DONE (DB seeded) |
 | 🟠 MEDIUM | Telegram Channels | `israeliTechCommunityService.ts` | 5 channels | 2h | ⏳ Pending |
 | 🟠 MEDIUM | Community Sources | `israeliTechCommunityService.ts` | 15+ sources | 2h | ⏳ Pending |
 | 🟠 MEDIUM | YouTube Tech Channels | `youtubeService.ts` | 9 channels | 2h | ⏳ Pending |
 | 🟠 MEDIUM | Search Site Configs | `googleSearchService.ts` | 50+ sites | 3h | ⏳ Pending |
 | 🟠 MEDIUM | Israeli Shops | `israeliShopsService.ts` | 10+ stores | 2h | ⏳ Pending |
-| 🟠 MEDIUM | Travel Destinations | `israelTravelService.ts` | 100+ items | 6h | ⏳ Schema ready |
-| 🟠 MEDIUM | Company Profiles | `companyMappings.ts` | 50+ profiles | 4h | ⏳ Schema ready |
+| 🟠 MEDIUM | Travel Destinations | `israelTravelService.ts` | 24 items | 6h | ✅ DONE (DB seeded) |
+| 🟠 MEDIUM | Company Profiles | `companyMappings.ts` | 20 profiles | 4h | ✅ DONE (DB seeded) |
 | 🟡 LOW | Skills/Tech Keywords | `jobMatchingService.ts` | 20+ skills | 2h | ✅ DONE (DB seeded) |
 | 🟡 LOW | Cooking Categories | `cookingService.ts` | 8 categories | 1h | ⏳ Pending |
 | 🟡 LOW | Diagram Templates | `diagramGenerationService.ts` | 20+ templates | 2h | ⏳ Pending |
