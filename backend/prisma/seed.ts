@@ -14,7 +14,13 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { seedNewsConfig, seedJobMatchingConfig } from './seeds';
+import { 
+  seedNewsConfig, 
+  seedJobMatchingConfig,
+  seedCuratedProblems,
+  seedTravelDestinations,
+  seedCompanyProfiles
+} from './seeds';
 
 // Prisma 7 requires an adapter for direct database connections
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -111,10 +117,29 @@ async function main() {
     console.warn('⚠️ Failed to seed job matching config:', error instanceof Error ? error.message : error);
   }
   
-  // Future seed functions will be added here as migrations progress:
-  // - seedCuratedProblems(prisma)
-  // - seedTravelDestinations(prisma)
-  // - seedCompanyProfiles(prisma)
+  // Seed curated problems (Blind 75, Grind 75, NeetCode 150)
+  try {
+    const problemsCount = await seedCuratedProblems(prisma);
+    console.log(`✅ Seeded ${problemsCount} curated problems`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed curated problems:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed travel destinations (Israel destinations, trails, beaches)
+  try {
+    const destinationsCount = await seedTravelDestinations(prisma);
+    console.log(`✅ Seeded ${destinationsCount} travel destinations`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed travel destinations:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed company profiles (interview focus, tips, difficulty breakdown)
+  try {
+    const profilesCount = await seedCompanyProfiles(prisma);
+    console.log(`✅ Seeded ${profilesCount} company profiles`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed company profiles:', error instanceof Error ? error.message : error);
+  }
 
   console.log('\n✅ Database seeded successfully!');
 }
