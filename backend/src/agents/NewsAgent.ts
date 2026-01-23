@@ -144,10 +144,12 @@ export class NewsAgent extends AbstractAgent {
 
       this.emitProgress(30);
 
+      // Don't specify sources if not provided - let newsService.getSourcesForTopics
+      // automatically select appropriate sources based on the topics
       const searchParams: NewsSearchParams = {
         query,
         topics,
-        sources: sources || (['hackernews', 'reddit', 'lobsters', 'devto', 'gnews', 'mediastack'] as string[]),
+        sources: sources, // Let the service filter sources based on topics if not specified
         timeRange,
         countryCode,
         maxResults: maxResults || configService.get('news.search.maxResults', 30)

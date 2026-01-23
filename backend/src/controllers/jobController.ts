@@ -96,7 +96,7 @@ export const getCVData = async (req: Request, res: Response) => {
 
 export const searchJobs = async (req: Request, res: Response) => {
   try {
-    const { query, location, remoteOnly, companySize, industry, industries, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
+    const { query, location, remoteOnly, companySize, companySizes, industry, industries, salaryMin, salaryMax, experienceLevel, jobType } = req.body;
     const io = req.app.get('io');
 
     // Start process and track it
@@ -136,6 +136,15 @@ export const searchJobs = async (req: Request, res: Response) => {
         }
       });
       emitLog(io, `🏢 Industries selected: ${selectedIndustries.join(', ')}`, 'info');
+    }
+    
+    // Log company size filters - ALWAYS log for debugging
+    const effectiveCompanySizes = companySizes?.length ? companySizes : (companySize && companySize !== 'any' ? [companySize] : []);
+    console.log('📏 DEBUG companySizes:', JSON.stringify({ companySizes, companySize, effectiveCompanySizes }));
+    if (effectiveCompanySizes.length > 0) {
+      emitLog(io, `📏 Company sizes filter: ${effectiveCompanySizes.join(', ')}`, 'info');
+    } else {
+      console.log('⚠️ No company size filter applied!');
     }
     
     // Add skill-based queries from CV top skills
@@ -190,6 +199,7 @@ export const searchJobs = async (req: Request, res: Response) => {
         remoteOnly: remoteOnly,
         radius: 50,
         companySize,
+        companySizes, // Support multi-select company sizes
         industry: selectedIndustries.length === 1 ? selectedIndustries[0] : undefined, // Only filter if single industry
         salaryMin,
         salaryMax,

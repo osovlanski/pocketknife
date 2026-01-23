@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
+import { Code, Search, ExternalLink, Lightbulb, RefreshCw, Filter, FileCode, Building2, Send, Trophy, Clock, Database, Sparkles, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronDown, ChevronUp, List, PanelLeftClose, PanelLeft, RotateCcw, Check, X, GitCompare, Wand2, BookOpen, Layers, Wrench, Play } from 'lucide-react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import { API_BASE_URL } from '../config';
 import CodingPatternsPanel from './CodingPatternsPanel';
@@ -97,6 +97,7 @@ const ProblemSolvingAgent = () => {
   
   // Hint levels
   const [hintLevel, setHintLevel] = useState(0); // 0-3, 0 means no hints shown
+  const [isHintsCollapsed, setIsHintsCollapsed] = useState(false); // Hints panel expand/collapse
   
   // Evaluation panel collapsed state - start collapsed to keep code editor large
   const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
@@ -502,18 +503,126 @@ func main() {
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    // Clean up the description
-    const cleanedText = description
+    // Debug: Check if description contains image tags
+    if (description.includes('<img') || description.includes('&lt;img')) {
+      console.log('🔍 Description contains image tag');
+      console.log('   Raw img check:', description.includes('<img'));
+      console.log('   Encoded img check:', description.includes('&lt;img'));
+    }
+
+    // First, decode HTML entities so we can properly parse the content
+    let decodedDescription = description
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\*\*/g, '') // Remove markdown bold markers
+      .replace(/&nbsp;/g, ' ');
+
+    // Extract images from HTML (now that entities are decoded)
+    const imagePlaceholders: Map<string, React.ReactNode> = new Map();
+    let imageIndex = 0;
+    
+    // Match <img> tags with src attribute (handles various attribute orders)
+    const imageRegex = /<img\s+[^>]*src=["']([^"']+)["'][^>]*\/?>/gi;
+    let imageMatch;
+    
+    // Debug: log if we find any images
+    const foundImages: string[] = [];
+    
+    while ((imageMatch = imageRegex.exec(decodedDescription)) !== null) {
+      const fullMatch = imageMatch[0];
+      let src = imageMatch[1];
+      
+      // Make relative URLs absolute (LeetCode uses their CDN)
+      if (src.startsWith('/')) {
+        src = `https://leetcode.com${src}`;
+      } else if (!src.startsWith('http')) {
+        src = `https://assets.leetcode.com/uploads/${src}`;
+      }
+      
+      foundImages.push(src);
+      
+      // Try to extract alt attribute
+      const altMatch = fullMatch.match(/alt=["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : 'Problem illustration';
+      
+      const placeholder = `__IMAGE_PLACEHOLDER_${imageIndex}__`;
+      imagePlaceholders.set(placeholder, (
+        <div key={`img-${imageIndex}`} className="my-4 flex justify-center bg-slate-800/50 rounded-lg p-4">
+          <img 
+            src={src} 
+            alt={alt}
+            className="max-w-full h-auto rounded-lg border border-slate-600/50 bg-white p-2"
+            style={{ maxHeight: '300px' }}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            onLoad={() => console.log('✅ Image loaded:', src)}
+            onError={(e) => {
+              console.warn('❌ Image failed to load:', src);
+              // Show a placeholder instead of hiding
+              const img = e.target as HTMLImageElement;
+              img.style.display = 'none';
+              const parent = img.parentElement;
+              if (parent) {
+                parent.innerHTML = `<div class="text-slate-400 text-sm p-4 text-center">
+                  <span class="text-2xl block mb-2">🖼️</span>
+                  Image unavailable<br/>
+                  <a href="${src}" target="_blank" class="text-blue-400 hover:underline text-xs">View on LeetCode</a>
+                </div>`;
+              }
+            }}
+          />
+        </div>
+      ));
+      decodedDescription = decodedDescription.replace(fullMatch, placeholder);
+      imageIndex++;
+    }
+    
+    // Log found images for debugging
+    if (foundImages.length > 0) {
+      console.log('🖼️ Found images in problem description:', foundImages);
+    }
+    
+    // Also handle markdown-style images: ![alt](url)
+    const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    let mdImageMatch;
+    
+    while ((mdImageMatch = markdownImageRegex.exec(decodedDescription)) !== null) {
+      const fullMatch = mdImageMatch[0];
+      const alt = mdImageMatch[1] || 'Problem illustration';
+      const src = mdImageMatch[2];
+      
+      const placeholder = `__IMAGE_PLACEHOLDER_${imageIndex}__`;
+      imagePlaceholders.set(placeholder, (
+        <div key={`img-${imageIndex}`} className="my-4 flex justify-center bg-slate-800/50 rounded-lg p-4">
+          <img 
+            src={src} 
+            alt={alt}
+            className="max-w-full h-auto rounded-lg border border-slate-600/50 bg-white p-2"
+            style={{ maxHeight: '300px' }}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      ));
+      decodedDescription = decodedDescription.replace(fullMatch, placeholder);
+      imageIndex++;
+    }
+
+    // Clean up the description
+    const cleanedText = decodedDescription
+      .replace(/<[^>]+>/g, '') // Remove remaining HTML tags
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove markdown bold markers but keep text
+      .replace(/\*([^*]+)\*/g, '$1') // Remove markdown italic markers but keep text
+      .replace(/^\s*\*\s*$/gm, '') // Remove lines that are just a single asterisk (failed image placeholders)
       .replace(/```[a-z]*\n?/gi, '') // Remove code block markers
       .replace(/```/g, '') // Remove remaining code block markers
-      .replace(/\r\n/g, '\n');
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n'); // Collapse multiple blank lines
 
     // Split by common patterns and format
     const lines = cleanedText.split('\n');
@@ -526,6 +635,17 @@ func main() {
       
       // Skip empty lines
       if (!trimmedLine) return;
+
+      // Check for image placeholders
+      const imagePlaceholderMatch = trimmedLine.match(/__IMAGE_PLACEHOLDER_(\d+)__/);
+      if (imagePlaceholderMatch) {
+        const placeholder = imagePlaceholderMatch[0];
+        const imageElement = imagePlaceholders.get(placeholder);
+        if (imageElement) {
+          elements.push(imageElement);
+        }
+        return;
+      }
 
       // Detect example sections
       if (trimmedLine.toLowerCase().startsWith('example') || trimmedLine.match(/^example\s*\d*:?$/i)) {
@@ -1357,43 +1477,76 @@ func main() {
 
               {/* Progressive Hints Section */}
               {showHints && hints.length > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl overflow-hidden">
+                  {/* Collapsible Header */}
+                  <button
+                    onClick={() => setIsHintsCollapsed(!isHintsCollapsed)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-amber-500/5 transition-colors"
+                    aria-expanded={!isHintsCollapsed}
+                    aria-label={isHintsCollapsed ? 'Expand hints' : 'Collapse hints'}
+                  >
                     <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-2">
                       <Lightbulb className="w-4 h-4" />
                       Hints ({hintLevel}/{Math.min(hints.length, 3)})
                     </h3>
-                    <div className="flex gap-1">
-                      {[1, 2, 3].map((level) => (
-                        <button
-                          key={level}
-                          onClick={() => setHintLevel(level)}
-                          disabled={level > hints.length}
-                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
-                            hintLevel >= level
-                              ? 'bg-amber-500 text-white'
-                              : level <= hints.length
-                              ? 'bg-white/10 text-slate-400 hover:bg-white/20'
-                              : 'bg-white/5 text-slate-600 cursor-not-allowed'
-                          }`}
-                        >
-                          {level}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      {/* Show hint level buttons in header when collapsed */}
+                      {isHintsCollapsed && hintLevel > 0 && (
+                        <span className="text-xs text-amber-400/70">
+                          {hintLevel} hint{hintLevel > 1 ? 's' : ''} revealed
+                        </span>
+                      )}
+                      {isHintsCollapsed ? (
+                        <ChevronDown className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4 text-amber-400" />
+                      )}
                     </div>
-                  </div>
-                  <ol className="space-y-2">
-                    {hints.slice(0, hintLevel).map((hint, idx) => (
-                      <li key={idx} className="text-sm text-slate-200 flex items-start gap-2 animate-fade-in">
-                        <span className="text-amber-400 font-semibold">{idx + 1}.</span>
-                        <span>{hint}</span>
-                      </li>
-                    ))}
-                  </ol>
-                  {hintLevel === 0 && (
-                    <p className="text-sm text-slate-400 text-center py-2">
-                      Click a number above to reveal hints progressively
-                    </p>
+                  </button>
+                  
+                  {/* Collapsible Content */}
+                  {!isHintsCollapsed && (
+                    <div className="px-4 pb-4 space-y-3">
+                      {/* Hint Level Buttons */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Reveal level:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map((level) => (
+                            <button
+                              key={level}
+                              onClick={() => setHintLevel(level)}
+                              disabled={level > hints.length}
+                              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
+                                hintLevel >= level
+                                  ? 'bg-amber-500 text-white'
+                                  : level <= hints.length
+                                  ? 'bg-white/10 text-slate-400 hover:bg-white/20'
+                                  : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                              }`}
+                              aria-label={`Reveal hint level ${level}`}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Hints List */}
+                      <ol className="space-y-2">
+                        {hints.slice(0, hintLevel).map((hint, idx) => (
+                          <li key={idx} className="text-sm text-slate-200 flex items-start gap-2 animate-fade-in">
+                            <span className="text-amber-400 font-semibold">{idx + 1}.</span>
+                            <span>{hint}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      
+                      {hintLevel === 0 && (
+                        <p className="text-sm text-slate-400 text-center py-2">
+                          Click a number above to reveal hints progressively
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

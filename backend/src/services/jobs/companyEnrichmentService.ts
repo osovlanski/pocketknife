@@ -238,6 +238,18 @@ class CompanyEnrichmentService {
   async getCompanyInfo(companyName: string): Promise<CompanyInfo | null> {
     const normalizedName = companyName.toLowerCase().trim();
     
+    // Skip enrichment for invalid or too-short company names
+    // These are likely country codes (e.g., 'ge', 'il') or parsing errors
+    if (normalizedName.length <= 2 || normalizedName === 'unknown company') {
+      return null;
+    }
+    
+    // Skip common words that aren't company names
+    const invalidNames = ['jobs', 'careers', 'hiring', 'job', 'career', 'glassdoor', 'linkedin', 'indeed'];
+    if (invalidNames.includes(normalizedName)) {
+      return null;
+    }
+    
     // Check cache first
     if (companyCache.has(normalizedName)) {
       return companyCache.get(normalizedName)!;

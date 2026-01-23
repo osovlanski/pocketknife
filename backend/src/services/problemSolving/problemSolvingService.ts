@@ -517,9 +517,34 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       const content = response.data?.data?.question?.content;
       
       if (content) {
-        // Strip HTML tags and clean up the content
+        // Debug: Check for images in original content
+        const hasImages = content.includes('<img');
+        if (hasImages) {
+          console.log(`🖼️ Problem ${titleSlug} contains images`);
+          const imgMatches = content.match(/<img[^>]+>/gi);
+          console.log(`   Found ${imgMatches?.length || 0} image tags`);
+        }
+        
+        // STEP 1: Extract and preserve image tags FIRST (before any processing)
+        // Replace img tags with placeholders, process HTML, then restore them
+        const imagePlaceholders: Map<string, string> = new Map();
+        let imageIndex = 0;
+        let processedContent = content;
+        
+        // Extract all <img> tags and replace with placeholders
+        const imgRegex = /<img\s+[^>]*src=["']([^"']+)["'][^>]*\/?>/gi;
+        let imgMatch;
+        while ((imgMatch = imgRegex.exec(content)) !== null) {
+          const fullImgTag = imgMatch[0];
+          const placeholder = `__IMG_PLACEHOLDER_${imageIndex}__`;
+          imagePlaceholders.set(placeholder, fullImgTag);
+          processedContent = processedContent.replace(fullImgTag, `\n${placeholder}\n`);
+          imageIndex++;
+        }
+        
+        // STEP 2: Strip HTML tags and clean up the content
         // Order matters: handle structural tags FIRST, then decode entities, then remove remaining tags
-        const cleanContent = content
+        let cleanContent = processedContent
           // 1. Handle structural HTML elements FIRST (before removing tags)
           .replace(/<br\s*\/?>/gi, '\n')
           .replace(/<\/p>/gi, '\n\n')
@@ -544,16 +569,13 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
           .replace(/<\/b>/gi, '**')
           .replace(/<i[^>]*>/gi, '*')
           .replace(/<\/i>/gi, '*')
-          // 2. Remove image tags (keep alt text if any)
-          .replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, '$1')
-          .replace(/<img[^>]*>/gi, '')
-          // 3. Remove remaining HTML tags (spans, links without href, etc.)
+          // 2. Remove remaining HTML tags (spans, links, etc.)
           .replace(/<sup[^>]*>/gi, '^')
           .replace(/<\/sup>/gi, '')
           .replace(/<sub[^>]*>/gi, '_')
           .replace(/<\/sub>/gi, '')
-          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*[^>]*>/g, '')
-          // 4. Decode HTML entities
+          .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*[^>]*>/g, '') // Remove ALL remaining HTML tags
+          // 3. Decode HTML entities
           .replace(/&nbsp;/g, ' ')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
@@ -562,11 +584,26 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
           .replace(/&#39;/g, "'")
           .replace(/&apos;/g, "'")
           .replace(/&#(\d+);/g, (_: string, code: string) => String.fromCharCode(parseInt(code)))
-          // 5. Clean up whitespace
+          // 4. Clean up whitespace
           .replace(/\n\s*\n\s*\n/g, '\n\n')
           .replace(/[ \t]+/g, ' ')
           .replace(/\n /g, '\n')
           .trim();
+        
+        // STEP 3: Restore image tags
+        for (const [placeholder, imgTag] of imagePlaceholders) {
+          cleanContent = cleanContent.replace(placeholder, imgTag);
+        }
+        
+        // Debug: Verify images are preserved in output
+        if (hasImages) {
+          const preservedImages = cleanContent.includes('<img');
+          console.log(`   Images preserved in output: ${preservedImages}`);
+          if (preservedImages) {
+            const finalImgMatches = cleanContent.match(/<img[^>]+>/gi);
+            console.log(`   Preserved ${finalImgMatches?.length || 0} image tags`);
+          }
+        }
         
         return cleanContent;
       }

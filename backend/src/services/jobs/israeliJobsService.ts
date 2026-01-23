@@ -206,7 +206,9 @@ class IsraeliJobsService {
       applyUrl: company.careersUrl,
       postedAt: new Date().toISOString(),
       tags: ['israel', 'tech', 'startup'],
-      companySize: 'enterprise',
+      companySize: 'enterprise' as const, // These are major Israeli tech companies (501+ employees)
+      employeeCountMin: 501,
+      employeeCountMax: 10000,
       industry: ['tech', 'startup'],
       experienceLevel: queryLower.includes('senior') ? 'senior' : 
                        queryLower.includes('junior') ? 'junior' : 'mid',
