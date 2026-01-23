@@ -11,7 +11,7 @@ import CompanySearchPanel from './CompanySearchPanel';
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as typeof globalThis & { fetch: typeof fetch }).fetch = mockFetch;
 
 // Mock useTranslation
 vi.mock('../i18n', () => ({
