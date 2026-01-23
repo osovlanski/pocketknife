@@ -1,30 +1,42 @@
 # Hardcoded Data Audit Report
 
-> **Migration Status: COMPLETED** (January 22, 2026)
-> - 141 total items migrated to database
-> - 58 companies, 14 communities, 10 YouTube channels, 49 search sites, 10 stores
+> **Migration Status: IN PROGRESS** (Updated January 23, 2026)
+> - Phase 1 COMPLETED: 141 items migrated (companies to database)
+> - Phase 2 PENDING: 195+ additional items identified for migration
+> - See `HARDCODED_MIGRATION_PLAN.md` for detailed migration plan
 
-**Generated:** 2026-01-22
+**Generated:** 2026-01-22 | **Updated:** 2026-01-23
+**Branch:** `feature/hardcoded-to-config-migration`
 **Purpose:** Identify hardcoded values that should be moved to database or API configuration
 
 ---
 
 ## Summary
 
-| Priority | Category | Location | Estimated Items | Effort |
-|----------|----------|----------|-----------------|--------|
-| 🔴 HIGH | Companies (Comeet) | `comeetCareersService.ts` | ~55 companies | ✅ DONE |
-| 🔴 HIGH | Companies (Israeli) | `israeliJobsService.ts` | ~50 companies | ✅ DONE |
-| 🔴 HIGH | Companies (Enrichment) | `companyEnrichmentService.ts` | ~30 companies | ✅ DONE |
-| 🟠 MEDIUM | Telegram Channels | `israeliTechCommunityService.ts` | 5 channels | Pending |
-| 🟠 MEDIUM | Community Sources | `israeliTechCommunityService.ts` | 15+ sources | Pending |
-| 🟠 MEDIUM | YouTube Tech Channels | `youtubeService.ts` | 9 channels | Pending |
-| 🟠 MEDIUM | Search Site Configs | `googleSearchService.ts` | 6 categories, 50+ sites | Pending |
-| 🟠 MEDIUM | Israeli Shops | `israeliShopsService.ts` | 10+ stores | Pending |
-| 🟡 LOW | Skills/Tech Keywords | `jobMatchingService.ts` | 20+ skills | Pending |
-| 🟡 LOW | Curated Problem Lists | `problemSolvingService.ts` | 3 lists | Pending |
-| 🟡 LOW | Cooking Categories | `cookingService.ts` | 8 categories | Pending |
-| 🟡 LOW | Diagram Templates | `diagramGenerationService.ts` | 20+ templates | Pending |
+| Priority | Category | Location | Estimated Items | Effort | Status |
+|----------|----------|----------|-----------------|--------|--------|
+| 🔴 HIGH | Companies (Comeet) | `comeetCareersService.ts` | ~55 companies | 4h | ✅ DONE |
+| 🔴 HIGH | Companies (Israeli) | `israeliJobsService.ts` | ~50 companies | 4h | ✅ DONE |
+| 🔴 HIGH | Companies (Enrichment) | `companyEnrichmentService.ts` | ~30 companies | 3h | ✅ DONE |
+| 🔴 HIGH | Timeouts (40+ values) | Multiple services | 40+ values | 4h | ⏳ Pending |
+| 🔴 HIGH | Query Limits | Multiple services | 30+ values | 3h | ⏳ Pending |
+| 🔴 HIGH | News Mappings | `newsService.ts` | 8 mappings | 6h | ⏳ Pending |
+| 🔴 HIGH | Curated Problems | `curatedProblems.ts` | 200+ problems | 4h | ⏳ Pending |
+| 🟠 MEDIUM | Telegram Channels | `israeliTechCommunityService.ts` | 5 channels | 2h | ⏳ Pending |
+| 🟠 MEDIUM | Community Sources | `israeliTechCommunityService.ts` | 15+ sources | 2h | ⏳ Pending |
+| 🟠 MEDIUM | YouTube Tech Channels | `youtubeService.ts` | 9 channels | 2h | ⏳ Pending |
+| 🟠 MEDIUM | Search Site Configs | `googleSearchService.ts` | 50+ sites | 3h | ⏳ Pending |
+| 🟠 MEDIUM | Israeli Shops | `israeliShopsService.ts` | 10+ stores | 2h | ⏳ Pending |
+| 🟠 MEDIUM | Travel Destinations | `israelTravelService.ts` | 100+ items | 6h | ⏳ Pending |
+| 🟠 MEDIUM | Company Profiles | `companyMappings.ts` | 50+ profiles | 4h | ⏳ Pending |
+| 🟠 MEDIUM | Job Matching Config | `jobMatchingService.ts` | 20+ items | 3h | ⏳ Pending |
+| 🟠 MEDIUM | Frontend Config | Multiple components | 35+ items | 8h | ⏳ Pending |
+| 🟡 LOW | Skills/Tech Keywords | `jobMatchingService.ts` | 20+ skills | 2h | ⏳ Pending |
+| 🟡 LOW | Cooking Categories | `cookingService.ts` | 8 categories | 1h | ⏳ Pending |
+| 🟡 LOW | Diagram Templates | `diagramGenerationService.ts` | 20+ templates | 2h | ⏳ Pending |
+| 🟡 LOW | Magic Numbers | Multiple files | 35+ values | 4h | ⏳ Pending |
+
+**Total Estimated Effort: 12-17 days** (see HARDCODED_MIGRATION_PLAN.md)
 
 ---
 
@@ -372,6 +384,129 @@ model SearchSiteConfig {
 
 ---
 
+---
+
+## 🔴 NEW: Hardcoded Timeouts (40+ instances)
+
+> These should use `configService.get()` pattern
+
+### Backend Timeouts
+
+| File | Lines | Current Value | Recommended Config Key |
+|------|-------|---------------|------------------------|
+| `problemSolvingService.ts` | 230 | `timeout: 10000` | `problems.codeforces.timeoutMs` |
+| `jobSourceService.ts` | 573, 695, 751 | `timeout: 15000-20000` | `jobs.api.timeoutMs` |
+| `israelTechScraperService.ts` | 46, 99, 163, 226, 280, 339, 397, 447, 509, 564, 633, 684, 746 | `timeout: 15000` | `jobs.scraper.timeoutMs` |
+| `externalCompanyService.ts` | 246, 344, 366, 463 | `timeout: 10000-15000` | `jobs.company.timeoutMs` |
+| `companyEnrichmentService.ts` | 175, 191 | `timeout: 10000` | `jobs.enrichment.timeoutMs` |
+| `googleSearchService.ts` | 389 | `timeout: 10000` | `google.search.timeoutMs` |
+| `learningService.ts` | 114, 149, 190, 255, 323, 587 | `timeout: 10000-15000` | `learning.api.timeoutMs` |
+| `telegramNotificationService.ts` | 64 | `timeout: 5000` | `notifications.telegram.timeoutMs` |
+| `discordNotificationService.ts` | 65 | `timeout: 5000` | `notifications.discord.timeoutMs` |
+| `facebookService.ts` | 66, 71 | `timeout: 5000` | `integrations.facebook.timeoutMs` |
+
+---
+
+## 🔴 NEW: Query Limits (30+ instances)
+
+### Backend Limits
+
+| File | Lines | Current Value | Recommended Config Key |
+|------|-------|---------------|------------------------|
+| `newsService.ts` | 1183, 1200, 1254 | `take: 10`, `maxResults: 50` | `news.defaultLimit`, `news.trendLimit` |
+| `jobSourceService.ts` | 807 | `maxResults: 20` | `jobs.search.maxResults` |
+| `israeliTechCommunityService.ts` | 420 | `limit: 20` | `jobs.community.limit` |
+| `israelTechScraperService.ts` | 391, 503 | `limit: 30-50` | `jobs.scraper.limit` |
+| `externalCompanyService.ts` | 158, 168 | `take: 50` | `jobs.company.take` |
+| `cookingService.ts` | 389, 547 | `take: 10-20` | `cooking.search.limit` |
+| `flightSearchService.ts` | 143, 191, 264 | `limit: 10-30` | `travel.flights.limit` |
+| `productAggregatorService.ts` | 589 | `limit: 10` | `shopping.search.limit` |
+| `learningService.ts` | 184 | `limit: 15` | `learning.search.limit` |
+| `ToDoAgent.ts` | 325, 456, 679, 763 | `take: 5-100` | `todo.query.limit` |
+| `ShoppingAgent.ts` | 719, 731, 743 | `limit: 15` | `shopping.agent.limit` |
+
+---
+
+## 🔴 NEW: News Service Mappings (8 mappings)
+
+**File:** `backend/src/services/news/newsService.ts`
+
+| Lines | Mapping Name | Description | Migration Target |
+|-------|--------------|-------------|------------------|
+| 129-138 | `TOPIC_MAPPINGS` | Topic to keyword mappings | `NewsConfig` table |
+| 147-156 | `REDDIT_SUBREDDITS` | Reddit subreddit lists per topic | `NewsConfig` table |
+| 159-169 | `NEWSAPI_CATEGORIES` | NewsAPI category mappings | `NewsConfig` table |
+| 172-182 | `GNEWS_TOPICS` | GNews topic mappings | `NewsConfig` table |
+| 185-195 | `MEDIASTACK_CATEGORIES` | MediaStack category mappings | `NewsConfig` table |
+| 198-208 | `CURRENTSAPI_CATEGORIES` | CurrentsAPI category mappings | `NewsConfig` table |
+| 216-225 | `TOPIC_SOURCE_MAPPING` | Topic to source mappings | `NewsConfig` table |
+| 228 | `TECH_ONLY_SOURCES` | Tech-only source list | `NewsConfig` table |
+
+---
+
+## 🔴 NEW: Curated Problems (200+ problems)
+
+**Files:**
+- `backend/src/data/curatedProblems.ts`
+- `backend/src/services/problemSolving/problemSolvingService.ts`
+
+| Lines | List Name | Item Count | Migration Target |
+|-------|-----------|------------|------------------|
+| 23-134 | `BLIND_75` | 75 problems | `CuratedProblem` table |
+| 137-195 | `NEETCODE_EXTRA` | 75 problems | `CuratedProblem` table |
+| 198-203 | `GRIND_75` | 75 problems | `CuratedProblem` table |
+| 628-694 | `leetcode75Problems` | Inline array | Use `CuratedProblem` table |
+
+---
+
+## 🟠 NEW: Travel Destinations (100+ items)
+
+**File:** `backend/src/services/travel/israelTravelService.ts`
+
+| Lines | Data Set | Item Count | Migration Target |
+|-------|----------|------------|------------------|
+| 35+ | `ISRAEL_DESTINATIONS` | 50+ destinations | `TravelDestination` table |
+| 301+ | `ISRAEL_HIKING_TRAILS` | 25+ trails | `TravelDestination` table |
+| 376+ | `ISRAEL_BEACHES` | 15+ beaches | `TravelDestination` table |
+
+---
+
+## 🟠 NEW: Company Interview Profiles (50+ profiles)
+
+**File:** `backend/src/data/companyMappings.ts`
+
+| Lines | Data | Item Count | Migration Target |
+|-------|------|------------|------------------|
+| 23-487 | `COMPANY_PROFILES` | 50+ companies | `CompanyProfile` table |
+
+---
+
+## 🟠 NEW: Frontend Hardcoded Arrays (35+ items)
+
+### Dropdown Options
+
+| File | Lines | Data | Migration Target |
+|------|-------|------|------------------|
+| `CompanySearchPanel.tsx` | 44-58 | `INDUSTRY_OPTIONS` (13 industries) | `/api/jobs/config` |
+| `CompanySearchPanel.tsx` | 38-42 | `COMPANY_SIZE_OPTIONS` | `/api/jobs/config` |
+| `travelApi.ts` | 172-209 | 8 travel config arrays | `/api/travel/config` |
+| `shoppingApi.ts` | 19-29 | `SHOPPING_SOURCES` | `/api/shopping/config` |
+| `problemSolvingApi.ts` | 12-27 | Categories, difficulties, languages | `/api/problems/config` |
+| `newsApi.ts` | 192-215 | Topics, sources | `/api/news/config` |
+| `diyApi.ts` | 22-54 | Categories, skill levels | `/api/diy/config` |
+| `cookingApi.ts` | 283-308 | Categories, units | `/api/cooking/config` |
+
+### Hardcoded URLs
+
+| File | Lines | URL Type | Migration Target |
+|------|-------|----------|------------------|
+| `SkiDealsPanel.tsx` | 69-72 | Booking URLs | Config API |
+| `IsraelTravelPanel.tsx` | 489, 791 | Google Maps URLs | Environment variable |
+| `JobSearchPanel.tsx` | 229 | Nominatim API | Backend proxy |
+| `fileParser.ts` | 54 | PDF.js CDN | Environment variable |
+
+---
+
 ## Notes
 
 1. **Fallback Pattern:** Always keep hardcoded fallback for database-first lookups to ensure service availability when DB is empty or unavailable.
@@ -384,3 +519,18 @@ model SearchSiteConfig {
 3. **Validation:** Add verification methods to check if external resources are still active/valid.
 
 4. **Cursor Rules:** The `data-driven-architecture.mdc` rule has been created to guide future development.
+
+5. **ConfigService Pattern:** For simple values (timeouts, limits), use `configService.get('key', defaultValue)`.
+
+6. **Database Pattern:** For complex/changing data (companies, problems, destinations), use database tables with fallback arrays.
+
+7. **Frontend Config API:** Create unified `/api/config` endpoints to serve configuration to frontend.
+
+---
+
+## Related Documentation
+
+- `HARDCODED_MIGRATION_PLAN.md` - Detailed migration plan with effort estimates
+- `.cursor/rules/data-driven-architecture.mdc` - Database patterns for external data
+- `.cursor/rules/dynamic-configuration.mdc` - ConfigService, Rule Engine, Feature Flags
+- `backend/docs/MIGRATION_GUIDE_DYNAMIC_CONFIG.md` - Dynamic config migration guide
