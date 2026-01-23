@@ -503,13 +503,6 @@ func main() {
   const formatDescription = (description: string): React.ReactNode => {
     if (!description) return null;
 
-    // Debug: Check if description contains image tags
-    if (description.includes('<img') || description.includes('&lt;img')) {
-      console.log('🔍 Description contains image tag');
-      console.log('   Raw img check:', description.includes('<img'));
-      console.log('   Encoded img check:', description.includes('&lt;img'));
-    }
-
     // First, decode HTML entities so we can properly parse the content
     let decodedDescription = description
       .replace(/&lt;/g, '<')
@@ -557,7 +550,6 @@ func main() {
             style={{ maxHeight: '300px' }}
             referrerPolicy="no-referrer"
             loading="lazy"
-            onLoad={() => console.log('✅ Image loaded:', src)}
             onError={(e) => {
               console.warn('❌ Image failed to load:', src);
               // Show a placeholder instead of hiding
@@ -577,11 +569,6 @@ func main() {
       ));
       decodedDescription = decodedDescription.replace(fullMatch, placeholder);
       imageIndex++;
-    }
-    
-    // Log found images for debugging
-    if (foundImages.length > 0) {
-      console.log('🖼️ Found images in problem description:', foundImages);
     }
     
     // Also handle markdown-style images: ![alt](url)
