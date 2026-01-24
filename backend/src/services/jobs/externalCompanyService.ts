@@ -10,6 +10,10 @@ import axios from 'axios';
 import { configService } from '../core/configService';
 import { getPrisma } from '../core/databaseService';
 
+// Get timeouts from config
+const COMPANY_TIMEOUT = () => configService.get('jobs.company.timeoutMs', 10000);
+const COMPANY_LONG_TIMEOUT = () => configService.get('jobs.scraper.timeoutMs', 15000);
+
 /**
  * Get Prisma client or throw if not available
  */
@@ -243,7 +247,7 @@ class ExternalCompanyService {
           q: searchQuery,
           num: 10
         },
-        timeout: 15000
+        timeout: COMPANY_LONG_TIMEOUT()
       });
 
       const items = response.data.items || [];
@@ -341,7 +345,7 @@ class ExternalCompanyService {
         headers: {
           'X-cb-user-key': apiKey
         },
-        timeout: 10000
+        timeout: COMPANY_TIMEOUT()
       });
 
       const entities = searchResponse.data.entities || [];
@@ -363,7 +367,7 @@ class ExternalCompanyService {
         headers: {
           'X-cb-user-key': apiKey
         },
-        timeout: 10000
+        timeout: COMPANY_TIMEOUT()
       });
 
       const properties = detailResponse.data.properties || {};
@@ -460,7 +464,7 @@ class ExternalCompanyService {
         const testUrl = `https://www.comeet.com/careers-api/2.0/company/${company.atsCompanyId}/positions`;
         const response = await axios.get(testUrl, {
           params: { token: company.atsToken, details: false },
-          timeout: 10000
+          timeout: COMPANY_TIMEOUT()
         });
         
         if (response.status === 200) {

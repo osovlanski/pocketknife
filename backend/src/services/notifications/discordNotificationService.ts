@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
+
+// Get timeout from config
+const DISCORD_TIMEOUT = () => configService.get('notifications.discord.timeoutMs', 5000);
 
 interface Email {
   id: string;
@@ -62,7 +66,7 @@ class DiscordNotificationService {
     try {
       // Discord webhooks can be tested with a GET request to get webhook info
       console.log('🔍 Testing Discord webhook connection...');
-      const response = await axios.get(webhookUrl, { timeout: 5000 });
+      const response = await axios.get(webhookUrl, { timeout: DISCORD_TIMEOUT() });
 
       if (response.data && response.data.id) {
         // Mask the webhook URL for security (only show channel name)

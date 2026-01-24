@@ -1,5 +1,9 @@
 import axios from 'axios';
 import Anthropic from '@anthropic-ai/sdk';
+import { configService } from '../core/configService';
+
+// Get timeout from config
+const LEARNING_TIMEOUT = () => configService.get('learning.api.timeoutMs', 10000);
 
 interface LearningResource {
   id: string;
@@ -111,7 +115,7 @@ class LearningService {
           per_page: 15,
           top: 7 // Top articles from last 7 days
         },
-        timeout: 10000
+        timeout: LEARNING_TIMEOUT()
       });
 
       const articles = response.data || [];
@@ -146,7 +150,7 @@ class LearningService {
           tags: 'story',
           hitsPerPage: 15
         },
-        timeout: 10000
+        timeout: LEARNING_TIMEOUT()
       });
 
       const hits = response.data.hits || [];
@@ -187,7 +191,7 @@ class LearningService {
         headers: {
           'User-Agent': 'Pocketknife-Learning-Agent/1.0'
         },
-        timeout: 10000
+        timeout: LEARNING_TIMEOUT()
       });
 
       const posts = response.data?.data?.children || [];
@@ -252,7 +256,7 @@ class LearningService {
           tag: 'career',
           per_page: 10
         },
-        timeout: 10000
+        timeout: LEARNING_TIMEOUT()
       });
 
       const articles = response.data || [];
@@ -320,7 +324,7 @@ class LearningService {
         try {
           // Fetch RSS feed
           const response = await axios.get(newsletter.rssUrl, {
-            timeout: 10000,
+            timeout: LEARNING_TIMEOUT(),
             headers: {
               'Accept': 'application/rss+xml, application/xml, text/xml'
             }
@@ -584,7 +588,7 @@ Format the response with clear sections using emojis and bullet points for easy 
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           },
-          timeout: 15000
+          timeout: LEARNING_TIMEOUT()
         });
         
         // Extract text content from HTML (improved extraction)

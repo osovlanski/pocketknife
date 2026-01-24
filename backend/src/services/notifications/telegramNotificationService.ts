@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
+
+// Get timeout from config
+const TELEGRAM_TIMEOUT = () => configService.get('notifications.telegram.timeoutMs', 5000);
 
 interface Email {
   id: string;
@@ -61,7 +65,7 @@ class TelegramNotificationService {
     try {
       // Test the bot token by getting bot info
       const url = `https://api.telegram.org/bot${this.botToken}/getMe`;
-      const response = await axios.get(url, { timeout: 5000 });
+      const response = await axios.get(url, { timeout: TELEGRAM_TIMEOUT() });
 
       if (response.data.ok) {
         return {

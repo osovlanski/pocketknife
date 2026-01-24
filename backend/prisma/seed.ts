@@ -5,6 +5,7 @@
  * - Default user
  * - Default preferences
  * - Sample app config
+ * - Configurable data (migrated from hardcoded values)
  * 
  * Run with: npm run db:seed
  */
@@ -13,6 +14,13 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import { 
+  seedNewsConfig, 
+  seedJobMatchingConfig,
+  seedCuratedProblems,
+  seedTravelDestinations,
+  seedCompanyProfiles
+} from './seeds';
 
 // Prisma 7 requires an adapter for direct database connections
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -87,7 +95,53 @@ async function main() {
     }
   });
 
-  console.log('✅ Database seeded successfully!');
+  // ==========================================================================
+  // SEED CONFIGURABLE DATA (Migrated from hardcoded values)
+  // ==========================================================================
+  
+  console.log('\n📦 Seeding configurable data...');
+  
+  // Seed news configuration (topic mappings, subreddits, API categories)
+  try {
+    const newsConfigCount = await seedNewsConfig(prisma);
+    console.log(`✅ Seeded ${newsConfigCount} news config entries`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed news config:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed job matching configuration (skills, synonyms, weights)
+  try {
+    const jobConfigCount = await seedJobMatchingConfig(prisma);
+    console.log(`✅ Seeded ${jobConfigCount} job matching config entries`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed job matching config:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed curated problems (Blind 75, Grind 75, NeetCode 150)
+  try {
+    const problemsCount = await seedCuratedProblems(prisma);
+    console.log(`✅ Seeded ${problemsCount} curated problems`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed curated problems:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed travel destinations (Israel destinations, trails, beaches)
+  try {
+    const destinationsCount = await seedTravelDestinations(prisma);
+    console.log(`✅ Seeded ${destinationsCount} travel destinations`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed travel destinations:', error instanceof Error ? error.message : error);
+  }
+  
+  // Seed company profiles (interview focus, tips, difficulty breakdown)
+  try {
+    const profilesCount = await seedCompanyProfiles(prisma);
+    console.log(`✅ Seeded ${profilesCount} company profiles`);
+  } catch (error) {
+    console.warn('⚠️ Failed to seed company profiles:', error instanceof Error ? error.message : error);
+  }
+
+  console.log('\n✅ Database seeded successfully!');
 }
 
 main()

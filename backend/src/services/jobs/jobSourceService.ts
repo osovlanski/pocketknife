@@ -5,6 +5,11 @@ import comeetCareersService from './comeetCareersService';
 import israeliTechCommunityService from './israeliTechCommunityService';
 import israelTechScraperService from './israelTechScraperService';
 import { googleSearchService } from '../core/googleSearchService';
+import { configService } from '../core/configService';
+
+// Get timeouts from config
+const JOB_API_TIMEOUT = () => configService.get('jobs.api.timeoutMs', 15000);
+const JOB_LONG_TIMEOUT = () => configService.get('jobs.sources.longTimeoutMs', 20000);
 
 interface JobListing {
   id: string;
@@ -570,7 +575,7 @@ class JobSourceService {
                 'X-RapidAPI-Key': apiKey,
                 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
               },
-              timeout: 20000 // Increased timeout to 20 seconds
+              timeout: JOB_LONG_TIMEOUT() // Increased timeout from config
             }
           );
 
@@ -692,7 +697,7 @@ class JobSourceService {
             results_per_page: 20,
             sort_by: 'relevance'
           },
-          timeout: 15000
+          timeout: JOB_API_TIMEOUT()
         }
       );
 
@@ -748,7 +753,7 @@ class JobSourceService {
       const response = await axios.get(
         'https://www.arbeitnow.com/api/job-board-api',
         {
-          timeout: 15000
+          timeout: JOB_API_TIMEOUT()
         }
       );
 
