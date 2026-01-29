@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, ArrowRight, Sparkles,
-  Zap, Shield, Settings, Utensils, Newspaper, Hammer
+  Zap, Shield, Settings, Utensils, Newspaper, Hammer, Bot
 } from 'lucide-react';
 import type { CurrentUser } from '../services/authApi';
 import type { AgentStatus } from '../services/configApi';
@@ -25,6 +25,15 @@ interface AgentCard {
 }
 
 const agents: AgentCard[] = [
+  {
+    id: 'assistant',
+    name: '🤖 AI Assistant',
+    description: 'Your intelligent orchestrator that can access all agents. Just ask in natural language!',
+    icon: Bot,
+    path: '/agents/assistant',
+    gradient: 'from-violet-500 to-purple-600',
+    features: ['Natural language', 'Multi-agent access', 'Smart suggestions']
+  },
   {
     id: 'email',
     name: 'Email Agent',
@@ -168,7 +177,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
 
           {!user && (
             <Link
-              to="/agents/email"
+              to="/agents/assistant"
               className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 
                          bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl
                          text-white font-semibold text-base sm:text-lg no-underline
@@ -186,13 +195,13 @@ const HomePage: React.FC<HomePageProps> = ({ user, isAdmin, agentStatus }) => {
                 Welcome back, <strong className="text-white">{user.name || user.email}</strong>
               </span>
               <Link
-                to="/agents/email"
+                to="/agents/assistant"
                 className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3
                            bg-purple-500/20 border border-purple-500/30 rounded-lg
                            text-purple-300 font-medium text-sm sm:text-base no-underline
                            hover:bg-purple-500/30 transition-colors touch-manipulation"
               >
-                Go to Agents
+                🤖 AI Assistant
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

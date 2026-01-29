@@ -262,6 +262,32 @@
   background: rgba(239, 68, 68, 0.3);
 }
 
+.actionButtonSuccess {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.actionButtonSuccess:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.actionButtonSuccess:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.closeButton {
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
 /* =============================================================================
    CATEGORY FILTERS
    ============================================================================= */

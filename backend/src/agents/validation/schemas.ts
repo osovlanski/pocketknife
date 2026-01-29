@@ -300,6 +300,44 @@ export const diyGenerateSchema = z.object({
 });
 
 // =============================================================================
+// ASSISTANT AGENT SCHEMAS
+// =============================================================================
+
+export const assistantChatSchema = z.object({
+  action: z.literal('chat'),
+  userId: userIdSchema,
+  message: z.string().min(1, 'Message is required').max(5000),
+  conversationId: z.string().uuid().optional(),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string()
+  })).optional()
+});
+
+export const assistantGetCapabilitiesSchema = z.object({
+  action: z.literal('get-capabilities')
+});
+
+export const assistantGetConversationSchema = z.object({
+  action: z.literal('get-conversation'),
+  userId: userIdSchema,
+  conversationId: z.string().uuid()
+});
+
+export const assistantClearConversationSchema = z.object({
+  action: z.literal('clear-conversation'),
+  userId: userIdSchema,
+  conversationId: z.string().uuid()
+});
+
+export const AssistantSchemas = {
+  chat: assistantChatSchema,
+  'get-capabilities': assistantGetCapabilitiesSchema,
+  'get-conversation': assistantGetConversationSchema,
+  'clear-conversation': assistantClearConversationSchema
+};
+
+// =============================================================================
 // VALIDATION HELPER
 // =============================================================================
 

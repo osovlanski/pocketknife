@@ -14,7 +14,9 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
-import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams } from '../services/cooking';
+import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams, recipeDeliveryService } from '../services/cooking';
+import { deliveryService } from '../services/delivery';
+import type { RecipeOrderResult, DeliveryProviderInfo, WoltDeliveryResponse, UserDeliveryAddress } from '../types/delivery';
 
 interface CookingParams extends AgentParams {
   action:
@@ -39,7 +41,12 @@ interface CookingParams extends AgentParams {
     | 'process-invoice'
     | 'match-invoice'
     | 'get-summary'
-    | 'get-suggestions';
+    | 'get-suggestions'
+    | 'create-recipe-order'
+    | 'get-delivery-providers'
+    | 'place-wolt-order'
+    | 'get-wolt-order-status'
+    | 'cancel-wolt-order';
   itemData?: CookingItemData;
   itemId?: string;
   listId?: string;
@@ -58,6 +65,16 @@ interface CookingParams extends AgentParams {
   invoiceDate?: string;
   merchant?: string;
   invoiceItems?: Array<{ name: string; quantity?: number; unit?: string; price?: number }>;
+  // Delivery order params
+  spoonacularRecipeId?: number;
+  checkInventory?: boolean;
+  providerId?: string;
+  // Wolt delivery params
+  orderId?: string;
+  deliveryAddress?: UserDeliveryAddress;
+  customerContact?: { name: string; phone: string };
+  deliveryInstructions?: string;
+  woltDeliveryId?: string;
 }
 
 interface CookingResult {
@@ -73,6 +90,11 @@ interface CookingResult {
   processed?: number;
   matched?: number;
   created?: number;
+  // Delivery results
+  recipeOrder?: RecipeOrderResult;
+  deliveryProviders?: DeliveryProviderInfo[];
+  woltDelivery?: WoltDeliveryResponse;
+  woltOrderCancelled?: boolean;
 }
 
 export class CookingAgent extends AbstractAgent {
@@ -143,6 +165,18 @@ export class CookingAgent extends AbstractAgent {
         return this.getSummary(params);
       case 'get-suggestions':
         return this.getSuggestions(params);
+
+      // Delivery
+      case 'create-recipe-order':
+        return this.createRecipeOrder(params);
+      case 'get-delivery-providers':
+        return this.getDeliveryProviders();
+      case 'place-wolt-order':
+        return this.placeWoltOrder(params);
+      case 'get-wolt-order-status':
+        return this.getWoltOrderStatus(params);
+      case 'cancel-wolt-order':
+        return this.cancelWoltOrder(params);
 
       default:
         return { success: false, error: `Unknown action: ${action}` };
@@ -508,6 +542,164 @@ export class CookingAgent extends AbstractAgent {
       }
       return { success: true, data: { suggestions } };
     } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ===========================================================================
+  // DELIVERY
+  // ===========================================================================
+
+  private async createRecipeOrder(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, spoonacularRecipeId, checkInventory = true, providerId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!spoonacularRecipeId) return { success: false, error: 'Recipe ID is required' };
+
+    this.emitLog('🛒 Creating order from recipe...', 'info');
+    this.emitProgress(10);
+
+    try {
+      const recipeOrder = await recipeDeliveryService.createOrderFromSpoonacularRecipe(
+        spoonacularRecipeId,
+        userId,
+        checkInventory,
+        providerId
+      );
+
+      if (!recipeOrder) {
+        return { success: false, error: 'Failed to create recipe order' };
+      }
+
+      this.emitProgress(80);
+
+      const inInventoryCount = recipeOrder.itemsInInventory.length;
+      const toOrderCount = recipeOrder.itemsToOrder.length;
+
+      if (inInventoryCount > 0) {
+        this.emitLog(`📦 ${inInventoryCount} ingredients already in inventory`, 'success');
+      }
+
+      if (toOrderCount > 0) {
+        this.emitLog(`🛒 ${toOrderCount} ingredients need to be ordered`, 'info');
+        if (recipeOrder.orderPreview) {
+          this.emitLog(`💰 Order total: ${recipeOrder.orderPreview.currency} ${recipeOrder.orderPreview.total}`, 'info');
+        }
+      } else {
+        this.emitLog('✅ You have all ingredients in your inventory!', 'success');
+      }
+
+      if (recipeOrder.orderLink) {
+        this.emitLog(`🔗 Order link ready: ${recipeOrder.orderLink.providerName}`, 'success');
+      }
+
+      this.emitProgress(100);
+
+      return { success: true, data: { recipeOrder } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to create recipe order: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  private async getDeliveryProviders(): Promise<AgentResult<CookingResult>> {
+    try {
+      const deliveryProviders = recipeDeliveryService.getDeliveryProviders();
+      this.emitLog(`📦 ${deliveryProviders.length} delivery providers available`, 'info');
+      return { success: true, data: { deliveryProviders } };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Place an actual Wolt Drive delivery order
+   * This dispatches a courier to pick up and deliver the ingredients
+   */
+  private async placeWoltOrder(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { orderId, customerContact, deliveryInstructions } = params;
+
+    if (!orderId) return { success: false, error: 'Order ID is required' };
+    if (!customerContact?.name || !customerContact?.phone) {
+      return { success: false, error: 'Customer contact (name and phone) is required' };
+    }
+
+    this.emitLog('🚚 Placing Wolt delivery order...', 'info');
+    this.emitProgress(20);
+
+    try {
+      const woltDelivery = await deliveryService.createWoltDelivery(
+        orderId,
+        customerContact,
+        deliveryInstructions
+      );
+
+      if (!woltDelivery) {
+        return { success: false, error: 'Failed to create Wolt delivery' };
+      }
+
+      this.emitProgress(80);
+      this.emitLog(`✅ Courier dispatched! Delivery ID: ${woltDelivery.id}`, 'success');
+      this.emitLog(`🔗 Track your order: ${woltDelivery.tracking.url}`, 'info');
+      
+      if (woltDelivery.dropoff.eta) {
+        this.emitLog(`⏰ Estimated delivery: ${woltDelivery.dropoff.eta}`, 'info');
+      }
+
+      this.emitProgress(100);
+
+      return { success: true, data: { woltDelivery } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to place Wolt order: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get the status of a Wolt delivery
+   */
+  private async getWoltOrderStatus(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { woltDeliveryId } = params;
+
+    if (!woltDeliveryId) return { success: false, error: 'Wolt delivery ID is required' };
+
+    try {
+      const woltDelivery = await deliveryService.getWoltDeliveryStatus(woltDeliveryId);
+
+      if (!woltDelivery) {
+        return { success: false, error: 'Failed to get delivery status' };
+      }
+
+      this.emitLog(`📍 Delivery status: ${woltDelivery.status}`, 'info');
+
+      return { success: true, data: { woltDelivery } };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Cancel a Wolt delivery
+   */
+  private async cancelWoltOrder(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { woltDeliveryId } = params;
+
+    if (!woltDeliveryId) return { success: false, error: 'Wolt delivery ID is required' };
+
+    this.emitLog('🛑 Cancelling Wolt delivery...', 'info');
+
+    try {
+      const cancelled = await deliveryService.cancelWoltDelivery(woltDeliveryId);
+
+      if (cancelled) {
+        this.emitLog('✅ Delivery cancelled successfully', 'success');
+      } else {
+        this.emitLog('❌ Failed to cancel delivery', 'error');
+      }
+
+      return { success: cancelled, data: { woltOrderCancelled: cancelled } };
+    } catch (error: any) {
+      this.emitLog(`❌ Error cancelling delivery: ${error.message}`, 'error');
       return { success: false, error: error.message };
     }
   }

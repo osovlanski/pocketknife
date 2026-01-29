@@ -20,6 +20,11 @@ export type { AgentThemeId } from './AgentPageLayout';
 export { default as AgentTabs } from './AgentTabs';
 export type { TabConfig } from './AgentTabs';
 export { default as AgentCard, CardHeader, CardContent, CardFooter, CardBadge } from './AgentCard';
+export { default as AgentSidebarLayout } from './AgentSidebarLayout';
+export type { SidebarAgent } from './AgentSidebarLayout';
+export { AGENT_TAGS, AgentTagBadge, findAgentByKeyword, findAgentById, extractAgentTags, getAllKeywords } from './AgentTags';
+export type { AgentTagConfig } from './AgentTags';
+export { default as MarkdownContent } from './MarkdownContent';
 export { 
   LoadingSpinner, 
   Skeleton, 

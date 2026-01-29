@@ -1,0 +1,362 @@
+/**
+ * Agent Sidebar Layout Styles
+ * 
+ * A modern chat-first layout with a collapsible agent sidebar.
+ * Emphasizes the AI Assistant as the primary interface.
+ */
+
+/* =============================================================================
+   LAYOUT CONTAINER
+   ============================================================================= */
+
+.layoutContainer {
+  display: flex;
+  height: 100%;
+  min-height: calc(100vh - 70px);
+  background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+}
+
+/* =============================================================================
+   SIDEBAR
+   ============================================================================= */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  min-width: 240px;
+  background: rgba(15, 23, 42, 0.8);
+  border-right: 1px solid rgba(139, 92, 246, 0.2);
+  backdrop-filter: blur(12px);
+  transition: width 0.3s ease, min-width 0.3s ease;
+  position: relative;
+  z-index: 20;
+}
+
+.sidebarCollapsed {
+  width: 72px;
+  min-width: 72px;
+}
+
+/* =============================================================================
+   AI ASSISTANT SECTION (Featured at Top)
+   ============================================================================= */
+
+.assistantSection {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.assistantButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.assistantButton:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(99, 102, 241, 0.2));
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
+}
+
+.assistantButtonActive {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(99, 102, 241, 0.25));
+  border-color: #8b5cf6;
+  box-shadow: 
+    0 0 20px rgba(139, 92, 246, 0.3),
+    inset 0 0 20px rgba(139, 92, 246, 0.1);
+}
+
+.assistantIcon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  border-radius: 0.75rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sparkle {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: #fbbf24;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.assistantInfo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.assistantTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+}
+
+.assistantSubtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* Collapsed state */
+.sidebarCollapsed .assistantButton {
+  padding: 0.75rem;
+  justify-content: center;
+}
+
+.sidebarCollapsed .assistantIcon {
+  width: 36px;
+  height: 36px;
+}
+
+/* =============================================================================
+   SIDEBAR DIVIDER
+   ============================================================================= */
+
+.sidebarDivider {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sidebarDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-left: 0.75rem;
+}
+
+.sidebarCollapsed .sidebarDivider {
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.sidebarCollapsed .sidebarDivider::after {
+  display: none;
+}
+
+/* =============================================================================
+   AGENT LIST
+   ============================================================================= */
+
+.agentList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* =============================================================================
+   SIDEBAR ITEM
+   ============================================================================= */
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  color: #94a3b8;
+}
+
+.sidebarItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.sidebarItemActive {
+  background: var(--agent-bg);
+  border-color: var(--agent-border);
+  color: var(--agent-color);
+}
+
+.sidebarItemActive:hover {
+  background: var(--agent-bg);
+}
+
+.sidebarItemIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.sidebarItemActive .sidebarItemIcon {
+  background: var(--agent-bg);
+}
+
+.emojiIcon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.sidebarItemLabel {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebarItemBadge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--agent-color, #8b5cf6);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+/* Collapsed state */
+.sidebarCollapsed .sidebarItem {
+  justify-content: center;
+  padding: 0.625rem;
+}
+
+.sidebarCollapsed .sidebarItemIcon {
+  width: 36px;
+  height: 36px;
+}
+
+.sidebarCollapsed .sidebarItemBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(25%, -25%);
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.65rem;
+}
+
+.sidebarCollapsed .sidebarItem {
+  position: relative;
+}
+
+/* =============================================================================
+   COLLAPSE TOGGLE
+   ============================================================================= */
+
+.collapseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.collapseButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+/* =============================================================================
+   MAIN CONTENT
+   ============================================================================= */
+
+.mainContent {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0; /* Prevent flex overflow */
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 70px;
+    bottom: 0;
+    z-index: 50;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .sidebarCollapsed {
+    width: 60px;
+    min-width: 60px;
+  }
+
+  .mainContent {
+    margin-left: 60px;
+  }
+
+  .assistantSection {
+    padding: 0.75rem;
+  }
+
+  .agentList {
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .layoutContainer {
+    min-height: calc(100vh - 60px);
+  }
+  
+  .sidebar {
+    top: 60px;
+  }
+}

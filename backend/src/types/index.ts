@@ -1,5 +1,6 @@
 // Re-export shared constants and types
 export * from './constants';
+export * from './delivery';
 
 export interface Email {
   id: string;

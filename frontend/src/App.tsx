@@ -10,7 +10,7 @@ import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-
 import { 
   Mail, Briefcase, Plane, BookOpen, Code, 
   CheckSquare, ShoppingCart, Mountain, Square, Utensils,
-  Newspaper, Wrench, MapPin, MessageCircle, PenTool, Building2
+  Newspaper, Wrench, MapPin, MessageCircle, PenTool, Building2, Bot
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -27,8 +27,9 @@ import useNotification from './hooks/useNotification';
 import useSearchController from './hooks/useSearchController';
 
 // Common Components
-import { Header, NavTabs, SignInModal } from './components/common';
+import { Header, SignInModal } from './components/common';
 import { ToastContainer } from './components/common/Toast';
+import AgentSidebarLayout, { type SidebarAgent } from './components/common/AgentSidebarLayout';
 
 // Page Components
 import HomePage from './components/HomePage';
@@ -54,6 +55,7 @@ import ShoppingAgent from './components/ShoppingAgent';
 import CookingAgent from './components/CookingAgent';
 import NewsAgent from './components/NewsAgent';
 import DIYAgent from './components/DIYAgent';
+import AssistantAgent from './components/AssistantAgent';
 import CanvasTool from './components/CanvasTool';
 
 // Activity Log
@@ -64,7 +66,6 @@ import { searchTravel, stopTravelSearch, type TravelSearchResponse } from './ser
 import { getAgentStatus, invalidateCache, type AgentStatus } from './services/configApi';
 import type { TravelSearchQuery } from './types/travel';
 import type { JobSearchFilters } from './types';
-import type { TabConfig } from './components/common/NavTabs';
 
 // Styles
 import styles from './styles/layout.module.css';
@@ -85,19 +86,19 @@ interface LogEntry {
 // TAB CONFIGURATION
 // =============================================================================
 
-// Agent tabs configuration - labels will be translated in component
-const getAgentTabs = (t: (key: string) => string): TabConfig[] => [
-  { id: 'email', label: t('nav.email'), icon: Mail, color: 'blue', path: '/agents/email' },
-  { id: 'jobs', label: t('nav.jobs'), icon: Briefcase, color: 'purple', path: '/agents/jobs' },
-  { id: 'travel', label: t('nav.travel'), icon: Plane, color: 'green', path: '/agents/travel' },
-  { id: 'learning', label: t('nav.learning'), icon: BookOpen, color: 'amber', path: '/agents/learning' },
-  // Problems/Coding Practice is now part of Jobs > Mock Interview > Coding Practice tab
-  { id: 'todo', label: t('nav.todo'), icon: CheckSquare, color: 'emerald', path: '/agents/todo' },
-  { id: 'shopping', label: t('nav.shopping'), icon: ShoppingCart, color: 'orange', path: '/agents/shopping' },
-  { id: 'cooking', label: t('nav.cooking'), icon: Utensils, color: 'lime', path: '/agents/cooking' },
-  { id: 'news', label: t('nav.news'), icon: Newspaper, color: 'red', path: '/agents/news' },
-  { id: 'diy', label: t('nav.diy'), icon: Wrench, color: 'amber', path: '/agents/diy' },
-  { id: 'canvas', label: t('nav.canvas'), icon: PenTool, color: 'indigo', path: '/tools/canvas' }
+// Agent configuration for sidebar - assistant is featured separately
+const getSidebarAgents = (t: (key: string) => string): SidebarAgent[] => [
+  { id: 'assistant', name: 'AI Assistant', icon: Bot, emoji: '🤖', color: '#8b5cf6', path: '/agents/assistant' },
+  { id: 'email', name: t('nav.email'), icon: Mail, emoji: '📧', color: '#3b82f6', path: '/agents/email' },
+  { id: 'jobs', name: t('nav.jobs'), icon: Briefcase, emoji: '💼', color: '#a855f7', path: '/agents/jobs' },
+  { id: 'travel', name: t('nav.travel'), icon: Plane, emoji: '✈️', color: '#22c55e', path: '/agents/travel' },
+  { id: 'learning', name: t('nav.learning'), icon: BookOpen, emoji: '📚', color: '#f59e0b', path: '/agents/learning' },
+  { id: 'todo', name: t('nav.todo'), icon: CheckSquare, emoji: '✅', color: '#10b981', path: '/agents/todo' },
+  { id: 'shopping', name: t('nav.shopping'), icon: ShoppingCart, emoji: '🛍️', color: '#f97316', path: '/agents/shopping' },
+  { id: 'cooking', name: t('nav.cooking'), icon: Utensils, emoji: '🍳', color: '#84cc16', path: '/agents/cooking' },
+  { id: 'news', name: t('nav.news'), icon: Newspaper, emoji: '📰', color: '#ef4444', path: '/agents/news' },
+  { id: 'diy', name: t('nav.diy'), icon: Wrench, emoji: '🔧', color: '#eab308', path: '/agents/diy' },
+  { id: 'canvas', name: t('nav.canvas'), icon: PenTool, emoji: '🎨', color: '#6366f1', path: '/tools/canvas' }
 ];
 
 // =============================================================================
@@ -252,30 +253,21 @@ const App: React.FC = () => {
   const isOnAgentPage = isAgentRoute(location.pathname);
   const isOnHomePage = location.pathname === '/';
 
-  // Get translated agent tabs
-  const agentTabs = getAgentTabs(t);
+  // Get translated sidebar agents
+  const sidebarAgents = getSidebarAgents(t);
   
-  // Filter agent tabs based on enabled status
-  const enabledAgentTabs = agentTabs.filter(tab => 
-    agentStatus[tab.id as keyof AgentStatus] !== false
-  );
-
-  const tabsWithBadges = enabledAgentTabs.map(tab => {
-    if (tab.id === 'jobs') {
-      return {
-        ...tab,
-        badge: jobs.length > 0 ? jobs.length : undefined,
-        pulseBadge: liveMatches > 0 && activeTab !== 'jobs' ? liveMatches : undefined
-      };
-    }
-    if (tab.id === 'travel' && travelResults) {
-      return {
-        ...tab,
-        badge: travelResults.flights.length + travelResults.hotels.length
-      };
-    }
-    return tab;
-  });
+  // Filter agents based on enabled status and add badges
+  const enabledSidebarAgents = sidebarAgents
+    .filter(agent => agentStatus[agent.id as keyof AgentStatus] !== false || agent.id === 'assistant' || agent.id === 'canvas')
+    .map(agent => {
+      if (agent.id === 'jobs' && jobs.length > 0) {
+        return { ...agent, badge: jobs.length };
+      }
+      if (agent.id === 'travel' && travelResults) {
+        return { ...agent, badge: travelResults.flights.length + travelResults.hotels.length };
+      }
+      return agent;
+    });
 
   // ---------------------------------------------------------------------------
   // Effects
@@ -507,12 +499,12 @@ const App: React.FC = () => {
   // Navigation handlers
   // ---------------------------------------------------------------------------
 
-  const handleTabChange = useCallback((tabId: string) => {
-    const tab = agentTabs.find(t => t.id === tabId);
-    if (tab?.path) {
-      navigate(tab.path);
+  const handleAgentSelect = useCallback((agentId: string) => {
+    const agent = sidebarAgents.find(a => a.id === agentId);
+    if (agent?.path) {
+      navigate(agent.path);
     }
-  }, [navigate]);
+  }, [navigate, sidebarAgents]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -547,246 +539,253 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
 
-      {/* Agent Navigation Tabs - only show on agent pages */}
-      {isOnAgentPage && (
-        <NavTabs
-          tabs={tabsWithBadges}
-          activeTab={activeTab || 'email'}
-          onTabChange={handleTabChange}
-        />
-      )}
+      {/* Main Content - conditionally show sidebar layout for agent pages */}
+      {isOnAgentPage ? (
+        <AgentSidebarLayout
+          agents={enabledSidebarAgents}
+          activeAgentId={activeTab || 'assistant'}
+          onAgentSelect={handleAgentSelect}
+        >
+          <Routes>
+            {/* Default to AI Assistant */}
+            <Route path="/agents" element={<AssistantAgent />} />
+            
+            {/* AI Assistant */}
+            <Route path="/agents/assistant" element={<AssistantAgent />} />
 
-      {/* Main Content */}
-      <main className={styles.mainContent}>
-        <Routes>
-          {/* Home Page */}
-          <Route path="/" element={
-            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
-          } />
+            {/* Email Agent */}
+            <Route path="/agents/email" element={<GmailAgent />} />
+      
+            {/* Jobs Agent */}
+            <Route path="/agents/jobs" element={
+              <AgentLayout
+                title={`🤖 ${t('jobs.title')}`}
+                subtitle={t('jobs.subtitle')}
+                gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
+              >
+                {/* Jobs Mode Switcher */}
+                <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
+                  <button
+                    onClick={() => setJobsMode('search')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                               rounded-lg font-semibold text-sm border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${jobsMode === 'search'
+                                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
+                                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                    aria-pressed={jobsMode === 'search'}
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    <span>{t('jobs.jobSearch')}</span>
+                  </button>
+                  <button
+                    onClick={() => setJobsMode('company')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                               rounded-lg font-semibold text-sm border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${jobsMode === 'company'
+                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                    aria-pressed={jobsMode === 'company'}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>Company Search</span>
+                  </button>
+                  <button
+                    onClick={() => setJobsMode('interview')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
+                               rounded-lg font-semibold text-sm border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${jobsMode === 'interview'
+                                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                    aria-pressed={jobsMode === 'interview'}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{t('jobs.mockInterview')}</span>
+                  </button>
+                </div>
 
-          {/* Settings */}
-          <Route path="/settings" element={
-            <SettingsPage user={auth.currentUser} onUserUpdate={auth.refreshUser} />
-          } />
+                {jobsMode === 'search' ? (
+                  <>
+                    <JobSearchPanel
+                      onCVUploaded={handleCVUploaded}
+                      onSearch={handleJobSearch}
+                      onStop={handleStopJobSearch}
+                      isSearching={jobSearchController.state.isSearching}
+                      isStopping={jobSearchController.state.isStopping}
+                      cvText={jobCVText}
+                      onCVTextChange={setJobCVText}
+                      cvData={jobCVData}
+                      onCVDataChange={setJobCVData}
+                      location={jobLocation}
+                      onLocationChange={setJobLocation}
+                      remoteOnly={jobRemoteOnly}
+                      onRemoteOnlyChange={setJobRemoteOnly}
+                      filters={jobFilters}
+                      onFiltersChange={setJobFilters}
+                    />
+                    {jobs.length > 0 && <JobListings jobs={jobs} />}
+                  </>
+                ) : jobsMode === 'company' ? (
+                  <CompanySearchPanel onJobsFound={(foundJobs) => setJobs(foundJobs)} />
+                ) : (
+                  <MockInterviewPanel />
+                )}
+              </AgentLayout>
+            } />
 
-          {/* Admin */}
-          <Route path="/admin" element={<AdminPanel />} />
+            {/* Travel Agent */}
+            <Route path="/agents/travel" element={
+              <AgentLayout
+                title={`✈️ ${t('travel.title')}`}
+                subtitle={t('travel.subtitle')}
+                gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
+              >
+                {/* Travel Mode Switcher */}
+                <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
+                  <button
+                    onClick={() => setTravelMode('flights')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                               rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${travelMode === 'flights'
+                                 ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                 : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                  >
+                    <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden xs:inline">Flights & Hotels</span>
+                    <span className="xs:hidden">Flights</span>
+                  </button>
+                  <button
+                    onClick={() => setTravelMode('ski')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                               rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${travelMode === 'ski'
+                                 ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                                 : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                  >
+                    <Mountain className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>⛷️ Ski</span>
+                  </button>
+                  <button
+                    onClick={() => setTravelMode('israel')}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
+                               rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
+                               transition-all duration-200 touch-manipulation active:scale-95
+                               ${travelMode === 'israel'
+                                 ? 'bg-gradient-to-r from-blue-400 via-white to-blue-400 text-blue-900'
+                                 : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                               }`}
+                  >
+                    <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>🇮🇱 Israel</span>
+                  </button>
+                </div>
 
-          {/* Email Agent */}
-          <Route path="/agents/email" element={<GmailAgent />} />
-          
-          {/* Jobs Agent */}
-          <Route path="/agents/jobs" element={
-            <AgentLayout
-              title={`🤖 ${t('jobs.title')}`}
-              subtitle={t('jobs.subtitle')}
-              gradient="linear-gradient(to right, rgb(192, 132, 252), rgb(244, 114, 182))"
-            >
-              {/* Jobs Mode Switcher */}
-              <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
-                <button
-                  onClick={() => setJobsMode('search')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
-                             rounded-lg font-semibold text-sm border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${jobsMode === 'search'
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                  aria-pressed={jobsMode === 'search'}
-                >
-                  <Briefcase className="w-4 h-4" />
-                  <span>{t('jobs.jobSearch')}</span>
-                </button>
-                <button
-                  onClick={() => setJobsMode('company')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
-                             rounded-lg font-semibold text-sm border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${jobsMode === 'company'
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                  aria-pressed={jobsMode === 'company'}
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Company Search</span>
-                </button>
-                <button
-                  onClick={() => setJobsMode('interview')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5
-                             rounded-lg font-semibold text-sm border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${jobsMode === 'interview'
-                                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                  aria-pressed={jobsMode === 'interview'}
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{t('jobs.mockInterview')}</span>
-                </button>
-              </div>
-
-              {jobsMode === 'search' ? (
-                <>
-                  <JobSearchPanel
-                    onCVUploaded={handleCVUploaded}
-                    onSearch={handleJobSearch}
-                    onStop={handleStopJobSearch}
-                    isSearching={jobSearchController.state.isSearching}
-                    isStopping={jobSearchController.state.isStopping}
-                    // Lifted state for persistence across tab switches
-                    cvText={jobCVText}
-                    onCVTextChange={setJobCVText}
-                    cvData={jobCVData}
-                    onCVDataChange={setJobCVData}
-                    location={jobLocation}
-                    onLocationChange={setJobLocation}
-                    remoteOnly={jobRemoteOnly}
-                    onRemoteOnlyChange={setJobRemoteOnly}
-                    filters={jobFilters}
-                    onFiltersChange={setJobFilters}
-                  />
-                  {jobs.length > 0 && <JobListings jobs={jobs} />}
-                </>
-              ) : jobsMode === 'company' ? (
-                <CompanySearchPanel onJobsFound={(foundJobs) => setJobs(foundJobs)} />
-              ) : (
-                <MockInterviewPanel />
-              )}
-            </AgentLayout>
-          } />
-
-          {/* Travel Agent */}
-          <Route path="/agents/travel" element={
-            <AgentLayout
-              title={`✈️ ${t('travel.title')}`}
-              subtitle={t('travel.subtitle')}
-              gradient="linear-gradient(to right, rgb(74, 222, 128), rgb(96, 165, 250))"
-            >
-              {/* Travel Mode Switcher */}
-              <div className="flex justify-center gap-2 mb-4 px-2 flex-wrap">
-                <button
-                  onClick={() => setTravelMode('flights')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
-                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${travelMode === 'flights'
-                               ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                >
-                  <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden xs:inline">Flights & Hotels</span>
-                  <span className="xs:hidden">Flights</span>
-                </button>
-                <button
-                  onClick={() => setTravelMode('ski')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
-                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${travelMode === 'ski'
-                               ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                >
-                  <Mountain className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>⛷️ Ski</span>
-                </button>
-                <button
-                  onClick={() => setTravelMode('israel')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 
-                             rounded-lg font-semibold text-sm sm:text-base border-none cursor-pointer
-                             transition-all duration-200 touch-manipulation active:scale-95
-                             ${travelMode === 'israel'
-                               ? 'bg-gradient-to-r from-blue-400 via-white to-blue-400 text-blue-900'
-                               : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                             }`}
-                >
-                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>🇮🇱 Israel</span>
-                </button>
-              </div>
-
-              {travelMode === 'flights' && (
-                <>
-                  <div className="relative">
-                    <TravelSearchPanel onSearch={handleTravelSearch} loading={travelLoading} />
-                    {travelLoading && (
-                      <button
-                        onClick={handleStopTravelSearch}
-                        className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1.5 sm:gap-2 
-                                   px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 border border-red-500/50 
-                                   rounded-lg text-red-400 cursor-pointer text-sm sm:text-base
-                                   hover:bg-red-500/30 transition-colors touch-manipulation"
-                      >
-                        <Square className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-                        Stop
-                      </button>
-                    )}
-                  </div>
-
-                  {travelError && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4">
-                      <p className="text-red-400 text-sm sm:text-base">❌ {travelError}</p>
+                {travelMode === 'flights' && (
+                  <>
+                    <div className="relative">
+                      <TravelSearchPanel onSearch={handleTravelSearch} loading={travelLoading} />
+                      {travelLoading && (
+                        <button
+                          onClick={handleStopTravelSearch}
+                          className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1.5 sm:gap-2 
+                                     px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 border border-red-500/50 
+                                     rounded-lg text-red-400 cursor-pointer text-sm sm:text-base
+                                     hover:bg-red-500/30 transition-colors touch-manipulation"
+                        >
+                          <Square className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
+                          Stop
+                        </button>
+                      )}
                     </div>
-                  )}
 
-                  {travelResults && (
-                    <>
-                      {travelResults.flights.length > 0 && <FlightResults flights={travelResults.flights} />}
-                      {travelResults.hotels.length > 0 && <HotelResults hotels={travelResults.hotels} />}
-                      {travelResults.tripPlan && <TripPlanner plan={travelResults.tripPlan} />}
-                    </>
-                  )}
-                </>
-              )}
-              
-              {travelMode === 'ski' && <SkiDealsPanel />}
-              
-              {travelMode === 'israel' && <IsraelTravelPanel />}
-            </AgentLayout>
-          } />
+                    {travelError && (
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 sm:p-4">
+                        <p className="text-red-400 text-sm sm:text-base">❌ {travelError}</p>
+                      </div>
+                    )}
 
-          {/* Learning Agent */}
-          <Route path="/agents/learning" element={<LearningAgent />} />
-          
-          {/* Problem Solving Agent - Redirect to Jobs Mock Interview */}
-          <Route path="/agents/problems" element={<Navigate to="/agents/jobs?mode=interview" replace />} />
+                    {travelResults && (
+                      <>
+                        {travelResults.flights.length > 0 && <FlightResults flights={travelResults.flights} />}
+                        {travelResults.hotels.length > 0 && <HotelResults hotels={travelResults.hotels} />}
+                        {travelResults.tripPlan && <TripPlanner plan={travelResults.tripPlan} />}
+                      </>
+                    )}
+                  </>
+                )}
+                
+                {travelMode === 'ski' && <SkiDealsPanel />}
+                
+                {travelMode === 'israel' && <IsraelTravelPanel />}
+              </AgentLayout>
+            } />
 
-          {/* ToDo Agent */}
-          <Route path="/agents/todo" element={<ToDoAgent />} />
+            {/* Learning Agent */}
+            <Route path="/agents/learning" element={<LearningAgent />} />
+            
+            {/* Problem Solving Agent - Redirect to Jobs Mock Interview */}
+            <Route path="/agents/problems" element={<Navigate to="/agents/jobs?mode=interview" replace />} />
 
-          {/* Shopping Agent */}
-          <Route path="/agents/shopping" element={<ShoppingAgent />} />
+            {/* ToDo Agent */}
+            <Route path="/agents/todo" element={<ToDoAgent />} />
 
-          {/* Cooking Agent */}
-          <Route path="/agents/cooking" element={<CookingAgent />} />
+            {/* Shopping Agent */}
+            <Route path="/agents/shopping" element={<ShoppingAgent />} />
 
-          {/* News Agent */}
-          <Route path="/agents/news" element={<NewsAgent />} />
+            {/* Cooking Agent */}
+            <Route path="/agents/cooking" element={<CookingAgent />} />
 
-          {/* DIY Agent */}
-          <Route path="/agents/diy" element={<DIYAgent />} />
+            {/* News Agent */}
+            <Route path="/agents/news" element={<NewsAgent />} />
 
-          {/* Canvas Tool */}
-          <Route path="/tools/canvas" element={
-            <AgentLayout
-              title="Canvas Tool"
-              subtitle="Create visual diagrams and architecture sketches"
-              gradient="linear-gradient(to right, #818cf8, #6366f1)"
-            >
-              <CanvasTool />
-            </AgentLayout>
-          } />
+            {/* DIY Agent */}
+            <Route path="/agents/diy" element={<DIYAgent />} />
 
-          {/* Catch-all redirect to home */}
-          <Route path="*" element={
-            <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
-          } />
-        </Routes>
-      </main>
+            {/* Canvas Tool */}
+            <Route path="/tools/canvas" element={
+              <AgentLayout
+                title="Canvas Tool"
+                subtitle="Create visual diagrams and architecture sketches"
+                gradient="linear-gradient(to right, #818cf8, #6366f1)"
+              >
+                <CanvasTool />
+              </AgentLayout>
+            } />
+          </Routes>
+        </AgentSidebarLayout>
+      ) : (
+        /* Non-agent pages */
+        <main className={styles.mainContent}>
+          <Routes>
+            {/* Home Page */}
+            <Route path="/" element={
+              <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
+            } />
+
+            {/* Settings */}
+            <Route path="/settings" element={
+              <SettingsPage user={auth.currentUser} onUserUpdate={auth.refreshUser} />
+            } />
+
+            {/* Admin */}
+            <Route path="/admin" element={<AdminPanel />} />
+
+            {/* Catch-all redirect to home */}
+            <Route path="*" element={
+              <HomePage user={auth.currentUser} isAdmin={auth.isAdmin} agentStatus={agentStatus} />
+            } />
+          </Routes>
+        </main>
+      )}
       
       {/* Activity Log - only show on agent pages */}
       {isOnAgentPage && (

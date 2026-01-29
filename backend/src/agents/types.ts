@@ -4,7 +4,7 @@
  * Defines the core contract for all agents in the Pocketknife platform.
  */
 
-export type AgentId = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'todo' | 'shopping' | 'cooking' | 'news' | 'diy';
+export type AgentId = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'todo' | 'shopping' | 'cooking' | 'news' | 'diy' | 'assistant';
 
 export type AgentStatus = 'idle' | 'running' | 'stopping' | 'completed' | 'error';
 
@@ -16,6 +16,8 @@ export interface AgentMetadata {
   description: string;
   icon: string;
   color: string;
+  /** Keywords/hashtags that trigger this agent (e.g., #recipe, #todo) */
+  keywords?: string[];
 }
 
 export interface AgentState {

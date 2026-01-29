@@ -583,3 +583,130 @@ export const getSuggestions = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// =============================================================================
+// DELIVERY / RECIPE ORDERING
+// =============================================================================
+
+/**
+ * Create an order from a recipe
+ */
+export const createRecipeOrder = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { spoonacularRecipeId, checkInventory, providerId } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'create-recipe-order',
+      userId,
+      spoonacularRecipeId,
+      checkInventory: checkInventory ?? true,
+      providerId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get available delivery providers
+ */
+export const getDeliveryProviders = async (req: Request, res: Response) => {
+  try {
+    const result = await cookingAgent.execute({
+      action: 'get-delivery-providers'
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Place an actual Wolt Drive delivery order
+ */
+export const placeWoltOrder = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { orderId, customerContact, deliveryInstructions } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'place-wolt-order',
+      userId,
+      orderId,
+      customerContact,
+      deliveryInstructions
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get Wolt delivery status
+ */
+export const getWoltOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { deliveryId } = req.params;
+
+    const result = await cookingAgent.execute({
+      action: 'get-wolt-order-status',
+      woltDeliveryId: deliveryId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Cancel a Wolt delivery
+ */
+export const cancelWoltOrder = async (req: Request, res: Response) => {
+  try {
+    const { deliveryId } = req.params;
+
+    const result = await cookingAgent.execute({
+      action: 'cancel-wolt-order',
+      woltDeliveryId: deliveryId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

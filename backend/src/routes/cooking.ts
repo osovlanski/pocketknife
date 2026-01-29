@@ -57,4 +57,16 @@ router.delete('/wishlist/:id', cookingController.removeFromWishlist);
 router.get('/summary', cookingController.getSummary);
 router.get('/suggestions', cookingController.getSuggestions);
 
+// =============================================================================
+// DELIVERY / RECIPE ORDERING
+// =============================================================================
+
+router.post('/recipes/order', cookingController.createRecipeOrder);
+router.get('/delivery/providers', cookingController.getDeliveryProviders);
+
+// Wolt Drive actual delivery (dispatches courier)
+router.post('/delivery/wolt/order', cookingController.placeWoltOrder);
+router.get('/delivery/wolt/status/:deliveryId', cookingController.getWoltOrderStatus);
+router.post('/delivery/wolt/cancel/:deliveryId', cookingController.cancelWoltOrder);
+
 export default router;
