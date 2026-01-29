@@ -213,6 +213,7 @@ const DEFAULT_CONFIG = {
   // ==========================================================================
   // ASSISTANT AGENT
   // ==========================================================================
+  'assistant.agent.rateLimit': 30,
   'assistant.agent.timeoutMs': 120000,
   'assistant.ai.maxTokens': 4000,
   'assistant.ai.planningMaxTokens': 2000,

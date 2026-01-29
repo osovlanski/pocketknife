@@ -65,7 +65,12 @@ export const recipeDeliveryService = {
         }
       });
 
-      return items;
+      // Map null values to undefined for type compatibility
+      return items.map(item => ({
+        ...item,
+        unit: item.unit ?? undefined,
+        category: item.category ?? undefined
+      }));
     } catch (error: any) {
       logger.fail('Failed to get inventory', { error: error.message });
       return [];

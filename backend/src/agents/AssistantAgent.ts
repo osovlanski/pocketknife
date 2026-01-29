@@ -225,7 +225,7 @@ export class AssistantAgent extends AbstractAgent {
     if (!userId) return { success: false, error: 'User ID is required' };
     if (!conversationId) return { success: false, error: 'Conversation ID is required' };
 
-    await cacheService.del(conversationCacheKey(userId, conversationId));
+    await cacheService.delete(conversationCacheKey(userId, conversationId));
 
     this.emitLog('🗑️ Conversation cleared', 'info');
 
