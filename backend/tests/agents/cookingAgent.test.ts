@@ -58,7 +58,10 @@ vi.mock('../../src/utils/logger', () => ({
     fail: vi.fn(),
     success: vi.fn(),
     debug: vi.fn(),
-    agent: vi.fn()
+    agent: vi.fn(),
+    init: vi.fn(),
+    found: vi.fn(),
+    search: vi.fn()
   }
 }));
 

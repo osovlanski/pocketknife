@@ -15,7 +15,11 @@ import type {
   Recipe,
   SavedRecipe,
   InventorySummary,
-  RecipeSearchParams
+  RecipeSearchParams,
+  RecipeOrderResult,
+  DeliveryProviderInfo,
+  WoltDeliveryResponse,
+  CustomerContact
 } from '../services/cookingApi';
 
 export interface UseCookingReturn {
@@ -69,6 +73,28 @@ export interface UseCookingReturn {
   handleAddToWishlist: (recipe: Recipe) => Promise<void>;
   handleRemoveFromWishlist: (recipeId: string) => Promise<void>;
 
+  // Delivery actions
+  handleCreateRecipeOrder: (recipeId: number) => Promise<void>;
+  handleLoadDeliveryProviders: () => Promise<void>;
+  handleCloseOrderPreview: () => void;
+  handleOpenOrderLink: () => void;
+  
+  // Delivery state
+  orderPreview: RecipeOrderResult | null;
+  deliveryProviders: DeliveryProviderInfo[];
+  selectedRecipeForOrder: Recipe | null;
+  orderLoading: boolean;
+  showOrderPreview: boolean;
+  setSelectedRecipeForOrder: (recipe: Recipe | null) => void;
+  setShowOrderPreview: (show: boolean) => void;
+
+  // Wolt order actions
+  handlePlaceWoltOrder: (orderId: string, contact: CustomerContact, instructions?: string) => Promise<WoltDeliveryResponse | null>;
+  handleGetWoltStatus: (deliveryId: string) => Promise<WoltDeliveryResponse | null>;
+  handleCancelWoltOrder: (deliveryId: string) => Promise<boolean>;
+  woltDelivery: WoltDeliveryResponse | null;
+  woltOrderLoading: boolean;
+
   // Refresh
   refresh: () => Promise<void>;
 }
@@ -103,6 +129,17 @@ export const useCooking = (): UseCookingReturn => {
   // Form state
   const [newItem, setNewItem] = useState<InventoryItemData>(DEFAULT_NEW_ITEM);
   const [newListName, setNewListName] = useState('');
+
+  // Delivery state
+  const [orderPreview, setOrderPreview] = useState<RecipeOrderResult | null>(null);
+  const [deliveryProviders, setDeliveryProviders] = useState<DeliveryProviderInfo[]>([]);
+  const [selectedRecipeForOrder, setSelectedRecipeForOrder] = useState<Recipe | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [showOrderPreview, setShowOrderPreview] = useState(false);
+
+  // Wolt order state
+  const [woltDelivery, setWoltDelivery] = useState<WoltDeliveryResponse | null>(null);
+  const [woltOrderLoading, setWoltOrderLoading] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -394,6 +431,99 @@ export const useCooking = (): UseCookingReturn => {
     }
   }, []);
 
+  // ==========================================================================
+  // DELIVERY ACTIONS
+  // ==========================================================================
+
+  const handleCreateRecipeOrder = useCallback(async (recipeId: number) => {
+    try {
+      setOrderLoading(true);
+      const result = await cookingApi.createRecipeOrder(recipeId, { checkInventory: true });
+      setOrderPreview(result.recipeOrder);
+      setShowOrderPreview(true);
+    } catch (error) {
+      logger.error('Failed to create recipe order', { error });
+      alert('Failed to create order. Please try again.');
+    } finally {
+      setOrderLoading(false);
+    }
+  }, []);
+
+  const handleLoadDeliveryProviders = useCallback(async () => {
+    try {
+      const result = await cookingApi.getDeliveryProviders();
+      setDeliveryProviders(result.deliveryProviders || []);
+    } catch (error) {
+      logger.error('Failed to load delivery providers', { error });
+    }
+  }, []);
+
+  const handleCloseOrderPreview = useCallback(() => {
+    setShowOrderPreview(false);
+    setOrderPreview(null);
+    setSelectedRecipeForOrder(null);
+  }, []);
+
+  const handleOpenOrderLink = useCallback(() => {
+    if (orderPreview?.orderLink?.url) {
+      window.open(orderPreview.orderLink.url, '_blank');
+    }
+  }, [orderPreview]);
+
+  // ==========================================================================
+  // WOLT ORDER ACTIONS
+  // ==========================================================================
+
+  const handlePlaceWoltOrder = useCallback(async (
+    orderId: string,
+    contact: CustomerContact,
+    instructions?: string
+  ): Promise<WoltDeliveryResponse | null> => {
+    try {
+      setWoltOrderLoading(true);
+      const result = await cookingApi.placeWoltOrder(orderId, contact, instructions);
+      setWoltDelivery(result.woltDelivery);
+      return result.woltDelivery;
+    } catch (error) {
+      logger.error('Failed to place Wolt order', { error });
+      alert('Failed to place Wolt order. Please try again.');
+      return null;
+    } finally {
+      setWoltOrderLoading(false);
+    }
+  }, []);
+
+  const handleGetWoltStatus = useCallback(async (
+    deliveryId: string
+  ): Promise<WoltDeliveryResponse | null> => {
+    try {
+      const result = await cookingApi.getWoltOrderStatus(deliveryId);
+      setWoltDelivery(result.woltDelivery);
+      return result.woltDelivery;
+    } catch (error) {
+      logger.error('Failed to get Wolt order status', { error });
+      return null;
+    }
+  }, []);
+
+  const handleCancelWoltOrder = useCallback(async (
+    deliveryId: string
+  ): Promise<boolean> => {
+    try {
+      setWoltOrderLoading(true);
+      const result = await cookingApi.cancelWoltOrder(deliveryId);
+      if (result.woltOrderCancelled) {
+        setWoltDelivery(null);
+      }
+      return result.woltOrderCancelled;
+    } catch (error) {
+      logger.error('Failed to cancel Wolt order', { error });
+      return false;
+    } finally {
+      setWoltOrderLoading(false);
+    }
+  }, []);
+
   return {
     // State
     items,
@@ -444,6 +574,28 @@ export const useCooking = (): UseCookingReturn => {
     // Wishlist actions
     handleAddToWishlist,
     handleRemoveFromWishlist,
+
+    // Delivery actions
+    handleCreateRecipeOrder,
+    handleLoadDeliveryProviders,
+    handleCloseOrderPreview,
+    handleOpenOrderLink,
+
+    // Delivery state
+    orderPreview,
+    deliveryProviders,
+    selectedRecipeForOrder,
+    orderLoading,
+    showOrderPreview,
+    setSelectedRecipeForOrder,
+    setShowOrderPreview,
+
+    // Wolt order
+    handlePlaceWoltOrder,
+    handleGetWoltStatus,
+    handleCancelWoltOrder,
+    woltDelivery,
+    woltOrderLoading,
 
     // Refresh
     refresh

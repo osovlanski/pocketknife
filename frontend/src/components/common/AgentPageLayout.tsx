@@ -58,6 +58,11 @@ export const AGENT_THEMES = {
     accent: '#eab308',
     bgGlow: 'rgba(234, 179, 8, 0.15)',
   },
+  assistant: {
+    gradient: 'from-purple-500 via-violet-500 to-indigo-500',
+    accent: '#8b5cf6',
+    bgGlow: 'rgba(139, 92, 246, 0.15)',
+  },
 } as const;
 
 export type AgentThemeId = keyof typeof AGENT_THEMES;

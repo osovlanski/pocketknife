@@ -25,14 +25,18 @@ import {
   Heart,
   List,
   RefreshCw,
-  Star
+  Star,
+  Truck,
+  X,
+  CheckCircle,
+  ShoppingBag
 } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
 import AgentPageLayout from './common/AgentPageLayout';
 import useCooking from '../hooks/useCooking';
 import { useTranslation } from '../i18n';
 import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
-import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe } from '../services/cookingApi';
+import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe, RecipeOrderResult } from '../services/cookingApi';
 import styles from '../styles/cooking.module.css';
 
 // =============================================================================
@@ -264,9 +268,11 @@ interface RecipeCardProps {
   onAddToWishlist?: (recipe: Recipe) => void;
   isWishlist?: boolean;
   onRemoveFromWishlist?: (id: string) => void;
+  onOrder?: (recipe: Recipe) => void;
+  orderLoading?: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave, onAddToWishlist, isWishlist, onRemoveFromWishlist }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave, onAddToWishlist, isWishlist, onRemoveFromWishlist, onOrder, orderLoading }) => {
   const [imageError, setImageError] = React.useState(false);
   
   const handleImageError = () => {
@@ -355,6 +361,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSave, onAddToWishlist
                 <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={() => onAddToWishlist(recipe)}>
                   <Star className={styles.iconSmall} />
                   Wishlist
+                </button>
+              )}
+              {onOrder && (
+                <button 
+                  className={`${styles.actionButton} ${styles.actionButtonSuccess}`} 
+                  onClick={() => onOrder(recipe)}
+                  disabled={orderLoading}
+                >
+                  {orderLoading ? (
+                    <Loader2 className={`${styles.iconSmall} animate-spin`} />
+                  ) : (
+                    <Truck className={styles.iconSmall} />
+                  )}
+                  Order
                 </button>
               )}
             </>
@@ -452,6 +472,213 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
           Complete & Update Inventory
         </button>
       )}
+    </div>
+  );
+};
+
+// =============================================================================
+// ORDER PREVIEW MODAL
+// =============================================================================
+
+interface OrderPreviewModalProps {
+  isOpen: boolean;
+  orderResult: RecipeOrderResult | null;
+  onClose: () => void;
+  onOpenOrderLink: () => void;
+  loading?: boolean;
+}
+
+const OrderPreviewModal: React.FC<OrderPreviewModalProps> = ({
+  isOpen,
+  orderResult,
+  onClose,
+  onOpenOrderLink,
+  loading
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal} style={{ maxWidth: '600px' }}>
+        <div className={styles.modalHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 className={styles.modalTitle}>
+            <ShoppingBag style={{ marginRight: '0.5rem', display: 'inline' }} />
+            Order Ingredients
+          </h3>
+          <button 
+            onClick={onClose} 
+            className={styles.closeButton}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem' }}>
+            <Loader2 className="animate-spin" size={48} />
+            <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>Creating your order...</p>
+          </div>
+        ) : orderResult ? (
+          <div style={{ padding: '1rem 0' }}>
+            <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>
+              {orderResult.recipeName}
+            </h4>
+
+            {/* Items in inventory */}
+            {orderResult.itemsInInventory.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h5 style={{ color: '#22C55E', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <CheckCircle size={16} />
+                  In Your Inventory ({orderResult.itemsInInventory.length})
+                </h5>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {orderResult.itemsInInventory.map((item, idx) => (
+                    <span 
+                      key={idx} 
+                      style={{ 
+                        background: 'rgba(34, 197, 94, 0.2)', 
+                        padding: '0.25rem 0.75rem', 
+                        borderRadius: '1rem',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {item.ingredient}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Items to order */}
+            {orderResult.itemsToOrder.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h5 style={{ color: '#F59E0B', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShoppingCart size={16} />
+                  Need to Order ({orderResult.itemsToOrder.length})
+                </h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {orderResult.itemsToOrder.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '0.5rem'
+                      }}
+                    >
+                      <span>{item.ingredient}</span>
+                      {item.bestMatch && (
+                        <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
+                          {item.bestMatch.currency} {item.bestMatch.price.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Order preview */}
+            {orderResult.orderPreview && (
+              <div style={{ 
+                background: 'rgba(255, 255, 255, 0.05)', 
+                borderRadius: '0.75rem', 
+                padding: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span>Subtotal</span>
+                  <span>{orderResult.orderPreview.currency} {orderResult.orderPreview.subtotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span>Delivery Fee</span>
+                  <span>{orderResult.orderPreview.currency} {orderResult.orderPreview.deliveryFee.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span>Service Fee</span>
+                  <span>{orderResult.orderPreview.currency} {orderResult.orderPreview.serviceFee.toFixed(2)}</span>
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  paddingTop: '0.5rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <span>Total</span>
+                  <span style={{ color: '#22C55E' }}>
+                    {orderResult.orderPreview.currency} {orderResult.orderPreview.total.toFixed(2)}
+                  </span>
+                </div>
+                {orderResult.savings && orderResult.savings > 0 && (
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    color: '#22C55E',
+                    fontSize: '0.875rem' 
+                  }}>
+                    You're saving {orderResult.orderPreview.currency} {orderResult.savings.toFixed(2)} by using items from your inventory!
+                  </div>
+                )}
+                {orderResult.orderPreview.estimatedDeliveryMinutes && (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <Clock size={14} />
+                    Estimated delivery: {orderResult.orderPreview.estimatedDeliveryMinutes} minutes
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No items to order */}
+            {orderResult.itemsToOrder.length === 0 && (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '2rem',
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '0.75rem'
+              }}>
+                <CheckCircle size={48} style={{ color: '#22C55E', marginBottom: '1rem' }} />
+                <p style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>You have all the ingredients!</p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+                  All required ingredients are already in your inventory.
+                </p>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className={styles.modalActions} style={{ marginTop: '1.5rem' }}>
+              <button
+                className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                onClick={onClose}
+              >
+                Close
+              </button>
+              {orderResult.orderLink && (
+                <button
+                  className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                  onClick={onOpenOrderLink}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <ExternalLink size={16} />
+                  Open in {orderResult.orderLink.providerName}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -766,6 +993,11 @@ const CookingAgent: React.FC = () => {
                         recipe={recipe} 
                         onSave={cooking.handleSaveRecipe}
                         onAddToWishlist={cooking.handleAddToWishlist}
+                        onOrder={(r) => {
+                          cooking.setSelectedRecipeForOrder(r);
+                          cooking.handleCreateRecipeOrder(parseInt(r.id, 10));
+                        }}
+                        orderLoading={cooking.orderLoading && cooking.selectedRecipeForOrder?.id === recipe.id}
                       />
                     ))}
                   </div>
@@ -933,6 +1165,15 @@ const CookingAgent: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Order Preview Modal */}
+      <OrderPreviewModal
+        isOpen={cooking.showOrderPreview}
+        orderResult={cooking.orderPreview}
+        onClose={cooking.handleCloseOrderPreview}
+        onOpenOrderLink={cooking.handleOpenOrderLink}
+        loading={cooking.orderLoading}
+      />
       </div>
     </AgentPageLayout>
   );

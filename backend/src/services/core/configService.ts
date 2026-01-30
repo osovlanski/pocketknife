@@ -192,6 +192,45 @@ const DEFAULT_CONFIG = {
   'cooking.api.timeoutMs': 5000,
   
   // ==========================================================================
+  // DELIVERY SERVICE
+  // ==========================================================================
+  'delivery.mock.enabled': true,
+  'delivery.mock.baseUrl': 'https://wolt.com',
+  'delivery.mock.deliveryFee': 9.90,
+  'delivery.defaultProvider': 'mock-wolt',
+  'delivery.order.expiryMinutes': 30,
+  'delivery.search.maxResults': 5,
+  
+  // Wolt Drive API Configuration
+  'delivery.wolt.enabled': false,
+  'delivery.wolt.apiBaseUrl': 'https://daas-public-api.wolt.com/v1',
+  'delivery.wolt.venueId': '', // Set via environment variable
+  'delivery.wolt.merchantId': '', // Set via environment variable
+  'delivery.wolt.minPreparationMinutes': 15,
+  'delivery.wolt.defaultParcelType': 'bag',
+  'delivery.wolt.timeoutMs': 30000,
+  
+  // ==========================================================================
+  // ASSISTANT AGENT
+  // ==========================================================================
+  'assistant.agent.rateLimit': 30,
+  'assistant.agent.timeoutMs': 120000,
+  'assistant.ai.maxTokens': 4000,
+  'assistant.ai.planningMaxTokens': 2000,
+  'assistant.ai.responseMaxTokens': 2000,
+  'assistant.ai.knowledgeMaxTokens': 2000,
+  'assistant.workflow.maxSteps': 10,
+  'assistant.workflow.stepTimeoutMs': 30000,
+  'assistant.conversation.maxHistory': 20,
+  'assistant.cache.conversationTtlSeconds': 3600,
+  // Multi-source aggregation
+  'assistant.webSearch.enabled': true,
+  'assistant.webSearch.timeoutMs': 10000,
+  'assistant.webSearch.maxResults': 5,
+  'assistant.aggregation.useWebFallback': true,
+  'assistant.aggregation.useAIKnowledge': true,
+  
+  // ==========================================================================
   // NEWS AGENT
   // ==========================================================================
   'news.search.maxResults': 30,

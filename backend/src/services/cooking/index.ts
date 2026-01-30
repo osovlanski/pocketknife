@@ -11,3 +11,6 @@ export type {
   RecipeSearchParams, 
   RecipeResult 
 } from './cookingService';
+
+export { recipeDeliveryService } from './recipeDeliveryService';
+export { spoonacularService } from './spoonacularService';

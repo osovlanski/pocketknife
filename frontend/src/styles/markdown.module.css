@@ -1,0 +1,370 @@
+/**
+ * Markdown Content Styles
+ * 
+ * Beautiful, modern styling for rendered markdown content.
+ * Optimized for dark theme chat interfaces.
+ */
+
+/* =============================================================================
+   CONTAINER
+   ============================================================================= */
+
+.markdownContent {
+  color: #e2e8f0;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+}
+
+/* =============================================================================
+   AGENT TAGS BANNER
+   ============================================================================= */
+
+.tagsBanner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* =============================================================================
+   HEADINGS
+   ============================================================================= */
+
+.h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 1.25rem 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.4);
+  background: linear-gradient(90deg, #f1f5f9, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.h1:first-child {
+  margin-top: 0;
+}
+
+.h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 1rem 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.h2::before {
+  content: '';
+  width: 4px;
+  height: 1.25rem;
+  background: linear-gradient(180deg, #8b5cf6, #6366f1);
+  border-radius: 2px;
+}
+
+.h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 0.875rem 0 0.375rem 0;
+}
+
+.h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0.75rem 0 0.25rem 0;
+}
+
+/* =============================================================================
+   PARAGRAPHS
+   ============================================================================= */
+
+.paragraph {
+  margin: 0.625rem 0;
+  color: #e2e8f0;
+}
+
+.paragraph:first-child {
+  margin-top: 0;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   LISTS
+   ============================================================================= */
+
+.ul, .ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.ul {
+  list-style: none;
+}
+
+.ul .li::before {
+  content: '•';
+  color: #8b5cf6;
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
+}
+
+.ol {
+  list-style: decimal;
+}
+
+.ol .li::marker {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.li {
+  margin: 0.375rem 0;
+  color: #e2e8f0;
+  padding-left: 0.25rem;
+}
+
+/* Nested lists */
+.ul .ul,
+.ul .ol,
+.ol .ul,
+.ol .ol {
+  margin: 0.25rem 0;
+}
+
+/* =============================================================================
+   CODE
+   ============================================================================= */
+
+.codeBlock {
+  margin: 0.75rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1e1e2e;
+}
+
+.codeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.codeLanguage {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.inlineCode {
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.125rem 0.375rem;
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+/* =============================================================================
+   LINKS
+   ============================================================================= */
+
+.link {
+  color: #60a5fa;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s ease;
+  border-bottom: 1px solid transparent;
+}
+
+.link:hover {
+  color: #93c5fd;
+  border-bottom-color: rgba(147, 197, 253, 0.4);
+}
+
+.linkIcon {
+  opacity: 0.7;
+}
+
+/* =============================================================================
+   BLOCKQUOTES
+   ============================================================================= */
+
+.blockquote {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: rgba(139, 92, 246, 0.08);
+  border-left: 4px solid #8b5cf6;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.blockquote p {
+  margin: 0;
+}
+
+/* =============================================================================
+   TABLES
+   ============================================================================= */
+
+.tableWrapper {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.thead {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #f1f5f9;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+}
+
+.tbody .tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.td {
+  padding: 0.625rem 1rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tr:last-child .td {
+  border-bottom: none;
+}
+
+/* =============================================================================
+   HORIZONTAL RULE
+   ============================================================================= */
+
+.hr {
+  margin: 1.25rem 0;
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+}
+
+/* =============================================================================
+   EMPHASIS
+   ============================================================================= */
+
+.strong {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.em {
+  font-style: italic;
+  color: #cbd5e1;
+}
+
+/* =============================================================================
+   IMAGES
+   ============================================================================= */
+
+.image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* =============================================================================
+   RECIPE-SPECIFIC STYLING
+   ============================================================================= */
+
+/* Style for recipe metadata (prep time, serves, etc.) */
+.markdownContent em:first-of-type {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Ingredient list enhancements */
+.markdownContent .ul .li strong:first-child {
+  color: #fbbf24;
+}
+
+/* Step numbers in ordered lists */
+.markdownContent .ol .li strong:first-child {
+  color: #8b5cf6;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 640px) {
+  .h1 {
+    font-size: 1.25rem;
+  }
+  
+  .h2 {
+    font-size: 1.1rem;
+  }
+  
+  .codeBlock {
+    font-size: 0.8rem;
+  }
+  
+  .tableWrapper {
+    font-size: 0.8rem;
+  }
+}

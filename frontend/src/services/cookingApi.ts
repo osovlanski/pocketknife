@@ -134,6 +134,126 @@ export interface InventorySummary {
 }
 
 // =============================================================================
+// DELIVERY TYPES
+// =============================================================================
+
+export interface DeliveryProduct {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  unit: string;
+  quantity: number;
+  imageUrl?: string;
+  category?: string;
+  inStock: boolean;
+  providerId: string;
+}
+
+export interface DeliveryOrderItem {
+  product: DeliveryProduct;
+  quantity: number;
+  originalIngredient: string;
+  matchConfidence: number;
+  notes?: string;
+}
+
+export interface OrderPreview {
+  id: string;
+  providerId: string;
+  providerName: string;
+  items: DeliveryOrderItem[];
+  subtotal: number;
+  deliveryFee: number;
+  serviceFee: number;
+  total: number;
+  currency: string;
+  estimatedDeliveryMinutes?: number;
+  createdAt: string;
+  expiresAt: string;
+  recipeId?: string;
+  recipeName?: string;
+}
+
+export interface OrderLink {
+  orderId: string;
+  providerId: string;
+  providerName: string;
+  url: string;
+  deepLink?: string;
+  expiresAt: string;
+  itemCount: number;
+  total: number;
+  currency: string;
+}
+
+export interface IngredientMatchResult {
+  ingredient: string;
+  originalAmount: string;
+  matchedProducts: DeliveryProduct[];
+  bestMatch?: DeliveryProduct;
+  matchConfidence: number;
+  inInventory: boolean;
+  inventoryAmount?: number;
+  needToOrder: boolean;
+}
+
+export interface RecipeOrderResult {
+  recipeId: string | number;
+  recipeName: string;
+  ingredientMatches: IngredientMatchResult[];
+  itemsInInventory: IngredientMatchResult[];
+  itemsToOrder: IngredientMatchResult[];
+  orderPreview?: OrderPreview;
+  orderLink?: OrderLink;
+  savings?: number;
+}
+
+export interface DeliveryProviderInfo {
+  id: string;
+  name: string;
+  displayName: string;
+  logoUrl?: string;
+  baseUrl: string;
+  supportedCountries: string[];
+  isAvailable: boolean;
+  averageDeliveryMinutes?: number;
+  minimumOrderAmount?: number;
+  currency: string;
+}
+
+// Wolt Drive types
+export interface WoltDeliveryResponse {
+  id: string;
+  wolt_order_reference_id: string;
+  tracking: {
+    url: string;
+  };
+  status: string;
+  price: {
+    amount: number;
+    currency: string;
+  };
+  pickup: {
+    eta?: string;
+    venue_id: string;
+  };
+  dropoff: {
+    eta?: string;
+    location: {
+      formatted_address: string;
+    };
+  };
+  created_at: string;
+}
+
+export interface CustomerContact {
+  name: string;
+  phone: string;
+}
+
+// =============================================================================
 // INVENTORY ITEMS
 // =============================================================================
 
@@ -273,6 +393,68 @@ export const getSummary = async (): Promise<{ summary: InventorySummary }> => {
 
 export const getSuggestions = async (): Promise<{ suggestions: string[] }> => {
   const response = await cookingAxios.get('/cooking/suggestions');
+  return response.data;
+};
+
+// =============================================================================
+// DELIVERY / RECIPE ORDERING
+// =============================================================================
+
+export const createRecipeOrder = async (
+  recipeId: number,
+  options?: { checkInventory?: boolean; providerId?: string }
+): Promise<{ recipeOrder: RecipeOrderResult }> => {
+  const response = await cookingAxios.post('/cooking/recipes/order', {
+    spoonacularRecipeId: recipeId,
+    checkInventory: options?.checkInventory ?? true,
+    providerId: options?.providerId
+  });
+  return response.data;
+};
+
+export const getDeliveryProviders = async (): Promise<{ deliveryProviders: DeliveryProviderInfo[] }> => {
+  const response = await cookingAxios.get('/cooking/delivery/providers');
+  return response.data;
+};
+
+// =============================================================================
+// WOLT DRIVE ACTUAL DELIVERY
+// =============================================================================
+
+/**
+ * Place an actual Wolt Drive delivery order
+ * This dispatches a courier to pick up and deliver the order
+ */
+export const placeWoltOrder = async (
+  orderId: string,
+  customerContact: CustomerContact,
+  deliveryInstructions?: string
+): Promise<{ woltDelivery: WoltDeliveryResponse }> => {
+  const response = await cookingAxios.post('/cooking/delivery/wolt/order', {
+    orderId,
+    customerContact,
+    deliveryInstructions
+  });
+  return response.data;
+};
+
+/**
+ * Get Wolt delivery status
+ */
+export const getWoltOrderStatus = async (
+  deliveryId: string
+): Promise<{ woltDelivery: WoltDeliveryResponse }> => {
+  const response = await cookingAxios.get(`/cooking/delivery/wolt/status/${deliveryId}`);
+  return response.data;
+};
+
+/**
+ * Cancel a Wolt delivery
+ */
+export const cancelWoltOrder = async (
+  deliveryId: string
+): Promise<{ woltOrderCancelled: boolean }> => {
+  const response = await cookingAxios.post(`/cooking/delivery/wolt/cancel/${deliveryId}`);
   return response.data;
 };
 
