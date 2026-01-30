@@ -79,7 +79,7 @@ export interface WorkflowResult {
  * Agent keywords/hashtags for trigger detection
  */
 export const AGENT_KEYWORDS: Record<string, string[]> = {
-  cooking: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen'],
+  cooking: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen', '#grocery', '#groceries', '#order', '#shopping', '#cart'],
   jobs: ['#job', '#career', '#interview', '#resume', '#cv', '#hiring'],
   travel: ['#travel', '#flight', '#hotel', '#trip', '#vacation', '#booking'],
   todo: ['#todo', '#task', '#reminder', '#deadline', '#checklist'],
@@ -153,6 +153,30 @@ const AGENT_CAPABILITIES: Record<string, AgentCapability[]> = {
         { name: 'checkInventory', type: 'boolean', required: false, description: 'Check inventory for existing items' }
       ],
       examples: ['Order ingredients for this recipe']
+    },
+    {
+      action: 'order-groceries',
+      description: 'Order groceries from various stores with deep links. Gathers items from low stock, suggestions, and shopping lists.',
+      parameters: [
+        { name: 'preferredStores', type: 'array', required: false, description: 'Preferred store IDs (wolt, shufersal, rami-levy, victory, yochananof)' },
+        { name: 'groceryItems', type: 'array', required: false, description: 'Specific items to order with name and quantity' }
+      ],
+      examples: ['Order my groceries', 'Buy groceries from Shufersal', 'I need to order eggs, milk, and bread']
+    },
+    {
+      action: 'order-shopping-list',
+      description: 'Order items from a specific shopping list via grocery store deep links',
+      parameters: [
+        { name: 'listId', type: 'string', required: true, description: 'Shopping list ID to order from' },
+        { name: 'preferredStores', type: 'array', required: false, description: 'Preferred store IDs' }
+      ],
+      examples: ['Order items from my shopping list', 'Buy everything on my weekly groceries list']
+    },
+    {
+      action: 'get-grocery-stores',
+      description: 'Get list of available grocery stores for ordering',
+      parameters: [],
+      examples: ['What grocery stores are available?', 'Show me where I can order groceries']
     }
   ],
   jobs: [

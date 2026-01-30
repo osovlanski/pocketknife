@@ -4,6 +4,13 @@
 
 export { deliveryService } from './deliveryService';
 export { woltDriveProvider } from './woltDriveProvider';
+export { groceryDeepLinkProvider } from './groceryDeepLinkProvider';
+export type {
+  GroceryStore,
+  GroceryCartLink,
+  GroceryOrderRequest,
+  GroceryOrderResult
+} from './groceryDeepLinkProvider';
 export type {
   IDeliveryProvider,
   DeliveryProviderInfo,

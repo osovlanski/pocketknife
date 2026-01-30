@@ -431,7 +431,12 @@ Respond ONLY with valid JSON (no markdown, no backticks):`;
       'list': ['get-items', 'get-tasks', 'get-saved', 'get-lists'],
       'add': ['add-item', 'create-task', 'add-list-item'],
       'create': ['create-list', 'create-task', 'generate-project'],
-      'order': ['create-recipe-order'],
+      'order': ['order-groceries', 'order-shopping-list', 'create-recipe-order'],
+      'buy': ['order-groceries', 'order-shopping-list'],
+      'grocery': ['order-groceries', 'get-grocery-stores'],
+      'groceries': ['order-groceries', 'get-grocery-stores'],
+      'shopping': ['order-shopping-list', 'get-lists'],
+      'cart': ['order-groceries', 'order-shopping-list'],
       'plan': ['plan-trip'],
       'generate': ['generate-project'],
       'process': ['process']
@@ -564,7 +569,17 @@ Keep the response concise (2-4 sentences). Don't use JSON or code formatting.`;
           case 'cooking':
             if (step.action === 'find-recipes') {
               suggestions.push('Save a recipe to wishlist');
-              suggestions.push('Order ingredients for a recipe');
+              suggestions.push('Order ingredients for this recipe');
+            }
+            if (step.action === 'get-lists') {
+              suggestions.push('Order items from my shopping list');
+            }
+            if (step.action === 'get-low-stock' || step.action === 'get-items') {
+              suggestions.push('Order groceries to restock');
+            }
+            if (step.action === 'order-groceries' || step.action === 'order-shopping-list') {
+              suggestions.push('Show available grocery stores');
+              suggestions.push('Create a new shopping list');
             }
             break;
           case 'jobs':

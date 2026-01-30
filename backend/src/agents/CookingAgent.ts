@@ -15,8 +15,9 @@
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams, recipeDeliveryService } from '../services/cooking';
-import { deliveryService } from '../services/delivery';
+import { deliveryService, groceryDeepLinkProvider } from '../services/delivery';
 import type { RecipeOrderResult, DeliveryProviderInfo, WoltDeliveryResponse, UserDeliveryAddress } from '../types/delivery';
+import type { GroceryOrderResult, GroceryStore } from '../services/delivery';
 
 interface CookingParams extends AgentParams {
   action:
@@ -46,7 +47,11 @@ interface CookingParams extends AgentParams {
     | 'get-delivery-providers'
     | 'place-wolt-order'
     | 'get-wolt-order-status'
-    | 'cancel-wolt-order';
+    | 'cancel-wolt-order'
+    // Grocery ordering with deep links
+    | 'order-shopping-list'
+    | 'order-groceries'
+    | 'get-grocery-stores';
   itemData?: CookingItemData;
   itemId?: string;
   listId?: string;
@@ -75,6 +80,9 @@ interface CookingParams extends AgentParams {
   customerContact?: { name: string; phone: string };
   deliveryInstructions?: string;
   woltDeliveryId?: string;
+  // Grocery ordering params
+  preferredStores?: string[];
+  groceryItems?: Array<{ name: string; quantity?: number; unit?: string }>;
 }
 
 interface CookingResult {
@@ -95,6 +103,9 @@ interface CookingResult {
   deliveryProviders?: DeliveryProviderInfo[];
   woltDelivery?: WoltDeliveryResponse;
   woltOrderCancelled?: boolean;
+  // Grocery ordering results
+  groceryOrder?: GroceryOrderResult;
+  groceryStores?: GroceryStore[];
 }
 
 export class CookingAgent extends AbstractAgent {
@@ -177,6 +188,14 @@ export class CookingAgent extends AbstractAgent {
         return this.getWoltOrderStatus(params);
       case 'cancel-wolt-order':
         return this.cancelWoltOrder(params);
+
+      // Grocery ordering with deep links
+      case 'order-shopping-list':
+        return this.orderShoppingList(params);
+      case 'order-groceries':
+        return this.orderGroceries(params);
+      case 'get-grocery-stores':
+        return this.getGroceryStores();
 
       default:
         return { success: false, error: `Unknown action: ${action}` };
@@ -700,6 +719,189 @@ export class CookingAgent extends AbstractAgent {
       return { success: cancelled, data: { woltOrderCancelled: cancelled } };
     } catch (error: any) {
       this.emitLog(`❌ Error cancelling delivery: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ===========================================================================
+  // GROCERY ORDERING (DEEP LINKS)
+  // ===========================================================================
+
+  /**
+   * Order items from a shopping list via deep links to grocery stores
+   */
+  private async orderShoppingList(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, listId, preferredStores } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!listId) return { success: false, error: 'List ID is required' };
+
+    this.emitLog('🛒 Creating grocery order from shopping list...', 'info');
+    this.emitProgress(10);
+
+    try {
+      // Get the shopping list items
+      const lists = await cookingService.getLists(userId);
+      const list = lists.find((l: any) => l.id === listId);
+
+      if (!list) {
+        return { success: false, error: 'Shopping list not found' };
+      }
+
+      const uncheckedItems = list.items?.filter((item: any) => !item.isChecked) || [];
+
+      if (uncheckedItems.length === 0) {
+        this.emitLog('ℹ️ No unchecked items in shopping list', 'info');
+        return { success: true, data: { groceryOrder: undefined } };
+      }
+
+      this.emitProgress(30);
+
+      // Create grocery order with deep links
+      const groceryOrder = await groceryDeepLinkProvider.createOrderFromShoppingList(
+        uncheckedItems.map((item: any) => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit: item.unit,
+          category: item.category
+        })),
+        userId,
+        preferredStores
+      );
+
+      this.emitProgress(80);
+
+      this.emitLog(`✅ Grocery order created with ${groceryOrder.storeLinks.length} store options`, 'success');
+      this.emitLog(`📦 ${groceryOrder.items.length} items ready to order`, 'info');
+
+      // Log available stores
+      for (const link of groceryOrder.storeLinks) {
+        this.emitLog(`🔗 ${link.storeName}: ${link.webUrl}`, 'info');
+      }
+
+      this.emitProgress(100);
+
+      return { success: true, data: { groceryOrder } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to create grocery order: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Order all groceries based on low stock items and suggestions
+   */
+  private async orderGroceries(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, preferredStores, groceryItems } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    this.emitLog('🛒 Creating grocery order...', 'info');
+    this.emitProgress(10);
+
+    try {
+      let itemsToOrder: Array<{ name: string; quantity: number; unit?: string }> = [];
+
+      // If specific items provided, use those
+      if (groceryItems && groceryItems.length > 0) {
+        itemsToOrder = groceryItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit: item.unit
+        }));
+        this.emitLog(`📝 Using ${itemsToOrder.length} provided items`, 'info');
+      } else {
+        // Otherwise, gather items from various sources
+        this.emitProgress(20);
+
+        // 1. Get low stock items
+        const lowStockItems = await cookingService.getLowStockItems(userId);
+        if (lowStockItems.length > 0) {
+          this.emitLog(`📉 Found ${lowStockItems.length} low stock items`, 'info');
+          itemsToOrder.push(...lowStockItems.map((item: any) => ({
+            name: item.name,
+            quantity: 1,
+            unit: item.unit
+          })));
+        }
+
+        this.emitProgress(40);
+
+        // 2. Get suggestions
+        const suggestions = await cookingService.getSuggestions(userId);
+        if (suggestions.length > 0) {
+          this.emitLog(`💡 Found ${suggestions.length} suggested items`, 'info');
+          itemsToOrder.push(...suggestions.map((name: string) => ({
+            name,
+            quantity: 1
+          })));
+        }
+
+        this.emitProgress(50);
+
+        // 3. Get unchecked items from active shopping lists
+        const lists = await cookingService.getLists(userId);
+        for (const list of lists) {
+          if (list.status === 'active' && list.items) {
+            const uncheckedItems = list.items.filter((item: any) => !item.isChecked);
+            itemsToOrder.push(...uncheckedItems.map((item: any) => ({
+              name: item.name,
+              quantity: item.quantity || 1,
+              unit: item.unit
+            })));
+          }
+        }
+
+        this.emitProgress(60);
+      }
+
+      // Remove duplicates by name
+      const uniqueItems = Array.from(
+        new Map(itemsToOrder.map(item => [item.name.toLowerCase(), item])).values()
+      );
+
+      if (uniqueItems.length === 0) {
+        this.emitLog('ℹ️ No items to order - inventory looks good!', 'info');
+        return { success: true, data: { groceryOrder: undefined } };
+      }
+
+      this.emitProgress(70);
+
+      // Create grocery order
+      const groceryOrder = await groceryDeepLinkProvider.createGroceryOrder({
+        items: uniqueItems,
+        userId,
+        preferredStores,
+        location: { country: 'IL' }
+      });
+
+      this.emitProgress(90);
+
+      this.emitLog(`✅ Grocery order created: ${groceryOrder.items.length} items`, 'success');
+      this.emitLog(`🏪 Available at ${groceryOrder.storeLinks.length} stores:`, 'info');
+
+      for (const link of groceryOrder.storeLinks) {
+        this.emitLog(`  • ${link.storeName}`, 'info');
+      }
+
+      this.emitProgress(100);
+
+      return { success: true, data: { groceryOrder } };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to create grocery order: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get available grocery stores
+   */
+  private async getGroceryStores(): Promise<AgentResult<CookingResult>> {
+    try {
+      const groceryStores = groceryDeepLinkProvider.getAvailableStores('IL');
+      this.emitLog(`🏪 ${groceryStores.length} grocery stores available`, 'info');
+      return { success: true, data: { groceryStores } };
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
