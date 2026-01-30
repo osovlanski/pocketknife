@@ -43,6 +43,7 @@ printStartupBanner();
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import routes from './routes';
@@ -58,6 +59,15 @@ import { configService } from './services/core/configService';
 import { initializeAgents, agentRegistry } from './agents';
 import { googleSearchService } from './services/core/googleSearchService';
 import logger from './utils/logger';
+
+// Middleware imports
+import {
+  securityMiddleware,
+  apiLimiter,
+  errorHandler,
+  notFoundHandler,
+  authenticate
+} from './middleware';
 
 const app = express();
 const server = createServer(app);
@@ -83,12 +93,19 @@ export const io = new Server(server, {
 // Make io available to other modules
 app.set('io', io);
 
-// CORS configuration - allow configured origins in development
+// =============================================================================
+// MIDDLEWARE STACK (Order matters!)
+// =============================================================================
+
+// 1. Security headers (Helmet) - first line of defense
+securityMiddleware.forEach(mw => app.use(mw));
+
+// 2. CORS configuration - allow configured origins in development
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -102,31 +119,85 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
-// Define routes
+// 3. Body parsing
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// 4. Rate limiting - apply to all API routes
+app.use('/api', apiLimiter);
+
+// 5. Authentication - protect all API routes (except public ones)
+app.use(authenticate);
+
+// 6. Define routes
 app.use('/api', routes);
 
-// Health check endpoint
+// Health check endpoint (public - no auth required)
 app.get('/health', async (req, res) => {
-  const dbHealth = process.env.DATABASE_URL ? await databaseService.healthCheck() : null;
+  const startTime = Date.now();
+
+  // Database health check
+  let dbStatus: 'connected' | 'disconnected' | 'not configured' = 'not configured';
+  let dbLatency: number | null = null;
+  if (process.env.DATABASE_URL) {
+    const dbStart = Date.now();
+    const dbHealth = await databaseService.healthCheck();
+    dbLatency = Date.now() - dbStart;
+    dbStatus = dbHealth ? 'connected' : 'disconnected';
+  }
+
+  // Cache health check
   const cacheStats = cacheService.getStats();
-  
-  res.json({ 
-    status: 'OK', 
+
+  // Google Auth status
+  const googleAuthStatus = googleAuthService.isAuthenticated() ? 'authenticated' : 'not authenticated';
+
+  // Agent registry status
+  const agentCount = agentRegistry.getAll().length;
+
+  // Overall health status
+  const isHealthy = dbStatus !== 'disconnected';
+
+  const response = {
+    status: isHealthy ? 'OK' : 'DEGRADED',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    responseTime: Date.now() - startTime,
     services: {
-      database: dbHealth === null ? 'not configured' : (dbHealth ? 'connected' : 'disconnected'),
+      database: {
+        status: dbStatus,
+        latency: dbLatency ? `${dbLatency}ms` : null
+      },
       cache: {
-        memory: `${cacheStats.memory.keys} keys`,
-        redis: cacheStats.redis.available ? 'connected' : 'not configured',
-        hitRate: `${(cacheStats.memory.hitRate * 100).toFixed(1)}%`
+        memory: {
+          status: 'connected',
+          keys: cacheStats.memory.keys,
+          hitRate: `${(cacheStats.memory.hitRate * 100).toFixed(1)}%`
+        },
+        redis: {
+          status: cacheStats.redis.available ? 'connected' : 'not configured'
+        }
+      },
+      googleAuth: googleAuthStatus,
+      agents: {
+        status: 'running',
+        count: agentCount
       }
     },
-    version: process.env.npm_package_version || '2.0.0'
-  });
+    version: process.env.npm_package_version || '2.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  };
+
+  res.status(isHealthy ? 200 : 503).json(response);
 });
+
+// 404 handler for unmatched routes (must be after all routes)
+app.use(notFoundHandler);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 // Socket.io setup
 io.on('connection', (socket) => {
