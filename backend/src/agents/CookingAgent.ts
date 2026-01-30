@@ -14,7 +14,8 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
-import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams, recipeDeliveryService } from '../services/cooking';
+import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams, recipeDeliveryService, ramiLevyService } from '../services/cooking';
+import type { RamiLevyTokens, RamiLevyCart, RamiLevyProduct, RamiLevySearchResult } from '../services/cooking';
 import { deliveryService, groceryDeepLinkProvider } from '../services/delivery';
 import type { RecipeOrderResult, DeliveryProviderInfo, WoltDeliveryResponse, UserDeliveryAddress } from '../types/delivery';
 import type { GroceryOrderResult, GroceryStore } from '../services/delivery';
@@ -51,7 +52,19 @@ interface CookingParams extends AgentParams {
     // Grocery ordering with deep links
     | 'order-shopping-list'
     | 'order-groceries'
-    | 'get-grocery-stores';
+    | 'get-grocery-stores'
+    // Rami Levy integration (auto cart population)
+    | 'rami-levy-setup'
+    | 'rami-levy-status'
+    | 'rami-levy-search'
+    | 'rami-levy-add-to-cart'
+    | 'rami-levy-remove-from-cart'
+    | 'rami-levy-update-quantity'
+    | 'rami-levy-clear-cart'
+    | 'rami-levy-get-cart'
+    | 'rami-levy-checkout'
+    | 'rami-levy-order-ingredients'
+    | 'rami-levy-delete-tokens';
   itemData?: CookingItemData;
   itemId?: string;
   listId?: string;
@@ -83,6 +96,15 @@ interface CookingParams extends AgentParams {
   // Grocery ordering params
   preferredStores?: string[];
   groceryItems?: Array<{ name: string; quantity?: number; unit?: string }>;
+  // Rami Levy params
+  ramiLevyTokens?: RamiLevyTokens;
+  searchQuery?: string;
+  productId?: number;
+  productIds?: number[];
+  quantity?: number;
+  storeId?: string;
+  ingredients?: Array<{ name: string; quantity?: number }>;
+  autoSelectFirst?: boolean;
 }
 
 interface CookingResult {
@@ -106,6 +128,25 @@ interface CookingResult {
   // Grocery ordering results
   groceryOrder?: GroceryOrderResult;
   groceryStores?: GroceryStore[];
+  // Rami Levy results
+  ramiLevyStatus?: {
+    isValid: boolean;
+    userId: string;
+    lastUsed?: Date;
+    errorMessage?: string;
+  };
+  ramiLevyProducts?: RamiLevyProduct[];
+  ramiLevySearchResult?: RamiLevySearchResult;
+  ramiLevyCart?: RamiLevyCart;
+  ramiLevyCheckoutUrl?: string;
+  ramiLevyOrder?: {
+    cart: RamiLevyCart;
+    checkoutUrl: string;
+    matchedProducts: Array<{ ingredient: string; product: RamiLevyProduct | null }>;
+    unmatchedIngredients: string[];
+  };
+  ramiLevyStores?: Array<{ id: string; name: string }>;
+  tokensDeleted?: boolean;
 }
 
 export class CookingAgent extends AbstractAgent {
@@ -196,6 +237,30 @@ export class CookingAgent extends AbstractAgent {
         return this.orderGroceries(params);
       case 'get-grocery-stores':
         return this.getGroceryStores();
+
+      // Rami Levy integration (auto cart population)
+      case 'rami-levy-setup':
+        return this.ramiLevySetup(params);
+      case 'rami-levy-status':
+        return this.ramiLevyStatus(params);
+      case 'rami-levy-search':
+        return this.ramiLevySearch(params);
+      case 'rami-levy-add-to-cart':
+        return this.ramiLevyAddToCart(params);
+      case 'rami-levy-remove-from-cart':
+        return this.ramiLevyRemoveFromCart(params);
+      case 'rami-levy-update-quantity':
+        return this.ramiLevyUpdateQuantity(params);
+      case 'rami-levy-clear-cart':
+        return this.ramiLevyClearCart(params);
+      case 'rami-levy-get-cart':
+        return this.ramiLevyGetCart(params);
+      case 'rami-levy-checkout':
+        return this.ramiLevyCheckout(params);
+      case 'rami-levy-order-ingredients':
+        return this.ramiLevyOrderIngredients(params);
+      case 'rami-levy-delete-tokens':
+        return this.ramiLevyDeleteTokens(params);
 
       default:
         return { success: false, error: `Unknown action: ${action}` };
@@ -902,6 +967,400 @@ export class CookingAgent extends AbstractAgent {
       this.emitLog(`🏪 ${groceryStores.length} grocery stores available`, 'info');
       return { success: true, data: { groceryStores } };
     } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ===========================================================================
+  // RAMI LEVY INTEGRATION
+  // ===========================================================================
+
+  /**
+   * Setup Rami Levy authentication tokens
+   */
+  private async ramiLevySetup(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, ramiLevyTokens } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!ramiLevyTokens) return { success: false, error: 'Rami Levy tokens are required' };
+    if (!ramiLevyTokens.apiKey) return { success: false, error: 'API key (Bearer token) is required' };
+    if (!ramiLevyTokens.cookie) return { success: false, error: 'Cookie is required' };
+    // Note: ecomToken is optional - only needed for cart operations, appears when logged in
+
+    this.emitLog('🔐 Setting up Rami Levy authentication...', 'info');
+
+    try {
+      // Store tokens
+      const stored = await ramiLevyService.storeTokens(userId, ramiLevyTokens);
+      
+      if (!stored) {
+        return { success: false, error: 'Failed to store tokens' };
+      }
+
+      // Initialize and validate
+      const status = await ramiLevyService.initialize(userId);
+
+      if (status.isValid) {
+        this.emitLog('✅ Rami Levy authentication configured successfully!', 'success');
+        return { 
+          success: true, 
+          data: { 
+            ramiLevyStatus: status,
+            ramiLevyStores: ramiLevyService.getAvailableStores()
+          } 
+        };
+      } else {
+        this.emitLog(`❌ Token validation failed: ${status.errorMessage}`, 'error');
+        return { 
+          success: false, 
+          error: status.errorMessage || 'Token validation failed' 
+        };
+      }
+    } catch (error: any) {
+      this.emitLog(`❌ Setup failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get Rami Levy token status
+   */
+  private async ramiLevyStatus(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    try {
+      const status = await ramiLevyService.getTokenStatus(userId);
+      
+      return { 
+        success: true, 
+        data: { 
+          ramiLevyStatus: status,
+          ramiLevyStores: status.isValid ? ramiLevyService.getAvailableStores() : undefined
+        } 
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Search Rami Levy products
+   */
+  private async ramiLevySearch(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, searchQuery, storeId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!searchQuery) return { success: false, error: 'Search query is required' };
+
+    this.emitLog(`🔍 Searching Rami Levy for: ${searchQuery}`, 'info');
+
+    try {
+      // Initialize service for this user
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { 
+          success: false, 
+          error: status.errorMessage || 'Please configure Rami Levy authentication first' 
+        };
+      }
+
+      const result = await ramiLevyService.searchProducts(userId, searchQuery, { storeId });
+
+      this.emitLog(`📦 Found ${result.products.length} products`, 'success');
+
+      return { 
+        success: true, 
+        data: { 
+          ramiLevySearchResult: result,
+          ramiLevyProducts: result.products
+        } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Search failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add products to Rami Levy cart
+   */
+  private async ramiLevyAddToCart(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, productId, quantity, storeId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!productId) return { success: false, error: 'Product ID is required' };
+
+    this.emitLog(`🛒 Adding product ${productId} to cart...`, 'info');
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = await ramiLevyService.addToCart(
+        userId,
+        [{ productId, quantity: quantity || 1 }],
+        { storeId }
+      );
+
+      this.emitLog(`✅ Added to cart. Total: ₪${cart.totalPrice.toFixed(2)}`, 'success');
+
+      return { 
+        success: true, 
+        data: { 
+          ramiLevyCart: cart,
+          ramiLevyCheckoutUrl: ramiLevyService.getCheckoutUrl()
+        } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to add to cart: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Remove products from Rami Levy cart
+   */
+  private async ramiLevyRemoveFromCart(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, productIds, storeId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!productIds || productIds.length === 0) {
+      return { success: false, error: 'Product IDs are required' };
+    }
+
+    this.emitLog(`🗑️ Removing ${productIds.length} products from cart...`, 'info');
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = await ramiLevyService.removeFromCart(userId, productIds, { storeId });
+
+      this.emitLog(`✅ Removed from cart. Items remaining: ${cart.itemCount}`, 'success');
+
+      return { 
+        success: true, 
+        data: { ramiLevyCart: cart } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to remove from cart: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update product quantity in Rami Levy cart
+   */
+  private async ramiLevyUpdateQuantity(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, productId, quantity, storeId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!productId) return { success: false, error: 'Product ID is required' };
+    if (quantity === undefined) return { success: false, error: 'Quantity is required' };
+
+    this.emitLog(`🔄 Updating quantity for product ${productId}...`, 'info');
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = await ramiLevyService.updateCartQuantity(userId, productId, quantity, { storeId });
+
+      this.emitLog(`✅ Quantity updated. Total: ₪${cart.totalPrice.toFixed(2)}`, 'success');
+
+      return { 
+        success: true, 
+        data: { ramiLevyCart: cart } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to update quantity: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Clear Rami Levy cart
+   */
+  private async ramiLevyClearCart(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, storeId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    this.emitLog('🗑️ Clearing cart...', 'info');
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = await ramiLevyService.clearCart(userId, { storeId });
+
+      this.emitLog('✅ Cart cleared', 'success');
+
+      return { 
+        success: true, 
+        data: { ramiLevyCart: cart } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to clear cart: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get current Rami Levy cart
+   */
+  private async ramiLevyGetCart(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = ramiLevyService.getCart(userId);
+
+      return { 
+        success: true, 
+        data: { 
+          ramiLevyCart: cart || { items: [], totalPrice: 0, totalSavings: 0, itemCount: 0 },
+          ramiLevyCheckoutUrl: ramiLevyService.getCheckoutUrl()
+        } 
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get Rami Levy checkout URL
+   */
+  private async ramiLevyCheckout(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    try {
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { success: false, error: 'Please configure Rami Levy authentication first' };
+      }
+
+      const cart = ramiLevyService.getCart(userId);
+      const checkoutUrl = ramiLevyService.getCheckoutUrl();
+
+      this.emitLog('🛒 Ready for checkout!', 'success');
+      this.emitLog(`📍 Go to: ${checkoutUrl}`, 'info');
+
+      return { 
+        success: true, 
+        data: { 
+          ramiLevyCart: cart || undefined,
+          ramiLevyCheckoutUrl: checkoutUrl
+        } 
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Order ingredients from a recipe - the main integration flow
+   * This automatically searches for products and adds them to cart
+   */
+  private async ramiLevyOrderIngredients(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId, ingredients, storeId, autoSelectFirst = true } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+    if (!ingredients || ingredients.length === 0) {
+      return { success: false, error: 'Ingredients are required' };
+    }
+
+    this.emitLog(`🍳 Ordering ${ingredients.length} ingredients from Rami Levy...`, 'info');
+    this.emitProgress(10);
+
+    try {
+      // Initialize
+      const status = await ramiLevyService.initialize(userId);
+      if (!status.isValid) {
+        return { 
+          success: false, 
+          error: status.errorMessage || 'Please configure Rami Levy authentication first' 
+        };
+      }
+
+      this.emitProgress(20);
+
+      // Create order from ingredients
+      const order = await ramiLevyService.createOrderFromIngredients(userId, ingredients, {
+        storeId,
+        autoSelectFirst
+      });
+
+      this.emitProgress(80);
+
+      // Log results
+      const matched = order.matchedProducts.filter(m => m.product).length;
+      const unmatched = order.unmatchedIngredients.length;
+
+      this.emitLog(`✅ Added ${matched} products to cart`, 'success');
+      
+      if (unmatched > 0) {
+        this.emitLog(`⚠️ ${unmatched} ingredients not found: ${order.unmatchedIngredients.join(', ')}`, 'warning');
+      }
+
+      this.emitLog(`💰 Cart total: ₪${order.cart.totalPrice.toFixed(2)}`, 'info');
+      this.emitLog(`🛒 Click checkout to complete your order`, 'info');
+
+      this.emitProgress(100);
+
+      return { 
+        success: true, 
+        data: { 
+          ramiLevyOrder: order,
+          ramiLevyCart: order.cart,
+          ramiLevyCheckoutUrl: order.checkoutUrl
+        } 
+      };
+    } catch (error: any) {
+      this.emitLog(`❌ Order failed: ${error.message}`, 'error');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete Rami Levy tokens (logout)
+   */
+  private async ramiLevyDeleteTokens(params: CookingParams): Promise<AgentResult<CookingResult>> {
+    const { userId } = params;
+
+    if (!userId) return { success: false, error: 'User ID is required' };
+
+    this.emitLog('🔓 Removing Rami Levy authentication...', 'info');
+
+    try {
+      const deleted = await ramiLevyService.deleteTokens(userId);
+      
+      if (deleted) {
+        this.emitLog('✅ Rami Levy authentication removed', 'success');
+        return { success: true, data: { tokensDeleted: true } };
+      } else {
+        return { success: false, error: 'Failed to delete tokens' };
+      }
+    } catch (error: any) {
+      this.emitLog(`❌ Failed to remove authentication: ${error.message}`, 'error');
       return { success: false, error: error.message };
     }
   }

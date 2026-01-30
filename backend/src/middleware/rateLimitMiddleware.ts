@@ -95,5 +95,13 @@ export const searchLimiter = createRateLimiter({
   keyPrefix: 'search'
 });
 
+// Rami Levy endpoints rate limiter (20 requests per minute - external API calls)
+export const ramiLevyLimiter = createRateLimiter({
+  windowMs: 60000,
+  max: 20,
+  message: 'Rami Levy API request limit exceeded, please wait before making more requests.',
+  keyPrefix: 'rami-levy'
+});
+
 // Export default
 export default apiLimiter;

@@ -25,6 +25,9 @@ const printStartupBanner = () => {
   console.log('   ' + checkEnv('GOOGLE_CLIENT_ID', true));
   console.log('   ' + checkEnv('GOOGLE_CLIENT_SECRET', true));
 
+  console.log('\n🔒 Security:');
+  console.log('   ' + checkEnv('ENCRYPTION_KEY', process.env.NODE_ENV === 'production'));
+
   console.log('\n📬 Notification Services:');
   console.log('   ' + checkEnv('TELEGRAM_BOT_TOKEN'));
   console.log('   ' + checkEnv('DISCORD_WEBHOOK_URL'));
@@ -58,6 +61,7 @@ import { cacheService } from './services/core/cacheService';
 import { configService } from './services/core/configService';
 import { initializeAgents, agentRegistry } from './agents';
 import { googleSearchService } from './services/core/googleSearchService';
+import { ramiLevyService } from './services/cooking/ramiLevyService';
 import logger from './utils/logger';
 
 // Middleware imports
@@ -268,7 +272,14 @@ async function initializeServices() {
     
     logger.withIcon('calendar', 'Initializing Email scheduler service...');
     emailSchedulerService.initialize(io);
-    
+
+    // Initialize Rami Levy session cleanup scheduler (every hour)
+    logger.init('Initializing Rami Levy session cleanup scheduler...');
+    const RAMI_LEVY_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+    setInterval(() => {
+      ramiLevyService.cleanupSessions();
+    }, RAMI_LEVY_CLEANUP_INTERVAL);
+
     logger.success('All services initialized successfully');
     
     // Show auth status

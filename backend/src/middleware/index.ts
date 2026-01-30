@@ -11,6 +11,7 @@ export {
   authLimiter,
   aiLimiter,
   searchLimiter,
+  ramiLevyLimiter,
   createRateLimiter
 } from './rateLimitMiddleware';
 

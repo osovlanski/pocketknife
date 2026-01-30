@@ -710,3 +710,391 @@ export const cancelWoltOrder = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// =============================================================================
+// RAMI LEVY INTEGRATION
+// =============================================================================
+
+/**
+ * Validate that a string looks like a JWT token
+ */
+const isValidJwtFormat = (token: string): boolean => {
+  if (!token || typeof token !== 'string') return false;
+  // JWT has 3 parts separated by dots
+  const parts = token.split('.');
+  return parts.length === 3 && parts.every(part => part.length > 0);
+};
+
+/**
+ * Validate that cookie string is not empty and looks reasonable
+ */
+const isValidCookie = (cookie: string): boolean => {
+  if (!cookie || typeof cookie !== 'string') return false;
+  // Cookie should contain at least one key=value pair
+  return cookie.includes('=') && cookie.length > 10;
+};
+
+/**
+ * Setup Rami Levy authentication tokens
+ * 
+ * Expected body:
+ * {
+ *   apiKey: string,    // Bearer token from Authorization header (JWT format)
+ *   ecomToken?: string, // ecomtoken header value (optional)
+ *   cookie: string     // Full cookie string
+ * }
+ */
+export const ramiLevySetup = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { apiKey, ecomToken, cookie } = req.body;
+
+    // Validate apiKey (required, JWT format)
+    if (!apiKey || typeof apiKey !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'API key (Bearer token) is required. Extract from Authorization header.' 
+      });
+    }
+    if (!isValidJwtFormat(apiKey)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid API key format. Should be a JWT token (three parts separated by dots).' 
+      });
+    }
+
+    // Validate cookie (required)
+    if (!cookie || typeof cookie !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cookie is required. Extract full cookie string from browser request.' 
+      });
+    }
+    if (!isValidCookie(cookie)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid cookie format. Should contain key=value pairs.' 
+      });
+    }
+
+    // ecomToken is optional - validate if provided
+    if (ecomToken && typeof ecomToken !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid ecomToken format.' 
+      });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-setup',
+      userId,
+      ramiLevyTokens: { apiKey, ecomToken, cookie }
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get Rami Levy token status
+ */
+export const ramiLevyStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-status',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Search Rami Levy products
+ */
+export const ramiLevySearch = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { query, storeId } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ success: false, error: 'Search query is required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-search',
+      userId,
+      searchQuery: query as string,
+      storeId: storeId as string
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Add product to Rami Levy cart
+ */
+export const ramiLevyAddToCart = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { productId, quantity, storeId } = req.body;
+
+    // Validate productId (required, must be a number)
+    if (productId === undefined || productId === null) {
+      return res.status(400).json({ success: false, error: 'Product ID is required' });
+    }
+    if (typeof productId !== 'number' || !Number.isInteger(productId) || productId <= 0) {
+      return res.status(400).json({ success: false, error: 'Product ID must be a positive integer' });
+    }
+
+    // Validate quantity if provided (must be positive number)
+    if (quantity !== undefined && (typeof quantity !== 'number' || quantity <= 0)) {
+      return res.status(400).json({ success: false, error: 'Quantity must be a positive number' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-add-to-cart',
+      userId,
+      productId,
+      quantity,
+      storeId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Remove products from Rami Levy cart
+ */
+export const ramiLevyRemoveFromCart = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { productIds, storeId } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-remove-from-cart',
+      userId,
+      productIds,
+      storeId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Update product quantity in Rami Levy cart
+ */
+export const ramiLevyUpdateQuantity = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { productId, quantity, storeId } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-update-quantity',
+      userId,
+      productId,
+      quantity,
+      storeId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Clear Rami Levy cart
+ */
+export const ramiLevyClearCart = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { storeId } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-clear-cart',
+      userId,
+      storeId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get current Rami Levy cart
+ */
+export const ramiLevyGetCart = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-get-cart',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get Rami Levy checkout URL
+ */
+export const ramiLevyCheckout = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-checkout',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Order ingredients from a recipe - the main flow
+ * Automatically searches for products and adds them to cart
+ */
+export const ramiLevyOrderIngredients = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const { ingredients, storeId, autoSelectFirst } = req.body;
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-order-ingredients',
+      userId,
+      ingredients,
+      storeId,
+      autoSelectFirst
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Delete Rami Levy tokens (logout)
+ */
+export const ramiLevyDeleteTokens = async (req: Request, res: Response) => {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await cookingAgent.execute({
+      action: 'rami-levy-delete-tokens',
+      userId
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result.data);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

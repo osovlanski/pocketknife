@@ -192,6 +192,22 @@ const DEFAULT_CONFIG = {
   'cooking.api.timeoutMs': 5000,
   
   // ==========================================================================
+  // RAMI LEVY INTEGRATION
+  // ==========================================================================
+  'ramiLevy.enabled': true,
+  'ramiLevy.api.timeoutMs': 15000,
+  'ramiLevy.api.baseUrl': 'https://www.rami-levy.co.il',
+  'ramiLevy.api.maxRetries': 3,
+  'ramiLevy.api.retryDelayMs': 1000,
+  'ramiLevy.defaultStoreId': '331',
+  'ramiLevy.cache.searchTtlSeconds': 1800,
+  'ramiLevy.cache.cartTtlSeconds': 300,
+  'ramiLevy.search.maxResults': 20,
+  'ramiLevy.autoSelectFirstProduct': true,
+  'ramiLevy.circuitBreaker.threshold': 5,
+  'ramiLevy.circuitBreaker.resetMs': 60000,
+  
+  // ==========================================================================
   // DELIVERY SERVICE
   // ==========================================================================
   'delivery.mock.enabled': true,

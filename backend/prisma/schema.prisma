@@ -76,6 +76,7 @@ model User {
   groceryItems    GroceryItem[]
   recipes         SavedRecipe[]
   groceryLists    GroceryList[]
+  ramiLevyToken   RamiLevyToken?
   
   // News Agent relations
   newsPreferences  NewsPreference?
@@ -934,6 +935,30 @@ model GroceryInvoiceItem {
   @@index([invoiceId])
   @@index([isProcessed])
   @@index([merchant])
+}
+
+model RamiLevyToken {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Authentication tokens (extracted from browser session)
+  apiKey    String   @db.Text  // Bearer token from Authorization header
+  ecomToken String   @db.Text  // ecomtoken header value
+  cookie    String   @db.Text  // Full cookie string
+  
+  // Token status
+  isValid     Boolean   @default(true)
+  lastUsedAt  DateTime?
+  lastError   String?
+  
+  // User preferences
+  preferredStoreId String @default("331")  // Default Rami Levy store
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // =============================================================================

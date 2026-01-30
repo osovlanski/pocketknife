@@ -14,3 +14,14 @@ export type {
 
 export { recipeDeliveryService } from './recipeDeliveryService';
 export { spoonacularService } from './spoonacularService';
+
+// Rami Levy integration
+export { ramiLevyService } from './ramiLevyService';
+export type {
+  RamiLevyTokens,
+  RamiLevyProduct,
+  RamiLevyCart,
+  RamiLevyCartItem,
+  RamiLevySearchResult,
+  TokenStatus
+} from './ramiLevyService';

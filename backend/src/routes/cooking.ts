@@ -1,11 +1,12 @@
 /**
  * Cooking Routes
- * 
+ *
  * API endpoints for kitchen inventory, shopping lists, recipes, and wishlist.
  */
 
 import { Router } from 'express';
 import * as cookingController from '../controllers/cookingController';
+import { ramiLevyLimiter } from '../middleware';
 
 const router = Router();
 
@@ -68,5 +69,31 @@ router.get('/delivery/providers', cookingController.getDeliveryProviders);
 router.post('/delivery/wolt/order', cookingController.placeWoltOrder);
 router.get('/delivery/wolt/status/:deliveryId', cookingController.getWoltOrderStatus);
 router.post('/delivery/wolt/cancel/:deliveryId', cookingController.cancelWoltOrder);
+
+// =============================================================================
+// RAMI LEVY INTEGRATION (Auto Cart Population)
+// All Rami Levy endpoints have specific rate limiting (20 req/min)
+// =============================================================================
+
+// Token management
+router.post('/rami-levy/setup', ramiLevyLimiter, cookingController.ramiLevySetup);
+router.get('/rami-levy/status', ramiLevyLimiter, cookingController.ramiLevyStatus);
+router.delete('/rami-levy/tokens', ramiLevyLimiter, cookingController.ramiLevyDeleteTokens);
+
+// Product search
+router.get('/rami-levy/search', ramiLevyLimiter, cookingController.ramiLevySearch);
+
+// Cart operations
+router.get('/rami-levy/cart', ramiLevyLimiter, cookingController.ramiLevyGetCart);
+router.post('/rami-levy/cart/add', ramiLevyLimiter, cookingController.ramiLevyAddToCart);
+router.post('/rami-levy/cart/remove', ramiLevyLimiter, cookingController.ramiLevyRemoveFromCart);
+router.post('/rami-levy/cart/update', ramiLevyLimiter, cookingController.ramiLevyUpdateQuantity);
+router.post('/rami-levy/cart/clear', ramiLevyLimiter, cookingController.ramiLevyClearCart);
+
+// Checkout
+router.get('/rami-levy/checkout', ramiLevyLimiter, cookingController.ramiLevyCheckout);
+
+// Main flow - order ingredients from a recipe
+router.post('/rami-levy/order-ingredients', ramiLevyLimiter, cookingController.ramiLevyOrderIngredients);
 
 export default router;
