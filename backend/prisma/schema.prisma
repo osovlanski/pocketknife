@@ -944,7 +944,7 @@ model RamiLevyToken {
   
   // Authentication tokens (extracted from browser session)
   apiKey    String   @db.Text  // Bearer token from Authorization header
-  ecomToken String   @db.Text  // ecomtoken header value
+  ecomToken String?  @db.Text  // ecomtoken header value (optional - only needed for cart ops)
   cookie    String   @db.Text  // Full cookie string
   
   // Token status
