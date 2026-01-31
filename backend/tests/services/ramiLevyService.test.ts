@@ -43,9 +43,15 @@ vi.mock('../../src/utils/logger', () => ({
     start: vi.fn(),
     complete: vi.fn(),
     processing: vi.fn(),
-    api: vi.fn()
+    api: vi.fn(),
+    debug: vi.fn()
   }
 }));
+
+// Test tokens that pass minimum length validation
+const MOCK_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.test';
+const MOCK_COOKIE = 'session_id=abc123def456; user_token=xyz789; _ga=GA1.2.1234567890.1234567890';
+const MOCK_ECOM_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.ecom';
 
 vi.mock('axios', () => ({
   default: {
@@ -254,8 +260,8 @@ describe('RamiLevyService with mocked database', () => {
       mockPrisma.ramiLevyToken.upsert.mockResolvedValue({ id: 'token-123' });
 
       const tokens = {
-        apiKey: 'test-api-key',
-        cookie: 'test-cookie'
+        apiKey: MOCK_API_KEY,
+        cookie: MOCK_COOKIE
       };
 
       const result = await ramiLevyService.storeTokens('user-123', tokens);
@@ -267,8 +273,8 @@ describe('RamiLevyService with mocked database', () => {
       mockPrisma.ramiLevyToken.upsert.mockRejectedValue(new Error('DB error'));
 
       const tokens = {
-        apiKey: 'test-api-key',
-        cookie: 'test-cookie'
+        apiKey: MOCK_API_KEY,
+        cookie: MOCK_COOKIE
       };
 
       const result = await ramiLevyService.storeTokens('user-123', tokens);
@@ -279,14 +285,15 @@ describe('RamiLevyService with mocked database', () => {
   describe('initialize with database', () => {
     it('should initialize successfully with valid tokens', async () => {
       mockPrisma.ramiLevyToken.findUnique.mockResolvedValue({
-        apiKey: 'encrypted:test-api-key',
-        cookie: 'encrypted:test-cookie'
+        apiKey: `encrypted:${MOCK_API_KEY}`,
+        cookie: `encrypted:${MOCK_COOKIE}`,
+        ecomToken: `encrypted:${MOCK_ECOM_TOKEN}`
       });
 
       // Mock successful API validation
       mockAxiosInstance.post.mockResolvedValue({
         status: 200,
-        data: { status: 200 }
+        data: { status: 200, data: [] }
       });
 
       mockPrisma.ramiLevyToken.update.mockResolvedValue({});
@@ -299,8 +306,9 @@ describe('RamiLevyService with mocked database', () => {
 
     it('should return invalid when API validation fails', async () => {
       mockPrisma.ramiLevyToken.findUnique.mockResolvedValue({
-        apiKey: 'encrypted:test-api-key',
-        cookie: 'encrypted:test-cookie'
+        apiKey: `encrypted:${MOCK_API_KEY}`,
+        cookie: `encrypted:${MOCK_COOKIE}`,
+        ecomToken: `encrypted:${MOCK_ECOM_TOKEN}`
       });
 
       // Mock failed API validation
@@ -311,7 +319,7 @@ describe('RamiLevyService with mocked database', () => {
       expect(result.isValid).toBe(false);
       expect(result.errorMessage).toBeDefined();
       // Error message should contain validation failure info
-      expect(result.errorMessage).toMatch(/Validation|failed|Unauthorized/i);
+      expect(result.errorMessage).toMatch(/Validation|failed|unknown/i);
     });
   });
 
@@ -349,12 +357,13 @@ describe('RamiLevyService with mocked database', () => {
     it('should search products and return results', async () => {
       // Initialize first
       mockPrisma.ramiLevyToken.findUnique.mockResolvedValue({
-        apiKey: 'encrypted:test-api-key',
-        cookie: 'encrypted:test-cookie'
+        apiKey: `encrypted:${MOCK_API_KEY}`,
+        cookie: `encrypted:${MOCK_COOKIE}`,
+        ecomToken: `encrypted:${MOCK_ECOM_TOKEN}`
       });
 
       mockAxiosInstance.post
-        .mockResolvedValueOnce({ status: 200, data: { status: 200 } }) // validation
+        .mockResolvedValueOnce({ status: 200, data: { status: 200, data: [] } }) // validation
         .mockResolvedValueOnce({
           status: 200,
           data: {
