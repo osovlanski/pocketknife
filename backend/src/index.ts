@@ -190,11 +190,32 @@ app.get('/health', async (req, res) => {
         count: agentCount
       }
     },
+    // Build timestamp for deployment verification
+    buildTime: '2026-01-30T22:00:00Z',
     version: process.env.npm_package_version || '2.0.0',
     environment: process.env.NODE_ENV || 'development'
   };
 
   res.status(isHealthy ? 200 : 503).json(response);
+});
+
+// Diagnostic endpoint for verifying deployed capabilities
+app.get('/health/capabilities', (req, res) => {
+  // Dynamic import to avoid circular dependencies
+  import('./services/assistant/agentOrchestratorService').then(({ agentOrchestratorService }) => {
+    const cookingCaps = agentOrchestratorService.getAgentCapabilities('cooking');
+    const ramiLevyCaps = cookingCaps.filter(c => c.action.startsWith('rami-levy'));
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      buildTime: '2026-01-30T22:00:00Z',
+      cookingCapabilities: cookingCaps.map(c => c.action),
+      ramiLevyCapabilities: ramiLevyCaps.map(c => ({ action: c.action, description: c.description })),
+      hasRamiLevy: ramiLevyCaps.length > 0
+    });
+  }).catch(err => {
+    res.status(500).json({ error: err.message });
+  });
 });
 
 // 404 handler for unmatched routes (must be after all routes)
