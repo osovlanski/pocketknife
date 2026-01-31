@@ -216,10 +216,31 @@ class RamiLevyService {
    * @returns Configured axios instance
    */
   private createAxiosInstance(tokens: RamiLevyTokens): AxiosInstance {
+    // Clean tokens by removing trailing invalid characters (browser copy/paste issues)
+    const cleanToken = (token: string): string => {
+      return token ? token.replace(/[^A-Za-z0-9\-_\.]+$/, '') : token;
+    };
+
+    const cleanedApiKey = cleanToken(tokens.apiKey);
+    const cleanedEcomToken = tokens.ecomToken ? cleanToken(tokens.ecomToken) : undefined;
+
+    // Determine best token for Authorization header
+    // If apiKey is truncated (2 parts), use ecomToken if available (it's a valid 3-part JWT)
+    const apiKeyParts = cleanedApiKey.split('.').length;
+    const useEcomAsAuth = apiKeyParts < 3 && cleanedEcomToken && cleanedEcomToken.split('.').length === 3;
+    const authToken = useEcomAsAuth ? cleanedEcomToken : cleanedApiKey;
+
+    if (useEcomAsAuth) {
+      logger.info('Using EcomToken as Authorization (apiKey appears truncated)', {
+        apiKeyParts,
+        ecomTokenValid: true
+      });
+    }
+
     const headers: Record<string, string> = {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9,he;q=0.8',
-      'Authorization': `Bearer ${tokens.apiKey}`,
+      'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json;charset=UTF-8',
       'Cookie': tokens.cookie,
       'locale': 'he',
@@ -228,9 +249,9 @@ class RamiLevyService {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
     };
 
-    // ecomToken is optional - only needed for cart operations
-    if (tokens.ecomToken) {
-      headers['ecomtoken'] = tokens.ecomToken;
+    // ecomToken is also sent as separate header for cart operations
+    if (cleanedEcomToken) {
+      headers['ecomtoken'] = cleanedEcomToken;
     }
 
     return axios.create({
