@@ -586,6 +586,11 @@ class AgentOrchestratorService {
             prompt += `  Optional: ${optional.map(p => `${p.name} (${p.type})`).join(', ')}\n`;
           }
         }
+        
+        // Include examples to help AI recognize user intent
+        if (cap.examples && cap.examples.length > 0) {
+          prompt += `  Examples: "${cap.examples.join('", "')}"\n`;
+        }
       }
 
       prompt += '\n';
