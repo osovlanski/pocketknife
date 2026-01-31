@@ -94,15 +94,76 @@ export interface RamiLevySearchResult {
 }
 
 /**
- * Token validation status
+ * Token validation status with detailed info
  */
 export interface TokenStatus {
   isValid: boolean;
   userId: string;
   lastUsed?: Date;
   expiresAt?: Date;
+  tokenAge?: string;       // Human readable age (e.g., "2 hours ago")
+  expiresIn?: string;      // Human readable expiry (e.g., "in 5 days")
+  isExpiringSoon?: boolean; // True if expires within 24 hours
   errorMessage?: string;
+  refreshInstructions?: string;
 }
+
+/**
+ * Parse JWT token to extract expiration time
+ * @param token - JWT token string
+ * @returns Expiration date or null
+ */
+const parseJwtExpiration = (token: string): Date | null => {
+  if (!token) return null;
+  
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    
+    // Decode the payload (second part)
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    
+    if (payload.exp) {
+      return new Date(payload.exp * 1000);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Get human readable time difference
+ */
+const getTimeAgo = (date: Date): string => {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+  return `${Math.floor(seconds / 86400)} days ago`;
+};
+
+/**
+ * Get human readable time until expiration
+ */
+const getTimeUntil = (date: Date): string => {
+  const seconds = Math.floor((date.getTime() - Date.now()) / 1000);
+  
+  if (seconds < 0) return 'expired';
+  if (seconds < 60) return 'less than a minute';
+  if (seconds < 3600) return `in ${Math.floor(seconds / 60)} minutes`;
+  if (seconds < 86400) return `in ${Math.floor(seconds / 3600)} hours`;
+  return `in ${Math.floor(seconds / 86400)} days`;
+};
+
+const REFRESH_INSTRUCTIONS = `To refresh your Rami Levy tokens:
+1. Go to rami-levy.co.il and log in
+2. Open DevTools (F12) → Network tab
+3. Search for any product (e.g., "חלב")
+4. Find a request to www.rami-levy.co.il/api
+5. Right-click the request → "Copy as cURL"
+6. Extract: Authorization (Bearer token), EcomToken, and Cookie headers`;
 
 /**
  * User session state (per-user, thread-safe)
@@ -337,7 +398,7 @@ class RamiLevyService {
   /**
    * Initialize service for a user with their stored tokens
    * @param userId - User identifier
-   * @returns Token validation status
+   * @returns Token validation status with detailed info
    */
   async initialize(userId: string): Promise<TokenStatus> {
     try {
@@ -347,7 +408,27 @@ class RamiLevyService {
         return {
           isValid: false,
           userId,
-          errorMessage: 'No tokens stored. Please configure Rami Levy authentication.'
+          errorMessage: 'No tokens stored. Please configure Rami Levy authentication.',
+          refreshInstructions: REFRESH_INSTRUCTIONS
+        };
+      }
+
+      // Parse expiration from EcomToken (it's a valid JWT with exp claim)
+      const expiresAt = tokens.ecomToken ? parseJwtExpiration(tokens.ecomToken) : null;
+      const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
+      const isExpiringSoon = expiresAt 
+        ? (expiresAt.getTime() - Date.now()) < 24 * 60 * 60 * 1000 
+        : false;
+
+      // If token is already expired based on JWT, don't bother validating
+      if (isExpired) {
+        return {
+          isValid: false,
+          userId,
+          expiresAt,
+          expiresIn: 'expired',
+          errorMessage: 'Tokens have expired. Please refresh your authentication.',
+          refreshInstructions: REFRESH_INSTRUCTIONS
         };
       }
 
@@ -360,13 +441,24 @@ class RamiLevyService {
         lastUsed: new Date()
       });
 
-      // Validate tokens with a simple request
+      // Validate tokens with a simple API request
       const isValid = await this.validateTokens(userId);
       
       if (isValid) {
         await this.updateLastUsed(userId);
         logger.success('Rami Levy service initialized', { userId });
-        return { isValid: true, userId, lastUsed: new Date() };
+        
+        const tokenInfo = await this.getTokenInfo(userId);
+        
+        return { 
+          isValid: true, 
+          userId, 
+          lastUsed: new Date(),
+          expiresAt: expiresAt || undefined,
+          tokenAge: tokenInfo?.updatedAt ? getTimeAgo(tokenInfo.updatedAt) : undefined,
+          expiresIn: expiresAt ? getTimeUntil(expiresAt) : undefined,
+          isExpiringSoon
+        };
       }
 
       // Clean up invalid session
@@ -375,15 +467,37 @@ class RamiLevyService {
       return {
         isValid: false,
         userId,
-        errorMessage: 'Tokens expired or invalid. Please refresh your authentication.'
+        expiresAt: expiresAt || undefined,
+        expiresIn: expiresAt ? getTimeUntil(expiresAt) : undefined,
+        errorMessage: 'Tokens expired or invalid. Please refresh your authentication.',
+        refreshInstructions: REFRESH_INSTRUCTIONS
       };
     } catch (error: any) {
       logger.fail('Failed to initialize Rami Levy service', { userId, error: error.message });
       return {
         isValid: false,
         userId,
-        errorMessage: error.message
+        errorMessage: error.message,
+        refreshInstructions: REFRESH_INSTRUCTIONS
       };
+    }
+  }
+
+  /**
+   * Get token metadata from database
+   */
+  private async getTokenInfo(userId: string): Promise<{ updatedAt: Date } | null> {
+    const prisma = getPrisma();
+    if (!prisma) return null;
+
+    try {
+      const record = await (prisma as any).ramiLevyToken?.findUnique({
+        where: { userId },
+        select: { updatedAt: true }
+      });
+      return record || null;
+    } catch {
+      return null;
     }
   }
 

@@ -511,7 +511,12 @@ export interface RamiLevyStatus {
   isValid: boolean;
   userId: string;
   lastUsed?: string;
+  expiresAt?: string;
+  tokenAge?: string;
+  expiresIn?: string;
+  isExpiringSoon?: boolean;
   errorMessage?: string;
+  refreshInstructions?: string;
 }
 
 export interface RamiLevyStore {

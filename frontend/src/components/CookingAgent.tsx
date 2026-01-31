@@ -1073,18 +1073,41 @@ const CookingAgent: React.FC = () => {
           {/* Status Banner */}
           {ramiLevy.status && (
             <div 
-              className={`${styles.alert} ${ramiLevy.isConfigured ? styles.alertSuccess : styles.alertWarning}`}
+              className={`${styles.alert} ${ramiLevy.isConfigured ? (ramiLevy.status.isExpiringSoon ? styles.alertWarning : styles.alertSuccess) : styles.alertWarning}`}
               style={{ marginBottom: '1rem' }}
             >
               {ramiLevy.isConfigured ? (
                 <>
                   <CheckCircle className={styles.icon} />
-                  Rami Levy connected - Ready to shop!
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                    <span>Rami Levy connected - Ready to shop!</span>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                      {ramiLevy.status.tokenAge && `Last updated: ${ramiLevy.status.tokenAge}`}
+                      {ramiLevy.status.expiresIn && ` • Expires ${ramiLevy.status.expiresIn}`}
+                    </span>
+                  </div>
+                  {ramiLevy.status.isExpiringSoon && (
+                    <button
+                      className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                      style={{ marginLeft: 'auto', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+                      onClick={() => ramiLevy.setShowSetup(true)}
+                    >
+                      <RefreshCw size={14} />
+                      Refresh Tokens
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
                   <AlertTriangle className={styles.icon} />
-                  {ramiLevy.status.errorMessage || 'Rami Levy not configured'}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                    <span>{ramiLevy.status.errorMessage || 'Rami Levy not configured'}</span>
+                    {ramiLevy.status.expiresIn === 'expired' && (
+                      <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                        Your session has expired. Please refresh your tokens below.
+                      </span>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -1177,16 +1200,20 @@ const CookingAgent: React.FC = () => {
                 <ol style={{ paddingLeft: '1.25rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.8' }}>
                   <li>Log into <a href="https://www.rami-levy.co.il" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>rami-levy.co.il</a></li>
                   <li>Open DevTools (F12) → Network tab</li>
-                  <li>Search for a product to trigger an API call</li>
-                  <li>Find a request to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>api.rfrn.net</code></li>
-                  <li>From Request Headers, copy:
+                  <li>Search for a product (e.g., "חלב") to trigger an API call</li>
+                  <li>Find a request to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>www.rami-levy.co.il/api</code></li>
+                  <li>Right-click the request → <strong>"Copy as cURL"</strong></li>
+                  <li>From the copied cURL command, extract:
                     <ul style={{ marginTop: '0.25rem' }}>
-                      <li><strong>Authorization</strong> (remove "Bearer " prefix)</li>
-                      <li><strong>Cookie</strong></li>
-                      <li><strong>ecomtoken</strong> (from login response, optional)</li>
+                      <li><strong>Authorization</strong> - the value after "Bearer " (keep the full token)</li>
+                      <li><strong>Cookie</strong> - the -b or -H 'Cookie:' value</li>
+                      <li><strong>EcomToken</strong> - the EcomToken header value</li>
                     </ul>
                   </li>
                 </ol>
+                <p style={{ marginTop: '0.75rem', color: 'rgba(255, 200, 50, 0.9)', fontSize: '0.8rem' }}>
+                  <strong>Tip:</strong> Use "Copy as cURL" instead of manually copying headers to avoid truncation issues.
+                </p>
               </div>
             </div>
           ) : (
@@ -1230,6 +1257,13 @@ const CookingAgent: React.FC = () => {
                     </button>
                   )}
                   <button
+                    className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                    onClick={() => ramiLevy.setShowSetup(!ramiLevy.showSetup)}
+                    title="Update/Refresh Tokens"
+                  >
+                    <RefreshCw className={styles.icon} />
+                  </button>
+                  <button
                     className={`${styles.actionButton} ${styles.actionButtonDanger}`}
                     onClick={ramiLevy.logout}
                     title="Disconnect Rami Levy"
@@ -1238,6 +1272,93 @@ const CookingAgent: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Token Refresh Form (collapsible) */}
+              {ramiLevy.showSetup && (
+                <div style={{ 
+                  marginTop: '1rem',
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  borderRadius: '1rem', 
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <RefreshCw size={18} />
+                      Refresh Tokens
+                    </h4>
+                    <button
+                      className={styles.itemActionButton}
+                      onClick={() => ramiLevy.setShowSetup(false)}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.8rem' }}>
+                    Tokens expire periodically. Re-login to Rami Levy and copy fresh tokens.
+                  </p>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>API Key (Authorization Bearer)</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
+                      value={ramiApiKey}
+                      onChange={(e) => setRamiApiKey(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Cookie</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="_gcl_au=1.1...; AWSALB=...;"
+                      value={ramiCookie}
+                      onChange={(e) => setRamiCookie(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Ecom Token</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIs..."
+                      value={ramiEcomToken}
+                      onChange={(e) => setRamiEcomToken(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                    style={{ width: '100%', marginTop: '0.5rem' }}
+                    onClick={async () => {
+                      const success = await ramiLevy.setup({
+                        apiKey: ramiApiKey,
+                        cookie: ramiCookie,
+                        ecomToken: ramiEcomToken || undefined
+                      });
+                      if (success) {
+                        setRamiApiKey('');
+                        setRamiCookie('');
+                        setRamiEcomToken('');
+                        ramiLevy.setShowSetup(false);
+                      }
+                    }}
+                    disabled={!ramiApiKey || !ramiCookie || ramiLevy.loading}
+                  >
+                    {ramiLevy.loading ? (
+                      <Loader2 className={`${styles.icon} ${styles.spinner}`} />
+                    ) : (
+                      <RefreshCw className={styles.icon} />
+                    )}
+                    Update Tokens
+                  </button>
+                </div>
+              )}
 
               {/* Search Results */}
               {ramiLevy.products.length > 0 && (
