@@ -716,13 +716,26 @@ export const cancelWoltOrder = async (req: Request, res: Response) => {
 // =============================================================================
 
 /**
+ * Clean a JWT token by removing invalid trailing characters
+ * Some browsers/tools truncate or corrupt tokens when copying
+ */
+const cleanJwtToken = (token: string): string => {
+  if (!token || typeof token !== 'string') return token;
+  // Remove trailing $ or other non-base64url characters
+  // Base64url valid chars: A-Z, a-z, 0-9, -, _
+  return token.replace(/[^A-Za-z0-9\-_\.]+$/, '');
+};
+
+/**
  * Validate that a string looks like a JWT token
+ * Accepts 2 or 3 part tokens (some APIs use truncated tokens)
  */
 const isValidJwtFormat = (token: string): boolean => {
   if (!token || typeof token !== 'string') return false;
-  // JWT has 3 parts separated by dots
-  const parts = token.split('.');
-  return parts.length === 3 && parts.every(part => part.length > 0);
+  const cleaned = cleanJwtToken(token);
+  // JWT typically has 3 parts, but some systems use 2
+  const parts = cleaned.split('.');
+  return parts.length >= 2 && parts.every(part => part.length > 0);
 };
 
 /**
@@ -751,7 +764,11 @@ export const ramiLevySetup = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const { apiKey, ecomToken, cookie } = req.body;
+    const { apiKey: rawApiKey, ecomToken: rawEcomToken, cookie } = req.body;
+
+    // Clean tokens (remove trailing invalid characters from copy/paste)
+    const apiKey = rawApiKey ? cleanJwtToken(rawApiKey.trim()) : '';
+    const ecomToken = rawEcomToken ? cleanJwtToken(rawEcomToken.trim()) : undefined;
 
     // Validate apiKey (required, JWT format)
     if (!apiKey || typeof apiKey !== 'string') {
@@ -763,7 +780,7 @@ export const ramiLevySetup = async (req: Request, res: Response) => {
     if (!isValidJwtFormat(apiKey)) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Invalid API key format. Should be a JWT token (three parts separated by dots).' 
+        error: 'Invalid API key format. Should be a JWT token (at least two parts separated by dots).' 
       });
     }
 
