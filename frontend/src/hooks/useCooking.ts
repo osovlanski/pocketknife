@@ -38,7 +38,7 @@ export interface UseCookingReturn {
   lowStockItems: InventoryItem[];
   loading: boolean;
   searchingRecipes: boolean;
-  activeTab: 'inventory' | 'lists' | 'recipes' | 'wishlist';
+  activeTab: 'inventory' | 'lists' | 'recipes' | 'wishlist' | 'ramilevy';
   selectedCategory: string | null;
   showAddItem: boolean;
   showAddList: boolean;
@@ -46,7 +46,7 @@ export interface UseCookingReturn {
   newListName: string;
 
   // Actions
-  setActiveTab: (tab: 'inventory' | 'lists' | 'recipes' | 'wishlist') => void;
+  setActiveTab: (tab: 'inventory' | 'lists' | 'recipes' | 'wishlist' | 'ramilevy') => void;
   setSelectedCategory: (category: string | null) => void;
   setShowAddItem: (show: boolean) => void;
   setShowAddList: (show: boolean) => void;
@@ -127,7 +127,7 @@ export const useCooking = (): UseCookingReturn => {
   // UI state
   const [loading, setLoading] = useState(false);
   const [searchingRecipes, setSearchingRecipes] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inventory' | 'lists' | 'recipes' | 'wishlist'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'lists' | 'recipes' | 'wishlist' | 'ramilevy'>('inventory');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showAddList, setShowAddList] = useState(false);

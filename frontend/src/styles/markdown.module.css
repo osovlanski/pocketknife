@@ -13,6 +13,9 @@
   color: #e2e8f0;
   line-height: 1.7;
   font-size: 0.9375rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* =============================================================================
@@ -88,6 +91,9 @@
 .paragraph {
   margin: 0.625rem 0;
   color: #e2e8f0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .paragraph:first-child {

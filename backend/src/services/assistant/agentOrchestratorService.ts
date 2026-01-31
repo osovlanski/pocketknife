@@ -79,7 +79,7 @@ export interface WorkflowResult {
  * Agent keywords/hashtags for trigger detection
  */
 export const AGENT_KEYWORDS: Record<string, string[]> = {
-  cooking: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen', '#grocery', '#groceries', '#order', '#shopping', '#cart'],
+  cooking: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen', '#grocery', '#groceries', '#order', '#shopping', '#cart', '#ramilevy', '#rami-levy', 'רמי לוי'],
   jobs: ['#job', '#career', '#interview', '#resume', '#cv', '#hiring'],
   travel: ['#travel', '#flight', '#hotel', '#trip', '#vacation', '#booking'],
   todo: ['#todo', '#task', '#reminder', '#deadline', '#checklist'],
@@ -177,6 +177,54 @@ const AGENT_CAPABILITIES: Record<string, AgentCapability[]> = {
       description: 'Get list of available grocery stores for ordering',
       parameters: [],
       examples: ['What grocery stores are available?', 'Show me where I can order groceries']
+    },
+    // Rami Levy integration actions
+    {
+      action: 'rami-levy-setup',
+      description: 'Configure Rami Levy credentials for grocery ordering. User needs to provide API key, cookie, and optionally ecomToken from their Rami Levy browser session.',
+      parameters: [
+        { name: 'apiKey', type: 'string', required: true, description: 'Authorization Bearer token from Rami Levy request headers' },
+        { name: 'cookie', type: 'string', required: true, description: 'Cookie header value from Rami Levy request' },
+        { name: 'ecomToken', type: 'string', required: false, description: 'Ecom token from login response (optional, for cart operations)' },
+        { name: 'storeId', type: 'string', required: false, description: 'Preferred store ID (default: 331)' }
+      ],
+      examples: ['Setup my Rami Levy credentials', 'Configure Rami Levy with my API key and cookie', 'Set up Rami Levy integration']
+    },
+    {
+      action: 'rami-levy-search',
+      description: 'Search for products in Rami Levy grocery store',
+      parameters: [
+        { name: 'query', type: 'string', required: true, description: 'Product search query', example: 'חלב' },
+        { name: 'limit', type: 'number', required: false, description: 'Maximum results to return (default: 20)' }
+      ],
+      examples: ['Search for milk in Rami Levy', 'Find חלב at Rami Levy', 'Search Rami Levy for bread']
+    },
+    {
+      action: 'rami-levy-add-to-cart',
+      description: 'Add a product to the Rami Levy shopping cart',
+      parameters: [
+        { name: 'productId', type: 'string', required: true, description: 'Product ID from search results' },
+        { name: 'quantity', type: 'number', required: false, description: 'Quantity to add (default: 1)' }
+      ],
+      examples: ['Add this to my Rami Levy cart', 'Add 2 of this product to cart']
+    },
+    {
+      action: 'rami-levy-get-cart',
+      description: 'Get current Rami Levy shopping cart contents',
+      parameters: [],
+      examples: ['Show my Rami Levy cart', 'What\'s in my Rami Levy cart?']
+    },
+    {
+      action: 'rami-levy-checkout',
+      description: 'Get checkout link for Rami Levy cart',
+      parameters: [],
+      examples: ['Checkout my Rami Levy cart', 'Get Rami Levy checkout link', 'Go to Rami Levy checkout']
+    },
+    {
+      action: 'rami-levy-status',
+      description: 'Check if Rami Levy integration is configured for the user',
+      parameters: [],
+      examples: ['Is Rami Levy configured?', 'Check Rami Levy status', 'Is my Rami Levy connection working?']
     }
   ],
   jobs: [
