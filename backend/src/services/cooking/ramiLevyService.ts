@@ -515,7 +515,7 @@ class RamiLevyService {
     try {
       logger.api('Validating Rami Levy tokens with test search...');
       const response = await session.axiosInstance.post('/catalog', {
-        q: 'חלב',
+        q: 'test',
         aggs: 0,
         store: DEFAULT_STORE_ID
       });
