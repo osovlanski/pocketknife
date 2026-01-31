@@ -29,11 +29,18 @@ import {
   Truck,
   X,
   CheckCircle,
-  ShoppingBag
+  ShoppingBag,
+  Settings,
+  Store,
+  Key,
+  LogOut,
+  ShoppingBasket,
+  Minus
 } from 'lucide-react';
 import VoiceInputButton from './common/VoiceInputButton';
 import AgentPageLayout from './common/AgentPageLayout';
 import useCooking from '../hooks/useCooking';
+import { useRamiLevy } from '../hooks/useRamiLevy';
 import { useTranslation } from '../i18n';
 import { COOKING_CATEGORIES, UNITS } from '../services/cookingApi';
 import type { InventoryItem, Recipe, ShoppingList, InventoryItemData, SavedRecipe, RecipeOrderResult } from '../services/cookingApi';
@@ -690,7 +697,12 @@ const OrderPreviewModal: React.FC<OrderPreviewModalProps> = ({
 const CookingAgent: React.FC = () => {
   const { t } = useTranslation();
   const cooking = useCooking();
+  const ramiLevy = useRamiLevy();
   const [recipeSearchMode, setRecipeSearchMode] = useState<'available' | 'custom'>('available');
+  // Rami Levy setup form state
+  const [ramiApiKey, setRamiApiKey] = useState('');
+  const [ramiCookie, setRamiCookie] = useState('');
+  const [ramiEcomToken, setRamiEcomToken] = useState('');
   const [customIngredients, setCustomIngredients] = useState('');
   const [showGenerateList, setShowGenerateList] = useState(false);
   const [generatePrompt, setGeneratePrompt] = useState('');
@@ -821,6 +833,16 @@ const CookingAgent: React.FC = () => {
           {t('cooking.wishlist')}
           {cooking.wishlist.length > 0 && (
             <span className={styles.tabBadge}>{cooking.wishlist.length}</span>
+          )}
+        </button>
+        <button
+          className={`${styles.tab} ${cooking.activeTab === 'ramilevy' ? styles.tabActive : ''}`}
+          onClick={() => cooking.setActiveTab('ramilevy')}
+        >
+          <Store className={styles.icon} />
+          Rami Levy
+          {ramiLevy.cart && ramiLevy.cart.items.length > 0 && (
+            <span className={styles.tabBadge}>{ramiLevy.cart.items.length}</span>
           )}
         </button>
       </div>
@@ -1040,6 +1062,365 @@ const CookingAgent: React.FC = () => {
                   />
                 ))}
               </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Rami Levy Tab */}
+      {cooking.activeTab === 'ramilevy' && (
+        <>
+          {/* Status Banner */}
+          {ramiLevy.status && (
+            <div 
+              className={`${styles.alert} ${ramiLevy.isConfigured ? styles.alertSuccess : styles.alertWarning}`}
+              style={{ marginBottom: '1rem' }}
+            >
+              {ramiLevy.isConfigured ? (
+                <>
+                  <CheckCircle className={styles.icon} />
+                  Rami Levy connected - Ready to shop!
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className={styles.icon} />
+                  {ramiLevy.status.errorMessage || 'Rami Levy not configured'}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Setup Section */}
+          {!ramiLevy.isConfigured ? (
+            <div style={{ 
+              background: 'rgba(255, 255, 255, 0.05)', 
+              borderRadius: '1rem', 
+              padding: '1.5rem',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Key size={20} />
+                Setup Rami Levy Integration
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                To connect your Rami Levy account, you need to extract tokens from your browser.
+                See instructions below.
+              </p>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>API Key (Authorization Bearer)</label>
+                <textarea
+                  className={styles.formInput}
+                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                  placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
+                  value={ramiApiKey}
+                  onChange={(e) => setRamiApiKey(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Cookie</label>
+                <textarea
+                  className={styles.formInput}
+                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                  placeholder="_gcl_au=1.1...; AWSALB=...;"
+                  value={ramiCookie}
+                  onChange={(e) => setRamiCookie(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Ecom Token (Optional - for cart operations)</label>
+                <textarea
+                  className={styles.formInput}
+                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                  placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
+                  value={ramiEcomToken}
+                  onChange={(e) => setRamiEcomToken(e.target.value)}
+                />
+              </div>
+
+              <button
+                className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                style={{ width: '100%', marginTop: '1rem' }}
+                onClick={async () => {
+                  const success = await ramiLevy.setup({
+                    apiKey: ramiApiKey,
+                    cookie: ramiCookie,
+                    ecomToken: ramiEcomToken || undefined
+                  });
+                  if (success) {
+                    setRamiApiKey('');
+                    setRamiCookie('');
+                    setRamiEcomToken('');
+                  }
+                }}
+                disabled={!ramiApiKey || !ramiCookie || ramiLevy.loading}
+              >
+                {ramiLevy.loading ? (
+                  <Loader2 className={`${styles.icon} ${styles.spinner}`} />
+                ) : (
+                  <Key className={styles.icon} />
+                )}
+                Connect to Rami Levy
+              </button>
+
+              {/* Instructions */}
+              <div style={{ 
+                marginTop: '1.5rem', 
+                padding: '1rem', 
+                background: 'rgba(59, 130, 246, 0.1)', 
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem'
+              }}>
+                <h4 style={{ marginBottom: '0.5rem' }}>How to get your tokens:</h4>
+                <ol style={{ paddingLeft: '1.25rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.8' }}>
+                  <li>Log into <a href="https://www.rami-levy.co.il" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>rami-levy.co.il</a></li>
+                  <li>Open DevTools (F12) → Network tab</li>
+                  <li>Search for a product to trigger an API call</li>
+                  <li>Find a request to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>api.rfrn.net</code></li>
+                  <li>From Request Headers, copy:
+                    <ul style={{ marginTop: '0.25rem' }}>
+                      <li><strong>Authorization</strong> (remove "Bearer " prefix)</li>
+                      <li><strong>Cookie</strong></li>
+                      <li><strong>ecomtoken</strong> (from login response, optional)</li>
+                    </ul>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Connected - Show Search and Cart */}
+              <div className={styles.actionsBar} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flex: 1, minWidth: '250px' }}>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    placeholder="חפש מוצרים... (e.g. חלב, לחם)"
+                    value={ramiLevy.searchQuery}
+                    onChange={(e) => ramiLevy.setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && ramiLevy.searchQuery.trim()) {
+                        ramiLevy.search(ramiLevy.searchQuery);
+                      }
+                    }}
+                  />
+                  <button
+                    className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                    onClick={() => ramiLevy.search(ramiLevy.searchQuery)}
+                    disabled={ramiLevy.loading || !ramiLevy.searchQuery.trim()}
+                  >
+                    {ramiLevy.loading ? (
+                      <Loader2 className={`${styles.icon} ${styles.spinner}`} />
+                    ) : (
+                      <Search className={styles.icon} />
+                    )}
+                    Search
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {ramiLevy.checkoutUrl && (
+                    <button
+                      className={`${styles.actionButton} ${styles.actionButtonSuccess}`}
+                      onClick={ramiLevy.checkout}
+                    >
+                      <ExternalLink className={styles.icon} />
+                      Checkout ({ramiLevy.cart?.items.length || 0})
+                    </button>
+                  )}
+                  <button
+                    className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                    onClick={ramiLevy.logout}
+                    title="Disconnect Rami Levy"
+                  >
+                    <LogOut className={styles.icon} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Results */}
+              {ramiLevy.products.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h4>🔍 Search Results ({ramiLevy.products.length})</h4>
+                    <button
+                      className={styles.itemActionButton}
+                      onClick={ramiLevy.clearProducts}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
+                    gap: '0.75rem' 
+                  }}>
+                    {ramiLevy.products.slice(0, 20).map((product) => (
+                      <div 
+                        key={product.id}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: '0.75rem',
+                          padding: '0.75rem',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        {product.imageUrl && (
+                          <div style={{ 
+                            height: '80px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '0.5rem'
+                          }}>
+                            <img 
+                              src={product.imageUrl} 
+                              alt={product.name}
+                              style={{ maxHeight: '70px', maxWidth: '100%', objectFit: 'contain' }}
+                            />
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ 
+                            fontSize: '0.8rem', 
+                            fontWeight: 500,
+                            lineHeight: 1.3,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {product.name}
+                          </p>
+                          {product.brand && (
+                            <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                              {product.brand}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600, color: '#22C55E' }}>
+                            ₪{product.price?.toFixed(2) || 'N/A'}
+                          </span>
+                          <button
+                            className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            onClick={() => ramiLevy.addToCart(product.id)}
+                            disabled={ramiLevy.loading}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cart */}
+              {ramiLevy.cart && ramiLevy.cart.items.length > 0 && (
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  borderRadius: '1rem',
+                  padding: '1rem',
+                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <ShoppingBasket size={18} />
+                      Cart ({ramiLevy.cart.items.length} items)
+                    </h4>
+                    <button
+                      className={`${styles.itemActionButton} ${styles.itemActionButtonDanger}`}
+                      onClick={ramiLevy.clearCart}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {ramiLevy.cart.items.map((item) => (
+                      <div 
+                        key={item.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '0.5rem'
+                        }}
+                      >
+                        <span style={{ flex: 1, fontSize: '0.875rem' }}>{item.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button
+                            className={styles.itemActionButton}
+                            onClick={() => ramiLevy.updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span style={{ minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                          <button
+                            className={styles.itemActionButton}
+                            onClick={() => ramiLevy.updateQuantity(item.id, item.quantity + 1)}
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                        <span style={{ fontWeight: 600, color: '#22C55E', minWidth: '60px', textAlign: 'right' }}>
+                          ₪{(item.price * item.quantity).toFixed(2)}
+                        </span>
+                        <button
+                          className={`${styles.itemActionButton} ${styles.itemActionButtonDanger}`}
+                          onClick={() => ramiLevy.removeFromCart([item.id])}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    paddingTop: '0.75rem', 
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontWeight: 600 }}>Total:</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22C55E' }}>
+                      ₪{ramiLevy.cart.totalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  {ramiLevy.checkoutUrl && (
+                    <button
+                      className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                      style={{ width: '100%', marginTop: '1rem' }}
+                      onClick={ramiLevy.checkout}
+                    >
+                      <ExternalLink className={styles.icon} />
+                      Checkout on Rami Levy
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {ramiLevy.products.length === 0 && (!ramiLevy.cart || ramiLevy.cart.items.length === 0) && (
+                <div className={styles.emptyState} style={{ marginTop: '2rem' }}>
+                  <Store className={styles.emptyIcon} />
+                  <p className={styles.emptyTitle}>Start Shopping at Rami Levy</p>
+                  <p className={styles.emptyHint}>Search for products above to add them to your cart</p>
+                </div>
+              )}
             </>
           )}
         </>
