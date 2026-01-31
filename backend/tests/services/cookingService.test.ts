@@ -36,6 +36,12 @@ const { mockPrisma } = vi.hoisted(() => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn()
+    },
+    groceryInvoiceItem: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
     }
   }
 }));
@@ -80,6 +86,11 @@ describe('CookingService', () => {
     
     mockPrisma.savedRecipe.findMany.mockResolvedValue([]);
     mockPrisma.savedRecipe.create.mockResolvedValue({ id: 'recipe-1' });
+    
+    mockPrisma.groceryInvoiceItem.findMany.mockResolvedValue([]);
+    mockPrisma.groceryInvoiceItem.create.mockResolvedValue({ id: 'invoice-item-1' });
+    mockPrisma.groceryInvoiceItem.update.mockResolvedValue({});
+    mockPrisma.groceryInvoiceItem.updateMany.mockResolvedValue({ count: 0 });
   });
 
   afterEach(() => {
