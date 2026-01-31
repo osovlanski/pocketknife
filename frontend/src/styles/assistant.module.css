@@ -1156,9 +1156,21 @@
   background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 0.75rem;
-  padding: 1rem;
+  padding: 1.25rem;
   margin: 1rem;
-  animation: slideDown 0.3s ease-out;
+  animation: planSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15);
+}
+
+@keyframes planSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .planHeader {
@@ -1218,13 +1230,41 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0;
+  padding: 0.625rem 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.825rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.planStep:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .planStep:last-child {
   border-bottom: none;
+}
+
+.planStepRunning {
+  background: rgba(139, 92, 246, 0.1);
+  animation: stepPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0);
+  }
+}
+
+.planStepCompleted {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.planStepFailed {
+  background: rgba(239, 68, 68, 0.05);
 }
 
 .planStepNumber {
@@ -1289,24 +1329,32 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.5rem 1rem;
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.2));
+  border: 1px solid rgba(34, 197, 94, 0.4);
   border-radius: 0.5rem;
   color: #86efac;
-  font-size: 0.825rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
 }
 
 .planApproveButton:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(22, 163, 74, 0.3));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.planApproveButton:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .planApproveButton:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* =============================================================================
@@ -1325,12 +1373,32 @@
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.imageUploadButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .imageUploadButton:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.3);
-  color: #c4b5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  transform: scale(1.05);
+}
+
+.imageUploadButton:hover:not(:disabled)::before {
+  opacity: 0.2;
+}
+
+.imageUploadButton:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .imageUploadButton:disabled {
@@ -1345,39 +1413,147 @@
 .pendingImagePreview {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 0.5rem;
-  font-size: 0.75rem;
-  color: #86efac;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #93c5fd;
   position: absolute;
-  top: 4px;
-  left: 8px;
+  top: 8px;
+  left: 12px;
+  animation: imagePreviewSlide 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+@keyframes imagePreviewSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pendingImagePreview svg {
+  color: #60a5fa;
 }
 
 .removePendingImage {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: #86efac;
+  color: #94a3b8;
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.15s ease;
+  margin-left: 0.25rem;
 }
 
 .removePendingImage:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(239, 68, 68, 0.2);
   color: #f87171;
+  transform: scale(1.1);
 }
 
 /* Adjust input padding when image is attached */
 .inputWrapper:has(.pendingImagePreview) .messageInput {
-  padding-top: 2.25rem !important;
+  padding-top: 2.75rem !important;
+}
+
+/* =============================================================================
+   STREAMING INDICATOR
+   ============================================================================= */
+
+.streamingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: #c4b5fd;
+  animation: streamPulse 2s ease-in-out infinite;
+}
+
+@keyframes streamPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.streamingDot {
+  width: 6px;
+  height: 6px;
+  background: #8b5cf6;
+  border-radius: 50%;
+  animation: streamDotPulse 1s ease-in-out infinite;
+}
+
+@keyframes streamDotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+/* =============================================================================
+   TOOL CALL INDICATOR
+   ============================================================================= */
+
+.toolCallIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  color: #fbbf24;
+  margin-right: 0.375rem;
+  margin-bottom: 0.25rem;
+  animation: toolCallFadeIn 0.3s ease-out;
+}
+
+@keyframes toolCallFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.toolCallIndicator svg {
+  animation: toolSpin 1s linear infinite;
+}
+
+@keyframes toolSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
