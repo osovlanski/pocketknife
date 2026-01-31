@@ -1223,17 +1223,20 @@ const CookingAgent: React.FC = () => {
                   <li>
                     <a href="https://www.rami-levy.co.il" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>
                       Open Rami Levy
-                    </a> and <strong>log in</strong>
+                    </a> and <strong>log in</strong> to your account
                   </li>
                   <li>
                     Press <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem' }}>F12</kbd> → 
-                    <strong> Network</strong> tab → Search for any product
+                    <strong> Network</strong> tab → Search for a product (e.g., "חלב")
                   </li>
                   <li>
-                    Right-click any <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>api</code> request → 
-                    <strong style={{ color: '#22c55e' }}> "Copy as cURL"</strong> → Paste above ⬆️
+                    Find a request to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>rami-levy.co.il/api</code> → 
+                    Right-click → <strong style={{ color: '#22c55e' }}>"Copy as cURL"</strong> → Paste above ⬆️
                   </li>
                 </ol>
+                <p style={{ marginTop: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem' }}>
+                  💡 One cURL contains all tokens (API Key, Cookie, EcomToken) - no need to copy multiple requests!
+                </p>
               </div>
 
               {/* Advanced Mode Toggle */}
@@ -1362,7 +1365,7 @@ const CookingAgent: React.FC = () => {
                     </button>
                   </div>
                   <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
-                    Re-login to Rami Levy → F12 → Network → Copy as cURL → Paste below:
+                    Re-login to Rami Levy → F12 → Network → Search a product → Right-click API request → "Copy as cURL" → Paste:
                   </p>
 
                   <textarea
