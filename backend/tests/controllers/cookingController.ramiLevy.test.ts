@@ -150,7 +150,8 @@ describe('Cooking Controller - Rami Levy Endpoints', () => {
           apiKey: mockReq.body.apiKey,
           ecomToken: 'ecom-token-value',
           cookie: mockReq.body.cookie
-        }
+        },
+        skipValidation: false
       });
       expect(mockRes.json).toHaveBeenCalledWith({ ramiLevyStatus: { isValid: true } });
     });
