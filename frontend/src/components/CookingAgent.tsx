@@ -1125,47 +1125,69 @@ const CookingAgent: React.FC = () => {
                 <Key size={20} />
                 Setup Rami Levy Integration
               </h3>
-              <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-                To connect your Rami Levy account, you need to extract tokens from your browser.
-                See instructions below.
-              </p>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>API Key (Authorization Bearer)</label>
+              {/* Simple Mode - Paste cURL */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  marginBottom: '0.75rem'
+                }}>
+                  <span style={{ 
+                    background: 'rgba(34, 197, 94, 0.2)', 
+                    color: '#22c55e', 
+                    padding: '0.25rem 0.5rem', 
+                    borderRadius: '0.25rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold'
+                  }}>EASY</span>
+                  <label className={styles.formLabel} style={{ margin: 0 }}>Paste cURL Command</label>
+                </div>
+                <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                  Just paste the entire cURL command - we'll extract everything automatically!
+                </p>
                 <textarea
                   className={styles.formInput}
-                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
-                  placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
-                  value={ramiApiKey}
-                  onChange={(e) => setRamiApiKey(e.target.value)}
+                  style={{ minHeight: '100px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                  placeholder="curl 'https://www.rami-levy.co.il/api/...' -H 'authorization: Bearer ...' -H 'Cookie: ...' ..."
+                  onChange={(e) => {
+                    const curl = e.target.value;
+                    // Parse cURL command
+                    const authMatch = curl.match(/[Aa]uthorization:\s*Bearer\s+([^\s'"]+)/);
+                    const cookieMatch = curl.match(/-b\s+'([^']+)'/) || curl.match(/[Cc]ookie:\s*([^'"]+)['"]?/);
+                    const ecomMatch = curl.match(/[Ee]com[Tt]oken:\s*([^\s'"]+)/);
+                    
+                    if (authMatch) setRamiApiKey(authMatch[1]);
+                    if (cookieMatch) setRamiCookie(cookieMatch[1].trim());
+                    if (ecomMatch) setRamiEcomToken(ecomMatch[1]);
+                  }}
                 />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Cookie</label>
-                <textarea
-                  className={styles.formInput}
-                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
-                  placeholder="_gcl_au=1.1...; AWSALB=...;"
-                  value={ramiCookie}
-                  onChange={(e) => setRamiCookie(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Ecom Token (Optional - for cart operations)</label>
-                <textarea
-                  className={styles.formInput}
-                  style={{ minHeight: '60px', fontFamily: 'monospace', fontSize: '0.8rem' }}
-                  placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
-                  value={ramiEcomToken}
-                  onChange={(e) => setRamiEcomToken(e.target.value)}
-                />
+                
+                {/* Show parsed values */}
+                {(ramiApiKey || ramiCookie || ramiEcomToken) && (
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    padding: '0.75rem', 
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.75rem'
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#22c55e' }}>
+                      ✓ Extracted tokens:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: 'rgba(255,255,255,0.7)' }}>
+                      <span>• API Key: {ramiApiKey ? `${ramiApiKey.substring(0, 30)}...` : '❌ Not found'}</span>
+                      <span>• Cookie: {ramiCookie ? `${ramiCookie.substring(0, 40)}...` : '❌ Not found'}</span>
+                      <span>• Ecom Token: {ramiEcomToken ? `${ramiEcomToken.substring(0, 30)}...` : '⚠️ Optional'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <button
                 className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
-                style={{ width: '100%', marginTop: '1rem' }}
+                style={{ width: '100%' }}
                 onClick={async () => {
                   const success = await ramiLevy.setup({
                     apiKey: ramiApiKey,
@@ -1188,7 +1210,7 @@ const CookingAgent: React.FC = () => {
                 Connect to Rami Levy
               </button>
 
-              {/* Instructions */}
+              {/* Simple 3-Step Instructions */}
               <div style={{ 
                 marginTop: '1.5rem', 
                 padding: '1rem', 
@@ -1196,25 +1218,69 @@ const CookingAgent: React.FC = () => {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem'
               }}>
-                <h4 style={{ marginBottom: '0.5rem' }}>How to get your tokens:</h4>
-                <ol style={{ paddingLeft: '1.25rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.8' }}>
-                  <li>Log into <a href="https://www.rami-levy.co.il" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>rami-levy.co.il</a></li>
-                  <li>Open DevTools (F12) → Network tab</li>
-                  <li>Search for a product (e.g., "חלב") to trigger an API call</li>
-                  <li>Find a request to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>www.rami-levy.co.il/api</code></li>
-                  <li>Right-click the request → <strong>"Copy as cURL"</strong></li>
-                  <li>From the copied cURL command, extract:
-                    <ul style={{ marginTop: '0.25rem' }}>
-                      <li><strong>Authorization</strong> - the value after "Bearer " (keep the full token)</li>
-                      <li><strong>Cookie</strong> - the -b or -H 'Cookie:' value</li>
-                      <li><strong>EcomToken</strong> - the EcomToken header value</li>
-                    </ul>
+                <h4 style={{ marginBottom: '0.75rem' }}>📋 3 Simple Steps:</h4>
+                <ol style={{ paddingLeft: '1.25rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: '2' }}>
+                  <li>
+                    <a href="https://www.rami-levy.co.il" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>
+                      Open Rami Levy
+                    </a> and <strong>log in</strong>
+                  </li>
+                  <li>
+                    Press <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem' }}>F12</kbd> → 
+                    <strong> Network</strong> tab → Search for any product
+                  </li>
+                  <li>
+                    Right-click any <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' }}>api</code> request → 
+                    <strong style={{ color: '#22c55e' }}> "Copy as cURL"</strong> → Paste above ⬆️
                   </li>
                 </ol>
-                <p style={{ marginTop: '0.75rem', color: 'rgba(255, 200, 50, 0.9)', fontSize: '0.8rem' }}>
-                  <strong>Tip:</strong> Use "Copy as cURL" instead of manually copying headers to avoid truncation issues.
-                </p>
               </div>
+
+              {/* Advanced Mode Toggle */}
+              <details style={{ marginTop: '1rem' }}>
+                <summary style={{ 
+                  cursor: 'pointer', 
+                  color: 'rgba(255, 255, 255, 0.5)', 
+                  fontSize: '0.8rem',
+                  userSelect: 'none'
+                }}>
+                  ▸ Advanced: Enter tokens manually
+                </summary>
+                <div style={{ marginTop: '1rem', paddingLeft: '0.5rem' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>API Key (Authorization Bearer)</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
+                      value={ramiApiKey}
+                      onChange={(e) => setRamiApiKey(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Cookie</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="_gcl_au=1.1...; AWSALB=...;"
+                      value={ramiCookie}
+                      onChange={(e) => setRamiCookie(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Ecom Token</label>
+                    <textarea
+                      className={styles.formInput}
+                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIs..."
+                      value={ramiEcomToken}
+                      onChange={(e) => setRamiEcomToken(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </details>
             </div>
           ) : (
             <>
@@ -1295,46 +1361,42 @@ const CookingAgent: React.FC = () => {
                       Cancel
                     </button>
                   </div>
-                  <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.8rem' }}>
-                    Tokens expire periodically. Re-login to Rami Levy and copy fresh tokens.
+                  <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
+                    Re-login to Rami Levy → F12 → Network → Copy as cURL → Paste below:
                   </p>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>API Key (Authorization Bearer)</label>
-                    <textarea
-                      className={styles.formInput}
-                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
-                      value={ramiApiKey}
-                      onChange={(e) => setRamiApiKey(e.target.value)}
-                    />
-                  </div>
+                  <textarea
+                    className={styles.formInput}
+                    style={{ minHeight: '80px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                    placeholder="curl 'https://www.rami-levy.co.il/api/...' -H 'authorization: Bearer ...' ..."
+                    onChange={(e) => {
+                      const curl = e.target.value;
+                      const authMatch = curl.match(/[Aa]uthorization:\s*Bearer\s+([^\s'"]+)/);
+                      const cookieMatch = curl.match(/-b\s+'([^']+)'/) || curl.match(/[Cc]ookie:\s*([^'"]+)['"]?/);
+                      const ecomMatch = curl.match(/[Ee]com[Tt]oken:\s*([^\s'"]+)/);
+                      
+                      if (authMatch) setRamiApiKey(authMatch[1]);
+                      if (cookieMatch) setRamiCookie(cookieMatch[1].trim());
+                      if (ecomMatch) setRamiEcomToken(ecomMatch[1]);
+                    }}
+                  />
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Cookie</label>
-                    <textarea
-                      className={styles.formInput}
-                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      placeholder="_gcl_au=1.1...; AWSALB=...;"
-                      value={ramiCookie}
-                      onChange={(e) => setRamiCookie(e.target.value)}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Ecom Token</label>
-                    <textarea
-                      className={styles.formInput}
-                      style={{ minHeight: '50px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIs..."
-                      value={ramiEcomToken}
-                      onChange={(e) => setRamiEcomToken(e.target.value)}
-                    />
-                  </div>
+                  {(ramiApiKey || ramiCookie) && (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '0.5rem', 
+                      background: 'rgba(34, 197, 94, 0.1)',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.7rem',
+                      color: '#22c55e'
+                    }}>
+                      ✓ Found: {ramiApiKey ? 'API Key' : ''} {ramiCookie ? '• Cookie' : ''} {ramiEcomToken ? '• Ecom Token' : ''}
+                    </div>
+                  )}
 
                   <button
                     className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
-                    style={{ width: '100%', marginTop: '0.5rem' }}
+                    style={{ width: '100%', marginTop: '0.75rem' }}
                     onClick={async () => {
                       const success = await ramiLevy.setup({
                         apiKey: ramiApiKey,
