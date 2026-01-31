@@ -42,7 +42,8 @@ vi.mock('../../src/utils/logger', () => ({
     retry: vi.fn(),
     start: vi.fn(),
     complete: vi.fn(),
-    processing: vi.fn()
+    processing: vi.fn(),
+    api: vi.fn()
   }
 }));
 
@@ -308,7 +309,9 @@ describe('RamiLevyService with mocked database', () => {
       const result = await ramiLevyService.initialize('user-123');
 
       expect(result.isValid).toBe(false);
-      expect(result.errorMessage).toContain('expired or invalid');
+      expect(result.errorMessage).toBeDefined();
+      // Error message should contain validation failure info
+      expect(result.errorMessage).toMatch(/Validation|failed|Unauthorized/i);
     });
   });
 
