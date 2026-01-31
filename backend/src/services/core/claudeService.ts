@@ -174,7 +174,7 @@ Respond ONLY with valid JSON:
   async generateText(prompt: string, maxTokens: number = 4096): Promise<string> {
     try {
       this.initializeClient();
-      
+
       if (!this.client) {
         throw new Error('Failed to initialize Anthropic client');
       }
@@ -194,6 +194,46 @@ Respond ONLY with valid JSON:
       return textBlock?.type === 'text' ? textBlock.text : '';
     } catch (error) {
       logger.fail('Error generating text', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Generic chat method for multi-turn conversations
+   */
+  async chat(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    options?: { maxTokens?: number; system?: string; model?: string }
+  ): Promise<{ content: string; usage?: { inputTokens: number; outputTokens: number } }> {
+    try {
+      this.initializeClient();
+
+      if (!this.client) {
+        throw new Error('Failed to initialize Anthropic client');
+      }
+
+      const response = await this.client.messages.create({
+        model: options?.model || 'claude-sonnet-4-20250514',
+        max_tokens: options?.maxTokens || 1500,
+        system: options?.system,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content
+        }))
+      });
+
+      const textBlock = response.content.find(block => block.type === 'text');
+      const content = textBlock?.type === 'text' ? textBlock.text : '';
+
+      return {
+        content,
+        usage: {
+          inputTokens: response.usage?.input_tokens || 0,
+          outputTokens: response.usage?.output_tokens || 0
+        }
+      };
+    } catch (error) {
+      logger.fail('Error in chat', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

@@ -459,6 +459,221 @@ export const cancelWoltOrder = async (
 };
 
 // =============================================================================
+// RAMI LEVY INTEGRATION
+// =============================================================================
+
+export interface RamiLevyTokens {
+  apiKey: string;
+  ecomToken?: string;  // Optional - only needed for cart operations, appears when logged in
+  cookie: string;
+}
+
+export interface RamiLevyProduct {
+  id: number;
+  barcode: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+  brand?: string;
+  department?: string;
+  group?: string;
+  subGroup?: string;
+  unit?: string;
+  isAvailable: boolean;
+  nutritionalInfo?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    sodium?: number;
+  };
+}
+
+export interface RamiLevyCartItem {
+  id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  savings?: number;
+  imageUrl?: string;
+}
+
+export interface RamiLevyCart {
+  items: RamiLevyCartItem[];
+  totalPrice: number;
+  totalSavings: number;
+  itemCount: number;
+  deliveryFee?: number;
+}
+
+export interface RamiLevyStatus {
+  isValid: boolean;
+  userId: string;
+  lastUsed?: string;
+  errorMessage?: string;
+}
+
+export interface RamiLevyStore {
+  id: string;
+  name: string;
+}
+
+export interface RamiLevySearchResult {
+  products: RamiLevyProduct[];
+  total: number;
+  query: string;
+}
+
+export interface RamiLevyOrderResult {
+  cart: RamiLevyCart;
+  checkoutUrl: string;
+  matchedProducts: Array<{ ingredient: string; product: RamiLevyProduct | null }>;
+  unmatchedIngredients: string[];
+}
+
+/**
+ * Setup Rami Levy authentication tokens
+ */
+export const ramiLevySetup = async (
+  tokens: RamiLevyTokens
+): Promise<{ ramiLevyStatus: RamiLevyStatus; ramiLevyStores?: RamiLevyStore[] }> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/setup', tokens);
+  return response.data;
+};
+
+/**
+ * Get Rami Levy token status
+ */
+export const ramiLevyGetStatus = async (): Promise<{ 
+  ramiLevyStatus: RamiLevyStatus; 
+  ramiLevyStores?: RamiLevyStore[] 
+}> => {
+  const response = await cookingAxios.get('/cooking/rami-levy/status');
+  return response.data;
+};
+
+/**
+ * Delete Rami Levy tokens (logout)
+ */
+export const ramiLevyDeleteTokens = async (): Promise<{ tokensDeleted: boolean }> => {
+  const response = await cookingAxios.delete('/cooking/rami-levy/tokens');
+  return response.data;
+};
+
+/**
+ * Search Rami Levy products
+ */
+export const ramiLevySearch = async (
+  query: string,
+  storeId?: string
+): Promise<{ ramiLevySearchResult: RamiLevySearchResult; ramiLevyProducts: RamiLevyProduct[] }> => {
+  const params = new URLSearchParams({ query });
+  if (storeId) params.append('storeId', storeId);
+  
+  const response = await cookingAxios.get(`/cooking/rami-levy/search?${params.toString()}`);
+  return response.data;
+};
+
+/**
+ * Get current Rami Levy cart
+ */
+export const ramiLevyGetCart = async (): Promise<{ 
+  ramiLevyCart: RamiLevyCart; 
+  ramiLevyCheckoutUrl: string 
+}> => {
+  const response = await cookingAxios.get('/cooking/rami-levy/cart');
+  return response.data;
+};
+
+/**
+ * Add product to Rami Levy cart
+ */
+export const ramiLevyAddToCart = async (
+  productId: number,
+  quantity?: number,
+  storeId?: string
+): Promise<{ ramiLevyCart: RamiLevyCart; ramiLevyCheckoutUrl: string }> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/cart/add', {
+    productId,
+    quantity: quantity || 1,
+    storeId
+  });
+  return response.data;
+};
+
+/**
+ * Remove products from Rami Levy cart
+ */
+export const ramiLevyRemoveFromCart = async (
+  productIds: number[],
+  storeId?: string
+): Promise<{ ramiLevyCart: RamiLevyCart }> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/cart/remove', {
+    productIds,
+    storeId
+  });
+  return response.data;
+};
+
+/**
+ * Update product quantity in Rami Levy cart
+ */
+export const ramiLevyUpdateQuantity = async (
+  productId: number,
+  quantity: number,
+  storeId?: string
+): Promise<{ ramiLevyCart: RamiLevyCart }> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/cart/update', {
+    productId,
+    quantity,
+    storeId
+  });
+  return response.data;
+};
+
+/**
+ * Clear Rami Levy cart
+ */
+export const ramiLevyClearCart = async (
+  storeId?: string
+): Promise<{ ramiLevyCart: RamiLevyCart }> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/cart/clear', { storeId });
+  return response.data;
+};
+
+/**
+ * Get Rami Levy checkout URL
+ */
+export const ramiLevyCheckout = async (): Promise<{ 
+  ramiLevyCart?: RamiLevyCart; 
+  ramiLevyCheckoutUrl: string 
+}> => {
+  const response = await cookingAxios.get('/cooking/rami-levy/checkout');
+  return response.data;
+};
+
+/**
+ * Order ingredients from a recipe - main flow
+ * Automatically searches for products and adds them to cart
+ */
+export const ramiLevyOrderIngredients = async (
+  ingredients: Array<{ name: string; quantity?: number }>,
+  options?: { storeId?: string; autoSelectFirst?: boolean }
+): Promise<{ 
+  ramiLevyOrder: RamiLevyOrderResult; 
+  ramiLevyCart: RamiLevyCart; 
+  ramiLevyCheckoutUrl: string 
+}> => {
+  const response = await cookingAxios.post('/cooking/rami-levy/order-ingredients', {
+    ingredients,
+    storeId: options?.storeId,
+    autoSelectFirst: options?.autoSelectFirst ?? true
+  });
+  return response.data;
+};
+
+// =============================================================================
 // CONSTANTS
 // =============================================================================
 

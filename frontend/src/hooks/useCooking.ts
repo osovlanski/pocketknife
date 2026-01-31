@@ -22,6 +22,9 @@ import type {
   CustomerContact
 } from '../services/cookingApi';
 
+// Note: Rami Levy integration is in useRamiLevy hook
+// Import from './useRamiLevy' for Rami Levy functionality
+
 export interface UseCookingReturn {
   // State
   items: InventoryItem[];
@@ -97,6 +100,9 @@ export interface UseCookingReturn {
 
   // Refresh
   refresh: () => Promise<void>;
+
+  // Note: Rami Levy integration is in useRamiLevy hook
+  // Import from './useRamiLevy' for Rami Levy functionality
 }
 
 const DEFAULT_NEW_ITEM: InventoryItemData = {
@@ -140,6 +146,8 @@ export const useCooking = (): UseCookingReturn => {
   // Wolt order state
   const [woltDelivery, setWoltDelivery] = useState<WoltDeliveryResponse | null>(null);
   const [woltOrderLoading, setWoltOrderLoading] = useState(false);
+
+  // Note: Rami Levy state is in useRamiLevy hook
 
   // Load data on mount
   useEffect(() => {
@@ -524,6 +532,9 @@ export const useCooking = (): UseCookingReturn => {
     }
   }, []);
 
+  // Note: Rami Levy actions are in useRamiLevy hook
+  // Import from './useRamiLevy' for Rami Levy functionality
+
   return {
     // State
     items,
@@ -599,6 +610,8 @@ export const useCooking = (): UseCookingReturn => {
 
     // Refresh
     refresh
+
+    // Note: Rami Levy functionality is in useRamiLevy hook
   };
 };
 

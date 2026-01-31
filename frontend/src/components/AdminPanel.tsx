@@ -1,8 +1,26 @@
 /**
  * AdminPanel Component
- * 
+ *
  * Admin dashboard with user management, settings, and audit logs.
  * Uses useAdmin hook for state management and CSS modules for styling.
+ *
+ * ## Architecture
+ * This component contains multiple tab components:
+ * - DashboardTab: Platform statistics and metrics
+ * - UsersTab: User management (CRUD operations)
+ * - SettingsTab: System settings management
+ * - ExternalApisTab: External API configuration and testing
+ * - AuditTab: Audit log viewer
+ *
+ * Shared types and constants are in ./admin/types.ts
+ *
+ * ## Future Refactoring
+ * Each tab component could be extracted to its own file:
+ * - ./admin/DashboardTab.tsx
+ * - ./admin/UsersTab.tsx
+ * - ./admin/SettingsTab.tsx
+ * - ./admin/ExternalApisTab.tsx
+ * - ./admin/AuditTab.tsx
  */
 
 import React, { useState, useEffect } from 'react';
