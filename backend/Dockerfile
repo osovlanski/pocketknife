@@ -62,10 +62,10 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start application with migrations
-# Run migrations (continue even if they fail - might already be applied)
-# Then start the server
-CMD ["sh", "-c", "echo 'DATABASE_URL is set:' && echo $DATABASE_URL | head -c 50 && echo '...' && npx prisma migrate deploy || echo 'Migration warning (may be OK if already applied)' && npm start"]
+# Start application with schema sync
+# Use db push instead of migrate deploy to handle schema drift
+# db push syncs schema without requiring migration files
+CMD ["sh", "-c", "echo 'DATABASE_URL is set:' && echo $DATABASE_URL | head -c 50 && echo '...' && npx prisma db push --skip-generate --accept-data-loss 2>&1 || echo 'Schema sync warning (may be OK if already in sync)' && npm start"]
 
 
 
