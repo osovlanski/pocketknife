@@ -425,7 +425,7 @@ class RamiLevyService {
         return {
           isValid: false,
           userId,
-          expiresAt,
+          expiresAt: expiresAt || undefined,
           expiresIn: 'expired',
           errorMessage: 'Tokens have expired. Please refresh your authentication.',
           refreshInstructions: REFRESH_INSTRUCTIONS
