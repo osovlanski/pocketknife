@@ -536,22 +536,34 @@ class RamiLevyService {
       return { valid: false, error: `API returned status ${data.status}` };
     } catch (error: any) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
+      const responseData = error.response?.data;
+      const message = responseData?.message || responseData?.error || error.message;
       
+      // Log detailed error info for debugging
       logger.fail('Token validation failed', { 
         status,
         message,
-        url: error.config?.url
+        url: error.config?.url,
+        responseData: typeof responseData === 'object' ? JSON.stringify(responseData).substring(0, 500) : responseData,
+        headers: error.config?.headers ? {
+          hasAuth: !!error.config.headers['Authorization'],
+          hasCookie: !!error.config.headers['Cookie'],
+          hasEcom: !!error.config.headers['ecomtoken']
+        } : 'none'
       });
       
       if (status === 401 || status === 403) {
-        return { valid: false, error: 'Authentication rejected by Rami Levy. Tokens may be expired.' };
+        const detail = responseData?.error || responseData?.message || '';
+        return { 
+          valid: false, 
+          error: `Authentication rejected (${status}): ${detail || 'Tokens may be expired. Please log in to Rami Levy again and copy fresh tokens.'}` 
+        };
       }
       if (status === 429) {
-        return { valid: false, error: 'Rate limited by Rami Levy. Try again later.' };
+        return { valid: false, error: 'Rate limited by Rami Levy. Try again in a few minutes.' };
       }
       
-      return { valid: false, error: `Validation request failed: ${message}` };
+      return { valid: false, error: `Validation failed (${status || 'network'}): ${message}` };
     }
   }
 

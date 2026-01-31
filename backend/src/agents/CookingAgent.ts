@@ -98,6 +98,7 @@ interface CookingParams extends AgentParams {
   groceryItems?: Array<{ name: string; quantity?: number; unit?: string }>;
   // Rami Levy params
   ramiLevyTokens?: RamiLevyTokens;
+  skipValidation?: boolean;
   searchQuery?: string;
   productId?: number;
   productIds?: number[];
@@ -979,7 +980,7 @@ export class CookingAgent extends AbstractAgent {
    * Setup Rami Levy authentication tokens
    */
   private async ramiLevySetup(params: CookingParams): Promise<AgentResult<CookingResult>> {
-    const { userId, ramiLevyTokens } = params;
+    const { userId, ramiLevyTokens, skipValidation } = params;
 
     if (!userId) return { success: false, error: 'User ID is required' };
     if (!ramiLevyTokens) return { success: false, error: 'Rami Levy tokens are required' };
@@ -995,6 +996,22 @@ export class CookingAgent extends AbstractAgent {
       
       if (!stored) {
         return { success: false, error: 'Failed to store tokens' };
+      }
+
+      // Skip validation if requested (for debugging token issues)
+      if (skipValidation) {
+        this.emitLog('⚠️ Skipping validation (trust mode). Tokens saved but not verified.', 'info');
+        return { 
+          success: true, 
+          data: { 
+            ramiLevyStatus: { 
+              isValid: true, 
+              userId, 
+              errorMessage: 'Tokens saved without validation (trust mode)' 
+            },
+            ramiLevyStores: ramiLevyService.getAvailableStores()
+          } 
+        };
       }
 
       // Initialize and validate

@@ -806,10 +806,14 @@ export const ramiLevySetup = async (req: Request, res: Response) => {
       });
     }
 
+    // Optional: skip validation to debug token issues
+    const skipValidation = req.body.skipValidation === true;
+
     const result = await cookingAgent.execute({
       action: 'rami-levy-setup',
       userId,
-      ramiLevyTokens: { apiKey, ecomToken, cookie }
+      ramiLevyTokens: { apiKey, ecomToken, cookie },
+      skipValidation
     });
 
     if (!result.success) {
