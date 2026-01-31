@@ -442,9 +442,9 @@ class RamiLevyService {
       });
 
       // Validate tokens with a simple API request
-      const isValid = await this.validateTokens(userId);
+      const validation = await this.validateTokens(userId);
       
-      if (isValid) {
+      if (validation.valid) {
         await this.updateLastUsed(userId);
         logger.success('Rami Levy service initialized', { userId });
         
@@ -469,7 +469,7 @@ class RamiLevyService {
         userId,
         expiresAt: expiresAt || undefined,
         expiresIn: expiresAt ? getTimeUntil(expiresAt) : undefined,
-        errorMessage: 'Tokens expired or invalid. Please refresh your authentication.',
+        errorMessage: validation.error || 'Tokens expired or invalid. Please refresh your authentication.',
         refreshInstructions: REFRESH_INSTRUCTIONS
       };
     } catch (error: any) {
@@ -504,21 +504,54 @@ class RamiLevyService {
   /**
    * Validate tokens by making a simple API call
    * @param userId - User identifier
-   * @returns True if tokens are valid
+   * @returns Object with validation result and error details
    */
-  private async validateTokens(userId: string): Promise<boolean> {
+  private async validateTokens(userId: string): Promise<{ valid: boolean; error?: string }> {
     const session = this.getSession(userId);
-    if (!session) return false;
+    if (!session) {
+      return { valid: false, error: 'No session found' };
+    }
 
     try {
+      logger.api('Validating Rami Levy tokens with test search...');
       const response = await session.axiosInstance.post('/catalog', {
-        q: 'test',
+        q: 'חלב',
         aggs: 0,
         store: DEFAULT_STORE_ID
       });
-      return response.status === 200;
-    } catch {
-      return false;
+      
+      // Check if the response indicates success
+      const data = response.data;
+      if (data.status === 200 || (data.data && Array.isArray(data.data))) {
+        logger.success('Token validation successful', { 
+          resultCount: data.data?.length || 0 
+        });
+        return { valid: true };
+      }
+      
+      logger.warn('Token validation: unexpected response format', { 
+        status: data.status,
+        hasData: !!data.data 
+      });
+      return { valid: false, error: `API returned status ${data.status}` };
+    } catch (error: any) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message || error.message;
+      
+      logger.fail('Token validation failed', { 
+        status,
+        message,
+        url: error.config?.url
+      });
+      
+      if (status === 401 || status === 403) {
+        return { valid: false, error: 'Authentication rejected by Rami Levy. Tokens may be expired.' };
+      }
+      if (status === 429) {
+        return { valid: false, error: 'Rate limited by Rami Levy. Try again later.' };
+      }
+      
+      return { valid: false, error: `Validation request failed: ${message}` };
     }
   }
 
