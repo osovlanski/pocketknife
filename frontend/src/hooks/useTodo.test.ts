@@ -297,24 +297,30 @@ describe('useTodo', () => {
   describe('Date Navigation', () => {
     it('should navigate to next day', () => {
       const { result } = renderHook(() => useTodo());
-      const initialDate = result.current.selectedDate;
+      const initialDate = new Date(result.current.selectedDate);
       
       act(() => {
         result.current.navigateDate(1);
       });
       
-      expect(result.current.selectedDate.getDate()).toBe(initialDate.getDate() + 1);
+      // Compare timestamps - should be exactly 1 day (86400000 ms) later
+      const expectedDate = new Date(initialDate);
+      expectedDate.setDate(expectedDate.getDate() + 1);
+      expect(result.current.selectedDate.toDateString()).toBe(expectedDate.toDateString());
     });
     
     it('should navigate to previous day', () => {
       const { result } = renderHook(() => useTodo());
-      const initialDate = result.current.selectedDate;
+      const initialDate = new Date(result.current.selectedDate);
       
       act(() => {
         result.current.navigateDate(-1);
       });
       
-      expect(result.current.selectedDate.getDate()).toBe(initialDate.getDate() - 1);
+      // Compare timestamps - should be exactly 1 day earlier
+      const expectedDate = new Date(initialDate);
+      expectedDate.setDate(expectedDate.getDate() - 1);
+      expect(result.current.selectedDate.toDateString()).toBe(expectedDate.toDateString());
     });
   });
 
