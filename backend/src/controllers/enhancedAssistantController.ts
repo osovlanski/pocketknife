@@ -96,10 +96,13 @@ async function validateSocketAuth(socket: Socket): Promise<{ userId: string; use
     }
   }
 
-  // Fallback: Check if Google OAuth is authenticated (development mode)
-  if (googleAuthService.isAuthenticated()) {
+  // Fallback: Check if Google OAuth is authenticated (DEVELOPMENT ONLY)
+  // This allows easier testing without full auth flow in development
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  if (isDevelopment && googleAuthService.isAuthenticated()) {
     const defaultUser = await databaseService.getDefaultUser();
     if (defaultUser) {
+      logger.debug('Using development auth fallback for socket connection');
       return { userId: defaultUser.id, userEmail: defaultUser.email };
     }
   }

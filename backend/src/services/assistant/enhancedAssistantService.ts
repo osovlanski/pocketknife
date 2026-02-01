@@ -297,8 +297,8 @@ class EnhancedAssistantService {
 
       callbacks.onComplete(response);
       return response;
-    } catch (error: any) {
-      callbacks.onError(error);
+    } catch (error: unknown) {
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -440,8 +440,8 @@ class EnhancedAssistantService {
 
       // Continue with normal chat flow
       return this.chat(enhancedMessage, conversationHistory, options);
-    } catch (error: any) {
-      logger.fail('Image analysis failed', { error: error.message });
+    } catch (error: unknown) {
+      logger.fail('Image analysis failed', { error: error instanceof Error ? error.message : String(error) });
       return {
         message: 'I had trouble analyzing the image. Could you describe what you\'re showing me?',
         toolCalls: [],
