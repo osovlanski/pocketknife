@@ -153,6 +153,73 @@ const cleanTokenString = (token: string | undefined): string => {
 };
 
 /**
+ * Validate JWT token structure
+ * @param token - JWT token string
+ * @returns Validation result with details
+ */
+interface TokenValidation {
+  isValid: boolean;
+  parts: number;
+  error?: string;
+  hasExpiration?: boolean;
+  isExpired?: boolean;
+  expiresAt?: Date;
+}
+
+const validateJwtStructure = (token: string): TokenValidation => {
+  if (!token) {
+    return { isValid: false, parts: 0, error: 'Token is empty' };
+  }
+
+  const cleaned = cleanTokenString(token);
+  const parts = cleaned.split('.');
+
+  if (parts.length !== 3) {
+    return { 
+      isValid: false, 
+      parts: parts.length, 
+      error: `Token has ${parts.length} parts, expected 3 (header.payload.signature). Token appears truncated.`
+    };
+  }
+
+  // Validate each part is valid base64
+  for (let i = 0; i < parts.length; i++) {
+    const partName = ['header', 'payload', 'signature'][i];
+    if (!parts[i] || parts[i].length < 10) {
+      return { 
+        isValid: false, 
+        parts: parts.length, 
+        error: `JWT ${partName} is too short or missing`
+      };
+    }
+  }
+
+  // Try to parse expiration from payload
+  try {
+    const payloadStr = decodeBase64(parts[1]);
+    if (payloadStr) {
+      const payload = JSON.parse(payloadStr);
+      if (payload.exp) {
+        const expiresAt = new Date(payload.exp * 1000);
+        const isExpired = expiresAt.getTime() < Date.now();
+        return { 
+          isValid: !isExpired, 
+          parts: 3, 
+          hasExpiration: true,
+          isExpired,
+          expiresAt,
+          error: isExpired ? `Token expired on ${expiresAt.toISOString()}` : undefined
+        };
+      }
+    }
+  } catch {
+    // Payload parsing failed, but structure is valid
+  }
+
+  return { isValid: true, parts: 3 };
+};
+
+/**
  * Parse JWT token to extract expiration time
  * Handles both base64url and standard base64 encoding
  * @param token - JWT token string
@@ -225,7 +292,34 @@ const REFRESH_INSTRUCTIONS = `To refresh your Rami Levy tokens:
 3. Search for any product (e.g., "חלב")
 4. Find a request to www.rami-levy.co.il/api
 5. Right-click the request → "Copy as cURL"
-6. Extract: Authorization (Bearer token), EcomToken, and Cookie headers`;
+6. Extract these headers:
+   - Authorization: Copy FULL Bearer token (starts with "eyJ...")
+   - ecomtoken: Copy the full value
+   - Cookie: Copy the ENTIRE cookie string (MUST include cf_clearance)
+
+IMPORTANT: The cf_clearance cookie (Cloudflare) expires quickly!
+Copy fresh cookies each time you get a 403 error.`;
+
+/**
+ * Validate that critical cookies are present
+ */
+const validateCookies = (cookie: string): { valid: boolean; missing: string[] } => {
+  const missing: string[] = [];
+
+  // Critical cookies that should be present
+  const criticalCookies = [
+    { name: 'cf_clearance', description: 'Cloudflare protection (expires quickly!)' },
+    { name: 'AWSALB', description: 'AWS load balancer session' }
+  ];
+
+  for (const { name, description } of criticalCookies) {
+    if (!cookie.includes(`${name}=`)) {
+      missing.push(`${name} (${description})`);
+    }
+  }
+
+  return { valid: missing.length === 0, missing };
+};
 
 /**
  * User session state (per-user, thread-safe)
@@ -344,42 +438,80 @@ class RamiLevyService {
     const cleanedEcomToken = tokens.ecomToken ? cleanTokenString(tokens.ecomToken) : undefined;
     const cleanedCookie = cleanTokenString(tokens.cookie);
 
-    // Log token structure for debugging
-    const apiKeyParts = cleanedApiKey.split('.').length;
-    const ecomTokenParts = cleanedEcomToken ? cleanedEcomToken.split('.').length : 0;
+    // Validate token structures
+    const apiKeyValidation = validateJwtStructure(cleanedApiKey);
+    const ecomTokenValidation = cleanedEcomToken ? validateJwtStructure(cleanedEcomToken) : null;
 
     logger.debug('Token structure analysis', {
-      apiKeyParts,
-      apiKeyLength: cleanedApiKey.length,
-      ecomTokenParts,
-      ecomTokenLength: cleanedEcomToken?.length || 0,
-      cookieLength: cleanedCookie.length,
-      hasValidApiKeyJwt: apiKeyParts === 3,
-      hasValidEcomTokenJwt: ecomTokenParts === 3
+      apiKey: {
+        length: cleanedApiKey.length,
+        parts: apiKeyValidation.parts,
+        isValid: apiKeyValidation.isValid,
+        error: apiKeyValidation.error
+      },
+      ecomToken: cleanedEcomToken ? {
+        length: cleanedEcomToken.length,
+        parts: ecomTokenValidation?.parts,
+        isValid: ecomTokenValidation?.isValid,
+        expiresAt: ecomTokenValidation?.expiresAt?.toISOString()
+      } : 'not provided',
+      cookieLength: cleanedCookie.length
     });
 
     // Determine best token for Authorization header
-    // If apiKey is truncated (2 parts), use ecomToken if available (it's a valid 3-part JWT)
-    const useEcomAsAuth = apiKeyParts < 3 && cleanedEcomToken && ecomTokenParts === 3;
-    const authToken = useEcomAsAuth ? cleanedEcomToken : cleanedApiKey;
+    // Priority: Valid EcomToken > Valid ApiKey > Any available token
+    let authToken: string;
+    let authSource: string;
 
-    if (useEcomAsAuth) {
-      logger.info('Using EcomToken as Authorization (apiKey appears truncated)', {
-        apiKeyParts,
-        ecomTokenParts
+    if (ecomTokenValidation?.isValid && cleanedEcomToken) {
+      // EcomToken is valid and complete - prefer it
+      authToken = cleanedEcomToken;
+      authSource = 'ecomToken (valid)';
+    } else if (apiKeyValidation.isValid) {
+      // ApiKey is valid
+      authToken = cleanedApiKey;
+      authSource = 'apiKey (valid)';
+    } else if (cleanedEcomToken && ecomTokenValidation && ecomTokenValidation.parts === 3) {
+      // EcomToken has correct structure but may be expired - still try it
+      authToken = cleanedEcomToken;
+      authSource = 'ecomToken (fallback, may be expired)';
+    } else {
+      // Fallback to whatever we have
+      authToken = cleanedEcomToken || cleanedApiKey;
+      authSource = cleanedEcomToken ? 'ecomToken (truncated apiKey fallback)' : 'apiKey (truncated)';
+      logger.warn('Using potentially invalid token for Authorization', {
+        apiKeyValidation,
+        ecomTokenValidation,
+        selectedSource: authSource
       });
     }
 
+    logger.info('Token selection for API calls', {
+      authSource,
+      authTokenLength: authToken.length,
+      hasEcomTokenHeader: !!cleanedEcomToken
+    });
+
     const headers: Record<string, string> = {
+      // Standard headers
       'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'en-US,en;q=0.9,he;q=0.8',
+      'Accept-Language': 'he,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
       'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json;charset=UTF-8',
       'Cookie': cleanedCookie,
       'locale': 'he',
       'Origin': RAMI_LEVY_BASE_URL,
-      'Referer': `${RAMI_LEVY_BASE_URL}/he`,
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      'Referer': `${RAMI_LEVY_BASE_URL}/he/online/search`,
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+
+      // Security headers required by Cloudflare - CRITICAL for bypassing bot detection
+      'sec-ch-ua': '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"macOS"',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-origin',
+      'priority': 'u=1, i'
     };
 
     // ecomToken is sent as separate header for cart operations
@@ -507,6 +639,18 @@ class RamiLevyService {
           isValid: false,
           userId,
           errorMessage: 'Cookie is missing or too short. Please copy the full Cookie header value.',
+          refreshInstructions: REFRESH_INSTRUCTIONS
+        };
+      }
+
+      // Validate critical cookies are present
+      const cookieValidation = validateCookies(cleanedCookie);
+      if (!cookieValidation.valid) {
+        logger.warn('Missing critical cookies', { missing: cookieValidation.missing });
+        return {
+          isValid: false,
+          userId,
+          errorMessage: `Missing critical cookies: ${cookieValidation.missing.join(', ')}. Please copy the FULL cookie string from DevTools.`,
           refreshInstructions: REFRESH_INSTRUCTIONS
         };
       }
@@ -704,9 +848,18 @@ class RamiLevyService {
       if (status === 401 || status === 403) {
         const detail = responseData?.error || responseData?.message || '';
 
+        // Check if this looks like a Cloudflare block
+        const responseText = typeof responseData === 'string' ? responseData : JSON.stringify(responseData || '');
+        const isCloudflareBlock = responseText.includes('cloudflare') ||
+                                  responseText.includes('cf-') ||
+                                  responseText.includes('challenge') ||
+                                  status === 403;
+
         // Provide more specific guidance based on the error
         let guidance = 'Tokens may be expired or invalid.';
-        if (detail.toLowerCase().includes('token')) {
+        if (isCloudflareBlock) {
+          guidance = 'Cloudflare protection blocked the request. The cf_clearance cookie has likely expired (they expire quickly!).';
+        } else if (detail.toLowerCase().includes('token')) {
           guidance = 'The token format appears to be incorrect.';
         } else if (detail.toLowerCase().includes('session')) {
           guidance = 'Your session has expired.';
@@ -716,7 +869,7 @@ class RamiLevyService {
 
         return {
           valid: false,
-          error: `Authentication rejected (${status}): ${guidance} Please log in to Rami Levy again and copy fresh tokens from DevTools.`
+          error: `Authentication rejected (${status}): ${guidance} Please log in to Rami Levy again and copy FRESH tokens from DevTools (especially the Cookie header with cf_clearance).`
         };
       }
       if (status === 429) {
@@ -793,16 +946,99 @@ class RamiLevyService {
   }
 
   /**
+   * Validate tokens before storage
+   * @param tokens - Tokens to validate
+   * @returns Validation result with warnings
+   */
+  validateTokensForStorage(tokens: RamiLevyTokens): {
+    isValid: boolean;
+    warnings: string[];
+    errors: string[];
+    recommendations: string[];
+  } {
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    const recommendations: string[] = [];
+
+    // Validate API Key
+    const apiKeyValidation = validateJwtStructure(tokens.apiKey);
+    if (!apiKeyValidation.isValid) {
+      if (apiKeyValidation.parts < 3) {
+        warnings.push(`API Key appears truncated (${apiKeyValidation.parts} parts, expected 3). The full Bearer token from Authorization header is required.`);
+        recommendations.push('When copying from DevTools, ensure you copy the COMPLETE Authorization header value.');
+      }
+      if (apiKeyValidation.isExpired) {
+        errors.push(`API Key expired on ${apiKeyValidation.expiresAt?.toISOString()}`);
+      }
+    }
+
+    // Validate EcomToken (optional but recommended)
+    if (tokens.ecomToken) {
+      const ecomValidation = validateJwtStructure(tokens.ecomToken);
+      if (!ecomValidation.isValid) {
+        if (ecomValidation.parts < 3) {
+          warnings.push(`EcomToken appears truncated (${ecomValidation.parts} parts, expected 3).`);
+        }
+        if (ecomValidation.isExpired) {
+          errors.push(`EcomToken expired on ${ecomValidation.expiresAt?.toISOString()}`);
+        }
+      }
+    } else {
+      recommendations.push('Consider providing ecomtoken header for cart operations.');
+    }
+
+    // Validate Cookie
+    const cookieValidation = validateCookies(tokens.cookie);
+    if (!cookieValidation.valid) {
+      warnings.push(`Missing critical cookies: ${cookieValidation.missing.join(', ')}`);
+      recommendations.push('Copy the FULL Cookie header from DevTools to include all required cookies.');
+    }
+
+    // Determine overall validity
+    // Allow storage even with warnings, but block if there are hard errors (like expiration)
+    const ecomIsValid = tokens.ecomToken ? validateJwtStructure(tokens.ecomToken).isValid : false;
+    const hasValidToken = apiKeyValidation.isValid || ecomIsValid;
+    const isValid = errors.length === 0 && hasValidToken;
+
+    return { isValid, warnings, errors, recommendations };
+  }
+
+  /**
    * Store or update tokens for a user (encrypts before storage)
    * @param userId - User identifier
    * @param tokens - Plain text tokens to store
-   * @returns True if stored successfully
+   * @param skipValidation - Skip validation (use with caution)
+   * @returns Object with success status and any validation messages
    */
-  async storeTokens(userId: string, tokens: RamiLevyTokens): Promise<boolean> {
+  async storeTokens(userId: string, tokens: RamiLevyTokens, skipValidation = false): Promise<{
+    success: boolean;
+    warnings?: string[];
+    errors?: string[];
+    recommendations?: string[];
+  }> {
     const prisma = getPrisma();
     if (!prisma) {
       logger.fail('Database not available');
-      return false;
+      return { success: false, errors: ['Database not available'] };
+    }
+
+    // Validate tokens before storage
+    if (!skipValidation) {
+      const validation = this.validateTokensForStorage(tokens);
+      
+      if (validation.warnings.length > 0) {
+        logger.warn('Token validation warnings', { warnings: validation.warnings });
+      }
+      
+      if (!validation.isValid) {
+        logger.fail('Token validation failed', { errors: validation.errors });
+        return { 
+          success: false, 
+          warnings: validation.warnings,
+          errors: validation.errors,
+          recommendations: validation.recommendations
+        };
+      }
     }
 
     try {
@@ -832,11 +1068,20 @@ class RamiLevyService {
         lastUsed: new Date()
       });
 
-      logger.success('Rami Levy tokens stored (encrypted)', { userId });
-      return true;
+      const validation = this.validateTokensForStorage(tokens);
+      logger.success('Rami Levy tokens stored (encrypted)', { 
+        userId,
+        hasWarnings: validation.warnings.length > 0 
+      });
+      
+      return { 
+        success: true, 
+        warnings: validation.warnings.length > 0 ? validation.warnings : undefined,
+        recommendations: validation.recommendations.length > 0 ? validation.recommendations : undefined
+      };
     } catch (error: any) {
       logger.fail('Failed to store Rami Levy tokens', { userId, error: error.message });
-      return false;
+      return { success: false, errors: [error.message] };
     }
   }
 
