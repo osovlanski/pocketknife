@@ -85,10 +85,14 @@ model User {
   
   // DIY Agent relations
   diyProjects      DIYProject[]
-  
+
   // Admin relations
   adminActions   AdminAuditLog[] @relation("AdminActions")
   systemSettings SystemSetting[]
+
+  // Assistant/AI Chat relations
+  conversationMemories  ConversationMemory[]
+  assistantConversations AssistantConversation[]
 
   @@index([email])
   @@index([role])
@@ -1928,49 +1932,100 @@ enum StoreStatus {
 
 model ExternalStore {
   id            String   @id @default(uuid())
-  
+
   // Identification
   name          String
   slug          String   @unique
   domain        String   @unique
-  
+
   // URLs
   websiteUrl    String
   searchUrlPattern  String?    // "https://example.com/search?q={query}"
-  
+
   // Metadata
   description   String?
   logo          String?        // Logo URL
   country       String?        // ISO country code
   currency      String         @default("USD")
-  
+
   // Categories
   categories    String[]       // ['electronics', 'home', 'fashion']
-  
+
   // Scraping configuration
   scraperType       String?    // 'api', 'html', 'google_cse'
   scraperConfig     Json?      // Scraper-specific settings
-  
+
   // Status
   status            StoreStatus @default(PENDING)
   isVerified        Boolean     @default(false)
   verifiedAt        DateTime?
-  
+
   // Performance
   avgResponseTime   Int?        // ms
   successRate       Float?      // 0-1
   lastTestedAt      DateTime?
-  
+
   // Statistics
   productsScraped   Int         @default(0)
   lastScrapedAt     DateTime?
   scrapeErrors      Int         @default(0)
   lastErrorMessage  String?
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([status])
   @@index([country])
   @@index([categories])
+}
+
+// =============================================================================
+// CONVERSATION MEMORY (AI Assistant)
+// =============================================================================
+
+model ConversationMemory {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Conversation reference
+  conversationId  String   @unique  // External conversation ID from frontend
+
+  // Summary and entities
+  summary         String   @db.Text  // AI-generated conversation summary
+  entities        String   @db.Text  // JSON: extracted entities (people, places, preferences, action items)
+
+  // Metrics
+  messageCount    Int      @default(0)
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([conversationId])
+}
+
+model AssistantConversation {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Conversation metadata
+  title           String?
+
+  // Messages stored as JSON for flexibility
+  messages        String   @db.Text  // JSON array of ChatMessage objects
+
+  // Context
+  currentPlan     String?  @db.Text  // JSON: current execution plan if any
+
+  // Settings
+  systemPrompt    String?  @db.Text  // Custom system prompt for this conversation
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, updatedAt])
 }

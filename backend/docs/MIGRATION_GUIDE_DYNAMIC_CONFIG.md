@@ -744,6 +744,109 @@ grep -rn "https://" backend/src --include="*.ts" | grep -v "node_modules" | grep
 
 ---
 
+## Phase 4: Production Resilience Improvements (NEW)
+
+### Resilience Utilities
+
+New utilities added in `src/utils/resilience.ts` provide production-grade error handling:
+
+```typescript
+import {
+  withCircuitBreaker,
+  withRetry,
+  withResilience,
+  withConcurrencyLimit,
+  withTimeout
+} from '../utils/resilience';
+
+// Circuit breaker with retry
+const result = await withResilience(
+  () => externalApiCall(),
+  { name: 'external-api', threshold: 5, resetTimeout: 60000 },
+  { maxRetries: 3, initialDelay: 1000, backoffMultiplier: 2 }
+);
+
+// Concurrency limit
+const limiter = withConcurrencyLimit<T>(5);
+const result = await limiter(async () => processItem());
+
+// Timeout wrapper
+const result = await withTimeout(asyncOperation(), 30000);
+```
+
+### Validation Schemas
+
+New Zod schemas in `src/services/assistant/schemas.ts`:
+
+```typescript
+import {
+  parseExecutionPlan,
+  parseConversationSummary,
+  sanitizeUserInput,
+  validateImageData,
+  safeParseJson
+} from './schemas';
+
+// Sanitize user input against prompt injection
+const safe = sanitizeUserInput(userMessage);
+
+// Validate base64 image data
+const result = validateImageData(imageData, 10); // 10MB limit
+if (!result.valid) throw new Error(result.error);
+
+// Safe JSON parsing with schema validation
+const plan = parseExecutionPlan(claudeResponse);
+```
+
+### Message Buffer Optimization
+
+Ring buffer for O(1) message operations in `src/utils/messageBuffer.ts`:
+
+```typescript
+import { MessageBuffer, ConversationHistoryManager } from '../utils/messageBuffer';
+
+// Efficient message accumulation
+const buffer = new MessageBuffer<Message>(100);
+buffer.push('msg-1', message); // O(1)
+const recent = buffer.getRecent(10); // Get last 10 messages
+
+// Global conversation manager
+import { conversationHistoryManager } from '../utils/messageBuffer';
+conversationHistoryManager.addMessage(conversationId, message);
+const apiMessages = conversationHistoryManager.getMessagesForApi(conversationId, 50);
+```
+
+### New Config Keys (Phase 4)
+
+```typescript
+// Assistant service
+'assistant.workflow.maxIterations': 5,
+'assistant.tools.maxConcurrency': 5,
+'assistant.tools.timeoutMs': 30000,
+'assistant.streaming.enabled': true,
+'assistant.planPreview.keywords': ['order', 'buy', 'purchase', 'send', 'delete', 'remove', 'cancel', 'schedule'],
+'assistant.conversation.maxMessagesBeforeSummary': 20,
+'assistant.cache.memoryTtlSeconds': 86400,
+'assistant.ai.summaryMaxTokens': 500,
+
+// Perplexity API resilience
+'perplexity.api.baseUrl': 'https://api.perplexity.ai',
+'perplexity.api.timeoutMs': 30000,
+'perplexity.circuitBreaker.threshold': 5,
+'perplexity.circuitBreaker.resetMs': 60000,
+'perplexity.retry.maxAttempts': 3,
+'perplexity.retry.initialDelayMs': 1000,
+'perplexity.retry.maxDelayMs': 10000,
+
+// Weather service
+'weather.api.timeoutMs': 10000,
+'weather.cache.currentTtlSeconds': 1800,
+'weather.cache.forecastTtlSeconds': 3600,
+'weather.cache.geoTtlSeconds': 604800,
+```
+
+---
+
 ## Summary
 
 This migration provides:
@@ -751,10 +854,14 @@ This migration provides:
 1. **ConfigService** - Runtime configuration for simple values
 2. **RuleEngine** - Dynamic business logic evaluation
 3. **FeatureFlagService** - Feature toggles and gradual rollouts
+4. **Resilience Utilities** - Circuit breaker, retry, and concurrency control (NEW)
+5. **Validation Schemas** - Zod-based input validation and sanitization (NEW)
+6. **Message Buffer** - O(1) conversation history management (NEW)
 
 All services are:
 - Cached for performance
 - Database-backed for persistence
 - Audited for compliance
 - Fallback-enabled for reliability
+- Resilient to external API failures (NEW)
 

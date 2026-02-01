@@ -21,7 +21,9 @@ import type {
   WorkflowStep,
   AgentInfo,
   ThinkingStep,
-  SavedConversation
+  SavedConversation,
+  ExecutionPlan,
+  ToolCallInfo
 } from '../services/assistantApi';
 
 // =============================================================================
@@ -38,9 +40,13 @@ export interface UseAssistantReturn {
   thinkingSteps: ThinkingStep[];
   error: string | null;
   savedConversations: SavedConversation[];
+  currentPlan: ExecutionPlan | null;
+  isStreaming: boolean;
+  activeToolCalls: ToolCallInfo[];
 
   // Actions
-  sendMessage: (message: string) => Promise<void>;
+  sendMessage: (message: string, enablePlanPreview?: boolean) => Promise<void>;
+  sendMessageWithImage: (message: string, imageBase64: string, imageType?: string) => Promise<void>;
   stopProcessing: () => void;
   clearConversation: () => void;
   startNewChat: () => void;
@@ -49,6 +55,8 @@ export interface UseAssistantReturn {
   loadCapabilities: () => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   refreshSavedConversations: () => void;
+  approvePlan: () => Promise<void>;
+  rejectPlan: () => void;
 }
 
 // =============================================================================
@@ -76,6 +84,10 @@ export const useAssistant = (): UseAssistantReturn => {
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<ExecutionPlan | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
+  const [streamingContent, setStreamingContent] = useState('');
 
   // Refs
   const socketRef = useRef<Socket | null>(null);
@@ -125,6 +137,37 @@ export const useAssistant = (): UseAssistantReturn => {
       if (data.agentId === 'assistant') {
         logger.debug(`[Assistant] Progress: ${data.progress}%`);
       }
+    });
+
+    // Enhanced assistant streaming events
+    socketRef.current.on('assistant:token', (data: { token: string }) => {
+      setStreamingContent(prev => prev + data.token);
+    });
+
+    socketRef.current.on('assistant:tool_call', (data: { toolCall: ToolCallInfo }) => {
+      setActiveToolCalls(prev => [...prev, data.toolCall]);
+      updateThinkingStep('execute', 'active', `Calling ${data.toolCall.name}...`);
+    });
+
+    socketRef.current.on('assistant:tool_result', (data: { toolName: string; result: unknown }) => {
+      logger.debug(`[Assistant] Tool result: ${data.toolName}`);
+    });
+
+    socketRef.current.on('assistant:plan_preview', (data: { plan: ExecutionPlan }) => {
+      setCurrentPlan(data.plan);
+      setIsProcessing(false);
+      updateThinkingStep('plan', 'completed', 'Plan ready for approval');
+    });
+
+    socketRef.current.on('assistant:complete', (data: { response: unknown }) => {
+      setIsStreaming(false);
+      logger.debug('[Assistant] Response complete');
+    });
+
+    socketRef.current.on('assistant:error', (data: { error: string }) => {
+      setError(data.error);
+      setIsStreaming(false);
+      setIsProcessing(false);
     });
 
     return () => {
@@ -216,7 +259,7 @@ export const useAssistant = (): UseAssistantReturn => {
     }
   }, []);
 
-  const sendMessage = useCallback(async (message: string) => {
+  const sendMessage = useCallback(async (message: string, enablePlanPreview?: boolean) => {
     if (!message.trim() || isProcessing) return;
 
     setError(null);
@@ -406,12 +449,164 @@ export const useAssistant = (): UseAssistantReturn => {
   const deleteConversationHandler = useCallback((convId: string) => {
     assistantApi.deleteConversation(convId);
     refreshSavedConversations();
-    
+
     // If deleting current conversation, start new chat
     if (convId === conversationId) {
       startNewChat();
     }
   }, [conversationId, refreshSavedConversations, startNewChat]);
+
+  /**
+   * Send a message with an attached image
+   */
+  const sendMessageWithImage = useCallback(async (
+    message: string,
+    imageBase64: string,
+    imageType?: string
+  ) => {
+    if (!message.trim() || isProcessing) return;
+
+    setError(null);
+    setIsProcessing(true);
+    abortRef.current = false;
+    setThinkingSteps(createThinkingSteps());
+
+    const convId = conversationId || uuidv4();
+    if (!conversationId) {
+      setConversationId(convId);
+    }
+
+    // Add user message with image indicator
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: `[Image attached]\n${message}`,
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+
+    // Add placeholder for assistant response
+    const placeholderId = `assistant-${Date.now()}`;
+    const placeholderMessage: ChatMessage = {
+      id: placeholderId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, placeholderMessage]);
+
+    updateThinkingStep('analyze', 'active', 'Analyzing image...');
+
+    try {
+      const history = messages.slice(-10).map(m => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        timestamp: m.timestamp
+      }));
+
+      const response = await assistantApi.sendMessageWithImage(
+        message,
+        imageBase64,
+        convId,
+        history,
+        imageType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+      );
+
+      if (abortRef.current) {
+        throw new Error('Request cancelled');
+      }
+
+      setThinkingSteps(prev => prev.map(step => ({ ...step, status: 'completed' as const })));
+
+      setMessages(prev => prev.map(m =>
+        m.id === placeholderId
+          ? {
+              ...m,
+              content: response.message,
+              sources: response.sources
+            }
+          : m
+      ));
+
+      // Save conversation
+      const finalMessages = [...updatedMessages, {
+        ...placeholderMessage,
+        content: response.message,
+        sources: response.sources
+      }];
+      setTimeout(() => saveCurrentConversation(finalMessages, convId), 100);
+
+    } catch (err: any) {
+      if (!abortRef.current) {
+        setError(err.message || 'Failed to process image');
+        setMessages(prev => prev.map(m =>
+          m.id === placeholderId
+            ? { ...m, content: 'Sorry, I had trouble processing the image. Please try again.' }
+            : m
+        ));
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [conversationId, messages, isProcessing, saveCurrentConversation]);
+
+  /**
+   * Approve and execute a pending plan
+   */
+  const approvePlan = useCallback(async () => {
+    if (!currentPlan) return;
+
+    setIsProcessing(true);
+    setError(null);
+    updateThinkingStep('execute', 'active', 'Executing approved plan...');
+
+    try {
+      const response = await assistantApi.executePlan(currentPlan);
+
+      setThinkingSteps(prev => prev.map(step => ({ ...step, status: 'completed' as const })));
+
+      // Add assistant response with plan results
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.message,
+        timestamp: new Date().toISOString(),
+        sources: response.sources
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      setCurrentPlan(null);
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to execute plan');
+      setThinkingSteps(prev => prev.map(step =>
+        step.status === 'active' ? { ...step, status: 'failed' as const } : step
+      ));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentPlan]);
+
+  /**
+   * Reject the current pending plan
+   */
+  const rejectPlan = useCallback(() => {
+    setCurrentPlan(null);
+    setThinkingSteps([]);
+
+    // Add a message indicating the plan was rejected
+    const assistantMessage: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: 'Plan cancelled. Let me know if you\'d like to try a different approach.',
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+  }, []);
 
   return {
     // State
@@ -423,9 +618,13 @@ export const useAssistant = (): UseAssistantReturn => {
     thinkingSteps,
     error,
     savedConversations,
+    currentPlan,
+    isStreaming,
+    activeToolCalls,
 
     // Actions
     sendMessage,
+    sendMessageWithImage,
     stopProcessing,
     clearConversation,
     startNewChat,
@@ -433,7 +632,9 @@ export const useAssistant = (): UseAssistantReturn => {
     deleteConversation: deleteConversationHandler,
     loadCapabilities,
     setMessages,
-    refreshSavedConversations
+    refreshSavedConversations,
+    approvePlan,
+    rejectPlan
   };
 };
 

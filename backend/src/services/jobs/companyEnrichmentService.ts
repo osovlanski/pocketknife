@@ -3,9 +3,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { CompanySizeCategory } from '@prisma/client';
 import { getPrisma } from '../core/databaseService';
 import { configService } from '../core/configService';
+import { cacheService } from '../core/cacheService';
+import logger from '../../utils/logger';
 
 // Get timeout from config
 const ENRICHMENT_TIMEOUT = () => configService.get('jobs.enrichment.timeoutMs', 10000);
+const CACHE_TTL = 24 * 60 * 60; // 24 hours
 
 interface CompanyInfo {
   name: string;
@@ -164,7 +167,7 @@ class CompanyEnrichmentService {
   async fetchCrunchbaseInfo(companyName: string): Promise<Partial<CompanyInfo> | null> {
     const apiKey = process.env.CRUNCHBASE_API_KEY?.trim();
     if (!apiKey) {
-      console.debug('Crunchbase API key not configured');
+      logger.debug('Crunchbase API key not configured');
       return null;
     }
 
@@ -231,7 +234,7 @@ class CompanyEnrichmentService {
         crunchbaseUrl: `https://www.crunchbase.com/organization/${orgPermalink}`
       };
     } catch (error: any) {
-      console.debug(`Crunchbase API error for ${companyName}: ${error.message}`);
+      logger.debug('Crunchbase API error', { company: companyName, error: error.message });
       return null;
     }
   }
@@ -241,32 +244,114 @@ class CompanyEnrichmentService {
    */
   async getCompanyInfo(companyName: string): Promise<CompanyInfo | null> {
     const normalizedName = companyName.toLowerCase().trim();
-    
+
     // Skip enrichment for invalid or too-short company names
     // These are likely country codes (e.g., 'ge', 'il') or parsing errors
     if (normalizedName.length <= 2 || normalizedName === 'unknown company') {
       return null;
     }
-    
+
     // Skip common words that aren't company names
     const invalidNames = ['jobs', 'careers', 'hiring', 'job', 'career', 'glassdoor', 'linkedin', 'indeed'];
     if (invalidNames.includes(normalizedName)) {
       return null;
     }
-    
-    // Check cache first
+
+    // Check in-memory cache first (fastest)
     if (companyCache.has(normalizedName)) {
+      logger.debug('Company cache hit (memory)', { company: normalizedName });
       return companyCache.get(normalizedName)!;
     }
 
-    // Try to get info from various sources
-    const info = await this.enrichCompanyData(companyName);
-    
-    if (info) {
-      companyCache.set(normalizedName, info);
+    // Check distributed cache
+    const cacheKey = `company:enrichment:${normalizedName}`;
+    const cached = await cacheService.get<CompanyInfo>(cacheKey);
+    if (cached) {
+      logger.debug('Company cache hit (distributed)', { company: normalizedName });
+      companyCache.set(normalizedName, cached);
+      return cached;
     }
-    
+
+    // Try to get info from various sources
+    logger.debug('Enriching company data', { company: companyName });
+    const info = await this.enrichCompanyData(companyName);
+
+    if (info) {
+      // Store in both caches
+      companyCache.set(normalizedName, info);
+      await cacheService.set(cacheKey, info, { ttl: CACHE_TTL });
+
+      // Also persist to database for long-term storage
+      await this.persistCompanyToDatabase(info);
+
+      logger.debug('Company enrichment completed', {
+        company: companyName,
+        score: info.companyScore,
+        size: info.size
+      });
+    }
+
     return info;
+  }
+
+  /**
+   * Persist enriched company data to database for future lookups
+   */
+  private async persistCompanyToDatabase(info: CompanyInfo): Promise<void> {
+    try {
+      const prisma = getPrisma();
+      if (!prisma) return;
+
+      const slug = info.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+      await (prisma as any).externalCompany.upsert({
+        where: { slug },
+        update: {
+          description: info.description,
+          industry: info.industry,
+          size: info.size ? info.size.toUpperCase() as CompanySizeCategory : null,
+          founded: info.founded,
+          fundingStage: info.fundingStage,
+          totalFunding: info.totalFunding,
+          employeeCount: info.employeeCount,
+          employeeCountMin: info.employeeCountMin,
+          employeeCountMax: info.employeeCountMax,
+          headquarters: info.headquarters,
+          website: info.website,
+          growthScore: info.growthScore,
+          heatScore: info.heatScore,
+          companyScore: info.companyScore,
+          glassdoorRating: info.glassdoorRating,
+          crunchbaseUrl: info.crunchbaseUrl,
+          linkedinUrl: info.linkedinUrl,
+          updatedAt: new Date()
+        },
+        create: {
+          name: info.name,
+          slug,
+          description: info.description,
+          industry: info.industry,
+          size: info.size ? info.size.toUpperCase() as CompanySizeCategory : null,
+          founded: info.founded,
+          fundingStage: info.fundingStage,
+          totalFunding: info.totalFunding,
+          employeeCount: info.employeeCount,
+          employeeCountMin: info.employeeCountMin,
+          employeeCountMax: info.employeeCountMax,
+          headquarters: info.headquarters,
+          website: info.website,
+          growthScore: info.growthScore,
+          heatScore: info.heatScore,
+          companyScore: info.companyScore,
+          glassdoorRating: info.glassdoorRating,
+          crunchbaseUrl: info.crunchbaseUrl,
+          linkedinUrl: info.linkedinUrl
+        }
+      });
+    } catch (error) {
+      // Silently fail - database persistence is optional
+      logger.debug('Could not persist company to database', { company: info.name });
+    }
   }
 
   /**
@@ -354,8 +439,8 @@ Return ONLY valid JSON (no markdown):
         aiInfo.companyScore = this.calculateCompanyScore(aiInfo);
         
         return aiInfo;
-      } catch (error) {
-        console.warn(`Could not enrich data for ${companyName}`);
+      } catch (error: any) {
+        logger.warn('AI enrichment failed', { company: companyName, error: error.message });
       }
     }
 
@@ -403,8 +488,8 @@ Return ONLY valid JSON (no markdown):
         crunchbaseUrl: dbCompany.crunchbaseUrl || undefined,
         linkedinUrl: dbCompany.linkedinUrl || undefined
       };
-    } catch (error) {
-      console.warn('⚠️ Could not fetch company from database:', error);
+    } catch (error: any) {
+      logger.debug('Could not fetch company from database', { error: error.message });
       return null;
     }
   }
@@ -697,6 +782,434 @@ Return ONLY valid JSON (no markdown):
         growthScore: 9,
         heatScore: 9,
         glassdoorRating: 4.4
+      },
+
+      // =========================================================================
+      // Additional Israeli Tech Companies
+      // =========================================================================
+      'ironource': {
+        name: 'ironSource',
+        description: 'Mobile app monetization and marketing platform',
+        industry: 'AdTech / Mobile',
+        size: 'enterprise',
+        founded: '2010',
+        isPublic: true,
+        stockSymbol: 'IS',
+        employeeCount: '1200+',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 4.0
+      },
+      'fiverr': {
+        name: 'Fiverr',
+        description: 'Global freelance services marketplace',
+        industry: 'Marketplace / Gig Economy',
+        size: 'enterprise',
+        founded: '2010',
+        isPublic: true,
+        stockSymbol: 'FVRR',
+        employeeCount: '1000+',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 7,
+        heatScore: 8,
+        glassdoorRating: 4.1
+      },
+      'jfrog': {
+        name: 'JFrog',
+        description: 'DevOps platform for software delivery',
+        industry: 'DevOps',
+        size: 'enterprise',
+        founded: '2008',
+        isPublic: true,
+        stockSymbol: 'FROG',
+        employeeCount: '1400+',
+        headquarters: 'Sunnyvale, CA / Netanya, Israel',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.2
+      },
+      'snyk': {
+        name: 'Snyk',
+        description: 'Developer security platform',
+        industry: 'Cybersecurity / DevSecOps',
+        size: 'enterprise',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series G',
+        totalFunding: '$1B+',
+        employeeCount: '1000+',
+        headquarters: 'Boston, MA / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.3
+      },
+      'wiz': {
+        name: 'Wiz',
+        description: 'Cloud security platform',
+        industry: 'Cybersecurity / Cloud',
+        size: 'enterprise',
+        founded: '2020',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$900M',
+        employeeCount: '1000+',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 10,
+        heatScore: 10,
+        glassdoorRating: 4.6
+      },
+      'orca security': {
+        name: 'Orca Security',
+        description: 'Cloud security and compliance platform',
+        industry: 'Cybersecurity / Cloud',
+        size: 'midsize',
+        founded: '2019',
+        isPublic: false,
+        fundingStage: 'Series C',
+        totalFunding: '$550M',
+        employeeCount: '400-600',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.4
+      },
+      'transmit security': {
+        name: 'Transmit Security',
+        description: 'Passwordless authentication platform',
+        industry: 'Cybersecurity / Identity',
+        size: 'midsize',
+        founded: '2014',
+        isPublic: false,
+        fundingStage: 'Series C',
+        totalFunding: '$543M',
+        employeeCount: '300-500',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.2
+      },
+      'rapyd': {
+        name: 'Rapyd',
+        description: 'Global fintech-as-a-service platform',
+        industry: 'FinTech',
+        size: 'enterprise',
+        founded: '2016',
+        isPublic: false,
+        fundingStage: 'Series E',
+        totalFunding: '$770M',
+        employeeCount: '800+',
+        headquarters: 'London / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.1
+      },
+      'payoneer': {
+        name: 'Payoneer',
+        description: 'Cross-border payments platform',
+        industry: 'FinTech',
+        size: 'enterprise',
+        founded: '2005',
+        isPublic: true,
+        stockSymbol: 'PAYO',
+        employeeCount: '2000+',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 3.9
+      },
+      'fundbox': {
+        name: 'Fundbox',
+        description: 'B2B payments and credit platform',
+        industry: 'FinTech',
+        size: 'midsize',
+        founded: '2013',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$433M',
+        employeeCount: '200-400',
+        headquarters: 'San Francisco / Tel Aviv',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 4.0
+      },
+      'gong': {
+        name: 'Gong',
+        description: 'Revenue intelligence platform',
+        industry: 'SaaS / Sales Tech',
+        size: 'enterprise',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series E',
+        totalFunding: '$584M',
+        employeeCount: '1200+',
+        headquarters: 'San Francisco / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.5
+      },
+      'ownbackup': {
+        name: 'OwnBackup',
+        description: 'SaaS data protection and recovery',
+        industry: 'SaaS / Data Protection',
+        size: 'midsize',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series E',
+        totalFunding: '$517M',
+        employeeCount: '400-600',
+        headquarters: 'Englewood Cliffs, NJ / Tel Aviv',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.3
+      },
+      'taboola': {
+        name: 'Taboola',
+        description: 'Content discovery and native advertising',
+        industry: 'AdTech',
+        size: 'enterprise',
+        founded: '2007',
+        isPublic: true,
+        stockSymbol: 'TBLA',
+        employeeCount: '1600+',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 6,
+        heatScore: 6,
+        glassdoorRating: 3.8
+      },
+      'outbrain': {
+        name: 'Outbrain',
+        description: 'Content recommendation platform',
+        industry: 'AdTech',
+        size: 'enterprise',
+        founded: '2006',
+        isPublic: true,
+        stockSymbol: 'OB',
+        employeeCount: '800+',
+        headquarters: 'New York / Netanya, Israel',
+        growthScore: 6,
+        heatScore: 6,
+        glassdoorRating: 3.7
+      },
+      'similarweb': {
+        name: 'SimilarWeb',
+        description: 'Web analytics and market intelligence',
+        industry: 'Analytics',
+        size: 'enterprise',
+        founded: '2007',
+        isPublic: true,
+        stockSymbol: 'SMWB',
+        employeeCount: '1000+',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 4.0
+      },
+      'walkme': {
+        name: 'WalkMe',
+        description: 'Digital adoption platform',
+        industry: 'SaaS / Digital Adoption',
+        size: 'enterprise',
+        founded: '2011',
+        isPublic: true,
+        stockSymbol: 'WKME',
+        employeeCount: '1200+',
+        headquarters: 'San Francisco / Tel Aviv',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 3.9
+      },
+      'clicktale': {
+        name: 'Contentsquare (Clicktale)',
+        description: 'Digital experience analytics platform',
+        industry: 'Analytics',
+        size: 'enterprise',
+        founded: '2006',
+        isPublic: false,
+        fundingStage: 'Series F',
+        totalFunding: '$1.4B',
+        employeeCount: '1500+',
+        headquarters: 'Paris / Tel Aviv',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.1
+      },
+      'verbit': {
+        name: 'Verbit',
+        description: 'AI-powered transcription platform',
+        industry: 'AI / Media Tech',
+        size: 'midsize',
+        founded: '2017',
+        isPublic: false,
+        fundingStage: 'Series E',
+        totalFunding: '$550M',
+        employeeCount: '500-700',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.1
+      },
+      'datorama': {
+        name: 'Datorama (Salesforce)',
+        description: 'Marketing intelligence platform (acquired by Salesforce)',
+        industry: 'MarTech / Analytics',
+        size: 'enterprise',
+        founded: '2012',
+        isPublic: false,
+        fundingStage: 'Acquired',
+        employeeCount: '300+',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 4.2
+      },
+      'sentinelone': {
+        name: 'SentinelOne',
+        description: 'AI-powered cybersecurity platform',
+        industry: 'Cybersecurity',
+        size: 'enterprise',
+        founded: '2013',
+        isPublic: true,
+        stockSymbol: 'S',
+        employeeCount: '2000+',
+        headquarters: 'Mountain View, CA / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.3
+      },
+      'armis': {
+        name: 'Armis',
+        description: 'Asset visibility and security platform',
+        industry: 'Cybersecurity / IoT',
+        size: 'midsize',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$300M',
+        employeeCount: '400-600',
+        headquarters: 'Palo Alto, CA / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.4
+      },
+      'cato networks': {
+        name: 'Cato Networks',
+        description: 'SASE cloud platform',
+        industry: 'Cybersecurity / Networking',
+        size: 'midsize',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series G',
+        totalFunding: '$773M',
+        employeeCount: '500-700',
+        headquarters: 'Tel Aviv, Israel',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.2
+      },
+      'bigpanda': {
+        name: 'BigPanda',
+        description: 'AIOps and event management platform',
+        industry: 'AIOps',
+        size: 'midsize',
+        founded: '2012',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$227M',
+        employeeCount: '200-400',
+        headquarters: 'Mountain View, CA / Tel Aviv',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.2
+      },
+      'next insurance': {
+        name: 'Next Insurance',
+        description: 'Small business insurance platform',
+        industry: 'InsurTech',
+        size: 'midsize',
+        founded: '2016',
+        isPublic: false,
+        fundingStage: 'Series F',
+        totalFunding: '$881M',
+        employeeCount: '400-600',
+        headquarters: 'Palo Alto, CA / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.3
+      },
+      'lemonade': {
+        name: 'Lemonade',
+        description: 'AI-powered insurance company',
+        industry: 'InsurTech',
+        size: 'midsize',
+        founded: '2015',
+        isPublic: true,
+        stockSymbol: 'LMND',
+        employeeCount: '400-600',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.0
+      },
+      'papaya global': {
+        name: 'Papaya Global',
+        description: 'Global payroll and payments platform',
+        industry: 'HR Tech / FinTech',
+        size: 'midsize',
+        founded: '2016',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$445M',
+        employeeCount: '500-700',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.2
+      },
+      'hibob': {
+        name: 'HiBob',
+        description: 'HR platform for modern businesses',
+        industry: 'HR Tech',
+        size: 'midsize',
+        founded: '2015',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$574M',
+        employeeCount: '700+',
+        headquarters: 'Tel Aviv / New York',
+        growthScore: 9,
+        heatScore: 9,
+        glassdoorRating: 4.4
+      },
+      'yotpo': {
+        name: 'Yotpo',
+        description: 'eCommerce marketing platform',
+        industry: 'eCommerce / MarTech',
+        size: 'midsize',
+        founded: '2011',
+        isPublic: false,
+        fundingStage: 'Series F',
+        totalFunding: '$416M',
+        employeeCount: '500-700',
+        headquarters: 'New York / Tel Aviv',
+        growthScore: 7,
+        heatScore: 7,
+        glassdoorRating: 4.0
+      },
+      'appsflyer': {
+        name: 'AppsFlyer',
+        description: 'Mobile attribution and marketing analytics',
+        industry: 'AdTech / Mobile',
+        size: 'enterprise',
+        founded: '2011',
+        isPublic: false,
+        fundingStage: 'Series D',
+        totalFunding: '$290M',
+        employeeCount: '1000+',
+        headquarters: 'San Francisco / Herzliya, Israel',
+        growthScore: 8,
+        heatScore: 8,
+        glassdoorRating: 4.3
       }
     };
 

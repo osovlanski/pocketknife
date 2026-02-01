@@ -251,6 +251,159 @@ export const clearConversation = async (conversationId: string): Promise<void> =
 // SUGGESTED PROMPTS
 // =============================================================================
 
+// =============================================================================
+// ENHANCED ASSISTANT API (V2)
+// =============================================================================
+
+export interface ExecutionPlan {
+  id: string;
+  steps: PlanStep[];
+  explanation: string;
+  requiresApproval: boolean;
+  estimatedActions: number;
+}
+
+export interface PlanStep {
+  id: string;
+  tool: string;
+  description: string;
+  params: Record<string, unknown>;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  result?: unknown;
+  error?: string;
+}
+
+export interface ToolCallInfo {
+  tool_use_id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface EnhancedAssistantResponse {
+  message: string;
+  toolCalls: ToolCallInfo[];
+  sources: string[];
+  suggestions: string[];
+  plan?: ExecutionPlan;
+}
+
+/**
+ * Send a chat message to the enhanced assistant (V2)
+ * Supports plan preview mode
+ */
+export const sendMessageV2 = async (
+  message: string,
+  conversationId: string,
+  history?: Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: string }>,
+  enablePlanPreview?: boolean,
+  cancelToken?: CancelTokenSource
+): Promise<EnhancedAssistantResponse> => {
+  const token = cancelToken || createCancelToken();
+
+  const response = await assistantAxios.post('/assistant/v2/chat', {
+    message,
+    conversationId,
+    conversationHistory: history,
+    enablePlanPreview
+  }, {
+    cancelToken: token.token,
+    timeout: 120000
+  });
+
+  return response.data.data || response.data;
+};
+
+/**
+ * Send a chat message with an image
+ */
+export const sendMessageWithImage = async (
+  message: string,
+  imageBase64: string,
+  conversationId: string,
+  history?: Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: string }>,
+  imageType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+): Promise<EnhancedAssistantResponse> => {
+  const response = await assistantAxios.post('/assistant/v2/chat-with-image', {
+    message,
+    image: imageBase64,
+    imageType: imageType || 'image/jpeg',
+    conversationId,
+    conversationHistory: history
+  }, {
+    timeout: 180000 // 3 minute timeout for image processing
+  });
+
+  return response.data.data || response.data;
+};
+
+/**
+ * Generate an execution plan without executing
+ */
+export const generatePlan = async (message: string): Promise<ExecutionPlan> => {
+  const response = await assistantAxios.post('/assistant/v2/generate-plan', {
+    message
+  });
+
+  return response.data.data || response.data;
+};
+
+/**
+ * Execute a previously generated plan
+ */
+export const executePlan = async (plan: ExecutionPlan): Promise<EnhancedAssistantResponse> => {
+  const response = await assistantAxios.post('/assistant/v2/execute-plan', {
+    plan
+  }, {
+    timeout: 300000 // 5 minute timeout for plan execution
+  });
+
+  return response.data.data || response.data;
+};
+
+/**
+ * Store conversation in memory for future context
+ */
+export const storeConversationMemory = async (
+  conversationId: string,
+  messages: Array<{ id: string; role: string; content: string; timestamp: string }>
+): Promise<void> => {
+  await assistantAxios.post('/assistant/v2/store-conversation', {
+    conversationId,
+    messages
+  });
+};
+
+/**
+ * Get recent memories
+ */
+export const getMemories = async (limit?: number): Promise<unknown[]> => {
+  const response = await assistantAxios.get('/assistant/v2/memory', {
+    params: { limit: limit || 5 }
+  });
+
+  return response.data.data || [];
+};
+
+/**
+ * Get user preferences learned from conversations
+ */
+export const getUserPreferences = async (): Promise<Array<{ category: string; preference: string }>> => {
+  const response = await assistantAxios.get('/assistant/v2/preferences');
+  return response.data.data || [];
+};
+
+/**
+ * Get pending action items from memory
+ */
+export const getActionItems = async (): Promise<Array<{ task: string; conversationId: string }>> => {
+  const response = await assistantAxios.get('/assistant/v2/action-items');
+  return response.data.data || [];
+};
+
+// =============================================================================
+// SUGGESTED PROMPTS
+// =============================================================================
+
 export const SUGGESTED_PROMPTS = [
   {
     category: 'Cooking',

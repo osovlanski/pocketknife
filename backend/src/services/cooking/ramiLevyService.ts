@@ -109,25 +109,87 @@ export interface TokenStatus {
 }
 
 /**
+ * Decode base64 with fallback for both base64url and standard base64
+ * Rami Levy may use standard base64 which includes +, /, and = characters
+ * @param base64String - Base64 encoded string
+ * @returns Decoded string or null on failure
+ */
+const decodeBase64 = (base64String: string): string | null => {
+  try {
+    // First, try base64url (RFC 4648 § 5) - uses - and _
+    return Buffer.from(base64String, 'base64url').toString('utf8');
+  } catch {
+    try {
+      // Fallback to standard base64 - uses + and /
+      // Also handle missing padding
+      const padded = base64String + '='.repeat((4 - base64String.length % 4) % 4);
+      return Buffer.from(padded, 'base64').toString('utf8');
+    } catch {
+      return null;
+    }
+  }
+};
+
+/**
+ * Clean a token string by removing problematic characters
+ * Handles: whitespace, newlines, zero-width characters, trailing garbage
+ * @param token - Raw token string
+ * @returns Cleaned token
+ */
+const cleanTokenString = (token: string | undefined): string => {
+  if (!token) return '';
+
+  return token
+    // Remove leading/trailing whitespace and newlines
+    .trim()
+    // Remove zero-width characters (common from copy/paste)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Remove newlines and carriage returns
+    .replace(/[\r\n]/g, '')
+    // Remove trailing non-JWT characters (sometimes copy/paste adds garbage)
+    .replace(/[^A-Za-z0-9\-_\.=+\/]+$/, '')
+    // Remove leading non-JWT characters
+    .replace(/^[^A-Za-z0-9]+/, '');
+};
+
+/**
  * Parse JWT token to extract expiration time
+ * Handles both base64url and standard base64 encoding
  * @param token - JWT token string
  * @returns Expiration date or null
  */
 const parseJwtExpiration = (token: string): Date | null => {
   if (!token) return null;
-  
+
   try {
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    
+    const cleanedToken = cleanTokenString(token);
+    const parts = cleanedToken.split('.');
+    if (parts.length < 2) {
+      logger.debug('JWT parsing: not enough parts', { parts: parts.length });
+      return null;
+    }
+
     // Decode the payload (second part)
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    
+    const payloadStr = decodeBase64(parts[1]);
+    if (!payloadStr) {
+      logger.debug('JWT parsing: failed to decode payload');
+      return null;
+    }
+
+    const payload = JSON.parse(payloadStr);
+
     if (payload.exp) {
-      return new Date(payload.exp * 1000);
+      const expDate = new Date(payload.exp * 1000);
+      logger.debug('JWT expiration parsed', {
+        exp: payload.exp,
+        date: expDate.toISOString(),
+        isExpired: expDate < new Date()
+      });
+      return expDate;
     }
     return null;
-  } catch {
+  } catch (error: any) {
+    logger.debug('JWT parsing failed', { error: error.message });
     return null;
   }
 };
@@ -277,24 +339,34 @@ class RamiLevyService {
    * @returns Configured axios instance
    */
   private createAxiosInstance(tokens: RamiLevyTokens): AxiosInstance {
-    // Clean tokens by removing trailing invalid characters (browser copy/paste issues)
-    const cleanToken = (token: string): string => {
-      return token ? token.replace(/[^A-Za-z0-9\-_\.]+$/, '') : token;
-    };
+    // Use the new cleanTokenString function for robust token cleaning
+    const cleanedApiKey = cleanTokenString(tokens.apiKey);
+    const cleanedEcomToken = tokens.ecomToken ? cleanTokenString(tokens.ecomToken) : undefined;
+    const cleanedCookie = cleanTokenString(tokens.cookie);
 
-    const cleanedApiKey = cleanToken(tokens.apiKey);
-    const cleanedEcomToken = tokens.ecomToken ? cleanToken(tokens.ecomToken) : undefined;
+    // Log token structure for debugging
+    const apiKeyParts = cleanedApiKey.split('.').length;
+    const ecomTokenParts = cleanedEcomToken ? cleanedEcomToken.split('.').length : 0;
+
+    logger.debug('Token structure analysis', {
+      apiKeyParts,
+      apiKeyLength: cleanedApiKey.length,
+      ecomTokenParts,
+      ecomTokenLength: cleanedEcomToken?.length || 0,
+      cookieLength: cleanedCookie.length,
+      hasValidApiKeyJwt: apiKeyParts === 3,
+      hasValidEcomTokenJwt: ecomTokenParts === 3
+    });
 
     // Determine best token for Authorization header
     // If apiKey is truncated (2 parts), use ecomToken if available (it's a valid 3-part JWT)
-    const apiKeyParts = cleanedApiKey.split('.').length;
-    const useEcomAsAuth = apiKeyParts < 3 && cleanedEcomToken && cleanedEcomToken.split('.').length === 3;
+    const useEcomAsAuth = apiKeyParts < 3 && cleanedEcomToken && ecomTokenParts === 3;
     const authToken = useEcomAsAuth ? cleanedEcomToken : cleanedApiKey;
 
     if (useEcomAsAuth) {
       logger.info('Using EcomToken as Authorization (apiKey appears truncated)', {
         apiKeyParts,
-        ecomTokenValid: true
+        ecomTokenParts
       });
     }
 
@@ -303,16 +375,18 @@ class RamiLevyService {
       'Accept-Language': 'en-US,en;q=0.9,he;q=0.8',
       'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json;charset=UTF-8',
-      'Cookie': tokens.cookie,
+      'Cookie': cleanedCookie,
       'locale': 'he',
       'Origin': RAMI_LEVY_BASE_URL,
       'Referer': `${RAMI_LEVY_BASE_URL}/he`,
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
     };
 
-    // ecomToken is also sent as separate header for cart operations
+    // ecomToken is sent as separate header for cart operations
+    // Send both lowercase and mixed-case for compatibility
     if (cleanedEcomToken) {
       headers['ecomtoken'] = cleanedEcomToken;
+      headers['EcomToken'] = cleanedEcomToken; // Some servers are case-sensitive
     }
 
     return axios.create({
@@ -403,7 +477,7 @@ class RamiLevyService {
   async initialize(userId: string): Promise<TokenStatus> {
     try {
       const tokens = await this.getStoredTokens(userId);
-      
+
       if (!tokens) {
         return {
           isValid: false,
@@ -413,21 +487,63 @@ class RamiLevyService {
         };
       }
 
-      // Parse expiration from EcomToken (it's a valid JWT with exp claim)
-      const expiresAt = tokens.ecomToken ? parseJwtExpiration(tokens.ecomToken) : null;
-      const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
-      const isExpiringSoon = expiresAt 
-        ? (expiresAt.getTime() - Date.now()) < 24 * 60 * 60 * 1000 
+      // Validate token structure first
+      const cleanedApiKey = cleanTokenString(tokens.apiKey);
+      const cleanedEcomToken = tokens.ecomToken ? cleanTokenString(tokens.ecomToken) : undefined;
+      const cleanedCookie = cleanTokenString(tokens.cookie);
+
+      // Basic structure validation
+      if (!cleanedApiKey || cleanedApiKey.length < 10) {
+        return {
+          isValid: false,
+          userId,
+          errorMessage: 'API Key (Bearer token) is missing or too short. Please copy the full Authorization header value.',
+          refreshInstructions: REFRESH_INSTRUCTIONS
+        };
+      }
+
+      if (!cleanedCookie || cleanedCookie.length < 20) {
+        return {
+          isValid: false,
+          userId,
+          errorMessage: 'Cookie is missing or too short. Please copy the full Cookie header value.',
+          refreshInstructions: REFRESH_INSTRUCTIONS
+        };
+      }
+
+      // Parse expiration from both tokens (check whichever is a valid JWT)
+      const apiKeyExp = parseJwtExpiration(cleanedApiKey);
+      const ecomTokenExp = cleanedEcomToken ? parseJwtExpiration(cleanedEcomToken) : null;
+
+      // Use the earliest expiration date from either token
+      const expiresAt = apiKeyExp && ecomTokenExp
+        ? (apiKeyExp < ecomTokenExp ? apiKeyExp : ecomTokenExp)
+        : apiKeyExp || ecomTokenExp;
+
+      const now = Date.now();
+      const isExpired = expiresAt ? expiresAt.getTime() < now : false;
+      const isExpiringSoon = expiresAt
+        ? (expiresAt.getTime() - now) < 24 * 60 * 60 * 1000
         : false;
 
-      // If token is already expired based on JWT, don't bother validating
+      // Log token analysis
+      logger.debug('Rami Levy token analysis', {
+        apiKeyJwt: apiKeyExp ? 'valid' : 'not a JWT',
+        ecomTokenJwt: ecomTokenExp ? 'valid' : 'not a JWT or not provided',
+        expiresAt: expiresAt?.toISOString() || 'unknown',
+        isExpired,
+        isExpiringSoon
+      });
+
+      // If token is already expired based on JWT, don't bother validating with API
       if (isExpired) {
+        const expiredToken = apiKeyExp && apiKeyExp.getTime() < now ? 'API Key' : 'EcomToken';
         return {
           isValid: false,
           userId,
           expiresAt: expiresAt || undefined,
           expiresIn: 'expired',
-          errorMessage: 'Tokens have expired. Please refresh your authentication.',
+          errorMessage: `${expiredToken} expired on ${expiresAt?.toLocaleString()}. Please refresh your authentication.`,
           refreshInstructions: REFRESH_INSTRUCTIONS
         };
       }
@@ -443,16 +559,16 @@ class RamiLevyService {
 
       // Validate tokens with a simple API request
       const validation = await this.validateTokens(userId);
-      
+
       if (validation.valid) {
         await this.updateLastUsed(userId);
         logger.success('Rami Levy service initialized', { userId });
-        
+
         const tokenInfo = await this.getTokenInfo(userId);
-        
-        return { 
-          isValid: true, 
-          userId, 
+
+        return {
+          isValid: true,
+          userId,
           lastUsed: new Date(),
           expiresAt: expiresAt || undefined,
           tokenAge: tokenInfo?.updatedAt ? getTimeAgo(tokenInfo.updatedAt) : undefined,
@@ -463,7 +579,7 @@ class RamiLevyService {
 
       // Clean up invalid session
       this.sessions.delete(userId);
-      
+
       return {
         isValid: false,
         userId,
@@ -503,6 +619,7 @@ class RamiLevyService {
 
   /**
    * Validate tokens by making a simple API call
+   * Also checks JWT expiration before making the request
    * @param userId - User identifier
    * @returns Object with validation result and error details
    */
@@ -512,6 +629,34 @@ class RamiLevyService {
       return { valid: false, error: 'No session found' };
     }
 
+    // Pre-check: Verify JWT structure before making API call
+    const apiKeyExp = parseJwtExpiration(session.tokens.apiKey);
+    const ecomTokenExp = session.tokens.ecomToken ? parseJwtExpiration(session.tokens.ecomToken) : null;
+    const now = new Date();
+
+    // Log expiration status
+    logger.debug('Token expiration check', {
+      apiKeyExp: apiKeyExp?.toISOString() || 'not a JWT',
+      ecomTokenExp: ecomTokenExp?.toISOString() || 'not provided/not a JWT',
+      apiKeyExpired: apiKeyExp ? apiKeyExp < now : 'unknown',
+      ecomTokenExpired: ecomTokenExp ? ecomTokenExp < now : 'unknown'
+    });
+
+    // Check if tokens are expired before making the API call
+    if (apiKeyExp && apiKeyExp < now) {
+      return {
+        valid: false,
+        error: `API Key (Bearer token) expired on ${apiKeyExp.toLocaleString()}. Please log in to Rami Levy and copy fresh tokens.`
+      };
+    }
+
+    if (ecomTokenExp && ecomTokenExp < now) {
+      return {
+        valid: false,
+        error: `EcomToken expired on ${ecomTokenExp.toLocaleString()}. Please log in to Rami Levy and copy fresh tokens.`
+      };
+    }
+
     try {
       logger.api('Validating Rami Levy tokens with test search...');
       const response = await session.axiosInstance.post('/catalog', {
@@ -519,51 +664,74 @@ class RamiLevyService {
         aggs: 0,
         store: DEFAULT_STORE_ID
       });
-      
+
       // Check if the response indicates success
       const data = response.data;
       if (data.status === 200 || (data.data && Array.isArray(data.data))) {
-        logger.success('Token validation successful', { 
-          resultCount: data.data?.length || 0 
+        logger.success('Token validation successful', {
+          resultCount: data.data?.length || 0
         });
         return { valid: true };
       }
-      
-      logger.warn('Token validation: unexpected response format', { 
+
+      logger.warn('Token validation: unexpected response format', {
         status: data.status,
-        hasData: !!data.data 
+        hasData: !!data.data,
+        dataType: typeof data.data
       });
       return { valid: false, error: `API returned status ${data.status}` };
     } catch (error: any) {
       const status = error.response?.status;
       const responseData = error.response?.data;
       const message = responseData?.message || responseData?.error || error.message;
-      
+
       // Log detailed error info for debugging
-      logger.fail('Token validation failed', { 
+      logger.fail('Token validation failed', {
         status,
         message,
         url: error.config?.url,
         responseData: typeof responseData === 'object' ? JSON.stringify(responseData).substring(0, 500) : responseData,
         headers: error.config?.headers ? {
           hasAuth: !!error.config.headers['Authorization'],
+          authLength: error.config.headers['Authorization']?.length || 0,
           hasCookie: !!error.config.headers['Cookie'],
-          hasEcom: !!error.config.headers['ecomtoken']
+          cookieLength: error.config.headers['Cookie']?.length || 0,
+          hasEcom: !!error.config.headers['ecomtoken'],
+          hasEcomMixed: !!error.config.headers['EcomToken']
         } : 'none'
       });
-      
+
       if (status === 401 || status === 403) {
         const detail = responseData?.error || responseData?.message || '';
-        return { 
-          valid: false, 
-          error: `Authentication rejected (${status}): ${detail || 'Tokens may be expired. Please log in to Rami Levy again and copy fresh tokens.'}` 
+
+        // Provide more specific guidance based on the error
+        let guidance = 'Tokens may be expired or invalid.';
+        if (detail.toLowerCase().includes('token')) {
+          guidance = 'The token format appears to be incorrect.';
+        } else if (detail.toLowerCase().includes('session')) {
+          guidance = 'Your session has expired.';
+        } else if (detail.toLowerCase().includes('cookie')) {
+          guidance = 'The cookie is invalid or expired.';
+        }
+
+        return {
+          valid: false,
+          error: `Authentication rejected (${status}): ${guidance} Please log in to Rami Levy again and copy fresh tokens from DevTools.`
         };
       }
       if (status === 429) {
         return { valid: false, error: 'Rate limited by Rami Levy. Try again in a few minutes.' };
       }
-      
-      return { valid: false, error: `Validation failed (${status || 'network'}): ${message}` };
+
+      // Network errors
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        return { valid: false, error: 'Cannot reach Rami Levy servers. Check your internet connection.' };
+      }
+      if (error.code === 'ETIMEDOUT') {
+        return { valid: false, error: 'Connection to Rami Levy timed out. Try again.' };
+      }
+
+      return { valid: false, error: `Validation failed (${status || error.code || 'unknown'}): ${message}` };
     }
   }
 

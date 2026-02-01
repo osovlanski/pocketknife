@@ -50,7 +50,11 @@ import {
   ThumbsDown,
   MoreHorizontal,
   Command,
-  CornerDownLeft
+  CornerDownLeft,
+  Image,
+  AlertTriangle,
+  Play,
+  XOctagon
 } from 'lucide-react';
 import AgentPageLayout from './common/AgentPageLayout';
 import VoiceInputButton from './common/VoiceInputButton';
@@ -58,7 +62,7 @@ import MarkdownContent from './common/MarkdownContent';
 import { findAgentById, type AgentTagConfig } from './common/AgentTags';
 import useAssistant from '../hooks/useAssistant';
 import { useTranslation } from '../i18n';
-import { SUGGESTED_PROMPTS, type SavedConversation, type ThinkingStep } from '../services/assistantApi';
+import { SUGGESTED_PROMPTS, type SavedConversation, type ThinkingStep, type ExecutionPlan, type PlanStep } from '../services/assistantApi';
 import type { ChatMessage, WorkflowStep } from '../services/assistantApi';
 import styles from '../styles/assistant.module.css';
 
@@ -680,6 +684,170 @@ const KeyboardHints: React.FC = () => {
 };
 
 // =============================================================================
+// PLAN PREVIEW PANEL
+// =============================================================================
+
+interface PlanPreviewPanelProps {
+  plan: ExecutionPlan;
+  onApprove: () => void;
+  onReject: () => void;
+  isExecuting: boolean;
+}
+
+const PlanPreviewPanel: React.FC<PlanPreviewPanelProps> = ({
+  plan,
+  onApprove,
+  onReject,
+  isExecuting
+}) => {
+  const getStepStatusIcon = (step: PlanStep) => {
+    switch (step.status) {
+      case 'completed':
+        return <CheckCircle size={14} className={styles.stepCompleted} />;
+      case 'running':
+        return <Loader2 size={14} className="animate-spin" />;
+      case 'failed':
+        return <XCircle size={14} className={styles.stepFailed} />;
+      case 'skipped':
+        return <XOctagon size={14} className={styles.stepSkipped} />;
+      default:
+        return <Clock size={14} className={styles.stepPending} />;
+    }
+  };
+
+  return (
+    <div className={styles.planPreviewPanel}>
+      <div className={styles.planHeader}>
+        <div className={styles.planTitle}>
+          <AlertTriangle size={18} className={styles.planWarningIcon} />
+          <span>Execution Plan Preview</span>
+        </div>
+        <span className={styles.planStepCount}>
+          {plan.estimatedActions} action{plan.estimatedActions !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <p className={styles.planExplanation}>{plan.explanation}</p>
+
+      <div className={styles.planSteps}>
+        <div className={styles.planStepsTitle}>
+          <Zap size={14} />
+          Steps to execute:
+        </div>
+        {plan.steps.map((step, index) => (
+          <div key={step.id} className={styles.planStep}>
+            <span className={styles.planStepNumber}>{index + 1}</span>
+            {getStepStatusIcon(step)}
+            <span className={styles.planStepTool}>{step.tool.replace(/_/g, ' ')}</span>
+            <span className={styles.planStepDesc}>{step.description}</span>
+          </div>
+        ))}
+      </div>
+
+      {plan.requiresApproval && (
+        <div className={styles.planActions}>
+          <button
+            className={styles.planRejectButton}
+            onClick={onReject}
+            disabled={isExecuting}
+          >
+            <X size={16} />
+            Cancel
+          </button>
+          <button
+            className={styles.planApproveButton}
+            onClick={onApprove}
+            disabled={isExecuting}
+          >
+            {isExecuting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Executing...
+              </>
+            ) : (
+              <>
+                <Play size={16} />
+                Approve & Execute
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
+// IMAGE UPLOAD BUTTON
+// =============================================================================
+
+interface ImageUploadButtonProps {
+  onImageSelect: (base64: string, type: string) => void;
+  disabled?: boolean;
+}
+
+const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSelect, disabled }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image size must be less than 10MB');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      // Remove the data URL prefix
+      const base64Data = base64.split(',')[1];
+      onImageSelect(base64Data, file.type);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+      <button
+        type="button"
+        className={styles.imageUploadButton}
+        onClick={handleClick}
+        disabled={disabled}
+        title="Upload image"
+        aria-label="Upload image"
+      >
+        <Image size={18} />
+      </button>
+    </>
+  );
+};
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -688,6 +856,8 @@ const AssistantAgent: React.FC = () => {
   const assistant = useAssistant();
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [pendingImage, setPendingImage] = useState<{ base64: string; type: string } | null>(null);
+  const [enablePlanPreview, setEnablePlanPreview] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -724,13 +894,27 @@ const AssistantAgent: React.FC = () => {
 
     const message = inputValue;
     setInputValue('');
-    
+
     // Reset textarea height
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
     }
-    
-    await assistant.sendMessage(message);
+
+    // If there's a pending image, send with image
+    if (pendingImage) {
+      await assistant.sendMessageWithImage(message, pendingImage.base64, pendingImage.type);
+      setPendingImage(null);
+    } else {
+      await assistant.sendMessage(message, enablePlanPreview);
+    }
+  };
+
+  const handleImageSelect = (base64: string, type: string) => {
+    setPendingImage({ base64, type });
+  };
+
+  const handleRemovePendingImage = () => {
+    setPendingImage(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -803,6 +987,16 @@ const AssistantAgent: React.FC = () => {
 
         {/* Main Chat Area */}
         <div className={styles.chatArea}>
+          {/* Plan Preview Panel - shown when there's a pending plan */}
+          {assistant.currentPlan && (
+            <PlanPreviewPanel
+              plan={assistant.currentPlan}
+              onApprove={assistant.approvePlan}
+              onReject={assistant.rejectPlan}
+              isExecuting={assistant.isProcessing}
+            />
+          )}
+
           {/* Thinking Panel - shown during processing */}
           {assistant.isProcessing && assistant.thinkingSteps.length > 0 && (
             <ThinkingPanel
@@ -889,7 +1083,26 @@ const AssistantAgent: React.FC = () => {
                     {inputValue.length}/{MAX_INPUT_LENGTH}
                   </span>
                 </div>
+                {/* Pending image preview */}
+                {pendingImage && (
+                  <div className={styles.pendingImagePreview}>
+                    <Image size={14} />
+                    <span>Image attached</span>
+                    <button
+                      type="button"
+                      className={styles.removePendingImage}
+                      onClick={handleRemovePendingImage}
+                      aria-label="Remove attached image"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
                 <div className={styles.inputActions}>
+                  <ImageUploadButton
+                    onImageSelect={handleImageSelect}
+                    disabled={assistant.isProcessing}
+                  />
                   <VoiceInputButton
                     onTranscript={handleVoiceTranscript}
                     size="sm"
