@@ -486,10 +486,18 @@ class RamiLevyService {
       });
     }
 
+    // Determine if we should skip cookies (for production servers with different IPs)
+    // cf_clearance cookie is IP-bound, so it will fail if sent from a different IP
+    // When we have a valid ecomToken, the API works WITHOUT cookies (tested via curl)
+    const hasValidEcomToken = ecomTokenValidation?.isValid && cleanedEcomToken;
+    const skipCookies = hasValidEcomToken && configService.get('ramiLevy.skipCookiesForEcomToken', true);
+
     logger.info('Token selection for API calls', {
       authSource,
       authTokenLength: authToken.length,
-      hasEcomTokenHeader: !!cleanedEcomToken
+      hasEcomTokenHeader: !!cleanedEcomToken,
+      skipCookies,
+      reason: skipCookies ? 'Valid ecomToken - cookies not needed (avoids Cloudflare IP binding)' : 'Including cookies'
     });
 
     const headers: Record<string, string> = {
@@ -498,7 +506,6 @@ class RamiLevyService {
       'Accept-Language': 'he,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
       'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json;charset=UTF-8',
-      'Cookie': cleanedCookie,
       'locale': 'he',
       'Origin': RAMI_LEVY_BASE_URL,
       'Referer': `${RAMI_LEVY_BASE_URL}/he/online/search`,
@@ -513,6 +520,12 @@ class RamiLevyService {
       'sec-fetch-site': 'same-origin',
       'priority': 'u=1, i'
     };
+
+    // Only include cookies if we don't have a valid ecomToken
+    // This avoids Cloudflare IP binding issues when running from production servers
+    if (!skipCookies && cleanedCookie) {
+      headers['Cookie'] = cleanedCookie;
+    }
 
     // ecomToken is sent as separate header for cart operations
     // Send both lowercase and mixed-case for compatibility
@@ -643,16 +656,25 @@ class RamiLevyService {
         };
       }
 
-      // Validate critical cookies are present
+      // Check if ecomToken is valid (if so, cookies are optional)
+      const ecomTokenValidation = cleanedEcomToken ? validateJwtStructure(cleanedEcomToken) : null;
+      const hasValidEcomToken = ecomTokenValidation?.isValid === true;
+
+      // Validate critical cookies - but only warn if we don't have a valid ecomToken
+      // When ecomToken is valid, cookies are optional (avoids Cloudflare IP binding issues)
       const cookieValidation = validateCookies(cleanedCookie);
-      if (!cookieValidation.valid) {
-        logger.warn('Missing critical cookies', { missing: cookieValidation.missing });
+      if (!cookieValidation.valid && !hasValidEcomToken) {
+        logger.warn('Missing critical cookies and no valid ecomToken', { missing: cookieValidation.missing });
         return {
           isValid: false,
           userId,
           errorMessage: `Missing critical cookies: ${cookieValidation.missing.join(', ')}. Please copy the FULL cookie string from DevTools.`,
           refreshInstructions: REFRESH_INSTRUCTIONS
         };
+      } else if (!cookieValidation.valid && hasValidEcomToken) {
+        logger.info('Missing some cookies but ecomToken is valid - proceeding without cookies', {
+          missing: cookieValidation.missing
+        });
       }
 
       // Parse expiration from both tokens (check whichever is a valid JWT)
@@ -987,11 +1009,18 @@ class RamiLevyService {
       recommendations.push('Consider providing ecomtoken header for cart operations.');
     }
 
-    // Validate Cookie
+    // Validate Cookie - but cookies are optional if ecomToken is valid
+    // (Cloudflare's cf_clearance is IP-bound and fails from production servers)
     const cookieValidation = validateCookies(tokens.cookie);
-    if (!cookieValidation.valid) {
+    const ecomValidation = tokens.ecomToken ? validateJwtStructure(tokens.ecomToken) : null;
+    const hasValidEcomForCookieSkip = ecomValidation?.isValid === true;
+    
+    if (!cookieValidation.valid && !hasValidEcomForCookieSkip) {
       warnings.push(`Missing critical cookies: ${cookieValidation.missing.join(', ')}`);
       recommendations.push('Copy the FULL Cookie header from DevTools to include all required cookies.');
+    } else if (!cookieValidation.valid && hasValidEcomForCookieSkip) {
+      // Just an info, not a warning - cookies optional with valid ecomToken
+      recommendations.push('Cookies are missing but ecomToken is valid - API calls will work without cookies.');
     }
 
     // Determine overall validity

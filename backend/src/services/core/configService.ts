@@ -206,6 +206,7 @@ const DEFAULT_CONFIG = {
   'ramiLevy.autoSelectFirstProduct': true,
   'ramiLevy.circuitBreaker.threshold': 5,
   'ramiLevy.circuitBreaker.resetMs': 60000,
+  'ramiLevy.skipCookiesForEcomToken': true, // Skip cookies when ecomToken is valid (avoids Cloudflare IP binding)
   
   // ==========================================================================
   // DELIVERY SERVICE
