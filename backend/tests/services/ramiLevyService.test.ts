@@ -49,9 +49,11 @@ vi.mock('../../src/utils/logger', () => ({
 }));
 
 // Test tokens that pass minimum length validation
-const MOCK_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.test';
-const MOCK_COOKIE = 'session_id=abc123def456; user_token=xyz789; _ga=GA1.2.1234567890.1234567890';
-const MOCK_ECOM_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.ecom';
+// Valid 3-part JWT structure with future expiration
+const MOCK_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+// Cookie must include cf_clearance and AWSALB for validation
+const MOCK_COOKIE = 'cf_clearance=abc123; AWSALB=xyz789; session_id=abc123def456; user_token=xyz789';
+const MOCK_ECOM_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxOTk5OTk5OTk5fQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
 vi.mock('axios', () => ({
   default: {
@@ -131,14 +133,16 @@ describe('RamiLevyService', () => {
   });
 
   describe('storeTokens', () => {
-    it('should return false when database is not available', async () => {
+    it('should return success false when database is not available', async () => {
       const tokens = {
-        apiKey: 'test-api-key',
-        cookie: 'test-cookie'
+        apiKey: MOCK_API_KEY,
+        ecomToken: MOCK_ECOM_TOKEN,
+        cookie: MOCK_COOKIE
       };
 
       const result = await ramiLevyService.storeTokens('user-123', tokens);
-      expect(result).toBe(false);
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('Database not available');
     });
   });
 
@@ -261,24 +265,27 @@ describe('RamiLevyService with mocked database', () => {
 
       const tokens = {
         apiKey: MOCK_API_KEY,
+        ecomToken: MOCK_ECOM_TOKEN,
         cookie: MOCK_COOKIE
       };
 
       const result = await ramiLevyService.storeTokens('user-123', tokens);
-      expect(result).toBe(true);
+      expect(result.success).toBe(true);
       expect(mockPrisma.ramiLevyToken.upsert).toHaveBeenCalled();
     });
 
-    it('should return false on database error', async () => {
+    it('should return success false on database error', async () => {
       mockPrisma.ramiLevyToken.upsert.mockRejectedValue(new Error('DB error'));
 
       const tokens = {
         apiKey: MOCK_API_KEY,
+        ecomToken: MOCK_ECOM_TOKEN,
         cookie: MOCK_COOKIE
       };
 
       const result = await ramiLevyService.storeTokens('user-123', tokens);
-      expect(result).toBe(false);
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeDefined();
     });
   });
 
@@ -318,8 +325,8 @@ describe('RamiLevyService with mocked database', () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errorMessage).toBeDefined();
-      // Error message should contain validation failure info
-      expect(result.errorMessage).toMatch(/Validation|failed|unknown/i);
+      // Error message should contain validation failure info or be about tokens
+      expect(result.errorMessage).toMatch(/Validation|failed|unknown|expired|invalid|Unauthorized/i);
     });
   });
 
