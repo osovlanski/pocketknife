@@ -25,7 +25,8 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "config:seed": "tsx src/scripts/seedConfig.ts"
+    "config:seed": "tsx src/scripts/seedConfig.ts",
+    "test:rami-levy": "tsx scripts/test-rami-levy.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
