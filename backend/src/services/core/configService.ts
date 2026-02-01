@@ -232,19 +232,58 @@ const DEFAULT_CONFIG = {
   'assistant.agent.rateLimit': 30,
   'assistant.agent.timeoutMs': 120000,
   'assistant.ai.maxTokens': 4000,
-  'assistant.ai.planningMaxTokens': 2000,
+  'assistant.ai.planningMaxTokens': 1000,
   'assistant.ai.responseMaxTokens': 2000,
   'assistant.ai.knowledgeMaxTokens': 2000,
+  'assistant.ai.summaryMaxTokens': 500,
   'assistant.workflow.maxSteps': 10,
+  'assistant.workflow.maxIterations': 5,
   'assistant.workflow.stepTimeoutMs': 30000,
   'assistant.conversation.maxHistory': 20,
+  'assistant.conversation.maxMessagesBeforeSummary': 20,
   'assistant.cache.conversationTtlSeconds': 3600,
+  'assistant.cache.memoryTtlSeconds': 86400,
   // Multi-source aggregation
   'assistant.webSearch.enabled': true,
   'assistant.webSearch.timeoutMs': 10000,
   'assistant.webSearch.maxResults': 5,
   'assistant.aggregation.useWebFallback': true,
   'assistant.aggregation.useAIKnowledge': true,
+  // Plan preview keywords
+  'assistant.planPreview.keywords': ['order', 'buy', 'purchase', 'delete', 'remove', 'book', 'schedule', 'cancel', 'send', 'transfer', 'pay'],
+  // Tool execution
+  'assistant.tools.maxConcurrency': 5,
+  'assistant.tools.timeoutMs': 30000,
+
+  // ==========================================================================
+  // PERPLEXITY API
+  // ==========================================================================
+  'perplexity.enabled': true,
+  'perplexity.api.baseUrl': 'https://api.perplexity.ai',
+  'perplexity.api.timeoutMs': 30000,
+  'perplexity.api.maxRetries': 3,
+  'perplexity.api.retryDelayMs': 1000,
+  'perplexity.defaultModel': 'sonar',
+  'perplexity.maxTokens': 1000,
+  'perplexity.temperature': 0.2,
+  'perplexity.returnCitations': true,
+  'perplexity.circuitBreaker.threshold': 5,
+  'perplexity.circuitBreaker.resetMs': 60000,
+
+  // ==========================================================================
+  // WEATHER API (OpenWeatherMap)
+  // ==========================================================================
+  'weather.enabled': true,
+  'weather.api.baseUrl': 'https://api.openweathermap.org/data/2.5',
+  'weather.api.geoUrl': 'https://api.openweathermap.org/geo/1.0',
+  'weather.api.timeoutMs': 10000,
+  'weather.api.maxRetries': 3,
+  'weather.api.retryDelayMs': 1000,
+  'weather.cache.geoTtlSeconds': 604800,
+  'weather.cache.currentTtlSeconds': 1800,
+  'weather.cache.forecastTtlSeconds': 10800,
+  'weather.circuitBreaker.threshold': 5,
+  'weather.circuitBreaker.resetMs': 60000,
   
   // ==========================================================================
   // NEWS AGENT

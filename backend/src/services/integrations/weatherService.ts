@@ -11,6 +11,11 @@ import axios from 'axios';
 import { configService } from '../core/configService';
 import { cacheService } from '../core/cacheService';
 import logger from '../../utils/logger';
+import {
+  withResilience,
+  isRetryableError,
+  CircuitBreakerError
+} from '../../utils/resilience';
 
 // =============================================================================
 // TYPES
@@ -74,13 +79,50 @@ export interface WeatherRecommendation {
 // SERVICE
 // =============================================================================
 
+// =============================================================================
+// ERROR TYPES
+// =============================================================================
+
+export class WeatherError extends Error {
+  constructor(
+    message: string,
+    public readonly errorType: 'auth' | 'not_found' | 'network' | 'api' | 'circuit_breaker',
+    public readonly statusCode?: number
+  ) {
+    super(message);
+    this.name = 'WeatherError';
+  }
+}
+
+// =============================================================================
+// SERVICE
+// =============================================================================
+
 class WeatherService {
   private readonly apiKey: string | undefined;
-  private readonly baseUrl = 'https://api.openweathermap.org/data/2.5';
-  private readonly geoUrl = 'https://api.openweathermap.org/geo/1.0';
+  private readonly baseUrl: string;
+  private readonly geoUrl: string;
+  private readonly timeoutMs: number;
+  private readonly maxRetries: number;
+  private readonly retryDelayMs: number;
+  private readonly circuitBreakerThreshold: number;
+  private readonly circuitBreakerResetMs: number;
+  private readonly geoTtlSeconds: number;
+  private readonly currentTtlSeconds: number;
+  private readonly forecastTtlSeconds: number;
 
   constructor() {
     this.apiKey = process.env.OPENWEATHER_API_KEY?.trim();
+    this.baseUrl = configService.get('weather.api.baseUrl', 'https://api.openweathermap.org/data/2.5');
+    this.geoUrl = configService.get('weather.api.geoUrl', 'https://api.openweathermap.org/geo/1.0');
+    this.timeoutMs = configService.get('weather.api.timeoutMs', 10000);
+    this.maxRetries = configService.get('weather.api.maxRetries', 3);
+    this.retryDelayMs = configService.get('weather.api.retryDelayMs', 1000);
+    this.circuitBreakerThreshold = configService.get('weather.circuitBreaker.threshold', 5);
+    this.circuitBreakerResetMs = configService.get('weather.circuitBreaker.resetMs', 60000);
+    this.geoTtlSeconds = configService.get('weather.cache.geoTtlSeconds', 604800);
+    this.currentTtlSeconds = configService.get('weather.cache.currentTtlSeconds', 1800);
+    this.forecastTtlSeconds = configService.get('weather.cache.forecastTtlSeconds', 10800);
   }
 
   /**
@@ -101,32 +143,53 @@ class WeatherService {
     if (cached) return cached;
 
     try {
-      const response = await axios.get(`${this.geoUrl}/direct`, {
-        params: {
-          q: city,
-          limit: 1,
-          appid: this.apiKey
-        },
-        timeout: 10000
-      });
+      const result = await withResilience(
+        async () => {
+          const response = await axios.get(`${this.geoUrl}/direct`, {
+            params: {
+              q: city,
+              limit: 1,
+              appid: this.apiKey
+            },
+            timeout: this.timeoutMs
+          });
 
-      if (response.data.length === 0) {
+          if (response.data.length === 0) {
+            return null;
+          }
+
+          const location = response.data[0];
+          return {
+            lat: location.lat,
+            lon: location.lon,
+            name: location.name,
+            country: location.country
+          };
+        },
+        {
+          name: 'weather-geo',
+          threshold: this.circuitBreakerThreshold,
+          resetTimeMs: this.circuitBreakerResetMs
+        },
+        {
+          maxAttempts: this.maxRetries,
+          initialDelayMs: this.retryDelayMs,
+          maxDelayMs: 5000,
+          backoffMultiplier: 2,
+          retryOn: isRetryableError
+        }
+      );
+
+      if (result) {
+        await cacheService.set(cacheKey, result, { ttl: this.geoTtlSeconds });
+      }
+      return result;
+    } catch (error: any) {
+      if (error instanceof CircuitBreakerError) {
+        logger.warn('Weather geo circuit breaker open');
         return null;
       }
-
-      const location = response.data[0];
-      const result = {
-        lat: location.lat,
-        lon: location.lon,
-        name: location.name,
-        country: location.country
-      };
-
-      // Cache for 7 days
-      await cacheService.set(cacheKey, result, { ttl: 604800 });
-      return result;
-    } catch (error) {
-      logger.fail('Failed to get coordinates', { city, error });
+      logger.fail('Failed to get coordinates', { city, error: error.message });
       return null;
     }
   }
@@ -163,7 +226,7 @@ class WeatherService {
           appid: this.apiKey,
           units: 'metric'
         },
-        timeout: 10000
+        timeout: this.timeoutMs
       });
 
       const data = response.data;
@@ -182,8 +245,8 @@ class WeatherService {
         timezone: data.timezone
       };
 
-      // Cache for 30 minutes
-      await cacheService.set(cacheKey, weather, { ttl: 1800 });
+      // Cache using configurable TTL
+      await cacheService.set(cacheKey, weather, { ttl: this.currentTtlSeconds });
 
       logger.success('Weather fetched', { city, temp: weather.temperature });
       return weather;
@@ -227,7 +290,7 @@ class WeatherService {
           units: 'metric',
           exclude: 'minutely,hourly'
         },
-        timeout: 15000
+        timeout: this.timeoutMs * 1.5 // Allow more time for complex call
       });
 
       const data = response.data;
@@ -272,8 +335,8 @@ class WeatherService {
         }))
       };
 
-      // Cache for 3 hours
-      await cacheService.set(cacheKey, forecast, { ttl: 10800 });
+      // Cache using configurable TTL
+      await cacheService.set(cacheKey, forecast, { ttl: this.forecastTtlSeconds });
 
       logger.success('Forecast fetched', { city, days: daily.length });
       return forecast;

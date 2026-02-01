@@ -10,6 +10,7 @@ import { cacheService } from '../core/cacheService';
 import { getAnthropicClient } from '../../utils/anthropicClient';
 import { configService } from '../core/configService';
 import logger from '../../utils/logger';
+import { parseExtractedEntities, parseConversationSummary } from './schemas';
 
 // =============================================================================
 // TYPES
@@ -66,8 +67,15 @@ export interface ChatMessage {
 // =============================================================================
 
 class ConversationMemoryService {
-  private readonly maxMessagesBeforeSummary = 20;
-  private readonly summaryTokenLimit = 500;
+  private readonly maxMessagesBeforeSummary: number;
+  private readonly summaryTokenLimit: number;
+  private readonly memoryTtlSeconds: number;
+
+  constructor() {
+    this.maxMessagesBeforeSummary = configService.get('assistant.conversation.maxMessagesBeforeSummary', 20);
+    this.summaryTokenLimit = configService.get('assistant.ai.summaryMaxTokens', 500);
+    this.memoryTtlSeconds = configService.get('assistant.cache.memoryTtlSeconds', 86400);
+  }
 
   /**
    * Get recent conversation memory for a user
@@ -97,7 +105,7 @@ class ConversationMemoryService {
         userId: m.userId,
         conversationId: m.conversationId,
         summary: m.summary,
-        entities: JSON.parse(m.entities || '{}'),
+        entities: parseExtractedEntities(m.entities || '{}'),
         messageCount: m.messageCount,
         createdAt: m.createdAt,
         updatedAt: m.updatedAt

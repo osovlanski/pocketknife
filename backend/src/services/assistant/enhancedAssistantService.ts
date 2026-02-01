@@ -24,6 +24,16 @@ import { conversationMemoryService } from './conversationMemoryService';
 import { configService } from '../core/configService';
 import { cacheService } from '../core/cacheService';
 import logger from '../../utils/logger';
+import {
+  parseExecutionPlan,
+  sanitizeUserInput,
+  validateImageData
+} from './schemas';
+import {
+  withTimeout,
+  withConcurrencyLimit
+} from '../../utils/resilience';
+import { conversationHistoryManager } from '../../utils/messageBuffer';
 
 // =============================================================================
 // TYPES
@@ -141,10 +151,13 @@ class EnhancedAssistantService {
   ): Promise<AssistantResponse> {
     const { userId, conversationId, enablePlanPreview = false } = options;
 
+    // Sanitize user input to prevent prompt injection
+    const sanitizedMessage = sanitizeUserInput(message);
+
     logger.agent('Processing chat message', {
       userId,
       conversationId,
-      messageLength: message.length,
+      messageLength: sanitizedMessage.length,
       historyLength: conversationHistory.length
     });
 
@@ -155,11 +168,11 @@ class EnhancedAssistantService {
     const systemPrompt = this.buildSystemPrompt(options.systemPrompt, memoryContext);
 
     // Convert conversation history to Claude format
-    const messages = this.buildMessages(conversationHistory, message);
+    const messages = this.buildMessages(conversationHistory, sanitizedMessage);
 
     // If plan preview is enabled and this looks like a complex request
-    if (enablePlanPreview && this.shouldPreviewPlan(message)) {
-      const plan = await this.generatePlan(message, userId);
+    if (enablePlanPreview && this.shouldPreviewPlan(sanitizedMessage)) {
+      const plan = await this.generatePlan(sanitizedMessage, userId);
       if (plan.requiresApproval) {
         callbacks?.onPlanPreview?.(plan);
         return {
@@ -219,7 +232,7 @@ class EnhancedAssistantService {
           model: this.model,
           maxTokens: configService.get('assistant.ai.maxTokens', 4000),
           systemPrompt,
-          maxIterations: 5
+          maxIterations: configService.get('assistant.workflow.maxIterations', 5)
         }
       );
 
@@ -254,7 +267,7 @@ class EnhancedAssistantService {
 
     let currentMessages = [...messages];
     let iterations = 0;
-    const maxIterations = 5;
+    const maxIterations = configService.get('assistant.workflow.maxIterations', 5);
 
     while (iterations < maxIterations) {
       iterations++;
@@ -349,16 +362,31 @@ class EnhancedAssistantService {
 
     logger.agent('Processing chat with image', { userId });
 
+    // Validate image data
+    const imageValidation = validateImageData(imageData, 10);
+    if (!imageValidation.valid) {
+      logger.warn('Image validation failed', { error: imageValidation.error });
+      return {
+        message: imageValidation.error || 'Image validation failed',
+        toolCalls: [],
+        sources: [],
+        suggestions: ['Try a smaller image', 'Use a different format']
+      };
+    }
+
+    // Sanitize user message
+    const sanitizedMessage = sanitizeUserInput(message);
+
     try {
       // Analyze the image first
       const imageAnalysis = await analyzeImage(
         imageData,
-        `Analyze this image and describe what you see. ${message}`,
+        `Analyze this image and describe what you see. ${sanitizedMessage}`,
         { maxTokens: 1000 }
       );
 
       // Add image analysis to the message
-      const enhancedMessage = `[User shared an image]\n\nImage Analysis: ${imageAnalysis}\n\nUser's message: ${message}`;
+      const enhancedMessage = `[User shared an image]\n\nImage Analysis: ${imageAnalysis}\n\nUser's message: ${sanitizedMessage}`;
 
       // Continue with normal chat flow
       return this.chat(enhancedMessage, conversationHistory, options);
@@ -400,37 +428,28 @@ Respond with JSON:
 
     const response = await client.messages.create({
       model: this.model,
-      max_tokens: 1000,
+      max_tokens: configService.get('assistant.ai.planningMaxTokens', 1000),
       messages: [{ role: 'user', content: prompt }]
     });
 
     const text = extractText(response.content);
-    const cleanText = text.replace(/```json|```/g, '').trim();
 
-    try {
-      const parsed = JSON.parse(cleanText);
-      return {
-        id: `plan-${Date.now()}`,
-        steps: (parsed.steps || []).map((step: any, index: number) => ({
-          id: `step-${index}`,
-          tool: step.tool,
-          description: step.description,
-          params: step.params || {},
-          status: 'pending' as const
-        })),
-        explanation: parsed.explanation || 'Execution plan generated',
-        requiresApproval: parsed.requiresApproval ?? false,
-        estimatedActions: parsed.steps?.length || 0
-      };
-    } catch {
-      return {
-        id: `plan-${Date.now()}`,
-        steps: [],
-        explanation: 'Could not generate a structured plan',
-        requiresApproval: false,
-        estimatedActions: 0
-      };
-    }
+    // Use Zod schema validation for safe parsing
+    const parsed = parseExecutionPlan(text || '');
+
+    return {
+      id: `plan-${Date.now()}`,
+      steps: parsed.steps.map((step, index) => ({
+        id: `step-${index}`,
+        tool: step.tool,
+        description: step.description,
+        params: step.params,
+        status: 'pending' as const
+      })),
+      explanation: parsed.explanation,
+      requiresApproval: parsed.requiresApproval,
+      estimatedActions: parsed.steps.length
+    };
   }
 
   /**
@@ -443,6 +462,7 @@ Respond with JSON:
   ): Promise<AssistantResponse> {
     const results: ToolCallResult[] = [];
     const sources: string[] = [];
+    const toolTimeoutMs = configService.get('assistant.tools.timeoutMs', 30000);
 
     for (const step of plan.steps) {
       step.status = 'running';
@@ -453,7 +473,13 @@ Respond with JSON:
       });
 
       try {
-        const result = await executeTool(step.tool, step.params, userId);
+        // Execute with timeout to prevent blocking on slow tools
+        const result = await withTimeout(
+          () => executeTool(step.tool, step.params, userId),
+          toolTimeoutMs,
+          `Tool '${step.tool}' timed out after ${toolTimeoutMs}ms`
+        );
+
         step.status = result.success ? 'completed' : 'failed';
         step.result = result.data;
         step.error = result.error;
@@ -471,6 +497,11 @@ Respond with JSON:
       } catch (error: any) {
         step.status = 'failed';
         step.error = error.message;
+        logger.warn('Plan step execution failed', {
+          stepId: step.id,
+          tool: step.tool,
+          error: error.message
+        });
       }
     }
 
@@ -543,9 +574,10 @@ Respond with JSON:
 
   private buildMessages(history: ChatMessage[], currentMessage: string): MessageParam[] {
     const messages: MessageParam[] = [];
+    const maxHistory = configService.get('assistant.conversation.maxHistory', 20);
 
-    // Add conversation history
-    for (const msg of history.slice(-20)) {
+    // Add conversation history (limited to prevent context overflow)
+    for (const msg of history.slice(-maxHistory)) {
       if (msg.role === 'user' || msg.role === 'assistant') {
         messages.push({
           role: msg.role,
@@ -564,11 +596,10 @@ Respond with JSON:
   }
 
   private shouldPreviewPlan(message: string): boolean {
-    const complexKeywords = [
-      'order', 'buy', 'purchase', 'book', 'reserve',
-      'send', 'delete', 'remove', 'cancel',
-      'all', 'everything', 'multiple', 'several'
-    ];
+    const complexKeywords = configService.get(
+      'assistant.planPreview.keywords',
+      ['order', 'buy', 'purchase', 'delete', 'remove', 'book', 'schedule', 'cancel', 'send', 'transfer', 'pay']
+    ) as string[];
 
     const lowerMessage = message.toLowerCase();
     return complexKeywords.some(keyword => lowerMessage.includes(keyword));

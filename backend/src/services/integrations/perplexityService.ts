@@ -10,6 +10,11 @@
 import axios from 'axios';
 import { configService } from '../core/configService';
 import logger from '../../utils/logger';
+import {
+  withResilience,
+  isRetryableError,
+  CircuitBreakerError
+} from '../../utils/resilience';
 
 // =============================================================================
 // TYPES
@@ -35,15 +40,41 @@ export interface PerplexityOptions {
 }
 
 // =============================================================================
+// ERROR TYPES
+// =============================================================================
+
+export class PerplexityError extends Error {
+  constructor(
+    message: string,
+    public readonly errorType: 'auth' | 'rate_limit' | 'network' | 'api' | 'circuit_breaker',
+    public readonly statusCode?: number
+  ) {
+    super(message);
+    this.name = 'PerplexityError';
+  }
+}
+
+// =============================================================================
 // SERVICE
 // =============================================================================
 
 class PerplexityService {
   private readonly apiKey: string | undefined;
-  private readonly baseUrl = 'https://api.perplexity.ai';
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+  private readonly maxRetries: number;
+  private readonly retryDelayMs: number;
+  private readonly circuitBreakerThreshold: number;
+  private readonly circuitBreakerResetMs: number;
 
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY?.trim();
+    this.baseUrl = configService.get('perplexity.api.baseUrl', 'https://api.perplexity.ai');
+    this.timeoutMs = configService.get('perplexity.api.timeoutMs', 30000);
+    this.maxRetries = configService.get('perplexity.api.maxRetries', 3);
+    this.retryDelayMs = configService.get('perplexity.api.retryDelayMs', 1000);
+    this.circuitBreakerThreshold = configService.get('perplexity.circuitBreaker.threshold', 5);
+    this.circuitBreakerResetMs = configService.get('perplexity.circuitBreaker.resetMs', 60000);
   }
 
   /**
@@ -61,82 +92,103 @@ class PerplexityService {
     options: PerplexityOptions = {}
   ): Promise<PerplexitySearchResult> {
     if (!this.apiKey) {
-      throw new Error('Perplexity API key not configured');
+      throw new PerplexityError('Perplexity API key not configured', 'auth');
     }
 
     const {
-      model = 'sonar',
-      maxTokens = 1000,
-      temperature = 0.2,
-      returnCitations = true,
+      model = configService.get('perplexity.defaultModel', 'sonar') as 'sonar' | 'sonar-pro',
+      maxTokens = configService.get('perplexity.maxTokens', 1000),
+      temperature = configService.get('perplexity.temperature', 0.2),
+      returnCitations = configService.get('perplexity.returnCitations', true),
       returnRelatedQuestions = true
     } = options;
 
     try {
       logger.search('Perplexity search', { query });
 
-      const response = await axios.post(
-        `${this.baseUrl}/chat/completions`,
-        {
-          model: model === 'sonar-pro' ? 'sonar-pro' : 'sonar',
-          messages: [
+      return await withResilience(
+        async () => {
+          const response = await axios.post(
+            `${this.baseUrl}/chat/completions`,
             {
-              role: 'user',
-              content: query
+              model: model === 'sonar-pro' ? 'sonar-pro' : 'sonar',
+              messages: [
+                {
+                  role: 'user',
+                  content: query
+                }
+              ],
+              max_tokens: maxTokens,
+              temperature,
+              return_citations: returnCitations,
+              return_related_questions: returnRelatedQuestions
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: this.timeoutMs
             }
-          ],
-          max_tokens: maxTokens,
-          temperature,
-          return_citations: returnCitations,
-          return_related_questions: returnRelatedQuestions
+          );
+
+          const data = response.data;
+          const choice = data.choices?.[0];
+
+          if (!choice) {
+            throw new PerplexityError('No response from Perplexity', 'api');
+          }
+
+          // Extract citations from the response
+          const citations: string[] = data.citations || [];
+          const sources = citations.map((url: string, index: number) => ({
+            title: `Source ${index + 1}`,
+            url,
+            snippet: ''
+          }));
+
+          const result: PerplexitySearchResult = {
+            answer: choice.message?.content || '',
+            citations,
+            sources,
+            followUpQuestions: data.related_questions || []
+          };
+
+          logger.success('Perplexity search completed', {
+            citationCount: citations.length
+          });
+
+          return result;
         },
         {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
+          name: 'perplexity',
+          threshold: this.circuitBreakerThreshold,
+          resetTimeMs: this.circuitBreakerResetMs
+        },
+        {
+          maxAttempts: this.maxRetries,
+          initialDelayMs: this.retryDelayMs,
+          maxDelayMs: 10000,
+          backoffMultiplier: 2,
+          retryOn: isRetryableError
         }
       );
-
-      const data = response.data;
-      const choice = data.choices?.[0];
-
-      if (!choice) {
-        throw new Error('No response from Perplexity');
-      }
-
-      // Extract citations from the response
-      const citations: string[] = data.citations || [];
-      const sources = citations.map((url: string, index: number) => ({
-        title: `Source ${index + 1}`,
-        url,
-        snippet: ''
-      }));
-
-      const result: PerplexitySearchResult = {
-        answer: choice.message?.content || '',
-        citations,
-        sources,
-        followUpQuestions: data.related_questions || []
-      };
-
-      logger.success('Perplexity search completed', {
-        citationCount: citations.length
-      });
-
-      return result;
     } catch (error: any) {
-      logger.fail('Perplexity search failed', { error: error.message });
+      // Handle specific error types
+      if (error instanceof CircuitBreakerError) {
+        logger.warn('Perplexity circuit breaker open');
+        throw new PerplexityError('Service temporarily unavailable', 'circuit_breaker');
+      }
 
       if (error.response?.status === 401) {
-        throw new Error('Invalid Perplexity API key');
+        throw new PerplexityError('Invalid Perplexity API key', 'auth', 401);
       }
       if (error.response?.status === 429) {
-        throw new Error('Perplexity rate limit exceeded');
+        throw new PerplexityError('Perplexity rate limit exceeded', 'rate_limit', 429);
       }
 
-      throw error;
+      logger.fail('Perplexity search failed', { error: error.message });
+      throw new PerplexityError(error.message, 'network');
     }
   }
 
