@@ -10,6 +10,18 @@
  * IMPORTANT: This is an unofficial integration. Users must provide their own
  * authentication tokens extracted from their browser session.
  * 
+ * ⚠️ CLOUDFLARE LIMITATION:
+ * This integration only works when running the backend LOCALLY (npm run dev).
+ * It does NOT work from Railway/production servers because:
+ * - Cloudflare's cf_clearance cookie is bound to the browser's IP address
+ * - When the server (Railway) makes requests, it has a different IP
+ * - Cloudflare rejects the request with a 403 error
+ * 
+ * For production use, consider:
+ * - Running as a local MCP server on the user's machine
+ * - Using a browser extension that runs in the Rami Levy context
+ * - Finding an alternative API that doesn't use Cloudflare protection
+ * 
  * @module services/cooking/ramiLevyService
  */
 
@@ -621,6 +633,25 @@ class RamiLevyService {
    */
   async initialize(userId: string): Promise<TokenStatus> {
     try {
+      // Check if we're in production and local-only mode is enabled
+      const isProduction = process.env.NODE_ENV === 'production';
+      const localOnlyMode = configService.get('ramiLevy.localOnlyMode', true);
+      
+      if (isProduction && localOnlyMode) {
+        logger.warn('Rami Levy is in local-only mode - not available in production');
+        return {
+          isValid: false,
+          userId,
+          errorMessage: 'Rami Levy integration is only available when running locally. ' +
+            'Due to Cloudflare protection, the API cannot be accessed from cloud servers (Railway). ' +
+            'Run the backend locally (npm run dev) to use this feature.',
+          refreshInstructions: 'To use Rami Levy:\n' +
+            '1. Run the backend locally: cd backend && npm run dev\n' +
+            '2. The local server shares your browser\'s IP, bypassing Cloudflare restrictions.\n' +
+            '3. Cloud deployment (Railway) cannot access this API due to IP binding.'
+        };
+      }
+
       const tokens = await this.getStoredTokens(userId);
 
       if (!tokens) {

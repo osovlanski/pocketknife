@@ -207,6 +207,7 @@ const DEFAULT_CONFIG = {
   'ramiLevy.circuitBreaker.threshold': 5,
   'ramiLevy.circuitBreaker.resetMs': 60000,
   'ramiLevy.skipCookiesForEcomToken': true, // Skip cookies when ecomToken is valid (avoids Cloudflare IP binding)
+  'ramiLevy.localOnlyMode': true, // When true, shows clear error in production instead of confusing Cloudflare errors
   
   // ==========================================================================
   // DELIVERY SERVICE
