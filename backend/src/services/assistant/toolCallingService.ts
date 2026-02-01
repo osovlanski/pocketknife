@@ -4,9 +4,15 @@
  * Provides Claude tool definitions for all agents and handles tool execution.
  * Uses Claude's native tool_use capability for accurate intent detection
  * and direct action execution.
+ *
+ * Security features:
+ * - Input validation with Zod schemas
+ * - Sanitized error responses
+ * - Tool name whitelisting
  */
 
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
+import { z } from 'zod';
 import { agentRegistry } from '../../agents/AgentRegistry';
 import type { AgentId } from '../../agents/types';
 import logger from '../../utils/logger';
@@ -19,6 +25,255 @@ export interface ToolExecutionResult {
   success: boolean;
   data?: unknown;
   error?: string;
+}
+
+// =============================================================================
+// INPUT VALIDATION SCHEMAS
+// =============================================================================
+
+/**
+ * Zod schemas for validating tool inputs
+ * Prevents injection attacks and ensures type safety
+ */
+const ToolInputSchemas: Record<string, z.ZodSchema> = {
+  // Cooking tools
+  cooking_find_recipes: z.object({
+    query: z.string().max(200).optional(),
+    cuisine: z.string().max(50).optional(),
+    useAvailableOnly: z.boolean().optional(),
+    ingredients: z.array(z.string().max(50)).max(20).optional()
+  }),
+  cooking_get_inventory: z.object({
+    category: z.string().max(50).optional()
+  }),
+  cooking_add_item: z.object({
+    name: z.string().min(1).max(100),
+    quantity: z.number().positive().max(10000).optional(),
+    category: z.string().max(50).optional(),
+    unit: z.string().max(20).optional()
+  }),
+  cooking_order_groceries: z.object({
+    preferredStores: z.array(z.string().max(50)).max(10).optional(),
+    groceryItems: z.array(z.object({
+      name: z.string().max(100),
+      quantity: z.number().positive().max(100).optional()
+    })).max(50).optional()
+  }),
+  cooking_rami_levy_search: z.object({
+    query: z.string().min(1).max(100),
+    limit: z.number().positive().max(50).optional()
+  }),
+  cooking_rami_levy_add_to_cart: z.object({
+    productId: z.string().min(1).max(50),
+    quantity: z.number().positive().max(100).optional()
+  }),
+  cooking_rami_levy_status: z.object({}),
+
+  // Jobs tools
+  jobs_search: z.object({
+    query: z.string().min(1).max(200),
+    location: z.string().max(100).optional(),
+    remote: z.boolean().optional(),
+    experienceLevel: z.enum(['junior', 'mid', 'senior', 'lead']).optional()
+  }),
+  jobs_get_saved: z.object({}),
+  jobs_get_company_info: z.object({
+    companyName: z.string().min(1).max(100)
+  }),
+
+  // Travel tools
+  travel_search_flights: z.object({
+    origin: z.string().min(1).max(50),
+    destination: z.string().min(1).max(50),
+    departDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    passengers: z.number().positive().max(9).optional()
+  }),
+  travel_search_hotels: z.object({
+    destination: z.string().min(1).max(100),
+    checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    guests: z.number().positive().max(10).optional()
+  }),
+  travel_plan_trip: z.object({
+    destination: z.string().min(1).max(100),
+    duration: z.number().positive().max(30).optional(),
+    interests: z.array(z.string().max(50)).max(10).optional(),
+    budget: z.enum(['budget', 'moderate', 'luxury']).optional()
+  }),
+  travel_get_weather: z.object({
+    destination: z.string().min(1).max(100),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+  }),
+
+  // Todo tools
+  todo_get_tasks: z.object({
+    status: z.enum(['pending', 'completed', 'all']).optional(),
+    category: z.string().max(50).optional()
+  }),
+  todo_create_task: z.object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(1000).optional(),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    dueTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
+    category: z.string().max(50).optional()
+  }),
+  todo_complete_task: z.object({
+    taskId: z.string().min(1).max(50)
+  }),
+  todo_get_agenda: z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+  }),
+
+  // Shopping tools
+  shopping_search: z.object({
+    query: z.string().min(1).max(200),
+    maxPrice: z.number().positive().max(1000000).optional(),
+    stores: z.array(z.string().max(50)).max(10).optional()
+  }),
+  shopping_get_deals: z.object({
+    category: z.string().max(50).optional()
+  }),
+
+  // Learning tools
+  learning_search: z.object({
+    query: z.string().min(1).max(200),
+    type: z.enum(['tutorial', 'article', 'course', 'documentation']).optional()
+  }),
+  learning_summarize: z.object({
+    topic: z.string().max(200).optional(),
+    url: z.string().url().max(500).optional()
+  }),
+
+  // Problems tools
+  problems_search: z.object({
+    query: z.string().max(200).optional(),
+    difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+    source: z.enum(['leetcode', 'codeforces', 'curated']).optional(),
+    list: z.string().max(50).optional()
+  }),
+  problems_evaluate_code: z.object({
+    code: z.string().min(1).max(50000),
+    problemId: z.string().max(50).optional(),
+    language: z.string().max(30).optional()
+  }),
+
+  // Email tools
+  email_process: z.object({
+    maxEmails: z.number().positive().max(100).optional()
+  }),
+  email_get_unread: z.object({
+    limit: z.number().positive().max(100).optional()
+  }),
+
+  // News tools
+  news_get_feed: z.object({
+    topics: z.array(z.string().max(50)).max(10).optional()
+  }),
+  news_search: z.object({
+    query: z.string().min(1).max(200)
+  }),
+
+  // DIY tools
+  diy_generate_project: z.object({
+    category: z.string().max(50).optional(),
+    difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+    materials: z.array(z.string().max(50)).max(20).optional()
+  }),
+
+  // Web search
+  web_search: z.object({
+    query: z.string().min(1).max(200),
+    type: z.enum(['general', 'news', 'recipes', 'products', 'code']).optional()
+  })
+};
+
+/**
+ * Validate tool input against schema
+ */
+function validateToolInput(
+  toolName: string,
+  input: Record<string, unknown>
+): { valid: boolean; error?: string; sanitized: Record<string, unknown> } {
+  const schema = ToolInputSchemas[toolName];
+
+  if (!schema) {
+    // No schema defined - use basic sanitization
+    return {
+      valid: true,
+      sanitized: sanitizeInput(input)
+    };
+  }
+
+  try {
+    const result = schema.safeParse(input);
+    if (!result.success) {
+      const errors = result.error.issues.map(i => `${String(i.path.join('.'))}: ${i.message}`).join(', ');
+      return { valid: false, error: `Invalid input: ${errors}`, sanitized: {} };
+    }
+    return { valid: true, sanitized: result.data as Record<string, unknown> };
+  } catch {
+    return { valid: false, error: 'Input validation failed', sanitized: {} };
+  }
+}
+
+/**
+ * Basic input sanitization for unschemaed tools
+ */
+function sanitizeInput(input: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    // Skip dangerous keys
+    if (key.startsWith('__') || key === 'constructor' || key === 'prototype') {
+      continue;
+    }
+
+    // Sanitize string values
+    if (typeof value === 'string') {
+      // Limit string length
+      sanitized[key] = value.slice(0, 10000);
+    } else if (Array.isArray(value)) {
+      // Limit array length
+      sanitized[key] = value.slice(0, 100);
+    } else if (typeof value === 'object' && value !== null) {
+      // Recursively sanitize nested objects (limit depth)
+      sanitized[key] = sanitizeInput(value as Record<string, unknown>);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+}
+
+/**
+ * Sanitize error messages to prevent information leakage
+ */
+function sanitizeToolError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  // Check for safe error patterns
+  const safePatterns = [
+    /^Unknown tool:/,
+    /^Agent not found:/,
+    /^Invalid input:/,
+    /^Tool .* not configured$/,
+    /^No search service configured$/,
+  ];
+
+  for (const pattern of safePatterns) {
+    if (pattern.test(message)) {
+      return message;
+    }
+  }
+
+  // Log the actual error
+  logger.error('Tool execution error (sanitized)', { originalError: message });
+
+  // Return generic message
+  return 'Tool execution failed. Please try again.';
 }
 
 // =============================================================================
@@ -717,17 +972,38 @@ const TOOL_MAPPING: Record<string, { agentId: AgentId; action: string }> = {
 
 /**
  * Execute a tool call by routing to the appropriate agent
+ * Includes input validation and sanitized error handling
  */
 export const executeTool = async (
   toolName: string,
   input: Record<string, unknown>,
   userId?: string
 ): Promise<ToolExecutionResult> => {
-  logger.agent(`Executing tool: ${toolName}`, { input });
+  // Validate tool name is in whitelist
+  const isValidTool = toolName === 'web_search' || toolName in TOOL_MAPPING;
+  if (!isValidTool) {
+    return {
+      success: false,
+      error: `Unknown tool: ${toolName}`
+    };
+  }
+
+  // Validate and sanitize input
+  const validation = validateToolInput(toolName, input);
+  if (!validation.valid) {
+    logger.warn(`Tool input validation failed: ${toolName}`, { error: validation.error });
+    return {
+      success: false,
+      error: validation.error || 'Invalid input'
+    };
+  }
+
+  const sanitizedInput = validation.sanitized || input;
+  logger.agent(`Executing tool: ${toolName}`, { input: sanitizedInput });
 
   // Handle web search specially
   if (toolName === 'web_search') {
-    return executeWebSearch(input as { query: string; type?: string });
+    return executeWebSearch(sanitizedInput as { query: string; type?: string });
   }
 
   // Look up the agent mapping
@@ -749,23 +1025,25 @@ export const executeTool = async (
   }
 
   try {
-    // Execute the agent action
+    // Execute the agent action with validated input
     const result = await agent.execute({
       action: mapping.action,
       userId,
-      ...input
+      ...sanitizedInput
     });
 
     return {
       success: result.success,
       data: result.data,
-      error: result.error
+      error: result.error ? sanitizeToolError(result.error) : undefined
     };
-  } catch (error: any) {
-    logger.fail(`Tool execution failed: ${toolName}`, { error: error.message });
+  } catch (error: unknown) {
+    logger.fail(`Tool execution failed: ${toolName}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return {
       success: false,
-      error: error.message
+      error: sanitizeToolError(error)
     };
   }
 };
@@ -806,12 +1084,18 @@ const executeWebSearch = async (
     const { googleSearchService } = await import('../core/googleSearchService');
 
     if (googleSearchService.isConfigured) {
+      interface SearchResult {
+        title: string;
+        link: string;
+        snippet: string;
+      }
+
       const results = await googleSearchService.search(params.query, 'general', { maxResults: 5 });
 
       return {
         success: true,
         data: {
-          results: results.map((item: { title: string; link: string; snippet: string }) => ({
+          results: (results as SearchResult[]).map((item) => ({
             title: item.title,
             url: item.link,
             snippet: item.snippet
@@ -834,10 +1118,11 @@ const executeWebSearch = async (
       success: false,
       error: 'No search service configured'
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    logger.fail('Web search failed', { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
-      error: error.message
+      error: sanitizeToolError(error)
     };
   }
 };

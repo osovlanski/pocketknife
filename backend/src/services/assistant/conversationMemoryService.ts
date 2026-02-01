@@ -32,23 +32,32 @@ export interface ExtractedEntities {
   people: Array<{
     name: string;
     relationship?: string;
+    context?: string;
   }>;
   // Places discussed
-  places: string[];
+  places: Array<{
+    name: string;
+    type?: string;
+    context?: string;
+  }>;
   // Dates/times mentioned
   dates: Array<{
     date: string;
-    context: string;
+    event?: string;
+    recurring?: boolean;
   }>;
   // User preferences learned
   preferences: Array<{
     category: string;
     preference: string;
+    confidence?: number;
   }>;
   // Tasks or action items
   actionItems: Array<{
     task: string;
-    status: 'pending' | 'completed';
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    dueDate?: string;
+    priority?: 'low' | 'medium' | 'high';
   }>;
   // Topics discussed
   topics: string[];
@@ -92,7 +101,19 @@ class ConversationMemoryService {
     if (!prisma) return [];
 
     try {
-      const memories = await (prisma as any).conversationMemory?.findMany({
+      // Type for raw memory from database
+      interface RawMemory {
+        id: string;
+        userId: string;
+        conversationId: string;
+        summary: string;
+        entities: string | null;
+        messageCount: number;
+        createdAt: Date;
+        updatedAt: Date;
+      }
+
+      const memories = await (prisma as { conversationMemory?: { findMany: (args: unknown) => Promise<RawMemory[]> } }).conversationMemory?.findMany({
         where: { userId },
         orderBy: { updatedAt: 'desc' },
         take: limit
@@ -100,7 +121,7 @@ class ConversationMemoryService {
 
       if (!memories) return [];
 
-      const result = memories.map((m: any) => ({
+      const result = memories.map((m) => ({
         id: m.id,
         userId: m.userId,
         conversationId: m.conversationId,
@@ -194,8 +215,8 @@ class ConversationMemoryService {
       await cacheService.delete(`memory:recent:${userId}`);
 
       logger.success('Conversation memory stored', { conversationId, messageCount: messages.length });
-    } catch (error: any) {
-      logger.warn('Failed to store conversation memory', { error: error.message });
+    } catch (error: unknown) {
+      logger.warn('Failed to store conversation memory', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -287,9 +308,21 @@ Respond with JSON in this exact format:
     if (!prisma) return [];
 
     try {
+      // Type for raw memory from database
+      interface RawMemory {
+        id: string;
+        userId: string;
+        conversationId: string;
+        summary: string;
+        entities: string | null;
+        messageCount: number;
+        createdAt: Date;
+        updatedAt: Date;
+      }
+
       // Simple keyword search for now
       // Could be enhanced with vector embeddings for semantic search
-      const memories = await (prisma as any).conversationMemory?.findMany({
+      const memories = await (prisma as { conversationMemory?: { findMany: (args: unknown) => Promise<RawMemory[]> } }).conversationMemory?.findMany({
         where: {
           userId,
           OR: [
@@ -303,12 +336,12 @@ Respond with JSON in this exact format:
 
       if (!memories) return [];
 
-      return memories.map((m: any) => ({
+      return memories.map((m) => ({
         id: m.id,
         userId: m.userId,
         conversationId: m.conversationId,
         summary: m.summary,
-        entities: JSON.parse(m.entities || '{}'),
+        entities: parseExtractedEntities(m.entities || '{}'),
         messageCount: m.messageCount,
         createdAt: m.createdAt,
         updatedAt: m.updatedAt

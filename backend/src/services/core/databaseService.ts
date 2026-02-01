@@ -320,12 +320,51 @@ export const databaseService = {
   setConfig: async <T>(key: string, value: T, category?: string): Promise<void> => {
     const client = getPrisma();
     if (!client) return;
-    
+
     await client.appConfig.upsert({
       where: { id: key },
       update: { value: value as object, category },
       create: { id: key, value: value as object, category }
     });
+  },
+
+  /**
+   * Find user by ID
+   */
+  findUserById: async (userId: string) => {
+    const client = getPrisma();
+    if (!client) return null;
+
+    return client.user.findUnique({
+      where: { id: userId },
+      include: { preferences: true }
+    });
+  },
+
+  /**
+   * Find user by session token
+   * For now, treats token as user email or ID (simple session)
+   * In production, implement proper JWT validation
+   */
+  findUserByToken: async (token: string) => {
+    const client = getPrisma();
+    if (!client) return null;
+
+    try {
+      const user = await client.user.findFirst({
+        where: {
+          OR: [
+            { email: token },
+            { id: token }
+          ]
+        },
+        include: { preferences: true }
+      });
+
+      return user;
+    } catch {
+      return null;
+    }
   }
 };
 

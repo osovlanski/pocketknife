@@ -36,6 +36,56 @@ import {
 import { conversationHistoryManager } from '../../utils/messageBuffer';
 
 // =============================================================================
+// CONCURRENCY PROTECTION
+// =============================================================================
+
+/**
+ * Simple mutex implementation for plan execution
+ * Prevents race conditions when multiple plan executions happen concurrently
+ */
+class PlanExecutionLock {
+  private locks: Map<string, { promise: Promise<void>; resolve: () => void }> = new Map();
+
+  /**
+   * Acquire a lock for a specific plan
+   */
+  async acquire(planId: string): Promise<void> {
+    // Wait for any existing lock to be released
+    const existing = this.locks.get(planId);
+    if (existing) {
+      await existing.promise;
+    }
+
+    // Create new lock
+    let resolveFunction: () => void;
+    const promise = new Promise<void>((resolve) => {
+      resolveFunction = resolve;
+    });
+    this.locks.set(planId, { promise, resolve: resolveFunction! });
+  }
+
+  /**
+   * Release the lock for a specific plan
+   */
+  release(planId: string): void {
+    const lock = this.locks.get(planId);
+    if (lock) {
+      lock.resolve();
+      this.locks.delete(planId);
+    }
+  }
+
+  /**
+   * Check if a plan is currently locked
+   */
+  isLocked(planId: string): boolean {
+    return this.locks.has(planId);
+  }
+}
+
+const planExecutionLock = new PlanExecutionLock();
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -454,76 +504,97 @@ Respond with JSON:
 
   /**
    * Execute an approved plan
+   * Uses mutex to prevent concurrent modifications to the same plan
    */
   async executePlan(
     plan: ExecutionPlan,
     userId: string,
     callbacks?: StreamCallbacks
   ): Promise<AssistantResponse> {
-    const results: ToolCallResult[] = [];
-    const sources: string[] = [];
-    const toolTimeoutMs = configService.get('assistant.tools.timeoutMs', 30000);
+    // Check if plan is already being executed
+    if (planExecutionLock.isLocked(plan.id)) {
+      const errorMessage = 'Plan is already being executed';
+      callbacks?.onError?.(new Error(errorMessage));
+      return {
+        message: errorMessage,
+        toolCalls: [],
+        sources: [],
+        suggestions: []
+      };
+    }
 
-    for (const step of plan.steps) {
-      step.status = 'running';
-      callbacks?.onToolCall?.({
-        tool_use_id: step.id,
-        name: step.tool,
-        input: step.params
-      });
+    // Acquire lock for this plan
+    await planExecutionLock.acquire(plan.id);
 
-      try {
-        // Execute with timeout to prevent blocking on slow tools
-        const result = await withTimeout(
-          () => executeTool(step.tool, step.params, userId),
-          toolTimeoutMs,
-          `Tool '${step.tool}' timed out after ${toolTimeoutMs}ms`
-        );
+    try {
+      const results: ToolCallResult[] = [];
+      const sources: string[] = [];
+      const toolTimeoutMs = configService.get('assistant.tools.timeoutMs', 30000);
 
-        step.status = result.success ? 'completed' : 'failed';
-        step.result = result.data;
-        step.error = result.error;
-
-        if (result.success) {
-          sources.push(step.tool.replace('_', ' '));
-        }
-
-        callbacks?.onToolResult?.(step.tool, result);
-        results.push({
+      for (const step of plan.steps) {
+        step.status = 'running';
+        callbacks?.onToolCall?.({
           tool_use_id: step.id,
           name: step.tool,
           input: step.params
         });
-      } catch (error: any) {
-        step.status = 'failed';
-        step.error = error.message;
-        logger.warn('Plan step execution failed', {
-          stepId: step.id,
-          tool: step.tool,
-          error: error.message
-        });
+
+        try {
+          // Execute with timeout to prevent blocking on slow tools
+          const result = await withTimeout(
+            () => executeTool(step.tool, step.params, userId),
+            toolTimeoutMs,
+            `Tool '${step.tool}' timed out after ${toolTimeoutMs}ms`
+          );
+
+          step.status = result.success ? 'completed' : 'failed';
+          step.result = result.data;
+          step.error = result.error;
+
+          if (result.success) {
+            sources.push(step.tool.replace('_', ' '));
+          }
+
+          callbacks?.onToolResult?.(step.tool, result);
+          results.push({
+            tool_use_id: step.id,
+            name: step.tool,
+            input: step.params
+          });
+        } catch (error: unknown) {
+          step.status = 'failed';
+          step.error = error instanceof Error ? error.message : 'Unknown error';
+          logger.warn('Plan step execution failed', {
+            stepId: step.id,
+            tool: step.tool,
+            error: step.error
+          });
+        }
       }
+
+      // Generate summary
+      const completedSteps = plan.steps.filter(s => s.status === 'completed');
+      const failedSteps = plan.steps.filter(s => s.status === 'failed');
+
+      let message = `Plan executed. ${completedSteps.length}/${plan.steps.length} steps completed.`;
+      if (failedSteps.length > 0) {
+        message += ` ${failedSteps.length} steps failed.`;
+      }
+
+      const response: AssistantResponse = {
+        message,
+        toolCalls: results,
+        sources: [...new Set(sources)],
+        suggestions: this.generateSuggestions(results),
+        plan
+      };
+
+      callbacks?.onComplete?.(response);
+      return response;
+    } finally {
+      // Always release the lock
+      planExecutionLock.release(plan.id);
     }
-
-    // Generate summary
-    const completedSteps = plan.steps.filter(s => s.status === 'completed');
-    const failedSteps = plan.steps.filter(s => s.status === 'failed');
-
-    let message = `Plan executed. ${completedSteps.length}/${plan.steps.length} steps completed.`;
-    if (failedSteps.length > 0) {
-      message += ` ${failedSteps.length} steps failed.`;
-    }
-
-    const response: AssistantResponse = {
-      message,
-      toolCalls: results,
-      sources: [...new Set(sources)],
-      suggestions: this.generateSuggestions(results),
-      plan
-    };
-
-    callbacks?.onComplete?.(response);
-    return response;
   }
 
   /**

@@ -97,7 +97,7 @@ export const authenticate = async (
         if (defaultUser) {
           (req as AuthenticatedRequest).userId = defaultUser.id;
           (req as AuthenticatedRequest).userEmail = defaultUser.email;
-          (req as AuthenticatedRequest).userRole = defaultUser.role as any;
+          (req as AuthenticatedRequest).userRole = defaultUser.role as 'USER' | 'ADMIN' | 'SUPER_ADMIN';
           (req as AuthenticatedRequest).isAuthenticated = true;
           return next();
         }
@@ -121,7 +121,7 @@ export const authenticate = async (
     // Attach user info to request
     (req as AuthenticatedRequest).userId = user.id;
     (req as AuthenticatedRequest).userEmail = user.email;
-    (req as AuthenticatedRequest).userRole = user.role as any;
+    (req as AuthenticatedRequest).userRole = user.role as 'USER' | 'ADMIN' | 'SUPER_ADMIN';
     (req as AuthenticatedRequest).isAuthenticated = true;
 
     next();
@@ -155,7 +155,7 @@ export const optionalAuth = async (
       if (user && user.status === 'ACTIVE') {
         (req as AuthenticatedRequest).userId = user.id;
         (req as AuthenticatedRequest).userEmail = user.email;
-        (req as AuthenticatedRequest).userRole = user.role as any;
+        (req as AuthenticatedRequest).userRole = user.role as 'USER' | 'ADMIN' | 'SUPER_ADMIN';
         (req as AuthenticatedRequest).isAuthenticated = true;
       }
     } else if (googleAuthService.isAuthenticated()) {
@@ -164,7 +164,7 @@ export const optionalAuth = async (
       if (defaultUser) {
         (req as AuthenticatedRequest).userId = defaultUser.id;
         (req as AuthenticatedRequest).userEmail = defaultUser.email;
-        (req as AuthenticatedRequest).userRole = defaultUser.role as any;
+        (req as AuthenticatedRequest).userRole = defaultUser.role as 'USER' | 'ADMIN' | 'SUPER_ADMIN';
         (req as AuthenticatedRequest).isAuthenticated = true;
       }
     }
@@ -242,9 +242,19 @@ const extractSessionToken = (req: Request): string | null => {
 };
 
 /**
+ * User type for session validation
+ */
+interface SessionUser {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
+/**
  * Validate session token and return user
  */
-const validateSession = async (token: string): Promise<any | null> => {
+const validateSession = async (token: string): Promise<SessionUser | null> => {
   const prisma = getPrisma();
   if (!prisma) return null;
 
@@ -257,6 +267,12 @@ const validateSession = async (token: string): Promise<any | null> => {
           { email: token },
           { id: token }
         ]
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true
       }
     });
 
