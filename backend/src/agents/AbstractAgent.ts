@@ -188,11 +188,38 @@ export abstract class AbstractAgent implements IPersistentAgent {
 
   /**
    * Validate params against registered schema
+   *
+   * MIGRATION NOTE: During the migration period, actions without schemas will
+   * pass through with a warning. Once all agents have schemas registered,
+   * this will be changed to fail-secure behavior.
+   *
+   * To add validation to an agent:
+   * 1. Define a Zod schema for each action
+   * 2. Register it in the constructor: this.validationSchemas['action'] = schema
+   *
+   * @param action - The action being validated
+   * @param params - The parameters to validate
+   * @param options - Optional configuration
    */
-  protected validateParams<T>(action: string, params: unknown): { valid: true; data: T } | { valid: false; error: string } {
+  protected validateParams<T>(
+    action: string,
+    params: unknown,
+    options?: { skipValidation?: boolean }
+  ): { valid: true; data: T } | { valid: false; error: string } {
     const schema = this.validationSchemas[action];
+
+    // Check if validation should be skipped
+    const skipValidation = options?.skipValidation || (params as Record<string, unknown>)?.skipValidation;
+
     if (!schema) {
-      // No schema registered, pass through
+      // MIGRATION: Warn but pass through for backward compatibility
+      // TODO: Change to fail-secure once all agents have schemas
+      if (!skipValidation) {
+        logger.debug('No validation schema for action (migration period - passing through)', {
+          agent: this.metadata?.id || 'unknown',
+          action
+        });
+      }
       return { valid: true, data: params as T };
     }
 

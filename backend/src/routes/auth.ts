@@ -1,13 +1,30 @@
 import { Router, Request, Response } from 'express';
-import { 
-  getGoogleAuthStatus, 
-  initiateGoogleAuth, 
+import rateLimit from 'express-rate-limit';
+import {
+  getGoogleAuthStatus,
+  initiateGoogleAuth,
   handleGoogleCallback,
   disconnectGoogle,
   forceReauth
 } from '../controllers/authController';
 
 const router = Router();
+
+// Rate limiter specifically for auth endpoints - prevent brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10, // 10 requests per minute per IP
+  message: {
+    success: false,
+    error: 'Too many authentication requests, please try again later',
+    code: 'AUTH_RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false // Disable `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all auth routes
+router.use(authLimiter);
 
 // Get Google auth status
 router.get('/status', getGoogleAuthStatus);

@@ -30,95 +30,38 @@ import { getPrisma } from '../core/databaseService';
 import { configService } from '../core/configService';
 import { cacheService } from '../core/cacheService';
 import { encrypt, decrypt, isEncrypted } from '../../utils/encryption';
+import { circuitBreakerRegistry, CircuitBreakerServices } from '../../utils/circuitBreakerRegistry';
 import logger from '../../utils/logger';
 
+// Re-export types from the types module
+export type {
+  RamiLevyTokens,
+  RamiLevyProduct,
+  RamiLevyCartItem,
+  RamiLevyCart,
+  RamiLevySearchResult,
+  TokenStatus,
+  TokenValidation,
+  RamiLevyStore,
+  RamiLevyNutritionalInfo
+} from './ramiLevyTypes';
+
+// Import types for internal use
+import type {
+  RamiLevyTokens,
+  RamiLevyProduct,
+  RamiLevyCartItem,
+  RamiLevyCart,
+  RamiLevySearchResult,
+  TokenStatus,
+  TokenValidation,
+  UserSession,
+  CookieValidation
+} from './ramiLevyTypes';
+
 // =============================================================================
-// TYPES
+// TYPES (imported from ramiLevyTypes.ts)
 // =============================================================================
-
-/**
- * Authentication tokens required for Rami Levy API
- */
-export interface RamiLevyTokens {
-  /** Bearer token from Authorization header */
-  apiKey: string;
-  /** ecomtoken header value (optional - only needed for cart ops, appears when logged in) */
-  ecomToken?: string;
-  /** Full cookie string */
-  cookie: string;
-}
-
-/**
- * Product information from Rami Levy catalog
- */
-export interface RamiLevyProduct {
-  id: number;
-  barcode: string;
-  name: string;
-  price: number;
-  imageUrl: string;
-  brand?: string;
-  department?: string;
-  group?: string;
-  subGroup?: string;
-  unit?: string;
-  isAvailable: boolean;
-  nutritionalInfo?: {
-    calories?: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-    sodium?: number;
-  };
-}
-
-/**
- * Item in the shopping cart
- */
-export interface RamiLevyCartItem {
-  id: number;
-  name: string;
-  quantity: number;
-  price: number;
-  totalPrice: number;
-  savings?: number;
-  imageUrl?: string;
-}
-
-/**
- * Shopping cart state
- */
-export interface RamiLevyCart {
-  items: RamiLevyCartItem[];
-  totalPrice: number;
-  totalSavings: number;
-  itemCount: number;
-  deliveryFee?: number;
-}
-
-/**
- * Search results from catalog
- */
-export interface RamiLevySearchResult {
-  products: RamiLevyProduct[];
-  total: number;
-  query: string;
-}
-
-/**
- * Token validation status with detailed info
- */
-export interface TokenStatus {
-  isValid: boolean;
-  userId: string;
-  lastUsed?: Date;
-  expiresAt?: Date;
-  tokenAge?: string;       // Human readable age (e.g., "2 hours ago")
-  expiresIn?: string;      // Human readable expiry (e.g., "in 5 days")
-  isExpiringSoon?: boolean; // True if expires within 24 hours
-  errorMessage?: string;
-  refreshInstructions?: string;
-}
 
 /**
  * Decode base64 with fallback for both base64url and standard base64
@@ -169,15 +112,6 @@ const cleanTokenString = (token: string | undefined): string => {
  * @param token - JWT token string
  * @returns Validation result with details
  */
-interface TokenValidation {
-  isValid: boolean;
-  parts: number;
-  error?: string;
-  hasExpiration?: boolean;
-  isExpired?: boolean;
-  expiresAt?: Date;
-}
-
 const validateJwtStructure = (token: string): TokenValidation => {
   if (!token) {
     return { isValid: false, parts: 0, error: 'Token is empty' };
@@ -333,16 +267,6 @@ const validateCookies = (cookie: string): { valid: boolean; missing: string[] } 
   return { valid: missing.length === 0, missing };
 };
 
-/**
- * User session state (per-user, thread-safe)
- */
-interface UserSession {
-  axiosInstance: AxiosInstance;
-  tokens: RamiLevyTokens;
-  cart: RamiLevyCart | null;
-  lastUsed: Date;
-}
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -356,77 +280,26 @@ const CHECKOUT_URL = `${RAMI_LEVY_BASE_URL}/he/dashboard/checkout`;
 const MAX_RETRIES = configService.get('ramiLevy.api.maxRetries', 3);
 const INITIAL_RETRY_DELAY_MS = configService.get('ramiLevy.api.retryDelayMs', 1000);
 
-// Circuit breaker configuration
+// Circuit breaker configuration - now uses shared registry
 const CIRCUIT_BREAKER_THRESHOLD = configService.get('ramiLevy.circuitBreaker.threshold', 5);
 const CIRCUIT_BREAKER_RESET_MS = configService.get('ramiLevy.circuitBreaker.resetMs', 60000);
 
-/**
- * Circuit Breaker State
- * Prevents cascade failures when Rami Levy API is unavailable
- */
-interface CircuitBreakerState {
-  failures: number;
-  lastFailure: Date | null;
-  isOpen: boolean;
-}
-
-const circuitBreaker: CircuitBreakerState = {
-  failures: 0,
-  lastFailure: null,
-  isOpen: false
-};
-
-// =============================================================================
-// SERVICE
-// =============================================================================
+// Get shared circuit breaker from registry
+const getCircuitBreaker = () => circuitBreakerRegistry.getBreaker(
+  CircuitBreakerServices.RAMI_LEVY_API,
+  { threshold: CIRCUIT_BREAKER_THRESHOLD, resetTimeMs: CIRCUIT_BREAKER_RESET_MS }
+);
 
 /**
  * Check if circuit breaker should allow request
  */
 const isCircuitBreakerOpen = (): boolean => {
-  if (!circuitBreaker.isOpen) return false;
-
-  // Check if enough time has passed to reset
-  if (circuitBreaker.lastFailure) {
-    const elapsed = Date.now() - circuitBreaker.lastFailure.getTime();
-    if (elapsed >= CIRCUIT_BREAKER_RESET_MS) {
-      // Reset circuit breaker (half-open state)
-      circuitBreaker.isOpen = false;
-      circuitBreaker.failures = 0;
-      logger.info('Rami Levy circuit breaker reset (half-open)');
-      return false;
-    }
-  }
-
-  return true;
+  const state = getCircuitBreaker().getState();
+  return state === 'open';
 };
 
-/**
- * Record a failure for circuit breaker
- */
-const recordCircuitBreakerFailure = (): void => {
-  circuitBreaker.failures++;
-  circuitBreaker.lastFailure = new Date();
-
-  if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
-    circuitBreaker.isOpen = true;
-    logger.warn('Rami Levy circuit breaker OPEN - too many failures', {
-      failures: circuitBreaker.failures,
-      resetMs: CIRCUIT_BREAKER_RESET_MS
-    });
-  }
-};
-
-/**
- * Record a success for circuit breaker (reset on success)
- */
-const recordCircuitBreakerSuccess = (): void => {
-  if (circuitBreaker.failures > 0) {
-    circuitBreaker.failures = 0;
-    circuitBreaker.isOpen = false;
-    logger.info('Rami Levy circuit breaker reset (success)');
-  }
-};
+// Note: recordCircuitBreakerFailure and recordCircuitBreakerSuccess
+// are now handled internally by the CircuitBreaker class when using execute()
 
 /**
  * Rami Levy API Service
@@ -555,6 +428,7 @@ class RamiLevyService {
 
   /**
    * Execute API call with exponential backoff retry and circuit breaker
+   * Uses the shared circuit breaker registry for cross-service coordination
    * @param fn - Async function to execute
    * @param context - Context for logging
    * @returns Result of the function
@@ -563,45 +437,47 @@ class RamiLevyService {
     fn: () => Promise<T>,
     context: string
   ): Promise<T> {
-    // Check circuit breaker first
-    if (isCircuitBreakerOpen()) {
-      throw new Error(
-        'Rami Levy API is temporarily unavailable (circuit breaker open). ' +
-        'Please try again later.'
-      );
-    }
+    const circuitBreaker = getCircuitBreaker();
 
-    let lastError: Error | null = null;
+    // Circuit breaker's execute method handles state tracking internally
+    return circuitBreaker.execute(
+      async () => {
+        let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        const result = await fn();
-        recordCircuitBreakerSuccess();
-        return result;
-      } catch (error: any) {
-        lastError = error;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            return await fn();
+          } catch (error: unknown) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            const axiosError = error as { response?: { status?: number }; message?: string };
 
-        // Don't retry on auth errors
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          throw error;
+            // Don't retry on auth errors - let circuit breaker handle it
+            if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+              throw error;
+            }
+
+            if (attempt < MAX_RETRIES - 1) {
+              const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+              logger.retry(`${context} - attempt ${attempt + 1} failed, retrying in ${delay}ms`, {
+                error: axiosError.message,
+                attempt: attempt + 1,
+                maxRetries: MAX_RETRIES
+              });
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
         }
 
-        // Record failure for circuit breaker
-        recordCircuitBreakerFailure();
-
-        if (attempt < MAX_RETRIES - 1) {
-          const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
-          logger.retry(`${context} - attempt ${attempt + 1} failed, retrying in ${delay}ms`, {
-            error: error.message,
-            attempt: attempt + 1,
-            maxRetries: MAX_RETRIES
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+        throw lastError;
+      },
+      // Fallback when circuit is open
+      () => {
+        throw new Error(
+          'Rami Levy API is temporarily unavailable (circuit breaker open). ' +
+          'Please try again later.'
+        );
       }
-    }
-
-    throw lastError;
+    );
   }
 
   /**
@@ -1676,32 +1552,31 @@ class RamiLevyService {
 
   /**
    * Get circuit breaker status (for health checks)
+   * Uses the shared circuit breaker registry
    * @returns Circuit breaker state information
    */
   getCircuitBreakerStatus(): {
     isOpen: boolean;
-    failures: number;
-    lastFailure: Date | null;
+    state: 'closed' | 'open' | 'half-open';
     threshold: number;
     resetMs: number;
   } {
+    const status = circuitBreakerRegistry.getAllStatus()[CircuitBreakerServices.RAMI_LEVY_API];
     return {
-      isOpen: circuitBreaker.isOpen,
-      failures: circuitBreaker.failures,
-      lastFailure: circuitBreaker.lastFailure,
-      threshold: CIRCUIT_BREAKER_THRESHOLD,
-      resetMs: CIRCUIT_BREAKER_RESET_MS
+      isOpen: status?.state === 'open',
+      state: status?.state || 'closed',
+      threshold: status?.threshold || CIRCUIT_BREAKER_THRESHOLD,
+      resetMs: status?.resetTimeMs || CIRCUIT_BREAKER_RESET_MS
     };
   }
 
   /**
    * Reset circuit breaker (for admin/testing purposes)
+   * Uses the shared circuit breaker registry
    */
   resetCircuitBreaker(): void {
-    circuitBreaker.failures = 0;
-    circuitBreaker.lastFailure = null;
-    circuitBreaker.isOpen = false;
-    logger.info('Rami Levy circuit breaker manually reset');
+    circuitBreakerRegistry.resetBreaker(CircuitBreakerServices.RAMI_LEVY_API);
+    logger.info('Rami Levy circuit breaker manually reset via registry');
   }
 }
 

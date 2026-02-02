@@ -1,20 +1,29 @@
 /**
  * Config Service - Dynamic Configuration Management
- * 
+ *
  * Manages application configuration from multiple sources:
  * 1. Environment variables (highest priority)
  * 2. Database (AppConfig table)
  * 3. Default values (fallback)
- * 
+ *
  * Supports runtime configuration updates without restart.
+ *
+ * NOTE: Default configuration values are now organized in separate files under
+ * ./config/defaults/ for better maintainability. See:
+ * - agentDefaults.ts - Agent-specific configuration
+ * - apiDefaults.ts - API endpoints and integrations
+ * - cacheDefaults.ts - Cache TTL settings
+ * - featureDefaults.ts - Feature flags and toggles
  */
 
 import { databaseService, getPrisma } from './databaseService';
 import { cacheService } from './cacheService';
 import logger from '../../utils/logger';
+import { DEFAULT_CONFIG, type ConfigKey, type ConfigValue } from './config/defaults';
 
-// Default configuration values - organized by category
-const DEFAULT_CONFIG = {
+// Legacy: Keep DEFAULT_CONFIG inline for backwards compatibility during migration
+// This will be removed once all imports are updated to use ./config/defaults
+const LEGACY_DEFAULT_CONFIG = {
   // ==========================================================================
   // AGENT DEFAULTS (used by AbstractAgent)
   // ==========================================================================
@@ -474,8 +483,9 @@ const DEFAULT_CONFIG = {
   'cors.devOrigins': ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']
 } as const;
 
-type ConfigKey = keyof typeof DEFAULT_CONFIG;
-type ConfigValue = typeof DEFAULT_CONFIG[ConfigKey];
+// Use the imported DEFAULT_CONFIG from ./config/defaults for new code
+// The LEGACY_DEFAULT_CONFIG above is kept for backwards compatibility
+// and will be removed in a future refactoring pass
 
 // In-memory config cache (refreshed periodically)
 let configCache: Map<string, unknown> = new Map();

@@ -26,13 +26,13 @@ export default defineConfig({
         'src/scripts/**',
         'node_modules/**'
       ],
-      // Thresholds set to current coverage levels + buffer
-      // These should be gradually increased as more tests are added
+      // Thresholds raised per tech lead review - target 30% minimum coverage
+      // NOTE: Tests may need to be written to meet these thresholds
       thresholds: {
-        statements: 1,
-        branches: 15,
-        functions: 5,
-        lines: 1
+        statements: 30,
+        branches: 25,
+        functions: 30,
+        lines: 30
       }
     },
     // Reduced timeouts for faster feedback on unmocked calls
