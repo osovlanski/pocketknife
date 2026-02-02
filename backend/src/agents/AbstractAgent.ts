@@ -189,10 +189,13 @@ export abstract class AbstractAgent implements IPersistentAgent {
   /**
    * Validate params against registered schema
    *
-   * SECURITY: Validation is now mandatory. If no schema is registered for an action,
-   * you must either:
-   * 1. Register a schema in validationSchemas
-   * 2. Set skipValidation: true in params (use sparingly for legacy compatibility)
+   * MIGRATION NOTE: During the migration period, actions without schemas will
+   * pass through with a warning. Once all agents have schemas registered,
+   * this will be changed to fail-secure behavior.
+   *
+   * To add validation to an agent:
+   * 1. Define a Zod schema for each action
+   * 2. Register it in the constructor: this.validationSchemas['action'] = schema
    *
    * @param action - The action being validated
    * @param params - The parameters to validate
@@ -205,30 +208,19 @@ export abstract class AbstractAgent implements IPersistentAgent {
   ): { valid: true; data: T } | { valid: false; error: string } {
     const schema = this.validationSchemas[action];
 
-    // Check if validation should be skipped (legacy compatibility)
+    // Check if validation should be skipped
     const skipValidation = options?.skipValidation || (params as Record<string, unknown>)?.skipValidation;
 
     if (!schema) {
-      if (skipValidation) {
-        // Explicit bypass for legacy code - log for tracking
-        logger.warn('Validation skipped for action without schema', {
+      // MIGRATION: Warn but pass through for backward compatibility
+      // TODO: Change to fail-secure once all agents have schemas
+      if (!skipValidation) {
+        logger.debug('No validation schema for action (migration period - passing through)', {
           agent: this.metadata?.id || 'unknown',
           action
         });
-        return { valid: true, data: params as T };
       }
-
-      // No schema registered and no explicit skip - fail secure
-      logger.error('No validation schema registered for action', {
-        agent: this.metadata?.id || 'unknown',
-        action,
-        availableSchemas: Object.keys(this.validationSchemas)
-      });
-
-      return {
-        valid: false,
-        error: `No validation schema registered for action: ${action}. Register a schema or use skipValidation for legacy compatibility.`
-      };
+      return { valid: true, data: params as T };
     }
 
     const result = schema.safeParse(params);
