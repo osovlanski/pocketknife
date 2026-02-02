@@ -188,12 +188,47 @@ export abstract class AbstractAgent implements IPersistentAgent {
 
   /**
    * Validate params against registered schema
+   *
+   * SECURITY: Validation is now mandatory. If no schema is registered for an action,
+   * you must either:
+   * 1. Register a schema in validationSchemas
+   * 2. Set skipValidation: true in params (use sparingly for legacy compatibility)
+   *
+   * @param action - The action being validated
+   * @param params - The parameters to validate
+   * @param options - Optional configuration
    */
-  protected validateParams<T>(action: string, params: unknown): { valid: true; data: T } | { valid: false; error: string } {
+  protected validateParams<T>(
+    action: string,
+    params: unknown,
+    options?: { skipValidation?: boolean }
+  ): { valid: true; data: T } | { valid: false; error: string } {
     const schema = this.validationSchemas[action];
+
+    // Check if validation should be skipped (legacy compatibility)
+    const skipValidation = options?.skipValidation || (params as Record<string, unknown>)?.skipValidation;
+
     if (!schema) {
-      // No schema registered, pass through
-      return { valid: true, data: params as T };
+      if (skipValidation) {
+        // Explicit bypass for legacy code - log for tracking
+        logger.warn('Validation skipped for action without schema', {
+          agent: this.metadata?.id || 'unknown',
+          action
+        });
+        return { valid: true, data: params as T };
+      }
+
+      // No schema registered and no explicit skip - fail secure
+      logger.error('No validation schema registered for action', {
+        agent: this.metadata?.id || 'unknown',
+        action,
+        availableSchemas: Object.keys(this.validationSchemas)
+      });
+
+      return {
+        valid: false,
+        error: `No validation schema registered for action: ${action}. Register a schema or use skipValidation for legacy compatibility.`
+      };
     }
 
     const result = schema.safeParse(params);

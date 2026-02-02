@@ -73,6 +73,9 @@ import {
   authenticate
 } from './middleware';
 
+// Health controller imports
+import { ready, healthDetailed } from './controllers/healthController';
+
 const app = express();
 const server = createServer(app);
 
@@ -217,6 +220,12 @@ app.get('/health/capabilities', (req, res) => {
     res.status(500).json({ error: err.message });
   });
 });
+
+// Readiness probe endpoint (public - for Kubernetes/load balancers)
+app.get('/ready', ready);
+
+// Detailed health endpoint (for debugging, protected in production)
+app.get('/health/detailed', healthDetailed);
 
 // 404 handler for unmatched routes (must be after all routes)
 app.use(notFoundHandler);

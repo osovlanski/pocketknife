@@ -8,14 +8,16 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
-import { 
-  assistantService, 
+import {
+  assistantService,
   agentOrchestratorService,
   ChatMessage,
-  WorkflowStep 
+  WorkflowStep
 } from '../services/assistant';
 import { configService } from '../services/core/configService';
 import { cacheService } from '../services/core/cacheService';
+import { getPrisma } from '../services/core/databaseService';
+import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // =============================================================================
@@ -177,12 +179,39 @@ export class AssistantAgent extends AbstractAgent {
       }));
     }
 
-    // Otherwise, try to get from cache
+    // Try cache first (fast path)
     const cached = await cacheService.get<ChatMessage[]>(
       conversationCacheKey(userId, conversationId)
     );
 
-    return cached || [];
+    if (cached) {
+      return cached;
+    }
+
+    // Cache miss - try database (slow path)
+    const prisma = getPrisma();
+    if (prisma) {
+      try {
+        const conversation = await prisma.assistantConversation.findUnique({
+          where: { id: conversationId }
+        });
+
+        if (conversation && conversation.userId === userId) {
+          const messages = JSON.parse(conversation.messages) as ChatMessage[];
+          // Warm the cache for next time
+          const ttl = configService.get('assistant.cache.conversationTtlSeconds', 3600);
+          await cacheService.set(conversationCacheKey(userId, conversationId), messages, { ttl });
+          return messages;
+        }
+      } catch (error) {
+        logger.warn('Failed to load conversation from database', {
+          conversationId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    return [];
   }
 
   private async saveConversationHistory(
@@ -196,11 +225,45 @@ export class AssistantAgent extends AbstractAgent {
     // Keep only the last N messages
     const trimmedHistory = history.slice(-maxHistory);
 
+    // Save to cache (fast path)
     await cacheService.set(
       conversationCacheKey(userId, conversationId),
       trimmedHistory,
       { ttl }
     );
+
+    // Save to database (persistent storage)
+    const prisma = getPrisma();
+    if (prisma) {
+      try {
+        // Generate a title from the first user message
+        const firstUserMessage = trimmedHistory.find(m => m.role === 'user');
+        const title = firstUserMessage
+          ? firstUserMessage.content.slice(0, 100) + (firstUserMessage.content.length > 100 ? '...' : '')
+          : 'New Conversation';
+
+        await prisma.assistantConversation.upsert({
+          where: { id: conversationId },
+          create: {
+            id: conversationId,
+            userId,
+            title,
+            messages: JSON.stringify(trimmedHistory)
+          },
+          update: {
+            messages: JSON.stringify(trimmedHistory),
+            updatedAt: new Date()
+          }
+        });
+      } catch (error) {
+        // Don't fail the operation if database save fails
+        // The cache still has the data
+        logger.warn('Failed to persist conversation to database', {
+          conversationId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
   }
 
   private async getConversation(params: AssistantParams): Promise<AgentResult<AssistantResult>> {
@@ -209,13 +272,12 @@ export class AssistantAgent extends AbstractAgent {
     if (!userId) return { success: false, error: 'User ID is required' };
     if (!conversationId) return { success: false, error: 'Conversation ID is required' };
 
-    const messages = await cacheService.get<ChatMessage[]>(
-      conversationCacheKey(userId, conversationId)
-    );
+    // Use getConversationHistory which already handles cache + database
+    const messages = await this.getConversationHistory(userId, conversationId);
 
     return {
       success: true,
-      data: { messages: messages || [], conversationId }
+      data: { messages, conversationId }
     };
   }
 
@@ -225,7 +287,21 @@ export class AssistantAgent extends AbstractAgent {
     if (!userId) return { success: false, error: 'User ID is required' };
     if (!conversationId) return { success: false, error: 'Conversation ID is required' };
 
+    // Clear from cache
     await cacheService.delete(conversationCacheKey(userId, conversationId));
+
+    // Delete from database
+    const prisma = getPrisma();
+    if (prisma) {
+      try {
+        await prisma.assistantConversation.delete({
+          where: { id: conversationId }
+        });
+      } catch (error) {
+        // Ignore if doesn't exist
+        logger.debug('Conversation not in database (may not have been persisted)', { conversationId });
+      }
+    }
 
     this.emitLog('🗑️ Conversation cleared', 'info');
 
