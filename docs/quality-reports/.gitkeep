@@ -1,0 +1,16 @@
+# Quality Reports Directory
+
+This directory contains daily AI assistant quality evaluation reports.
+
+Reports are generated automatically by the `daily-quality-eval.yml` GitHub Action.
+
+## Report Format
+
+Each report includes:
+- Overall quality scores (accuracy, helpfulness, clarity, etc.)
+- Category breakdown
+- Detailed results for evaluated questions
+
+## Viewing Reports
+
+Reports are named by date: `YYYY-MM-DD.md`

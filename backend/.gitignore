@@ -17,6 +17,7 @@ credentials/
 !package.json
 !package-lock.json
 !tsconfig.json
+!src/data/benchmark-questions.json
 
 # Token files (OAuth)
 token.json

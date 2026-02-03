@@ -1,0 +1,167 @@
+{
+  "version": "1.0",
+  "description": "Curated benchmark questions for AI assistant quality evaluation",
+  "questions": [
+    {
+      "id": "general-1",
+      "question": "What can you help me with?",
+      "category": "general",
+      "difficulty": 1,
+      "expectedAgents": []
+    },
+    {
+      "id": "general-2",
+      "question": "How do I get started with this assistant?",
+      "category": "general",
+      "difficulty": 1,
+      "expectedAgents": []
+    },
+    {
+      "id": "cooking-1",
+      "question": "Suggest a quick pasta recipe for dinner",
+      "category": "cooking",
+      "difficulty": 1,
+      "expectedAgents": ["cooking"]
+    },
+    {
+      "id": "cooking-2",
+      "question": "What can I make with chicken, rice, and vegetables?",
+      "category": "cooking",
+      "difficulty": 2,
+      "expectedAgents": ["cooking"]
+    },
+    {
+      "id": "cooking-3",
+      "question": "I need a healthy meal prep idea for the week",
+      "category": "cooking",
+      "difficulty": 3,
+      "expectedAgents": ["cooking"]
+    },
+    {
+      "id": "jobs-1",
+      "question": "Find me remote developer jobs",
+      "category": "jobs",
+      "difficulty": 1,
+      "expectedAgents": ["jobs"]
+    },
+    {
+      "id": "jobs-2",
+      "question": "What are the best companies hiring for React developers?",
+      "category": "jobs",
+      "difficulty": 2,
+      "expectedAgents": ["jobs"]
+    },
+    {
+      "id": "jobs-3",
+      "question": "Help me find senior backend positions in Europe with salary above 100k",
+      "category": "jobs",
+      "difficulty": 3,
+      "expectedAgents": ["jobs"]
+    },
+    {
+      "id": "travel-1",
+      "question": "What are good destinations for a weekend trip?",
+      "category": "travel",
+      "difficulty": 1,
+      "expectedAgents": ["travel"]
+    },
+    {
+      "id": "travel-2",
+      "question": "Plan a 3-day trip to Barcelona",
+      "category": "travel",
+      "difficulty": 2,
+      "expectedAgents": ["travel"]
+    },
+    {
+      "id": "travel-3",
+      "question": "Find flights from Tel Aviv to London next month under $500",
+      "category": "travel",
+      "difficulty": 3,
+      "expectedAgents": ["travel"]
+    },
+    {
+      "id": "learning-1",
+      "question": "What are good resources to learn Python?",
+      "category": "learning",
+      "difficulty": 1,
+      "expectedAgents": ["learning"]
+    },
+    {
+      "id": "learning-2",
+      "question": "Explain the difference between SQL and NoSQL databases",
+      "category": "learning",
+      "difficulty": 2,
+      "expectedAgents": ["learning"]
+    },
+    {
+      "id": "learning-3",
+      "question": "Create a learning path for becoming a full-stack developer",
+      "category": "learning",
+      "difficulty": 3,
+      "expectedAgents": ["learning"]
+    },
+    {
+      "id": "problems-1",
+      "question": "Give me an easy array problem to practice",
+      "category": "problems",
+      "difficulty": 1,
+      "expectedAgents": ["problems"]
+    },
+    {
+      "id": "problems-2",
+      "question": "Find me a medium difficulty dynamic programming problem",
+      "category": "problems",
+      "difficulty": 2,
+      "expectedAgents": ["problems"]
+    },
+    {
+      "id": "shopping-1",
+      "question": "Find deals on wireless headphones",
+      "category": "shopping",
+      "difficulty": 1,
+      "expectedAgents": ["shopping"]
+    },
+    {
+      "id": "shopping-2",
+      "question": "Compare prices for the latest iPhone",
+      "category": "shopping",
+      "difficulty": 2,
+      "expectedAgents": ["shopping"]
+    },
+    {
+      "id": "todo-1",
+      "question": "Help me organize my tasks for this week",
+      "category": "todo",
+      "difficulty": 1,
+      "expectedAgents": ["todo"]
+    },
+    {
+      "id": "todo-2",
+      "question": "Create a project plan for launching a new feature",
+      "category": "todo",
+      "difficulty": 2,
+      "expectedAgents": ["todo"]
+    },
+    {
+      "id": "multi-1",
+      "question": "Plan a business trip to London and suggest restaurants for meetings",
+      "category": "multi-agent",
+      "difficulty": 4,
+      "expectedAgents": ["travel", "cooking"]
+    },
+    {
+      "id": "multi-2",
+      "question": "I'm job hunting and stressed, suggest easy dinner recipes and remote jobs",
+      "category": "multi-agent",
+      "difficulty": 4,
+      "expectedAgents": ["jobs", "cooking"]
+    },
+    {
+      "id": "multi-3",
+      "question": "Help me learn TypeScript while I look for frontend developer positions",
+      "category": "multi-agent",
+      "difficulty": 4,
+      "expectedAgents": ["learning", "jobs"]
+    }
+  ]
+}

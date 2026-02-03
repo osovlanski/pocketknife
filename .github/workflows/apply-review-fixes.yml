@@ -1,0 +1,228 @@
+# Apply Review Fixes Workflow
+#
+# Manually triggered workflow that reads a daily review issue,
+# uses Claude to implement the suggested fixes, and creates a PR.
+#
+# Security: All user inputs are passed via environment variables
+# to prevent command injection attacks.
+#
+# Usage:
+# 1. Go to Actions > Apply Review Fixes
+# 2. Enter the issue number from a daily review
+# 3. Click "Run workflow"
+# 4. Review the generated PR before merging
+
+name: Apply Review Fixes
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'GitHub Issue number from daily review'
+        required: true
+        type: string
+
+jobs:
+  apply-fixes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch issue content
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          echo "Fetching issue #$ISSUE_NUMBER..."
+          gh issue view "$ISSUE_NUMBER" --json body,title -q '.' > issue-data.json
+          jq -r '.body' issue-data.json > issue-content.md
+          echo "Issue content saved"
+
+      - name: Create fix branch
+        id: branch
+        env:
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          BRANCH_NAME="fix/daily-review-issue-${ISSUE_NUMBER}-$(date +%Y%m%d)"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Implement fixes with Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          cat > implement-fixes.js << 'SCRIPT'
+          const Anthropic = require('@anthropic-ai/sdk');
+          const fs = require('fs');
+          const path = require('path');
+
+          (async function implementFixes() {
+            if (!process.env.ANTHROPIC_API_KEY) {
+              console.error('ERROR: ANTHROPIC_API_KEY is not set');
+              process.exit(1);
+            }
+
+            try {
+              const client = new Anthropic();
+              const issueContent = fs.readFileSync('issue-content.md', 'utf8');
+              const issueNumber = process.env.ISSUE_NUMBER;
+
+              const getFiles = (dir, files = []) => {
+                try {
+                  const items = fs.readdirSync(dir);
+                  for (const item of items) {
+                    const fullPath = path.join(dir, item);
+                    if (item.startsWith('.') || item === 'node_modules' || item === 'dist') continue;
+                    const stat = fs.statSync(fullPath);
+                    if (stat.isDirectory()) getFiles(fullPath, files);
+                    else if (/\.(ts|tsx|js|json)$/.test(item)) files.push(fullPath);
+                  }
+                } catch (e) {}
+                return files;
+              };
+
+              const codebaseFiles = getFiles('.').slice(0, 30);
+              let codebaseContext = '';
+              for (const file of codebaseFiles) {
+                try {
+                  const content = fs.readFileSync(file, 'utf8');
+                  if (content.length < 3000) {
+                    codebaseContext += `\n--- ${file} ---\n${content}\n`;
+                  }
+                } catch (e) {}
+              }
+
+              const prompt = `You are implementing fixes based on a code review.
+
+REVIEW FINDINGS (issue #${issueNumber}):
+${issueContent}
+
+CODEBASE CONTEXT:
+${codebaseContext}
+
+Return JSON with fixes:
+{
+  "summary": "Brief description",
+  "files": [
+    {
+      "path": "path/to/file.ts",
+      "action": "modify",
+      "description": "What this changes",
+      "search_replace": [{ "search": "old", "replace": "new" }]
+    }
+  ],
+  "skipped": [{ "item": "description", "reason": "why" }]
+}
+
+Only implement clear, actionable fixes. Skip vague or risky suggestions.
+Return only valid JSON.`;
+
+              console.log('Calling Claude...');
+              const response = await client.messages.create({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 8000,
+                messages: [{ role: 'user', content: prompt }]
+              });
+
+              let fixes;
+              try {
+                fixes = JSON.parse(response.content[0].text);
+              } catch (e) {
+                const match = response.content[0].text.match(/```json\n?([\s\S]*?)\n?```/);
+                if (match) fixes = JSON.parse(match[1]);
+                else throw new Error('Could not parse response');
+              }
+
+              let changesApplied = 0;
+              for (const file of fixes.files || []) {
+                if (file.action === 'modify' && file.search_replace) {
+                  try {
+                    let content = fs.readFileSync(file.path, 'utf8');
+                    for (const sr of file.search_replace) {
+                      if (content.includes(sr.search)) {
+                        content = content.replace(sr.search, sr.replace);
+                      }
+                    }
+                    fs.writeFileSync(file.path, content);
+                    changesApplied++;
+                  } catch (e) {
+                    console.log(`Skipping ${file.path}: ${e.message}`);
+                  }
+                }
+              }
+
+              let prBody = `## Automated Fix for Issue #${issueNumber}\n\n`;
+              prBody += `### Summary\n${fixes.summary}\n\n`;
+              prBody += `### Changes (${changesApplied})\n`;
+              for (const f of fixes.files || []) prBody += `- **${f.path}**: ${f.description}\n`;
+              if (fixes.skipped?.length) {
+                prBody += `\n### Skipped\n`;
+                for (const s of fixes.skipped) prBody += `- ${s.item}: *${s.reason}*\n`;
+              }
+              
+              fs.writeFileSync('PR_BODY.md', prBody);
+              console.log(`Applied ${changesApplied} changes`);
+            } catch (error) {
+              console.error('Failed:', error.message);
+              fs.writeFileSync('PR_BODY.md', `## Failed\n\nError: ${error.message}`);
+              process.exit(1);
+            }
+          })();
+          SCRIPT
+
+          npm install @anthropic-ai/sdk
+          node implement-fixes.js
+
+      - name: Commit and push
+        id: commit
+        env:
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "fix: implement review findings from issue #${ISSUE_NUMBER}"
+            git push -u origin "$BRANCH_NAME"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          gh pr create \
+            --title "Fix: Daily Review #${ISSUE_NUMBER}" \
+            --body-file PR_BODY.md \
+            --base main \
+            --label "automated-fix"
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fix-log-${{ github.event.inputs.issue_number }}
+          path: PR_BODY.md
+          retention-days: 7
