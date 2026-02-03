@@ -42,7 +42,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # Note: cache: 'npm' removed - no package-lock.json in repo root
 
       - name: Get date for issue title
         id: date
@@ -69,30 +69,38 @@ jobs:
           const fs = require('fs');
           const path = require('path');
 
-          async function runReview() {
-            const client = new Anthropic();
-            const focusArea = process.env.FOCUS_AREA || 'general';
-            const changedFiles = process.env.CHANGED_FILES || '';
-
-            // Read key files for context
-            const keyFiles = [
-              'ARCHITECTURE.md',
-              'backend/src/agents/AbstractAgent.ts',
-              'backend/vitest.config.ts',
-              'package.json'
-            ];
-
-            let context = '';
-            for (const file of keyFiles) {
-              try {
-                const content = fs.readFileSync(file, 'utf8');
-                context += `\n--- ${file} ---\n${content.slice(0, 5000)}\n`;
-              } catch (e) {
-                // File might not exist
-              }
+          (async function runReview() {
+            // Validate API key upfront
+            if (!process.env.ANTHROPIC_API_KEY) {
+              console.error('ERROR: ANTHROPIC_API_KEY secret is not set');
+              fs.writeFileSync('DAILY_REVIEW.md', '## Review Failed\n\nANTHROPIC_API_KEY secret is not configured in repository secrets.');
+              process.exit(1);
             }
 
-            const prompt = `You are a strict principal tech lead reviewing a codebase.
+            try {
+              const client = new Anthropic();
+              const focusArea = process.env.FOCUS_AREA || 'general';
+              const changedFiles = process.env.CHANGED_FILES || '';
+
+              // Read key files for context
+              const keyFiles = [
+                'ARCHITECTURE.md',
+                'backend/src/agents/AbstractAgent.ts',
+                'backend/vitest.config.ts',
+                'package.json'
+              ];
+
+              let context = '';
+              for (const file of keyFiles) {
+                try {
+                  const content = fs.readFileSync(file, 'utf8');
+                  context += `\n--- ${file} ---\n${content.slice(0, 5000)}\n`;
+                } catch (e) {
+                  // File might not exist
+                }
+              }
+
+              const prompt = `You are a strict principal tech lead reviewing a codebase.
 
 Focus Area: ${focusArea}
 Recently Changed Files:
@@ -111,18 +119,21 @@ Provide a concise daily review focusing on:
 Format as markdown suitable for a GitHub issue.
 Keep the review actionable and under 2000 words.`;
 
-            const response = await client.messages.create({
-              model: 'claude-sonnet-4-20250514',
-              max_tokens: 4096,
-              messages: [{ role: 'user', content: prompt }]
-            });
+              const response = await client.messages.create({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 4096,
+                messages: [{ role: 'user', content: prompt }]
+              });
 
-            const review = response.content[0].text;
-            fs.writeFileSync('DAILY_REVIEW.md', review);
-            console.log('Review completed');
-          }
-
-          runReview().catch(console.error);
+              const review = response.content[0].text;
+              fs.writeFileSync('DAILY_REVIEW.md', review);
+              console.log('Review completed successfully');
+            } catch (error) {
+              console.error('Review failed:', error.message);
+              fs.writeFileSync('DAILY_REVIEW.md', `## Review Failed\n\nError: ${error.message}\n\nPlease check the workflow logs for details.`);
+              process.exit(1);
+            }
+          })();
           SCRIPT
 
           # Install Anthropic SDK and run review
