@@ -178,6 +178,12 @@ Guidelines:
 - Reserve multi-step reasoning for complex queries (recipes, travel planning, job searches)
 - Use the agent_cross_call tool to chain actions across agents (e.g., find a recipe then order its ingredients, or search jobs then create a follow-up task)
 
+Conversational Context Rules (CRITICAL):
+- When the user sends a short affirmative or reference message like "do that", "yes", "go ahead", "proceed", "do it", "sure", "ok", "let's do it", "sounds good", "make it happen", or similar — they are referring to YOUR most recent suggestion or proposed action. Look at your last message in the conversation history and execute what you suggested.
+- When the user says "the first one", "option B", "that one", etc. — resolve these references against the options or items you listed in your previous message.
+- Never respond with "I'm not sure what you mean by 'do that'" if your previous message clearly proposed an action. Instead, execute the proposed action.
+- If the user's message contains a file attachment (marked with [Attached file: ...]), analyze the file content and respond to the user's question about it. If no question is provided, summarize the file's key contents.
+
 ${buildComponentKBPrompt()}`;
 
 // =============================================================================
