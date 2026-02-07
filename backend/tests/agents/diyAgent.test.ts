@@ -174,7 +174,7 @@ describe('DIY Agent', () => {
     it('should have correct metadata', () => {
       expect(agent.metadata.id).toBe('diy');
       expect(agent.metadata.name).toBe('DIY Agent');
-      expect(agent.metadata.icon).toBe('🔧');
+      expect(agent.metadata.icon).toBe('🔨');
     });
   });
 

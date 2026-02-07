@@ -118,7 +118,7 @@ describe('AssistantAgent', () => {
     });
 
     it('should have correct name', () => {
-      expect(agent.metadata.name).toBe('AI Assistant');
+      expect(agent.metadata.name).toBe('Assistant');
     });
 
     it('should have correct icon', () => {
@@ -126,7 +126,7 @@ describe('AssistantAgent', () => {
     });
 
     it('should have correct color', () => {
-      expect(agent.metadata.color).toBe('#8B5CF6');
+      expect(agent.metadata.color).toBe('#6B7280');
     });
 
     it('should have a description', () => {

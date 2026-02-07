@@ -154,7 +154,7 @@ describe('Problems Agent', () => {
     it('should have correct metadata', () => {
       expect(agent.metadata.id).toBe('problems');
       expect(agent.metadata.name).toBe('Problems Agent');
-      expect(agent.metadata.icon).toBe('💻');
+      expect(agent.metadata.icon).toBe('🧩');
     });
   });
 
