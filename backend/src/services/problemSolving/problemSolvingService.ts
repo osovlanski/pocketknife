@@ -28,9 +28,16 @@ export const PROBLEM_SOURCES = [
 ] as const;
 export type ProblemSource = typeof PROBLEM_SOURCES[number];
 
-/** Curated lists */
+/**
+ * Curated lists for type derivation.
+ * Runtime value is configurable via configService key 'problems.curatedLists'.
+ */
 export const CURATED_LISTS = ['blind75', 'neetcode150', 'grind75'] as const;
 export type CuratedList = typeof CURATED_LISTS[number];
+
+/** Get the runtime list of curated lists (supports dynamic extension via config) */
+export const getCuratedLists = (): string[] =>
+  configService.get('problems.curatedLists', [...CURATED_LISTS]) as string[];
 
 interface CodingProblem {
   id: string;

@@ -1107,10 +1107,21 @@ export const executeToolsParallel = async (
 // CROSS-CALL EXECUTION
 // =============================================================================
 
-const VALID_AGENT_IDS: Set<string> = new Set([
-  'cooking', 'jobs', 'travel', 'todo', 'shopping',
-  'learning', 'news', 'diy', 'email', 'problems'
-]);
+/**
+ * Derive valid agent IDs from the registry at runtime.
+ * Lazy-initialized on first use to allow all agents to register first.
+ */
+let _validAgentIds: Set<string> | null = null;
+const getValidAgentIds = (): Set<string> => {
+  if (!_validAgentIds) {
+    _validAgentIds = new Set(
+      agentRegistry.getAll()
+        .map(agent => agent.metadata.id)
+        .filter(id => id !== 'assistant') // assistant is not a cross-call target
+    );
+  }
+  return _validAgentIds;
+};
 
 /**
  * Execute a cross-call: invoke an action on a target agent.
@@ -1126,7 +1137,7 @@ const executeCrossCall = async (
     ? input.params as Record<string, unknown>
     : {};
 
-  if (!VALID_AGENT_IDS.has(targetAgentId)) {
+  if (!getValidAgentIds().has(targetAgentId)) {
     return { success: false, error: `Invalid agent: ${targetAgentId}` };
   }
 
