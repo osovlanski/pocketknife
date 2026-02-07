@@ -54,7 +54,8 @@ import {
   Image,
   AlertTriangle,
   Play,
-  XOctagon
+  XOctagon,
+  Paperclip
 } from 'lucide-react';
 import AgentPageLayout from './common/AgentPageLayout';
 import VoiceInputButton from './common/VoiceInputButton';
@@ -65,6 +66,7 @@ import StructuredDataRenderer from './StructuredDataRenderer';
 import { useTranslation } from '../i18n';
 import { SUGGESTED_PROMPTS, type SavedConversation, type ThinkingStep, type ExecutionPlan, type PlanStep } from '../services/assistantApi';
 import type { ChatMessage, WorkflowStep } from '../services/assistantApi';
+import { extractTextFromFile } from '../utils/fileParser';
 import styles from '../styles/assistant.module.css';
 
 // =============================================================================
@@ -869,6 +871,88 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSelect, di
 };
 
 // =============================================================================
+// FILE UPLOAD BUTTON
+// =============================================================================
+
+const ACCEPTED_FILE_TYPES = '.pdf,.docx,.doc,.txt,.csv,.json,.md,.js,.ts,.py,.html,.css';
+const MAX_FILE_SIZE_MB = 10;
+
+interface FileUploadButtonProps {
+  onFileSelect: (fileName: string, content: string) => void;
+  disabled?: boolean;
+}
+
+const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onFileSelect, disabled }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      alert(`File size must be less than ${MAX_FILE_SIZE_MB}MB`);
+      e.target.value = '';
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const textContent = await extractTextFromFile(file);
+
+      if (!textContent || textContent.trim().length === 0) {
+        alert('Could not extract text from this file. Please try a different format.');
+        return;
+      }
+
+      onFileSelect(file.name, textContent.trim());
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to read file';
+      alert(message);
+    } finally {
+      setIsLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_FILE_TYPES}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+      <button
+        type="button"
+        className={styles.fileUploadButton}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        disabled={disabled || isLoading}
+        title="Upload file (PDF, Word, TXT)"
+        aria-label="Upload file"
+        tabIndex={0}
+      >
+        {isLoading ? <Loader2 size={18} className={styles.spinIcon} /> : <Paperclip size={18} />}
+      </button>
+    </>
+  );
+};
+
+// =============================================================================
 // MODE SELECTOR
 // =============================================================================
 
@@ -942,6 +1026,7 @@ const AssistantAgent: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ base64: string; type: string } | null>(null);
+  const [pendingFile, setPendingFile] = useState<{ name: string; content: string } | null>(null);
   const [enablePlanPreview, setEnablePlanPreview] = useState(false);
   const [assistantMode, setAssistantMode] = useState<AssistantMode>('auto');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1019,7 +1104,8 @@ const AssistantAgent: React.FC = () => {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputValue.trim() || assistant.isProcessing) return;
+    if (!inputValue.trim() && !pendingFile) return;
+    if (assistant.isProcessing) return;
 
     const message = inputValue;
     setInputValue('');
@@ -1033,7 +1119,14 @@ const AssistantAgent: React.FC = () => {
     const modePrefix = assistantMode !== 'auto'
       ? `[mode:${assistantMode}] `
       : '';
-    const fullMessage = modePrefix + message;
+
+    // Build the full message, prepending file content if attached
+    let fullMessage = modePrefix + message;
+    if (pendingFile) {
+      const filePrefix = `[Attached file: ${pendingFile.name}]\n--- File Content ---\n${pendingFile.content}\n--- End File Content ---\n\n`;
+      fullMessage = filePrefix + fullMessage;
+      setPendingFile(null);
+    }
 
     // If there's a pending image, send with image
     if (pendingImage) {
@@ -1050,6 +1143,14 @@ const AssistantAgent: React.FC = () => {
 
   const handleRemovePendingImage = () => {
     setPendingImage(null);
+  };
+
+  const handleFileSelect = (name: string, content: string) => {
+    setPendingFile({ name, content });
+  };
+
+  const handleRemovePendingFile = () => {
+    setPendingFile(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1237,10 +1338,34 @@ const AssistantAgent: React.FC = () => {
                     </button>
                   </div>
                 )}
+                {/* Pending file preview */}
+                {pendingFile && (
+                  <div className={styles.pendingFilePreview}>
+                    <FileText size={18} />
+                    <span className={styles.pendingFileName}>{pendingFile.name}</span>
+                    <span className={styles.pendingFileSize}>
+                      {pendingFile.content.length > 1000
+                        ? `${Math.round(pendingFile.content.length / 1000)}k chars`
+                        : `${pendingFile.content.length} chars`}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.removePendingFile}
+                      onClick={handleRemovePendingFile}
+                      aria-label="Remove attached file"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
                 <div className={styles.inputActions}>
                   <ModeSelector
                     mode={assistantMode}
                     onChange={setAssistantMode}
+                  />
+                  <FileUploadButton
+                    onFileSelect={handleFileSelect}
+                    disabled={assistant.isProcessing}
                   />
                   <ImageUploadButton
                     onImageSelect={handleImageSelect}
@@ -1267,7 +1392,7 @@ const AssistantAgent: React.FC = () => {
                     <button
                       type="submit"
                       className={styles.sendButton}
-                      disabled={!inputValue.trim()}
+                      disabled={!inputValue.trim() && !pendingFile}
                       aria-label="Send message (Enter)"
                       title="Send (Enter)"
                       tabIndex={0}

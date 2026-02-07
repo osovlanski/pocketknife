@@ -334,6 +334,8 @@ Analyze the user's message and determine:
 3. What parameters can be extracted from their message
 4. Whether this requires multiple steps
 
+IMPORTANT CONTEXT RULE: If the user's message is a short affirmative or reference like "do that", "yes", "go ahead", "proceed", "do it", "sure", "ok", "let's do it", "sounds good", or similar — they are referring to the assistant's most recent suggestion in the conversation history below. Resolve the intent from what the assistant proposed, NOT from the user's short message alone.
+
 ${historyContext ? `\nConversation history:\n${historyContext}\n` : ''}
 
 User message: "${message}"
