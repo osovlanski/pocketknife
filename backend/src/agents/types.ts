@@ -6,6 +6,8 @@
 
 export type AgentId = 'email' | 'jobs' | 'travel' | 'learning' | 'problems' | 'todo' | 'shopping' | 'cooking' | 'news' | 'diy' | 'assistant';
 
+export type AgentType = 'simple' | 'deep';
+
 export type AgentStatus = 'idle' | 'running' | 'stopping' | 'completed' | 'error';
 
 export type LogType = 'info' | 'success' | 'warning' | 'error';
@@ -18,6 +20,8 @@ export interface AgentMetadata {
   color: string;
   /** Keywords/hashtags that trigger this agent (e.g., #recipe, #todo) */
   keywords?: string[];
+  /** Classification: 'simple' agents need fewer iterations, 'deep' agents need more */
+  agentType?: AgentType;
 }
 
 export interface AgentState {

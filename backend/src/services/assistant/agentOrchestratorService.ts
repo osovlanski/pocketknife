@@ -8,7 +8,7 @@
 import { agentRegistry } from '../../agents/AgentRegistry';
 import { configService } from '../core/configService';
 import logger from '../../utils/logger';
-import type { AgentId, AgentMetadata, AgentResult, AgentParams } from '../../agents/types';
+import type { AgentId, AgentType, AgentMetadata, AgentResult, AgentParams } from '../../agents/types';
 
 // =============================================================================
 // TYPES
@@ -78,6 +78,24 @@ export interface WorkflowResult {
 /**
  * Agent keywords/hashtags for trigger detection
  */
+/**
+ * Agent type classification: simple agents need fewer tool iterations,
+ * deep agents may require multi-step reasoning and more iterations.
+ */
+export const AGENT_TYPE_CLASSIFICATION: Record<string, AgentType> = {
+  email: 'simple',
+  problems: 'simple',
+  todo: 'simple',
+  learning: 'simple',
+  jobs: 'deep',
+  cooking: 'deep',
+  travel: 'deep',
+  shopping: 'deep',
+  news: 'deep',
+  diy: 'deep',
+  assistant: 'deep'
+};
+
 export const AGENT_KEYWORDS: Record<string, string[]> = {
   cooking: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen', '#grocery', '#groceries', '#order', '#shopping', '#cart', '#ramilevy', '#rami-levy', 'רמי לוי'],
   jobs: ['#job', '#career', '#interview', '#resume', '#cv', '#hiring'],
@@ -445,6 +463,13 @@ class AgentOrchestratorService {
   }
 
   /**
+   * Get agent type classification (simple or deep)
+   */
+  getAgentType(agentId: AgentId): AgentType {
+    return AGENT_TYPE_CLASSIFICATION[agentId] || 'deep';
+  }
+
+  /**
    * Get agent metadata
    */
   getAgentMetadata(agentId: AgentId): AgentMetadata | undefined {
@@ -568,7 +593,8 @@ class AgentOrchestratorService {
     for (const agent of agents) {
       if (agent.capabilities.length === 0) continue;
 
-      prompt += `## ${agent.icon} ${agent.name} (${agent.id})\n`;
+      const agentType = this.getAgentType(agent.id);
+      prompt += `## ${agent.icon} ${agent.name} (${agent.id}) [${agentType}]\n`;
       prompt += `${agent.description}\n\n`;
       prompt += 'Actions:\n';
 

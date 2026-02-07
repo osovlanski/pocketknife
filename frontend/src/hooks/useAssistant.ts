@@ -339,16 +339,20 @@ export const useAssistant = (): UseAssistantReturn => {
         ...placeholderMessage,
         content: response.response,
         workflowSteps: response.workflowSteps,
-        sources: response.sources
+        sources: response.sources,
+        structuredData: response.structuredData,
+        renderHints: response.renderHints
       }]);
-      
-      setMessages(prev => prev.map(m => 
+
+      setMessages(prev => prev.map(m =>
         m.id === placeholderId
           ? {
               ...m,
               content: response.response,
               workflowSteps: response.workflowSteps,
-              sources: response.sources
+              sources: response.sources,
+              structuredData: response.structuredData,
+              renderHints: response.renderHints
             }
           : m
       ));
@@ -526,7 +530,9 @@ export const useAssistant = (): UseAssistantReturn => {
           ? {
               ...m,
               content: response.message,
-              sources: response.sources
+              sources: response.sources,
+              structuredData: response.structuredData,
+              renderHints: response.renderHints
             }
           : m
       ));
@@ -535,7 +541,9 @@ export const useAssistant = (): UseAssistantReturn => {
       const finalMessages = [...updatedMessages, {
         ...placeholderMessage,
         content: response.message,
-        sources: response.sources
+        sources: response.sources,
+        structuredData: response.structuredData,
+        renderHints: response.renderHints
       }];
       setTimeout(() => saveCurrentConversation(finalMessages, convId), 100);
 
@@ -574,7 +582,9 @@ export const useAssistant = (): UseAssistantReturn => {
         role: 'assistant',
         content: response.message,
         timestamp: new Date().toISOString(),
-        sources: response.sources
+        sources: response.sources,
+        structuredData: response.structuredData,
+        renderHints: response.renderHints
       };
 
       setMessages(prev => [...prev, assistantMessage]);

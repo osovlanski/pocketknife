@@ -127,6 +127,8 @@ export interface ChatMessage {
   timestamp: string;
   workflowSteps?: WorkflowStep[];
   sources?: string[];
+  structuredData?: StructuredCard[];
+  renderHints?: CardGroupRenderHints;
 }
 
 export interface WorkflowStep {
@@ -174,6 +176,8 @@ export interface AssistantResponse {
   workflowSteps?: WorkflowStep[];
   suggestions?: string[];
   sources?: string[];
+  structuredData?: StructuredCard[];
+  renderHints?: CardGroupRenderHints;
 }
 
 // Thinking step for real-time status updates
@@ -279,12 +283,97 @@ export interface ToolCallInfo {
   input: Record<string, unknown>;
 }
 
+// =============================================================================
+// STRUCTURED DATA CARDS
+// =============================================================================
+
+export interface JobCard {
+  type: 'job';
+  title: string;
+  company: string;
+  location?: string;
+  matchScore?: number;
+  url?: string;
+  salary?: string;
+  source?: string;
+}
+
+export interface RecipeCard {
+  type: 'recipe';
+  title: string;
+  prepTime?: string;
+  cookTime?: string;
+  servings?: number;
+  matchPercentage?: number;
+  missingIngredients?: string[];
+  imageUrl?: string;
+  sourceUrl?: string;
+}
+
+export interface FlightCard {
+  type: 'flight';
+  airline: string;
+  origin: string;
+  destination: string;
+  price?: string;
+  stops?: number;
+  departTime?: string;
+  arriveTime?: string;
+  bookingUrl?: string;
+}
+
+export interface TaskCard {
+  type: 'task';
+  title: string;
+  completed: boolean;
+  priority?: 'low' | 'medium' | 'high';
+  dueDate?: string;
+  taskId?: string;
+}
+
+export interface ProductCard {
+  type: 'product';
+  name: string;
+  price?: string;
+  originalPrice?: string;
+  source?: string;
+  url?: string;
+  imageUrl?: string;
+}
+
+export type StructuredCard = JobCard | RecipeCard | FlightCard | TaskCard | ProductCard;
+
+// =============================================================================
+// RENDER HINTS (Component KB)
+// =============================================================================
+
+export type LayoutMode = 'grid' | 'list' | 'compact';
+
+export interface RenderHints {
+  layout: LayoutMode;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  maxDisplay?: number;
+  showImages?: boolean;
+  groupLabel?: string;
+}
+
+export interface CardGroupRenderHints {
+  [cardType: string]: RenderHints;
+}
+
+// =============================================================================
+// ENHANCED ASSISTANT RESPONSE
+// =============================================================================
+
 export interface EnhancedAssistantResponse {
   message: string;
   toolCalls: ToolCallInfo[];
   sources: string[];
   suggestions: string[];
   plan?: ExecutionPlan;
+  structuredData?: StructuredCard[];
+  renderHints?: CardGroupRenderHints;
 }
 
 /**
