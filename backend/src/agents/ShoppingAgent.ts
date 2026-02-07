@@ -309,7 +309,7 @@ Respond ONLY with valid JSON:
         });
 
         // Add suggestion context to products
-        for (const product of products.slice(0, 3)) {
+        for (const product of products.slice(0, configService.get('limits.shopping.agent.productPreview.maxResults', 3) as number)) {
           allProducts.push({
             ...product,
             category: suggestion.category,
@@ -676,7 +676,7 @@ Respond ONLY with valid JSON:
       // Search for suggested products
       const suggestions: ProductSuggestion[] = [];
       
-      for (const suggestion of (analysis.suggestions || []).slice(0, 3)) {
+      for (const suggestion of (analysis.suggestions || []).slice(0, configService.get('limits.shopping.agent.suggestions.maxResults', 3) as number)) {
         const products = await this.searchSource('ebay', suggestion.searchQuery, { maxPrice: 500 });
         
         if (products.length > 0) {
@@ -711,7 +711,7 @@ Respond ONLY with valid JSON:
               query,
               minPrice: filters?.minPrice,
               maxPrice: filters?.maxPrice,
-              limit: 15
+              limit: configService.get('limits.shopping.search.ebay.limit', 15) as number
             });
             products = ebayProducts.map(p => this.mapToProduct(p, 'ebay'));
           }
@@ -723,7 +723,7 @@ Respond ONLY with valid JSON:
               query,
               minPrice: filters?.minPrice,
               maxPrice: filters?.maxPrice,
-              limit: 15
+              limit: configService.get('limits.shopping.search.amazon.limit', 15) as number
             });
             products = amazonProducts.map(p => this.mapToProduct(p, 'amazon'));
           }
@@ -735,7 +735,7 @@ Respond ONLY with valid JSON:
               query,
               minPrice: filters?.minPrice,
               maxPrice: filters?.maxPrice,
-              limit: 15
+              limit: configService.get('limits.shopping.search.aliexpress.limit', 15) as number
             });
             products = aliProducts.map(p => this.mapToProduct(p, 'aliexpress'));
           }
@@ -812,7 +812,7 @@ Respond ONLY with valid JSON:
 - Product quality indicators
 
 Products:
-${scoredProducts.slice(0, 20).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''}`).join('\n')}
+${scoredProducts.slice(0, configService.get('limits.shopping.agent.dealsDisplay.maxResults', 20) as number).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''}`).join('\n')}
 
 Respond ONLY with valid JSON:
 {

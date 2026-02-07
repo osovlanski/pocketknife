@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import googleAuthService from './googleAuthService';
+import { configService } from '../core/configService';
 
 class GmailService {
   private gmail: any = null;
@@ -62,7 +63,7 @@ class GmailService {
       const response = await gmail.users.messages.list({
         userId: 'me',
         q: 'is:unread -label:processed',
-        maxResults: 100
+        maxResults: configService.get('limits.email.gmail.unread.maxResults', 100) as number
       });
 
       if (!response.data.messages) {

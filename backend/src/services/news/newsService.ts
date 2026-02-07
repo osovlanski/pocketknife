@@ -79,7 +79,7 @@ export interface NewsTrend {
 // Cache for database config to avoid repeated queries
 let newsConfigCache: Map<string, unknown> | null = null;
 let newsConfigCacheTime = 0;
-const NEWS_CONFIG_CACHE_TTL = 300000; // 5 minutes
+const NEWS_CONFIG_CACHE_TTL = () => configService.get('cache.news.configTtlMs', 300000) as number;
 
 /**
  * Get news config from database with fallback to hardcoded defaults
@@ -318,7 +318,7 @@ const TOPIC_SOURCE_MAPPING_FALLBACK: Record<string, string[]> = {
 };
 
 // Sources that ONLY return tech content - FALLBACK
-const TECH_ONLY_SOURCES_FALLBACK = ['hackernews', 'lobsters', 'devto'];
+const TECH_ONLY_SOURCES_FALLBACK = configService.get('keywords.news.sources.techOnlyFallback', ['hackernews', 'lobsters', 'devto']) as string[];
 
 /**
  * Get appropriate sources for the given topics
@@ -328,7 +328,7 @@ const TECH_ONLY_SOURCES_FALLBACK = ['hackernews', 'lobsters', 'devto'];
 const getSourcesForTopics = (topics: string[] | undefined, requestedSources?: string[]): string[] => {
   // Default sources if none specified
   // Default sources - can be extended via database config
-  const defaultSources = ['reddit', 'newsapi', 'gnews', 'mediastack'];
+  const defaultSources = configService.get('keywords.news.sources.default', ['reddit', 'newsapi', 'gnews', 'mediastack']) as string[];
   
   if (!topics || topics.length === 0) {
     // No topics specified - use all sources
@@ -546,11 +546,11 @@ export const newsService = {
         subreddits = NEWS_SOURCE_DEFAULTS.reddit.subreddits;
       }
       
-      logger.info(`📰 Reddit search - Topics: [${topics?.join(', ')}] → Subreddits: [${subreddits.slice(0, 5).join(', ')}]`);
+      logger.info(`📰 Reddit search - Topics: [${topics?.join(', ')}] → Subreddits: [${subreddits.slice(0, configService.get('limits.news.reddit.subreddits.maxResults', 5) as number).join(', ')}]`);
       
       const articles: NewsArticle[] = [];
       
-      for (const subreddit of subreddits.slice(0, 3)) {
+      for (const subreddit of subreddits.slice(0, configService.get('limits.news.reddit.search.maxSubreddits', 3) as number)) {
         try {
           const url = query
             ? `${NEWS_BASE_URLS.reddit}/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=hot&t=day&limit=10`
@@ -1275,7 +1275,7 @@ Format your response as bullet points.`;
             ...(countryCode ? { countryCode } : {})
           },
           orderBy: { trendScore: 'desc' },
-          take: 10
+          take: configService.get('limits.news.trends.database.maxResults', 10) as number
         });
 
         if (trends.length > 0) {
@@ -1292,7 +1292,7 @@ Format your response as bullet points.`;
       // Fallback: Generate trends from current news
       const articles = await newsService.searchNews({
         sources: ['hackernews', 'reddit', 'lobsters', 'devto'],
-        maxResults: 50
+        maxResults: configService.get('limits.news.trends.generation.maxResults', 50) as number
       });
 
       // Count topic frequencies
@@ -1314,7 +1314,7 @@ Format your response as bullet points.`;
       const generatedTrends: NewsTrend[] = Object.entries(topicCounts)
         .filter(([topic]) => topic.length > 2) // Filter out very short topics
         .sort(([, a], [, b]) => b.count - a.count)
-        .slice(0, 10)
+        .slice(0, configService.get('limits.news.trends.maxResults', 10) as number)
         .map(([topic, data], index) => ({
           topic: topic.charAt(0).toUpperCase() + topic.slice(1),
           relatedTopics: [],
@@ -1346,11 +1346,11 @@ Format your response as bullet points.`;
       sources: preferences?.preferredSources,
       countryCode: preferences?.countryCode,
       timeRange: 'today',
-      maxResults: 10
+      maxResults: configService.get('limits.news.digest.maxResults', 10) as number
     }, preferences || undefined);
 
     // Generate summary
-    const articleTitles = articles.slice(0, 5).map(a => `- ${a.title}`).join('\n');
+    const articleTitles = articles.slice(0, configService.get('limits.news.digest.articles.maxResults', 5) as number).map(a => `- ${a.title}`).join('\n');
     const summary = await claudeService.generateText(
       `Write a brief 2-sentence summary of today's top news based on these headlines:\n${articleTitles}`,
       200
@@ -1380,7 +1380,7 @@ Format your response as bullet points.`;
 
     if (channels.includes('telegram')) {
       const message = `📰 <b>Your Daily News Digest</b>\n\n${digest.summary}\n\n<b>Top Stories:</b>\n${
-        digest.articles.slice(0, 5).map((a, i) => `${i + 1}. <a href="${a.url}">${a.title}</a>`).join('\n')
+        digest.articles.slice(0, configService.get('limits.news.digest.email.maxResults', 5) as number).map((a, i) => `${i + 1}. <a href="${a.url}">${a.title}</a>`).join('\n')
       }`;
       await telegramNotificationService.sendMessage(message);
     }
@@ -1389,7 +1389,7 @@ Format your response as bullet points.`;
       const embed = {
         title: '📰 Your Daily News Digest',
         description: digest.summary,
-        fields: digest.articles.slice(0, 5).map((a, i) => ({
+        fields: digest.articles.slice(0, configService.get('limits.news.digest.discord.maxResults', 5) as number).map((a, i) => ({
           name: `${i + 1}. ${a.sourceName}`,
           value: `[${a.title}](${a.url})`
         }))

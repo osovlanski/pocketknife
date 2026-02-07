@@ -341,28 +341,12 @@ class JobSourceService {
     const lowerQuery = query.toLowerCase();
     
     // Common synonyms and variations
-    const synonyms: Record<string, string[]> = {
-      'developer': ['developer', 'engineer', 'programmer', 'coder', 'software engineer'],
-      'frontend': ['frontend', 'front-end', 'front end', 'ui', 'client-side'],
-      'backend': ['backend', 'back-end', 'back end', 'server-side', 'api'],
-      'fullstack': ['fullstack', 'full-stack', 'full stack', 'frontend and backend'],
-      'mobile': ['mobile', 'ios', 'android', 'react native', 'flutter'],
-      'devops': ['devops', 'sre', 'site reliability', 'infrastructure'],
-      'data': ['data', 'analytics', 'data science', 'ml', 'machine learning'],
-      'security': ['security', 'cybersecurity', 'infosec', 'appsec'],
-      'manager': ['manager', 'lead', 'head of', 'director', 'vp'],
-      'javascript': ['javascript', 'js', 'node', 'nodejs', 'typescript', 'ts'],
-      'python': ['python', 'py', 'django', 'flask'],
-      'java': ['java', 'spring', 'kotlin'],
-      'react': ['react', 'reactjs', 'react.js'],
-      'angular': ['angular', 'angularjs'],
-      'vue': ['vue', 'vuejs', 'vue.js']
-    };
+    const synonyms = configService.get('keywords.jobs.matching.synonyms') as unknown as Record<string, string[]>;
     
     // Extract seniority level from query
-    const seniorityLevels = ['senior', 'sr.', 'sr', 'lead', 'principal', 'staff', 'architect', 'expert'];
-    const midLevels = ['mid', 'mid-level', 'intermediate', 'experienced'];
-    const juniorLevels = ['junior', 'jr.', 'jr', 'entry', 'entry-level', 'graduate', 'associate'];
+    const seniorityLevels = configService.get('keywords.jobs.matching.seniorityLevels', ['senior', 'sr.', 'sr', 'lead', 'principal', 'staff', 'architect', 'expert']) as string[];
+    const midLevels = configService.get('keywords.jobs.matching.midLevels', ['mid', 'mid-level', 'intermediate', 'experienced']) as string[];
+    const juniorLevels = configService.get('keywords.jobs.matching.juniorLevels', ['junior', 'jr.', 'jr', 'entry', 'entry-level', 'graduate', 'associate']) as string[];
     
     const querySeniority = seniorityLevels.some(s => lowerQuery.includes(s)) ? 'senior' :
                            midLevels.some(s => lowerQuery.includes(s)) ? 'mid' :
@@ -379,7 +363,7 @@ class JobSourceService {
     }
     
     // Extract key role words with synonyms
-    const roleWords = ['developer', 'engineer', 'architect', 'programmer', 'software', 'designer', 'analyst', 'manager'];
+    const roleWords = configService.get('keywords.jobs.matching.roleWords', ['developer', 'engineer', 'architect', 'programmer', 'software', 'designer', 'analyst', 'manager']) as string[];
     const queryRoles = roleWords.filter(role => lowerQuery.includes(role));
     
     // Check if job matches any role word (including synonyms)
@@ -392,7 +376,7 @@ class JobSourceService {
     }
     
     // Extract technology/specialization words
-    const stopWords = ['and', 'or', 'the', 'for', 'with', 'job', 'position', 'role'];
+    const stopWords = configService.get('keywords.jobs.matching.stopWords', ['and', 'or', 'the', 'for', 'with', 'job', 'position', 'role']) as string[];
     const techWords = lowerQuery
       .split(/[\s,\/]+/)
       .filter(word => 
@@ -448,7 +432,7 @@ class JobSourceService {
           const searchText = `${job.position} ${job.description}`.toLowerCase();
           return this.matchesQuery(searchText, query);
         })
-        .slice(0, 20)
+        .slice(0, configService.get('limits.jobs.search.google.maxResults', 20) as number)
         .map((job: any) => {
           // Safely parse date
           let postedAt = new Date().toISOString();
@@ -508,7 +492,7 @@ class JobSourceService {
           const searchText = `${job.title} ${job.description} ${job.category}`.toLowerCase();
           return this.matchesQuery(searchText, query);
         })
-        .slice(0, 20)
+        .slice(0, configService.get('limits.jobs.search.google.company.maxResults', 20) as number)
         .map((job: any) => ({
           id: `remotive-${job.id}`,
           source: 'Remotive',
@@ -588,7 +572,7 @@ class JobSourceService {
             console.log(`📋 Sample job: ${jobs[0].job_title} at ${jobs[0].employer_name} (${jobs[0].job_publisher})`);
           }
           
-          const formatted = jobs.slice(0, 30).map((job: any) => {
+          const formatted = jobs.slice(0, configService.get('limits.jobs.search.google.formatted.maxResults', 30) as number).map((job: any) => {
             // Safely parse salary
             let salary = undefined;
             if (job.job_min_salary && job.job_max_salary) {
@@ -765,7 +749,7 @@ class JobSourceService {
           const text = `${job.title} ${job.description}`.toLowerCase();
           return this.matchesQuery(text, query);
         })
-        .slice(0, 20);
+        .slice(0, configService.get('limits.jobs.search.google.startup.maxResults', 20) as number);
       
       const formatted = filtered.map((job: any) => ({
         id: `arbeitnow-${job.slug}`,
@@ -809,7 +793,7 @@ class JobSourceService {
       }
       
       const results = await googleSearchService.search(searchQuery, 'jobs', {
-        maxResults: 20,
+        maxResults: configService.get('limits.jobs.search.google.company.maxResults', 20) as number,
         geolocation: location
       });
       
@@ -839,7 +823,7 @@ class JobSourceService {
           let company = 'Unknown Company';
           
           // Job board domains where we need to extract company from title, not URL
-          const jobBoardDomains = ['linkedin.com', 'indeed.com', 'glassdoor.com', 'glassdoor.co.il', 'drushim.co.il', 'alljobs.co.il'];
+          const jobBoardDomains = configService.get('keywords.jobs.scraping.jobBoardDomains', ['linkedin.com', 'indeed.com', 'glassdoor.com', 'glassdoor.co.il', 'drushim.co.il', 'alljobs.co.il']) as string[];
           const isJobBoard = jobBoardDomains.some(domain => result.displayLink.includes(domain));
           
           if (isJobBoard) {
@@ -970,11 +954,11 @@ class JobSourceService {
     // Count skill mentions in job descriptions
     jobs.forEach(job => {
       const desc = job.description.toLowerCase();
-      const commonSkills = [
+      const commonSkills = configService.get('keywords.jobs.analysis.commonSkills', [
         'javascript', 'typescript', 'python', 'java', 'react', 'node.js', 'nodejs',
         'vue', 'angular', 'aws', 'docker', 'kubernetes', 'sql', 'mongodb', 
         'react native', 'flutter', 'swift', 'kotlin', 'go', 'rust', 'c++', 'c#'
-      ];
+      ]) as string[];
 
       commonSkills.forEach(skill => {
         if (desc.includes(skill)) {
@@ -985,7 +969,7 @@ class JobSourceService {
 
     const sortedSkills = [...topSkills.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .slice(0, configService.get('limits.jobs.search.google.salary.maxResults', 10) as number);
 
     let summary = `
 # Job Search Summary Report
@@ -1010,24 +994,24 @@ ${sources.map(source => {
 }).join('\n')}
 
 ## Top Companies Hiring
-${companies.slice(0, 15).map((company, idx) => `${idx + 1}. ${company}`).join('\n')}
+${companies.slice(0, configService.get('limits.jobs.search.google.companies.maxResults', 15) as number).map((company, idx) => `${idx + 1}. ${company}`).join('\n')}
 
 ## Salary Information
 ${jobs.filter(j => j.salary).length > 0 ? 
-  jobs.filter(j => j.salary).slice(0, 10).map(j => 
+  jobs.filter(j => j.salary).slice(0, configService.get('limits.jobs.search.google.salaryJobs.maxResults', 10) as number).map(j => 
     `- ${j.title} at ${j.company}: ${j.salary}`
   ).join('\n') : 
   'Salary information not available for most listings'}
 
 ## Location Breakdown
-${[...new Set(jobs.map(j => j.location))].slice(0, 10).map(loc => {
+${[...new Set(jobs.map(j => j.location))].slice(0, configService.get('limits.jobs.search.google.locations.maxResults', 10) as number).map(loc => {
   const count = jobs.filter(j => j.location === loc).length;
   return `- ${loc}: ${count} jobs`;
 }).join('\n')}
 
 ## Recommended Actions
-1. Focus on skills: ${sortedSkills.slice(0, 3).map(([skill]) => skill).join(', ')}
-2. Top hiring companies to research: ${companies.slice(0, 5).join(', ')}
+1. Focus on skills: ${sortedSkills.slice(0, configService.get('limits.jobs.search.google.topSkills.maxResults', 3) as number).map(([skill]) => skill).join(', ')}
+2. Top hiring companies to research: ${companies.slice(0, configService.get('limits.jobs.search.google.topCompanies.maxResults', 5) as number).join(', ')}
 3. ${remoteJobs > totalJobs * 0.5 ? 'Many remote opportunities available!' : 'Consider on-site positions for more options'}
 
 ---

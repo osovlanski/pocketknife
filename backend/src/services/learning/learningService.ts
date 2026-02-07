@@ -112,7 +112,7 @@ class LearningService {
       const response = await axios.get('https://dev.to/api/articles', {
         params: {
           tag: query.toLowerCase().replace(/\s+/g, ''),
-          per_page: 15,
+          per_page: configService.get('limits.learning.googleSearch.limit', 15) as number,
           top: 7 // Top articles from last 7 days
         },
         timeout: LEARNING_TIMEOUT()
@@ -268,7 +268,7 @@ class LearningService {
         return queryWords.some(word => text.includes(word));
       });
       
-      const devToResults = filtered.slice(0, 10).map((article: any) => ({
+      const devToResults = filtered.slice(0, configService.get('limits.learning.devto.maxResults', 10) as number).map((article: any) => ({
         id: `linkedin-style-${article.id}`,
         title: article.title,
         url: article.url,
@@ -339,7 +339,7 @@ class LearningService {
             return queryWords.some(word => text.includes(word));
           });
 
-          results.push(...relevant.slice(0, 5));
+          results.push(...relevant.slice(0, configService.get('limits.learning.search.relevant.maxResults', 5) as number));
         } catch (feedError: any) {
           console.warn(`⚠️ Failed to fetch ${newsletter.name}:`, feedError.message);
           

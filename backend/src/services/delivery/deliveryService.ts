@@ -341,7 +341,7 @@ class DeliveryService {
       
       // Cache the preview
       const cacheKey = `delivery:preview:${preview.id}`;
-      await cacheService.set(cacheKey, preview, { ttl: 1800 }); // 30 minutes
+      await cacheService.set(cacheKey, preview, { ttl: configService.get('cache.delivery.previewTtlSeconds', 1800) as number }); // 30 minutes
 
       logger.success('Order preview created', {
         orderId: preview.id,

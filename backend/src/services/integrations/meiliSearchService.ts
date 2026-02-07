@@ -268,7 +268,7 @@ class MeiliSearchService {
     const query = ingredients.join(' ');
     return this.search(INDEXES.RECIPES, query, {
       sort: ['matchScore:desc'],
-      limit: 20
+      limit: configService.get('limits.meiliSearch.recipes.limit', 20) as number
     });
   }
 }

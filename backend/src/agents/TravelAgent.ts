@@ -14,6 +14,7 @@ import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
 import israelTravelService from '../services/travel/israelTravelService';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import { googleSearchService } from '../services/core/googleSearchService';
 import { TripSearchRequest } from '../types/travel';
 import type { 
@@ -361,7 +362,7 @@ export class TravelAgent extends AbstractAgent {
       const trips = await prisma.tripPlan.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: 50
+        take: configService.get('limits.travel.agent.tripPlans.maxResults', 50) as number
       });
 
       return {
@@ -423,7 +424,7 @@ export class TravelAgent extends AbstractAgent {
       this.emitProgress(30);
 
       const results = await googleSearchService.searchAndParse(searchQuery, 'travel', {
-        maxResults: 10
+        maxResults: configService.get('limits.travel.agent.googleSearch.maxResults', 10) as number
       });
 
       this.emitProgress(80);

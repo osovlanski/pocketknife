@@ -6,6 +6,7 @@
 
 import { google, calendar_v3 } from 'googleapis';
 import googleAuthService from '../email/googleAuthService';
+import { configService } from '../core/configService';
 
 interface CalendarEvent {
   id?: string;
@@ -388,7 +389,7 @@ class CalendarService {
         timeMax: endDate.toISOString(),
         singleEvents: true,
         orderBy: 'startTime',
-        maxResults: 50
+        maxResults: configService.get('limits.calendar.events.maxResults', 50) as number
       });
 
       const events = response.data.items || [];

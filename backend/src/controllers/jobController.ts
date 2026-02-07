@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { configService } from '../services/core/configService';
 import cvAnalysisService from '../services/jobs/cvAnalysisService';
 import jobSourceService from '../services/jobs/jobSourceService';
 import jobMatchingService from '../services/jobs/jobMatchingService';
@@ -148,7 +149,7 @@ export const searchJobs = async (req: Request, res: Response) => {
     }
     
     // Add skill-based queries from CV top skills
-    const topSkills = cvData.skills?.slice(0, 3) || [];
+    const topSkills = cvData.skills?.slice(0, configService.get('limits.jobs.controller.cv.topSkills.maxResults', 3) as number) || [];
     if (topSkills.length > 0) {
       const skillQuery = `${cvData.seniorityLevel || ''} ${topSkills.join(' ')} developer`.trim();
       if (!searchQueries.includes(skillQuery) && skillQuery !== baseQuery) {
@@ -696,7 +697,7 @@ export const getCompaniesWithJobs = async (req: Request, res: Response) => {
         sizeFilter, 
         beforeCount, 
         afterCount: filtered.length,
-        sample: filtered.slice(0, 3).map(c => ({ name: c.name, size: c.size, emp: c.employeeCountMax }))
+        sample: filtered.slice(0, configService.get('limits.jobs.controller.companies.sample.maxResults', 3) as number).map(c => ({ name: c.name, size: c.size, emp: c.employeeCountMax }))
       });
     }
 
@@ -716,7 +717,7 @@ export const getCompaniesWithJobs = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      companies: unique.slice(0, 50), // Limit to 50
+      companies: unique.slice(0, configService.get('limits.jobs.controller.companies.maxResults', 50) as number), // Limit to 50
       totalCount: unique.length,
       filters: {
         sizes: sizeFilter,

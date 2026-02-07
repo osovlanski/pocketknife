@@ -224,7 +224,7 @@ Recurring senders found:
 ${frequentDomains.map(({ domain, emails }) => `
 Domain: ${domain}
 Sample emails (${emails.length} total):
-${emails.slice(0, 3).map(e => `  - From: ${e.from}\n    Subject: ${e.subject}`).join('\n')}
+${emails.slice(0, configService.get('limits.email.patterns.examples.maxResults', 3) as number).map(e => `  - From: ${e.from}\n    Subject: ${e.subject}`).join('\n')}
 `).join('\n')}
 
 For each domain, suggest:
@@ -345,7 +345,7 @@ Respond ONLY with valid JSON:
           { occurrenceCount: 'desc' },
           { confidence: 'desc' }
         ],
-        take: 50
+        take: configService.get('limits.email.patterns.maxResults', 50) as number
       });
 
       return patterns.map((p) => ({

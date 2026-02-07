@@ -1433,7 +1433,7 @@ class RamiLevyService {
       try {
         const searchResult = await this.searchProducts(userId, ingredient.name, { 
           storeId, 
-          limit: 5 
+          limit: configService.get('limits.cooking.ramiLevy.ingredientLimit', 5) as number 
         });
 
         if (searchResult.products.length > 0 && autoSelect) {

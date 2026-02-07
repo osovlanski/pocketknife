@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
 import type { TripSearchRequest, FlightOffer, HotelOffer, TravelSearchResult, FlexibleDateResult } from '../../types/travel';
 
 class TravelSearchService {
@@ -230,7 +231,7 @@ class TravelSearchService {
       console.log(`✅ Found ${hotelList.length} hotels in ${destination}`);
 
       // Step 2: Get offers for the first 20 hotels
-      const hotelIds = hotelList.slice(0, 20).map((h: any) => h.hotelId).join(',');
+      const hotelIds = hotelList.slice(0, configService.get('limits.travel.hotels.search.maxResults', 20) as number).map((h: any) => h.hotelId).join(',');
       
       // Ensure checkOutDate is at least 1 day after checkInDate
       let checkOutDate = request.returnDate;
@@ -269,7 +270,7 @@ class TravelSearchService {
         // If error 10604, try with fewer hotels (API sometimes fails with too many)
         if (offerError.response?.data?.errors?.[0]?.code === 10604) {
           console.log('⚠️ Retrying with fewer hotels...');
-          const reducedHotelIds = hotelList.slice(0, 5).map((h: any) => h.hotelId).join(',');
+          const reducedHotelIds = hotelList.slice(0, configService.get('limits.travel.hotels.search.reduced.maxResults', 5) as number).map((h: any) => h.hotelId).join(',');
           
           try {
             const retryResponse = await axios.get(
@@ -294,7 +295,7 @@ class TravelSearchService {
       console.log(`✅ Found ${offers.length} hotel offers with pricing`);
 
       // Transform to our format
-      const hotels: HotelOffer[] = offers.slice(0, 20).map((offer: any) => {
+      const hotels: HotelOffer[] = offers.slice(0, configService.get('limits.travel.hotels.offers.maxResults', 20) as number).map((offer: any) => {
         const hotel = offer.hotel;
         const bestOffer = offer.offers[0]; // Take cheapest offer
 
@@ -431,7 +432,7 @@ class TravelSearchService {
       console.log(`🏆 Best deal: ${sortedResults[0]?.date} at $${sortedResults[0]?.price}`);
 
       return {
-        bestDeals: sortedResults.slice(0, 10), // Top 10 best deals
+        bestDeals: sortedResults.slice(0, configService.get('limits.travel.deals.best.maxResults', 10) as number), // Top best deals
         allFlights,
         cheapestDate: sortedResults[0]?.date || '',
         priceRange

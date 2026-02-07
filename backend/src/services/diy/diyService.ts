@@ -445,7 +445,7 @@ Be thorough, practical, and prioritize safety. Include specific measurements and
       const templates = await prisma.dIYTemplate.findMany({
         where: category ? { category } : {},
         orderBy: { popularity: 'desc' },
-        take: 20,
+        take: configService.get('limits.diy.templates.maxResults', 20) as number,
         select: {
           id: true,
           title: true,

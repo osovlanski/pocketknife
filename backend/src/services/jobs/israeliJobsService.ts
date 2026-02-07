@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
 import { getPrisma } from '../core/databaseService';
 
 interface JobListing {
@@ -154,12 +155,12 @@ class IsraeliJobsService {
    */
   private extractRoleTitle(query: string): string {
     // Industry buzzwords that shouldn't be in job titles
-    const industryBuzzwords = [
+    const industryBuzzwords = configService.get('keywords.jobs.parsing.industryBuzzwords', [
       'fintech', 'healthtech', 'edtech', 'proptech', 'insurtech', 'regtech',
       'cybersecurity', 'cyber', 'blockchain', 'crypto', 'ai', 'ml', 'saas',
       'b2b', 'b2c', 'ecommerce', 'e-commerce', 'gaming', 'adtech', 'martech',
       'foodtech', 'agtech', 'cleantech', 'biotech', 'medtech', 'legaltech'
-    ];
+    ]) as string[];
     
     // Split query into words and filter out industry buzzwords
     const words = query.split(/\s+/);
@@ -195,7 +196,7 @@ class IsraeliJobsService {
     // Take all companies if no specific match (generic developer search)
     const companies = relevantCompanies.length > 0 ? relevantCompanies : allCompanies;
 
-    return companies.slice(0, 30).map((company, index) => ({
+    return companies.slice(0, configService.get('limits.jobs.israeliJobs.companies.maxResults', 30) as number).map((company, index) => ({
       id: `il-company-${index}-${company.name.toLowerCase().replace(/\s+/g, '-')}`,
       source: 'Israeli Tech',
       title: roleTitle, // Clean job title without company name

@@ -12,6 +12,7 @@ import {
   getRelatedPatterns
 } from '../data/codingPatterns';
 import logger from '../utils/logger';
+import { configService } from '../services/core/configService';
 
 /**
  * Search for coding problems from various sources
@@ -266,7 +267,7 @@ export async function getCompanyInterviewProfile(req: Request, res: Response) {
     if (!profile) {
       return res.status(404).json({
         error: `No interview profile found for "${companyName}"`,
-        availableCompanies: getAllCompanyNames().slice(0, 10)
+        availableCompanies: getAllCompanyNames().slice(0, configService.get('limits.problems.controller.companies.maxResults', 10) as number)
       });
     }
 
@@ -764,7 +765,7 @@ export async function getSuggestedProblems(req: Request, res: Response) {
         score: { lt: 70 } // Problems with score below 70
       },
       orderBy: { score: 'asc' },
-      take: 10,
+      take: configService.get('limits.problems.controller.weakProblems.maxResults', 10) as number,
       select: {
         problemId: true,
         title: true,
@@ -807,10 +808,10 @@ export async function getSuggestedProblems(req: Request, res: Response) {
     res.json({
       success: true,
       weakProblems,
-      suggestedPatterns: suggestedPatterns.slice(0, 5),
+      suggestedPatterns: suggestedPatterns.slice(0, configService.get('limits.problems.controller.patterns.maxResults', 5) as number),
       statistics: stats,
       recommendation: weakProblems.length > 0
-        ? `Focus on improving your ${[...weakTopics].slice(0, 3).join(', ')} skills`
+        ? `Focus on improving your ${[...weakTopics].slice(0, configService.get('limits.problems.controller.weakTopics.maxResults', 3) as number).join(', ')} skills`
         : 'Keep practicing! Try more challenging problems.'
     });
   } catch (error: any) {

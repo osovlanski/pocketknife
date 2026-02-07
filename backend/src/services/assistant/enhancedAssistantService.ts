@@ -676,11 +676,11 @@ Respond with JSON:
     const lowerMessage = message.toLowerCase();
 
     // Keywords that signal simple, single-step lookups
-    const simpleSignals = ['show my', 'list my', 'get my', 'check my', 'what tasks', 'my emails', 'my todos'];
+    const simpleSignals = configService.get('keywords.assistant.classification.simpleSignals', ['show my', 'list my', 'get my', 'check my', 'what tasks', 'my emails', 'my todos']) as string[];
     const isSimple = simpleSignals.some(signal => lowerMessage.includes(signal));
 
     // Keywords that signal deep, multi-step reasoning
-    const deepSignals = ['recipe', 'cook', 'plan', 'travel', 'flight', 'search for', 'find me', 'order', 'compare'];
+    const deepSignals = configService.get('keywords.assistant.classification.deepSignals', ['recipe', 'cook', 'plan', 'travel', 'flight', 'search for', 'find me', 'order', 'compare']) as string[];
     const isDeep = deepSignals.some(signal => lowerMessage.includes(signal));
 
     if (isSimple && !isDeep) {
@@ -756,7 +756,7 @@ Respond with JSON:
     }
 
     // Deduplicate and limit
-    return [...new Set(suggestions)].slice(0, 4);
+    return [...new Set(suggestions)].slice(0, configService.get('limits.assistant.enhanced.suggestions.maxResults', 4) as number);
   }
 }
 

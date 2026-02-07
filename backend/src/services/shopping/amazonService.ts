@@ -131,7 +131,7 @@ class AmazonService {
         .map((item: any, index: number) => this.mapProduct(item, index, country));
 
       // Cache for 30 minutes
-      await cacheService.set(cacheKey, mappedProducts, { ttl: 1800 });
+      await cacheService.set(cacheKey, mappedProducts, { ttl: configService.get('cache.shopping.amazon.searchTtlSeconds', 1800) as number });
 
       logger.success('Amazon search completed', { count: mappedProducts.length });
       return mappedProducts;
@@ -165,7 +165,7 @@ class AmazonService {
 
       const product = this.mapProductDetails(data, country);
       
-      await cacheService.set(cacheKey, product, { ttl: 3600 }); // 1 hour cache
+      await cacheService.set(cacheKey, product, { ttl: configService.get('cache.shopping.amazon.productTtlSeconds', 3600) as number }); // 1 hour cache
       return product;
     } catch (error: any) {
       logger.fail('Failed to get Amazon product', { asin, error: error.message });
@@ -209,7 +209,7 @@ class AmazonService {
       const deals = response.data?.data?.deals || [];
       const products = deals.map((item: any, index: number) => this.mapDeal(item, index, country));
 
-      await cacheService.set(cacheKey, products, { ttl: 900 }); // 15 min cache for deals
+      await cacheService.set(cacheKey, products, { ttl: configService.get('cache.shopping.amazon.dealsTtlSeconds', 900) as number }); // 15 min cache for deals
       return products;
     } catch (error: any) {
       logger.fail('Failed to get Amazon deals', { error: error.message });

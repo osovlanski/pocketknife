@@ -362,14 +362,14 @@ class GoogleSearchService {
       throw new Error('QUOTA_EXHAUSTED');
     }
 
-    const { maxResults = 10, siteRestrict, geolocation, language } = options;
+    const { maxResults = configService.get('limits.google.search.default.maxResults', 10) as number, siteRestrict, geolocation, language } = options;
     // Use database config if available, fallback to hardcoded
     const config = await getAgentSearchConfig(agent);
 
     let siteQuery = '';
     const sites = siteRestrict || config.sites;
     if (sites.length > 0) {
-      const sitesToUse = sites.slice(0, 10);
+      const sitesToUse = sites.slice(0, configService.get('limits.google.search.sites.maxResults', 10) as number);
       siteQuery = ` (${sitesToUse.map(s => `site:${s}`).join(' OR ')})`;
     }
 

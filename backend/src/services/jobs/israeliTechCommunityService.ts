@@ -305,7 +305,7 @@ class IsraeliTechCommunityService {
 
     // Try to fetch from RSSHub (a public RSS generator for Telegram channels)
     // This is an alternative way to get public channel content
-    for (const channel of relevantChannels.slice(0, 3)) {
+    for (const channel of relevantChannels.slice(0, configService.get('limits.jobs.community.discord.channels.maxResults', 3) as number)) {
       try {
         // RSSHub Telegram route: /telegram/channel/:username
         const rssUrl = `https://rsshub.app/telegram/channel/${channel.username}`;
@@ -329,7 +329,7 @@ class IsraeliTechCommunityService {
           this.isJobPosting(item.title + ' ' + item.description, queryLower)
         );
 
-        jobs.push(...jobPosts.slice(0, 10));
+        jobs.push(...jobPosts.slice(0, configService.get('limits.jobs.community.discord.jobs.maxResults', 10) as number));
       } catch (error: any) {
         // RSSHub may not work for all channels - silently continue
         console.debug(`⚠️ Telegram channel ${channel.name}: ${error.message}`);
@@ -343,12 +343,12 @@ class IsraeliTechCommunityService {
    * Check if text appears to be a job posting
    */
   private isJobPosting(text: string, query: string): boolean {
-    const jobIndicators = [
+    const jobIndicators = configService.get('keywords.jobs.classification.jobIndicators', [
       'looking for', 'hiring', 'opening', 'position', 'job', 'role',
       'developer', 'engineer', 'designer', 'manager', 'we\'re hiring',
       'join us', 'join our team', 'salary', 'remote', 'full-time', 'part-time',
-      'משרה', 'דרושים', 'מחפשים', 'גיוס' // Hebrew job-related words
-    ];
+      'משרה', 'דרושים', 'מחפשים', 'גיוס'
+    ]) as string[];
 
     const textLower = text.toLowerCase();
     const hasJobIndicator = jobIndicators.some(ind => textLower.includes(ind));
@@ -417,7 +417,7 @@ class IsraeliTechCommunityService {
         params: {
           q: query,
           hiring: true,  // Only companies that are hiring
-          limit: 20
+          limit: configService.get('limits.jobs.community.startupNation.limit', 20) as number
         },
         headers: {
           'User-Agent': this.userAgent,
@@ -433,7 +433,7 @@ class IsraeliTechCommunityService {
       
       return startups
         .filter((s: any) => s.is_hiring || s.open_positions > 0)
-        .slice(0, 15)
+        .slice(0, configService.get('limits.jobs.community.lobsters.maxResults', 15) as number)
         .map((startup: any, idx: number) => ({
           id: `snc-${startup.id || idx}-${Date.now()}`,
           source: 'Startup Nation Central',

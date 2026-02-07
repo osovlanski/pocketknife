@@ -117,7 +117,7 @@ class IsraelTechScraperService {
             word.length > 2 && text.includes(word.toLowerCase())
           );
         })
-        .slice(0, 50) // Increased limit for startup jobs
+        .slice(0, configService.get('limits.jobs.scrapers.geektime.maxResults', 50) as number) // Increased limit for startup jobs
         .map((job: any) => ({
           id: `geektime-${job.id}`,
           source: 'Geektime',
@@ -526,7 +526,7 @@ class IsraelTechScraperService {
       const response = await axios.get(url, {
         params: {
           action: 'getJobs',
-          limit: 50
+          limit: configService.get('limits.jobs.scrapers.geektimeInsider.limit', 50) as number
         },
         headers: {
           'User-Agent': this.userAgent,
@@ -549,7 +549,7 @@ class IsraelTechScraperService {
           const text = `${job.title} ${job.company} ${job.description || ''}`.toLowerCase();
           return query.split(/\s+/).some(word => word.length > 2 && text.includes(word.toLowerCase()));
         })
-        .slice(0, 30)
+        .slice(0, configService.get('limits.jobs.scrapers.goozali.maxResults', 30) as number)
         .map((job: any, idx: number) => ({
           id: `goozali-${job.id || idx}-${Date.now()}`,
           source: 'Goozali',
@@ -638,7 +638,7 @@ class IsraelTechScraperService {
       const response = await axios.get(url, {
         params: {
           location: 'Israel',
-          limit: 30
+          limit: configService.get('limits.jobs.scrapers.f6s.limit', 30) as number
         },
         headers: {
           'User-Agent': this.userAgent,
@@ -661,7 +661,7 @@ class IsraelTechScraperService {
           const text = `${job.title} ${job.company_name} ${job.description}`.toLowerCase();
           return query.split(/\s+/).some(word => word.length > 2 && text.includes(word.toLowerCase()));
         })
-        .slice(0, 30)
+        .slice(0, configService.get('limits.jobs.scrapers.f6s.maxResults', 30) as number)
         .map((job: any, idx: number) => ({
           id: `f6s-${job.id || idx}-${Date.now()}`,
           source: 'F6S',

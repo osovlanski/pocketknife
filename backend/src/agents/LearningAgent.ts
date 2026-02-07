@@ -12,6 +12,7 @@ import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getManifest } from './manifests';
 import learningService from '../services/learning/learningService';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import { googleSearchService } from '../services/core/googleSearchService';
 
 interface LearningParams extends AgentParams {
@@ -160,7 +161,7 @@ export class LearningAgent extends AbstractAgent {
       this.emitProgress(30);
 
       const results = await googleSearchService.searchAndParse(query, 'learning', {
-        maxResults: 10
+        maxResults: configService.get('limits.learning.agent.googleSearch.maxResults', 10) as number
       });
 
       this.emitProgress(80);
@@ -368,7 +369,7 @@ export class LearningAgent extends AbstractAgent {
           action: 'save_article'
         },
         orderBy: { createdAt: 'desc' },
-        take: 100
+        take: configService.get('limits.learning.agent.savedArticles.maxResults', 100) as number
       });
 
       // Extract article data from metadata

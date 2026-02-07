@@ -158,7 +158,7 @@ class SpoonacularService {
       const recipes: SpoonacularRecipe[] = response.data.results || [];
 
       // Cache for 2 hours
-      await cacheService.set(cacheKey, recipes, { ttl: 7200 });
+      await cacheService.set(cacheKey, recipes, { ttl: configService.get('cache.cooking.spoonacular.searchTtlSeconds', 7200) as number });
 
       logger.success('Spoonacular search completed', { count: recipes.length });
       return recipes;
@@ -188,7 +188,7 @@ class SpoonacularService {
       });
 
       const recipe = response.data;
-      await cacheService.set(cacheKey, recipe, { ttl: 86400 }); // 24 hours
+      await cacheService.set(cacheKey, recipe, { ttl: configService.get('cache.cooking.spoonacular.recipeTtlSeconds', 86400) as number }); // 24 hours
 
       return recipe;
     } catch (error: any) {
@@ -226,7 +226,7 @@ class SpoonacularService {
         if (fullRecipe) recipes.push(fullRecipe);
       }
 
-      await cacheService.set(cacheKey, recipes, { ttl: 3600 });
+      await cacheService.set(cacheKey, recipes, { ttl: configService.get('cache.cooking.spoonacular.byIngredientsTtlSeconds', 3600) as number });
       return recipes;
     } catch (error: any) {
       logger.fail('Failed to find recipes by ingredients', { error: error.message });
@@ -290,7 +290,7 @@ class SpoonacularService {
       });
 
       const results = response.data.results || [];
-      await cacheService.set(cacheKey, results, { ttl: 86400 });
+      await cacheService.set(cacheKey, results, { ttl: configService.get('cache.cooking.spoonacular.ingredientsTtlSeconds', 86400) as number });
 
       return results;
     } catch (error: any) {
@@ -315,7 +315,7 @@ class SpoonacularService {
       });
 
       const substitutes = response.data.substitutes || [];
-      await cacheService.set(cacheKey, substitutes, { ttl: 86400 });
+      await cacheService.set(cacheKey, substitutes, { ttl: configService.get('cache.cooking.spoonacular.substitutesTtlSeconds', 86400) as number });
 
       return substitutes;
     } catch (error: any) {

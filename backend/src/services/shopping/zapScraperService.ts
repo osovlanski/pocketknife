@@ -49,7 +49,7 @@ class ZapScraperService {
           'Connection': 'keep-alive',
           'Upgrade-Insecure-Requests': '1'
         },
-        timeout: 15000
+        timeout: configService.get('shopping.zapScraper.timeoutMs', 15000) as number
       });
 
       if (!response.data) {
@@ -186,7 +186,7 @@ If no products found, return: {"products": []}`;
     for (const pattern of patterns) {
       const matches = html.match(pattern);
       if (matches && matches.length > 0) {
-        return matches.slice(0, 15).join('\n');
+        return matches.slice(0, configService.get('limits.shopping.zap.matches.maxResults', 15) as number).join('\n');
       }
     }
 

@@ -132,7 +132,7 @@ class ConversationMemoryService {
         updatedAt: m.updatedAt
       }));
 
-      await cacheService.set(cacheKey, result, { ttl: 300 });
+      await cacheService.set(cacheKey, result, { ttl: configService.get('cache.assistant.memory.ttlSeconds', 300) as number });
       return result;
     } catch {
       // Table might not exist yet
@@ -331,7 +331,7 @@ Respond with JSON in this exact format:
           ]
         },
         orderBy: { updatedAt: 'desc' },
-        take: 5
+        take: configService.get('limits.assistant.memory.search.maxResults', 5) as number
       });
 
       if (!memories) return [];

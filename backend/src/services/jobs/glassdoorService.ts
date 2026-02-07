@@ -154,7 +154,7 @@ class GlassdoorService {
         glassdoorUrl: item.glassdoor_url || `https://www.glassdoor.com/Overview/${item.name}-EI_IE${item.id}.htm`
       }));
 
-      await cacheService.set(cacheKey, companies, { ttl: 86400 }); // 24 hours
+      await cacheService.set(cacheKey, companies, { ttl: configService.get('cache.glassdoor.companyTtlSeconds', 86400) as number }); // 24 hours
       return companies;
     } catch (error: any) {
       logger.fail('Glassdoor company search failed', { error: error.message });
@@ -193,7 +193,7 @@ class GlassdoorService {
         totalReviews: data.total_reviews || data.review_count || 0
       };
 
-      await cacheService.set(cacheKey, rating, { ttl: 86400 });
+      await cacheService.set(cacheKey, rating, { ttl: configService.get('cache.glassdoor.ratingTtlSeconds', 86400) as number });
       return rating;
     } catch (error: any) {
       logger.fail('Failed to get company ratings', { companyId, error: error.message });
@@ -229,7 +229,7 @@ class GlassdoorService {
         advice: item.advice || item.management_advice
       }));
 
-      await cacheService.set(cacheKey, reviews, { ttl: 43200 }); // 12 hours
+      await cacheService.set(cacheKey, reviews, { ttl: configService.get('cache.glassdoor.reviewsTtlSeconds', 43200) as number }); // 12 hours
       return reviews;
     } catch (error: any) {
       logger.fail('Failed to get company reviews', { companyId, error: error.message });
@@ -272,7 +272,7 @@ class GlassdoorService {
         sampleSize: item.sample_size || item.count || 0
       }));
 
-      await cacheService.set(cacheKey, salaries, { ttl: 86400 });
+      await cacheService.set(cacheKey, salaries, { ttl: configService.get('cache.glassdoor.salariesTtlSeconds', 86400) as number });
       return salaries;
     } catch (error: any) {
       logger.fail('Failed to get salaries', { companyId, error: error.message });
@@ -310,7 +310,7 @@ class GlassdoorService {
         tips: item.tips
       }));
 
-      await cacheService.set(cacheKey, interviews, { ttl: 43200 });
+      await cacheService.set(cacheKey, interviews, { ttl: configService.get('cache.glassdoor.interviewsTtlSeconds', 43200) as number });
       return interviews;
     } catch (error: any) {
       logger.fail('Failed to get interviews', { companyId, error: error.message });
@@ -354,7 +354,7 @@ class GlassdoorService {
       company,
       ratings,
       topReviews: reviews,
-      topSalaries: salaries.slice(0, 5)
+      topSalaries: salaries.slice(0, configService.get('limits.jobs.glassdoor.salaries.maxResults', 5) as number)
     };
   }
 

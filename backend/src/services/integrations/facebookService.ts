@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import { configService } from '../core/configService';
 import logger from '../../utils/logger';
 
 export interface FacebookStatus {
@@ -63,12 +64,12 @@ class FacebookService {
     try {
       // Get app access token to verify credentials
       const tokenUrl = `https://graph.facebook.com/oauth/access_token?client_id=${this.appId}&client_secret=${this.appSecret}&grant_type=client_credentials`;
-      const tokenResponse = await axios.get(tokenUrl, { timeout: 5000 });
+      const tokenResponse = await axios.get(tokenUrl, { timeout: configService.get('integrations.facebook.timeoutMs', 5000) as number });
       
       if (tokenResponse.data?.access_token) {
         // Get app info
         const appUrl = `${this.graphUrl}/${this.appId}?access_token=${tokenResponse.data.access_token}`;
-        const appResponse = await axios.get(appUrl, { timeout: 5000 });
+        const appResponse = await axios.get(appUrl, { timeout: configService.get('integrations.facebook.timeoutMs', 5000) as number });
         
         return {
           configured: true,

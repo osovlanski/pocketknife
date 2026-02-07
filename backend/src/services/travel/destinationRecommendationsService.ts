@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import https from 'https';
+import { configService } from '../core/configService';
 
 interface DestinationGuide {
   city: string;
@@ -242,7 +243,7 @@ Return ONLY this JSON structure:
     const guides = new Map<string, DestinationGuide>();
 
     // Get guides for top 3 destinations
-    const topDestinations = flights.slice(0, 3);
+    const topDestinations = flights.slice(0, configService.get('limits.travel.destinations.top.maxResults', 3) as number);
 
     for (const flight of topDestinations) {
       try {

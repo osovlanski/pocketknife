@@ -125,7 +125,7 @@ If price isn't clear, estimate based on the product type.
 Search query: "${query}"
 
 Search results:
-${results.slice(0, 8).map((item, i) => `
+${results.slice(0, configService.get('limits.shopping.israeliShops.search.maxResults', 8) as number).map((item, i) => `
 ${i + 1}. Title: ${item.title}
    URL: ${item.link}
    Site: ${item.displayLink}

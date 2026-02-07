@@ -62,7 +62,7 @@ class AdditionalJobAPIs {
           return text.includes(queryLower) || 
                  queryLower.split(' ').some(word => text.includes(word));
         })
-        .slice(0, 20)
+        .slice(0, configService.get('limits.jobs.apis.theMuse.maxResults', 20) as number)
         .map((job: any) => {
           // Parse location
           const jobLocation = job.locations?.[0]?.name || 'Remote';
@@ -127,7 +127,7 @@ class AdditionalJobAPIs {
           return text.includes(queryLower) || 
                  queryLower.split(' ').some(word => word.length > 3 && text.includes(word));
         })
-        .slice(0, 20)
+        .slice(0, configService.get('limits.jobs.apis.arbeitnow.maxResults', 20) as number)
         .map((job: any) => ({
           id: `findwork-${job.id}`,
           source: 'Findwork.dev',
@@ -203,7 +203,7 @@ class AdditionalJobAPIs {
           return text.includes(queryLower) || 
                  queryLower.split(' ').some(word => word.length > 3 && text.includes(word));
         })
-        .slice(0, 20)
+        .slice(0, configService.get('limits.jobs.apis.himalayas.maxResults', 20) as number)
         .map((job: any) => ({
           id: `himalayas-${job.id || job.slug}`,
           source: 'Himalayas',

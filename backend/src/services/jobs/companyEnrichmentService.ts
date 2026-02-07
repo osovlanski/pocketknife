@@ -8,7 +8,7 @@ import logger from '../../utils/logger';
 
 // Get timeout from config
 const ENRICHMENT_TIMEOUT = () => configService.get('jobs.enrichment.timeoutMs', 10000);
-const CACHE_TTL = 24 * 60 * 60; // 24 hours
+const CACHE_TTL = () => configService.get('cache.jobs.companyEnrichment.ttlSeconds', 86400) as number;
 
 interface CompanyInfo {
   name: string;
@@ -252,7 +252,7 @@ class CompanyEnrichmentService {
     }
 
     // Skip common words that aren't company names
-    const invalidNames = ['jobs', 'careers', 'hiring', 'job', 'career', 'glassdoor', 'linkedin', 'indeed'];
+    const invalidNames = configService.get('keywords.jobs.enrichment.invalidNames', ['jobs', 'careers', 'hiring', 'job', 'career', 'glassdoor', 'linkedin', 'indeed']) as string[];
     if (invalidNames.includes(normalizedName)) {
       return null;
     }
@@ -279,7 +279,7 @@ class CompanyEnrichmentService {
     if (info) {
       // Store in both caches
       companyCache.set(normalizedName, info);
-      await cacheService.set(cacheKey, info, { ttl: CACHE_TTL });
+      await cacheService.set(cacheKey, info, { ttl: CACHE_TTL() });
 
       // Also persist to database for long-term storage
       await this.persistCompanyToDatabase(info);

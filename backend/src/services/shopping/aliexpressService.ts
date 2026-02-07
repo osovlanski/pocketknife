@@ -144,7 +144,7 @@ class AliExpressService {
         .map((item: any, index: number) => this.mapProduct(item, index));
 
       // Cache for 30 minutes
-      await cacheService.set(cacheKey, products, { ttl: 1800 });
+      await cacheService.set(cacheKey, products, { ttl: configService.get('cache.shopping.aliexpress.searchTtlSeconds', 1800) as number });
 
       logger.success('AliExpress search completed', { count: products.length });
       return products;
@@ -178,7 +178,7 @@ class AliExpressService {
 
       const product = this.mapProductDetails(data);
       
-      await cacheService.set(cacheKey, product, { ttl: 3600 }); // 1 hour cache
+      await cacheService.set(cacheKey, product, { ttl: configService.get('cache.shopping.aliexpress.productTtlSeconds', 3600) as number }); // 1 hour cache
       return product;
     } catch (error: any) {
       logger.fail('Failed to get AliExpress product', { productId, error: error.message });
@@ -206,7 +206,7 @@ class AliExpressService {
       const items = response.data?.result || [];
       const products = items.map((item: any, index: number) => this.mapProduct(item, index));
 
-      await cacheService.set(cacheKey, products, { ttl: 1800 });
+      await cacheService.set(cacheKey, products, { ttl: configService.get('cache.shopping.aliexpress.recommendedTtlSeconds', 1800) as number });
       return products;
     } catch (error: any) {
       logger.fail('Failed to get AliExpress recommendations', { error: error.message });

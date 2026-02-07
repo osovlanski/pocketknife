@@ -235,7 +235,7 @@ class GroceryDeepLinkProvider {
       const deepLink = this.generateDeepLink(store, itemNames);
 
       // Create a combined search URL for all items
-      const combinedQuery = itemNames.slice(0, 5).join(' '); // Limit to 5 items for URL length
+      const combinedQuery = itemNames.slice(0, configService.get('limits.delivery.grocery.deepLink.maxItems', 5) as number).join(' '); // Limit items for URL length
       const webUrl = this.generateSearchUrl(store, combinedQuery);
 
       return {

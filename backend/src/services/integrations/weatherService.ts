@@ -148,7 +148,7 @@ class WeatherService {
           const response = await axios.get(`${this.geoUrl}/direct`, {
             params: {
               q: city,
-              limit: 1,
+              limit: configService.get('limits.weather.api.geocodeLimit', 1) as number,
               appid: this.apiKey
             },
             timeout: this.timeoutMs

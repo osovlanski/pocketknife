@@ -256,6 +256,16 @@ export const apiDefaults = {
   'jobs.scrapers.requestDelayMs': 1000,
 
   // ==========================================================================
+  // TIMEOUTS (ms)
+  // ==========================================================================
+  'admin.api.test.timeoutMs': 10000,
+  'admin.api.test.jsearch.timeoutMs': 20000,
+  'admin.api.test.adzuna.timeoutMs': 15000,
+  'shopping.zapScraper.timeoutMs': 15000,
+  'serpapi.timeoutMs': 10000,
+  'integrations.facebook.timeoutMs': 5000,
+
+  // ==========================================================================
   // DEVELOPMENT CORS ORIGINS
   // ==========================================================================
   'cors.devOrigins': ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']

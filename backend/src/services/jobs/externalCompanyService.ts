@@ -159,7 +159,7 @@ class ExternalCompanyService {
   async getCompanyById(id: string): Promise<any> {
     return (getPrismaOrThrow() as any).externalCompany.findUnique({
       where: { id },
-      include: { jobs: { where: { isActive: true }, take: 50 } }
+      include: { jobs: { where: { isActive: true }, take: configService.get('limits.jobs.company.jobs.maxResults', 50) as number } }
     });
   }
 
@@ -169,7 +169,7 @@ class ExternalCompanyService {
   async getCompanyBySlug(slug: string): Promise<any> {
     return (getPrismaOrThrow() as any).externalCompany.findUnique({
       where: { slug },
-      include: { jobs: { where: { isActive: true }, take: 50 } }
+      include: { jobs: { where: { isActive: true }, take: configService.get('limits.jobs.company.jobs.maxResults', 50) as number } }
     });
   }
 
@@ -340,7 +340,7 @@ class ExternalCompanyService {
         params: {
           query: company.name,
           collection_ids: 'organizations',
-          limit: 1
+          limit: configService.get('limits.jobs.company.crunchbase.limit', 1) as number
         },
         headers: {
           'X-cb-user-key': apiKey

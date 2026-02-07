@@ -176,7 +176,7 @@ export class NewsAgent extends AbstractAgent {
    * Get personalized news feed based on learned preferences
    */
   private async getPersonalizedFeed(params: NewsAgentParams): Promise<AgentResult<NewsAgentResult>> {
-    const { userId, maxResults = 20 } = params;
+    const { userId, maxResults = configService.get('limits.news.agent.personalizedFeed.maxResults', 20) as number } = params;
 
     if (!userId) {
       return { success: false, error: 'User ID is required for personalized feed' };
@@ -199,7 +199,7 @@ export class NewsAgent extends AbstractAgent {
       const preferredTopics = Object.entries(preferences?.topicWeights || {})
         .filter(([, weight]) => weight > 0.4)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
+        .slice(0, configService.get('limits.news.agent.sources.maxResults', 5) as number)
         .map(([topic]) => topic);
 
       if (preferredTopics.length === 0) {
@@ -354,7 +354,7 @@ export class NewsAgent extends AbstractAgent {
    * Get user's saved articles
    */
   private async getSavedArticles(params: NewsAgentParams): Promise<AgentResult<NewsAgentResult>> {
-    const { userId, maxResults = 50 } = params;
+    const { userId, maxResults = configService.get('limits.news.agent.trends.maxResults', 50) as number } = params;
 
     if (!userId) {
       return { success: false, error: 'User ID is required' };

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { configService } from '../core/configService';
 import travelSearchService from './travelSearchService';
 import type { TripSearchRequest, FlightOffer, HotelOffer } from '../../types/travel';
 
@@ -207,8 +208,8 @@ class SpecializedTravelService {
       });
     }
 
-    // Take top 5 resorts
-    const topResorts = filteredResorts.slice(0, 5);
+    // Take top resorts
+    const topResorts = filteredResorts.slice(0, configService.get('limits.travel.resorts.top.maxResults', 5) as number);
 
     if (io) {
       io.emit('travel-log', {
@@ -280,8 +281,8 @@ class SpecializedTravelService {
 
           skiDeals.push({
             resort,
-            flights: flights.slice(0, 5),
-            hotels: hotels.slice(0, 5),
+            flights: flights.slice(0, configService.get('limits.travel.packages.flights.maxResults', 5) as number),
+            hotels: hotels.slice(0, configService.get('limits.travel.packages.hotels.maxResults', 5) as number),
             totalEstimate,
             dealScore: Math.min(100, Math.max(0, dealScore))
           });
@@ -372,7 +373,7 @@ class SpecializedTravelService {
       d.bestMonths.includes(departureMonth)
     );
 
-    for (const dest of suitableDestinations.slice(0, 5)) {
+    for (const dest of suitableDestinations.slice(0, configService.get('limits.travel.destinations.suitable.maxResults', 5) as number)) {
       try {
         const searchRequest: TripSearchRequest = {
           ...request,

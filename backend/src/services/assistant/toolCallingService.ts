@@ -17,6 +17,7 @@ import { agentRegistry } from '../../agents/AgentRegistry';
 import type { AgentId } from '../../agents/types';
 import { agentOrchestratorService } from './agentOrchestratorService';
 import logger from '../../utils/logger';
+import { configService } from '../core/configService';
 
 // =============================================================================
 // TYPES
@@ -1186,7 +1187,7 @@ const executeWebSearch = async (
         snippet: string;
       }
 
-      const results = await googleSearchService.search(params.query, 'general', { maxResults: 5 });
+      const results = await googleSearchService.search(params.query, 'general', { maxResults: configService.get('limits.assistant.toolCalling.googleSearch.maxResults', 5) as number });
 
       return {
         success: true,

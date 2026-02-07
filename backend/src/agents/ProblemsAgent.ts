@@ -12,6 +12,7 @@ import { AgentMetadata, AgentResult, AgentParams } from './types';
 import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import { googleSearchService } from '../services/core/googleSearchService';
+import { configService } from '../services/core/configService';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -161,7 +162,7 @@ export class ProblemsAgent extends AbstractAgent {
       const solvedProblems = await prisma.solvedProblem.findMany({
         where,
         orderBy: { solvedAt: 'desc' },
-        take: 100
+        take: configService.get('limits.problems.agent.solvedProblems.maxResults', 100) as number
       });
 
       return {
@@ -214,7 +215,7 @@ export class ProblemsAgent extends AbstractAgent {
       this.emitProgress(30);
 
       const results = await googleSearchService.searchAndParse(searchQuery, 'problems', {
-        maxResults: 10
+        maxResults: configService.get('limits.problems.agent.googleSearch.maxResults', 10) as number
       });
 
       this.emitProgress(80);

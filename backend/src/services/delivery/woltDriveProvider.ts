@@ -173,7 +173,7 @@ export class WoltDriveProvider implements IDeliveryProvider {
       await cacheService.set(
         `wolt:promise:${promise.id}`,
         promise,
-        { ttl: 1800 } // 30 minutes
+        { ttl: configService.get('cache.delivery.wolt.promiseTtlSeconds', 1800) as number } // 30 minutes
       );
 
       return promise;
@@ -234,7 +234,7 @@ export class WoltDriveProvider implements IDeliveryProvider {
     await cacheService.set(
       `wolt:preview:${preview.id}`,
       { preview, promise, dropoffAddress },
-      { ttl: 1800 }
+      { ttl: configService.get('cache.delivery.wolt.previewTtlSeconds', 1800) as number }
     );
 
     return preview;
