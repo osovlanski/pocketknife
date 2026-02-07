@@ -72,6 +72,14 @@ import styles from '../styles/assistant.module.css';
 
 const MAX_INPUT_LENGTH = 4000;
 
+type AssistantMode = 'auto' | 'instant' | 'thinking';
+
+const MODE_CONFIG: Record<AssistantMode, { label: string; icon: React.ReactNode; description: string }> = {
+  auto: { label: 'Auto', icon: <Zap size={14} />, description: 'Balanced speed and depth' },
+  instant: { label: 'Instant', icon: <Play size={14} />, description: 'Fast, concise responses' },
+  thinking: { label: 'Thinking', icon: <Brain size={14} />, description: 'Deep analysis with reasoning' },
+};
+
 const FOLLOW_UP_SUGGESTIONS = [
   'Tell me more about this',
   'Can you explain that differently?',
@@ -676,6 +684,10 @@ const KeyboardHints: React.FC = () => {
         New line
       </span>
       <span className={styles.keyHint}>
+        <span className={styles.keyCombo}>{navigator.userAgent.includes('Mac') ? 'Cmd' : 'Ctrl'} + V</span>
+        Paste image
+      </span>
+      <span className={styles.keyHint}>
         <span className={styles.keyCombo}>Esc</span>
         Cancel
       </span>
@@ -848,6 +860,70 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSelect, di
 };
 
 // =============================================================================
+// MODE SELECTOR
+// =============================================================================
+
+interface ModeSelectorProps {
+  mode: AssistantMode;
+  onChange: (mode: AssistantMode) => void;
+}
+
+const ModeSelector: React.FC<ModeSelectorProps> = ({ mode, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentConfig = MODE_CONFIG[mode];
+
+  return (
+    <div className={styles.modeSelector} ref={dropdownRef}>
+      <button
+        type="button"
+        className={styles.modeToggle}
+        onClick={() => setIsOpen(!isOpen)}
+        title={`Mode: ${currentConfig.label} - ${currentConfig.description}`}
+        aria-label={`Current mode: ${currentConfig.label}`}
+      >
+        {currentConfig.icon}
+        <span className={styles.modeLabel}>{currentConfig.label}</span>
+        <ChevronDown size={12} className={isOpen ? styles.modeChevronOpen : ''} />
+      </button>
+      {isOpen && (
+        <div className={styles.modeDropdown}>
+          {(Object.entries(MODE_CONFIG) as [AssistantMode, typeof MODE_CONFIG[AssistantMode]][]).map(([key, config]) => (
+            <button
+              key={key}
+              type="button"
+              className={`${styles.modeOption} ${mode === key ? styles.modeOptionActive : ''}`}
+              onClick={() => {
+                onChange(key);
+                setIsOpen(false);
+              }}
+            >
+              <span className={styles.modeOptionIcon}>{config.icon}</span>
+              <span className={styles.modeOptionContent}>
+                <span className={styles.modeOptionLabel}>{config.label}</span>
+                <span className={styles.modeOptionDesc}>{config.description}</span>
+              </span>
+              {mode === key && <Check size={14} className={styles.modeCheckIcon} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -858,8 +934,10 @@ const AssistantAgent: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ base64: string; type: string } | null>(null);
   const [enablePlanPreview, setEnablePlanPreview] = useState(false);
+  const [assistantMode, setAssistantMode] = useState<AssistantMode>('auto');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
 
   // Handle clicking on an agent tag to navigate
   const handleTagClick = (tag: AgentTagConfig) => {
@@ -874,6 +952,48 @@ const AssistantAgent: React.FC = () => {
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Handle clipboard paste for images (scoped to chat area)
+  useEffect(() => {
+    const container = chatAreaRef.current;
+    if (!container) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
+
+          const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+          if (!validTypes.includes(file.type)) continue;
+
+          if (file.size > 10 * 1024 * 1024) {
+            alert('Image size must be less than 10MB');
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result as string;
+            const base64Data = base64.split(',')[1];
+            setPendingImage({ base64: base64Data, type: file.type });
+          };
+          reader.onerror = () => {
+            console.error('Failed to read pasted image from clipboard');
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    };
+
+    container.addEventListener('paste', handlePaste);
+    return () => container.removeEventListener('paste', handlePaste);
   }, []);
 
   // Auto-resize textarea
@@ -900,12 +1020,18 @@ const AssistantAgent: React.FC = () => {
       inputRef.current.style.height = 'auto';
     }
 
+    // Prefix message with mode hint for backend context
+    const modePrefix = assistantMode !== 'auto'
+      ? `[mode:${assistantMode}] `
+      : '';
+    const fullMessage = modePrefix + message;
+
     // If there's a pending image, send with image
     if (pendingImage) {
-      await assistant.sendMessageWithImage(message, pendingImage.base64, pendingImage.type);
+      await assistant.sendMessageWithImage(fullMessage, pendingImage.base64, pendingImage.type);
       setPendingImage(null);
     } else {
-      await assistant.sendMessage(message, enablePlanPreview);
+      await assistant.sendMessage(fullMessage, enablePlanPreview);
     }
   };
 
@@ -986,7 +1112,7 @@ const AssistantAgent: React.FC = () => {
         />
 
         {/* Main Chat Area */}
-        <div className={styles.chatArea}>
+        <div className={styles.chatArea} ref={chatAreaRef}>
           {/* Plan Preview Panel - shown when there's a pending plan */}
           {assistant.currentPlan && (
             <PlanPreviewPanel
@@ -1086,7 +1212,11 @@ const AssistantAgent: React.FC = () => {
                 {/* Pending image preview */}
                 {pendingImage && (
                   <div className={styles.pendingImagePreview}>
-                    <Image size={14} />
+                    <img
+                      src={`data:${pendingImage.type};base64,${pendingImage.base64}`}
+                      alt="Attached"
+                      className={styles.pendingImageThumb}
+                    />
                     <span>Image attached</span>
                     <button
                       type="button"
@@ -1099,6 +1229,10 @@ const AssistantAgent: React.FC = () => {
                   </div>
                 )}
                 <div className={styles.inputActions}>
+                  <ModeSelector
+                    mode={assistantMode}
+                    onChange={setAssistantMode}
+                  />
                   <ImageUploadButton
                     onImageSelect={handleImageSelect}
                     disabled={assistant.isProcessing}

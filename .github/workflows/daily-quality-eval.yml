@@ -33,15 +33,37 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Check required secrets
+        id: check-secrets
+        env:
+          HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "$HAS_ANTHROPIC_KEY" != "true" ]; then
+            echo "::warning::ANTHROPIC_API_KEY secret is not configured"
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
+        if: steps.check-secrets.outputs.has_secrets == 'true'
         working-directory: backend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Generate Prisma client
+        if: steps.check-secrets.outputs.has_secrets == 'true'
         working-directory: backend
-        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma generate 2>&1 || echo "::warning::Prisma generate failed"
 
       - name: Run evaluation
+        if: steps.check-secrets.outputs.has_secrets == 'true'
         working-directory: backend
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -49,6 +71,21 @@ jobs:
           QUESTION_COUNT: ${{ github.event.inputs.question_count }}
         run: |
           npm run evaluate:daily --if-present || node scripts/dailyEvaluation.js
+
+      - name: Create skip report
+        if: steps.check-secrets.outputs.has_secrets != 'true'
+        run: |
+          mkdir -p docs/quality-reports
+          DATE_STR=$(date +%Y-%m-%d)
+          cat > "docs/quality-reports/${DATE_STR}-skipped.md" << 'EOF'
+          # Quality Evaluation Skipped
+
+          Required secrets are not configured. Please add:
+          - `ANTHROPIC_API_KEY` - Anthropic API key
+          - `DATABASE_URL` - PostgreSQL connection string (optional)
+
+          Go to Settings > Secrets and variables > Actions to configure.
+          EOF
 
       - name: Commit report
         run: |

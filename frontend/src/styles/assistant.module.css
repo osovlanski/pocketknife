@@ -1439,6 +1439,14 @@
   }
 }
 
+.pendingImageThumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 0.25rem;
+  object-fit: cover;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
 .pendingImagePreview svg {
   color: #60a5fa;
 }
@@ -1468,6 +1476,138 @@
 /* Adjust input padding when image is attached */
 .inputWrapper:has(.pendingImagePreview) .messageInput {
   padding-top: 2.75rem !important;
+}
+
+/* =============================================================================
+   MODE SELECTOR
+   ============================================================================= */
+
+.modeSelector {
+  position: relative;
+}
+
+.modeToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 36px;
+}
+
+.modeToggle:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+
+.modeLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modeChevronOpen {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.modeDropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.375rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  animation: modeDropdownIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modeDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.modeOption:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #e2e8f0;
+}
+
+.modeOptionActive {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+.modeOptionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.375rem;
+  flex-shrink: 0;
+}
+
+.modeOptionActive .modeOptionIcon {
+  background: rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+
+.modeOptionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+}
+
+.modeOptionLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.modeOptionDesc {
+  font-size: 0.65rem;
+  color: #64748b;
+}
+
+.modeCheckIcon {
+  color: #8b5cf6;
+  flex-shrink: 0;
 }
 
 /* =============================================================================

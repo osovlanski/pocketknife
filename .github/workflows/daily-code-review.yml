@@ -58,31 +58,38 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run Code Review Script
+        id: review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FOCUS_AREA: ${{ github.event.inputs.focus_area || 'general' }}
           CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
-          # Create review script
           cat > review-script.js << 'SCRIPT'
-          const Anthropic = require('@anthropic-ai/sdk');
           const fs = require('fs');
-          const path = require('path');
 
           (async function runReview() {
-            // Validate API key upfront
             if (!process.env.ANTHROPIC_API_KEY) {
-              console.error('ERROR: ANTHROPIC_API_KEY secret is not set');
-              fs.writeFileSync('DAILY_REVIEW.md', '## Review Failed\n\nANTHROPIC_API_KEY secret is not configured in repository secrets.');
-              process.exit(1);
+              console.error('ERROR: ANTHROPIC_API_KEY secret is not set.');
+              fs.writeFileSync('DAILY_REVIEW.md', [
+                '## Review Skipped - Missing API Key',
+                '',
+                'The `ANTHROPIC_API_KEY` secret is not configured.',
+                '',
+                '### Setup',
+                '1. Go to **Settings > Secrets and variables > Actions**',
+                '2. Click **New repository secret**',
+                '3. Name: `ANTHROPIC_API_KEY`, Value: your key from https://console.anthropic.com/',
+                ''
+              ].join('\n'));
+              process.exit(0);
             }
 
             try {
+              const Anthropic = require('@anthropic-ai/sdk');
               const client = new Anthropic();
               const focusArea = process.env.FOCUS_AREA || 'general';
               const changedFiles = process.env.CHANGED_FILES || '';
 
-              // Read key files for context
               const keyFiles = [
                 'ARCHITECTURE.md',
                 'backend/src/agents/AbstractAgent.ts',
@@ -95,29 +102,27 @@ jobs:
                 try {
                   const content = fs.readFileSync(file, 'utf8');
                   context += `\n--- ${file} ---\n${content.slice(0, 5000)}\n`;
-                } catch (e) {
-                  // File might not exist
-                }
+                } catch (_) { /* file may not exist */ }
               }
 
               const prompt = `You are a strict principal tech lead reviewing a codebase.
 
-Focus Area: ${focusArea}
-Recently Changed Files:
-${changedFiles}
+          Focus Area: ${focusArea}
+          Recently Changed Files:
+          ${changedFiles}
 
-Key Files Context:
-${context}
+          Key Files Context:
+          ${context}
 
-Provide a concise daily review focusing on:
-1. Any critical issues that need immediate attention
-2. Code quality concerns
-3. Security vulnerabilities
-4. Performance bottlenecks
-5. Technical debt items
+          Provide a concise daily review focusing on:
+          1. Any critical issues that need immediate attention
+          2. Code quality concerns
+          3. Security vulnerabilities
+          4. Performance bottlenecks
+          5. Technical debt items
 
-Format as markdown suitable for a GitHub issue.
-Keep the review actionable and under 2000 words.`;
+          Format as markdown suitable for a GitHub issue.
+          Keep the review actionable and under 2000 words.`;
 
               const response = await client.messages.create({
                 model: 'claude-sonnet-4-20250514',
@@ -130,23 +135,27 @@ Keep the review actionable and under 2000 words.`;
               console.log('Review completed successfully');
             } catch (error) {
               console.error('Review failed:', error.message);
-              fs.writeFileSync('DAILY_REVIEW.md', `## Review Failed\n\nError: ${error.message}\n\nPlease check the workflow logs for details.`);
+              fs.writeFileSync('DAILY_REVIEW.md', [
+                '## Review Failed',
+                '',
+                'Error: ' + error.message,
+                '',
+                'Check the workflow logs for details.'
+              ].join('\n'));
               process.exit(1);
             }
           })();
           SCRIPT
 
-          # Install Anthropic SDK and run review
-          npm install @anthropic-ai/sdk
+          npm install --no-save @anthropic-ai/sdk 2>&1
           node review-script.js
 
       - name: Create GitHub Issue
+        if: always() && steps.review.outcome != 'skipped'
         uses: peter-evans/create-issue-from-file@v4
-        env:
-          REVIEW_DATE: ${{ steps.date.outputs.date }}
-          REPO_NAME: ${{ github.event.repository.name }}
         with:
-          title: "Daily Code Review - ${{ env.REPO_NAME }} - ${{ env.REVIEW_DATE }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Daily Code Review - ${{ github.event.repository.name }} - ${{ steps.date.outputs.date }}"
           content-filepath: DAILY_REVIEW.md
           labels: |
             automated-review

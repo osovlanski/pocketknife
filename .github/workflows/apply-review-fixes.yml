@@ -69,15 +69,18 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
           cat > implement-fixes.js << 'SCRIPT'
-          const Anthropic = require('@anthropic-ai/sdk');
           const fs = require('fs');
           const path = require('path');
 
           (async function implementFixes() {
             if (!process.env.ANTHROPIC_API_KEY) {
-              console.error('ERROR: ANTHROPIC_API_KEY is not set');
+              console.error('ERROR: ANTHROPIC_API_KEY secret is not set.');
+              console.error('Go to Settings > Secrets and variables > Actions to add it.');
+              fs.writeFileSync('PR_BODY.md', '## Failed\n\nANTHROPIC_API_KEY secret is not configured.');
               process.exit(1);
             }
+
+            const Anthropic = require('@anthropic-ai/sdk');
 
             try {
               const client = new Anthropic();
@@ -187,7 +190,7 @@ Return only valid JSON.`;
           })();
           SCRIPT
 
-          npm install @anthropic-ai/sdk
+          npm install --no-save @anthropic-ai/sdk 2>&1
           node implement-fixes.js
 
       - name: Commit and push
