@@ -57,7 +57,7 @@ export const evaluationService = {
   /**
    * Evaluate a single AI assistant response using Claude as a judge.
    *
-   * Sends the question/response pair to Claude Haiku for scoring across
+   * Sends the question/response pair to Claude for scoring across
    * multiple quality dimensions. Returns scores with `isError: true` on
    * API failure so callers can distinguish errors from real evaluations.
    *
@@ -65,7 +65,7 @@ export const evaluationService = {
    * @param response - The assistant's response text (truncated internally)
    * @param expectedAgents - Agent IDs that should have been invoked
    * @param actualAgents - Agent IDs that were actually invoked
-   * @returns Scores across all dimensions plus an overall weighted average
+   * @returns Scores across all dimensions plus an overall average (equal-weight arithmetic mean)
    */
   evaluateResponse: async (
     question: string,
@@ -108,6 +108,8 @@ export const evaluationService = {
         });
       }
 
+      // If Zod validation fails, flag the result as an error so it's excluded from aggregation
+      const isValidationFailure = !parsed.success;
       const scores = parsed.success ? parsed.data : {
         accuracy: 3 as const,
         helpfulness: 3 as const,
@@ -115,7 +117,7 @@ export const evaluationService = {
         clarity: 3 as const,
         safety: 5 as const,
         agentUsage: null,
-        feedback: 'Validation fallback'
+        feedback: 'Validation fallback — scores are not real data'
       };
 
       const dimensionScores = {
@@ -131,7 +133,7 @@ export const evaluationService = {
         ...dimensionScores,
         overall: computeOverall(dimensionScores),
         feedback: scores.feedback ?? '',
-        isError: false
+        isError: isValidationFailure
       };
 
       return result;

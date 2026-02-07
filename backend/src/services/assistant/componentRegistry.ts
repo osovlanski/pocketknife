@@ -154,7 +154,7 @@ export function buildComponentKBPrompt(): string {
 
 /**
  * Generate default render hints for a set of card types based on the registry.
- * Applies intelligent defaults: small result sets get grid, large get list, etc.
+ * Applies intelligent defaults: compact layout for large sets (>8), list for small (<=3), default otherwise.
  */
 export function generateRenderHints(
   cardCounts: Record<string, number>

@@ -2,7 +2,8 @@
  * Cache Configuration Defaults
  *
  * Default TTL (time-to-live) values for various cache layers and categories.
- * All TTL values are in seconds unless noted otherwise.
+ * All TTL values are in seconds except where the key suffix indicates
+ * otherwise (e.g., `TtlMs` for milliseconds).
  *
  * @module services/core/config/defaults/cacheDefaults
  */

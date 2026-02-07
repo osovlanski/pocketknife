@@ -18,7 +18,7 @@ export type {
   QuestionCategory,
   Difficulty,
   ScoreValue,
-  AgentType
+  EvaluationAgentId
 } from './types';
 
 export {

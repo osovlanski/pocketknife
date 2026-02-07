@@ -221,7 +221,7 @@ function validateToolInput(
 }
 
 /**
- * Basic input sanitization for unschemaed tools
+ * Basic input sanitization for tools without Zod schemas
  */
 function sanitizeInput(input: Record<string, unknown>): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
@@ -1109,18 +1109,15 @@ export const executeToolsParallel = async (
 
 /**
  * Derive valid agent IDs from the registry at runtime.
- * Lazy-initialized on first use to allow all agents to register first.
+ * Always reads from the live registry so dynamically-registered agents are recognized.
+ * The assistant agent is excluded since it's not a cross-call target.
  */
-let _validAgentIds: Set<string> | null = null;
 const getValidAgentIds = (): Set<string> => {
-  if (!_validAgentIds) {
-    _validAgentIds = new Set(
-      agentRegistry.getAll()
-        .map(agent => agent.metadata.id)
-        .filter(id => id !== 'assistant') // assistant is not a cross-call target
-    );
-  }
-  return _validAgentIds;
+  return new Set(
+    agentRegistry.getAll()
+      .map(agent => agent.metadata.id)
+      .filter(id => id !== 'assistant')
+  );
 };
 
 /**

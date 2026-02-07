@@ -134,8 +134,10 @@ class ConversationMemoryService {
 
       await cacheService.set(cacheKey, result, { ttl: configService.get('cache.assistant.memory.ttlSeconds', 300) as number });
       return result;
-    } catch {
-      // Table might not exist yet
+    } catch (error: unknown) {
+      logger.debug('Conversation memory query failed (table may not exist)', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return [];
     }
   }
@@ -346,7 +348,10 @@ Respond with JSON in this exact format:
         createdAt: m.createdAt,
         updatedAt: m.updatedAt
       }));
-    } catch {
+    } catch (error: unknown) {
+      logger.debug('Conversation memory search failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return [];
     }
   }
@@ -376,7 +381,10 @@ Respond with JSON in this exact format:
       }
 
       return result?.count || 0;
-    } catch {
+    } catch (error: unknown) {
+      logger.debug('Conversation memory cleanup failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return 0;
     }
   }

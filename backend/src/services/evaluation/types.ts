@@ -30,8 +30,8 @@ export type QuestionCategory =
   | 'email'
   | 'multi-agent';
 
-/** Known agent identifiers */
-export type AgentType =
+/** Known agent identifiers for evaluation (subset of AgentId, excludes assistant/news/diy) */
+export type EvaluationAgentId =
   | 'cooking'
   | 'jobs'
   | 'travel'
@@ -133,7 +133,7 @@ export interface ChatExecutionResult {
 // HELPER FUNCTIONS
 // =============================================================================
 
-/** Clamp a value to the 0-5 score range */
+/** Clamp a value to the 0-5 score range. Non-number inputs default to 3 (midpoint). */
 export const clampScore = (value: unknown): number => {
   const num = typeof value === 'number' ? value : 3;
   return Math.max(0, Math.min(5, num));

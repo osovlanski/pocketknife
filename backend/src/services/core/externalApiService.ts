@@ -971,8 +971,8 @@ export const externalApiService = {
           currentUsage: { increment: 1 }
         }
       });
-    } catch {
-      // Silently fail
+    } catch (error: unknown) {
+      logger.debug('Usage tracking increment failed', { name, error: error instanceof Error ? error.message : String(error) });
     }
   },
 
@@ -988,8 +988,8 @@ export const externalApiService = {
           usageResetAt: new Date()
         }
       });
-    } catch {
-      // Silently fail
+    } catch (error: unknown) {
+      logger.debug('Usage tracking reset failed', { name, error: error instanceof Error ? error.message : String(error) });
     }
   },
 
