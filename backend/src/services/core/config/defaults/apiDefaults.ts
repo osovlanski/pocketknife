@@ -206,6 +206,56 @@ export const apiDefaults = {
   'urls.nominatim.base': 'https://nominatim.openstreetmap.org',
 
   // ==========================================================================
+  // GROCERY STORE URLS
+  // ==========================================================================
+  'grocery.stores.wolt.baseUrl': 'https://wolt.com',
+  'grocery.stores.wolt.searchUrl': 'https://wolt.com/en/isr/search?q=',
+  'grocery.stores.wolt.logoUrl': 'https://wolt.com/favicon.ico',
+  'grocery.stores.shufersal.baseUrl': 'https://www.shufersal.co.il',
+  'grocery.stores.shufersal.searchUrl': 'https://www.shufersal.co.il/online/he/search?q=',
+  'grocery.stores.shufersal.cartUrl': 'https://www.shufersal.co.il/online/he/checkout',
+  'grocery.stores.shufersal.logoUrl': 'https://www.shufersal.co.il/favicon.ico',
+  'grocery.stores.ramiLevy.baseUrl': 'https://www.rami-levy.co.il',
+  'grocery.stores.ramiLevy.searchUrl': 'https://www.rami-levy.co.il/he/online/search?q=',
+  'grocery.stores.ramiLevy.cartUrl': 'https://www.rami-levy.co.il/he/online/cart',
+  'grocery.stores.ramiLevy.logoUrl': 'https://www.rami-levy.co.il/favicon.ico',
+  'grocery.stores.victory.baseUrl': 'https://www.victoryonline.co.il',
+  'grocery.stores.victory.searchUrl': 'https://www.victoryonline.co.il/search?q=',
+  'grocery.stores.victory.logoUrl': 'https://www.victoryonline.co.il/favicon.ico',
+  'grocery.stores.yochananof.baseUrl': 'https://yochananof.co.il',
+  'grocery.stores.yochananof.searchUrl': 'https://yochananof.co.il/search?keyword=',
+  'grocery.stores.yochananof.logoUrl': 'https://yochananof.co.il/favicon.ico',
+
+  // ==========================================================================
+  // ISRAELI JOB SCRAPER URLS
+  // ==========================================================================
+  'jobs.scrapers.geektime.apiUrl': 'https://www.geektime.co.il/wp-json/developer-api/get-jobs',
+  'jobs.scrapers.geektime.baseUrl': 'https://www.geektime.co.il',
+  'jobs.scrapers.geektimeInsider.jobsApiUrl': 'https://insider.geektime.co.il/wp-json/app/v1/rand/jobs',
+  'jobs.scrapers.geektimeInsider.companyApiUrl': 'https://insider.geektime.co.il/wp-json/app/v1/rand/company',
+  'jobs.scrapers.geektimeInsider.baseUrl': 'https://insider.geektime.co.il',
+  'jobs.scrapers.calcalist.careerUrl': 'https://www.calcalist.co.il/calcalistech/category/31922',
+  'jobs.scrapers.calcalist.techUrl': 'https://www.calcalist.co.il/calcalistech',
+  'jobs.scrapers.calcalist.baseUrl': 'https://www.calcalist.co.il',
+  'jobs.scrapers.calcalist.rssUrls': [
+    'https://www.calcalist.co.il/GeneralRSS/0,16716,L-5251,00.xml',
+    'https://www.calcalist.co.il/GeneralRSS/0,16716,L-3935,00.xml'
+  ],
+  'jobs.scrapers.allJobs.baseUrl': 'https://www.alljobs.co.il',
+  'jobs.scrapers.goozali.apiUrl': 'https://script.google.com/macros/s/AKfycbwZ5m5aqYqvlvHEcjk8kQM5q8lKwfY3L3X7N4kEpB1L4qNm3YM/exec',
+  'jobs.scrapers.goozali.baseUrl': 'https://en.goozali.com',
+  'jobs.scrapers.f6s.apiUrl': 'https://api.f6s.com/jobs',
+  'jobs.scrapers.f6s.baseUrl': 'https://www.f6s.com',
+  'jobs.scrapers.drushim.baseUrl': 'https://www.drushim.co.il',
+  'jobs.scrapers.wellfound.graphqlUrl': 'https://wellfound.com/graphql',
+  'jobs.scrapers.wellfound.baseUrl': 'https://wellfound.com',
+  'jobs.scrapers.secretTelAviv.baseUrl': 'https://www.secrettelaviv.com',
+  'jobs.scrapers.hiTechJobs.baseUrl': 'https://www.hitech-jobs.co.il',
+  'jobs.scrapers.wallaJobs.baseUrl': 'https://jobs.walla.co.il',
+  'jobs.scrapers.jobMaster.baseUrl': 'https://www.jobmaster.co.il',
+  'jobs.scrapers.requestDelayMs': 1000,
+
+  // ==========================================================================
   // DEVELOPMENT CORS ORIGINS
   // ==========================================================================
   'cors.devOrigins': ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']
