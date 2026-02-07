@@ -8,6 +8,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import {
   assistantService,
   agentOrchestratorService,
@@ -53,13 +54,7 @@ const conversationCacheKey = (userId: string, conversationId: string) =>
 // =============================================================================
 
 export class AssistantAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'assistant',
-    name: 'AI Assistant',
-    description: 'Your intelligent assistant that can help with recipes, jobs, travel, tasks, and more',
-    icon: '🤖',
-    color: '#8B5CF6' // Purple
-  };
+  readonly metadata: AgentMetadata = getManifest('assistant');
 
   constructor() {
     super({

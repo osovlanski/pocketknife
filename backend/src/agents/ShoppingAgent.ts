@@ -12,6 +12,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import { configService } from '../services/core/configService';
 import claudeService from '../services/core/claudeService';
@@ -98,13 +99,7 @@ interface ProductSuggestion {
 }
 
 export class ShoppingAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'shopping',
-    name: 'Shopping Agent',
-    description: 'Find deals, track prices, and get product suggestions',
-    icon: '🛒',
-    color: '#F59E0B' // Amber
-  };
+  readonly metadata: AgentMetadata = getManifest('shopping');
 
   protected async run(params: ShoppingParams): Promise<AgentResult<ShoppingResult>> {
     const { action } = params;

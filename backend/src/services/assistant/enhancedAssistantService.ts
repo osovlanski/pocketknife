@@ -20,7 +20,7 @@ import {
   type ToolCallResult
 } from '../../utils/anthropicClient';
 import { createAgentTools, executeTool, executeToolsParallel } from './toolCallingService';
-import { AGENT_TYPE_CLASSIFICATION } from './agentOrchestratorService';
+import { agentOrchestratorService } from './agentOrchestratorService';
 import { buildComponentKBPrompt } from './componentRegistry';
 import type { StructuredCard, CardGroupRenderHints } from './structuredCards';
 import { extractStructuredDataFromToolCalls, buildRenderHints } from './structuredCards';

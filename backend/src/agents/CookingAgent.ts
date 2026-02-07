@@ -14,6 +14,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { cookingService, CookingItemData, CookingFilters, RecipeSearchParams, recipeDeliveryService, ramiLevyService } from '../services/cooking';
 import type { RamiLevyTokens, RamiLevyCart, RamiLevyProduct, RamiLevySearchResult } from '../services/cooking';
 import { deliveryService, groceryDeepLinkProvider } from '../services/delivery';
@@ -151,13 +152,7 @@ interface CookingResult {
 }
 
 export class CookingAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'cooking',
-    name: 'Cooking Agent',
-    description: 'Manage kitchen inventory, find recipes, and track shopping lists',
-    icon: '🍳',
-    color: '#22C55E' // Green
-  };
+  readonly metadata: AgentMetadata = getManifest('cooking');
 
   protected async run(params: CookingParams): Promise<AgentResult<CookingResult>> {
     const { action } = params;

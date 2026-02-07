@@ -9,6 +9,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 
 interface EmailParams extends AgentParams {
@@ -22,13 +23,7 @@ interface EmailResult {
 }
 
 export class EmailAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'email',
-    name: 'Email Agent',
-    description: 'Process Gmail inbox, classify emails with AI, and organize your mailbox',
-    icon: '📧',
-    color: '#EF4444' // Red
-  };
+  readonly metadata: AgentMetadata = getManifest('email');
 
   protected async run(params: EmailParams): Promise<AgentResult<EmailResult>> {
     const { action } = params;

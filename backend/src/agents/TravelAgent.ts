@@ -8,6 +8,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
@@ -90,13 +91,7 @@ interface LocalSearchResult {
 }
 
 export class TravelAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'travel',
-    name: 'Travel Agent',
-    description: 'Find flights, hotels, ski deals, and generate AI-powered trip plans',
-    icon: '✈️',
-    color: '#3B82F6' // Blue
-  };
+  readonly metadata: AgentMetadata = getManifest('travel');
 
   protected async run(params: TravelParams): Promise<AgentResult<TravelResult>> {
     const { action } = params;

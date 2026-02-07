@@ -9,6 +9,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import learningService from '../services/learning/learningService';
 import { getPrisma } from '../services/core/databaseService';
 import { googleSearchService } from '../services/core/googleSearchService';
@@ -54,13 +55,7 @@ interface WebSearchResult {
 }
 
 export class LearningAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'learning',
-    name: 'Learning Agent',
-    description: 'Search and summarize technical content from Dev.to, Hacker News, Reddit, and newsletters',
-    icon: '📚',
-    color: '#10B981' // Emerald
-  };
+  readonly metadata: AgentMetadata = getManifest('learning');
 
   protected async run(params: LearningParams): Promise<AgentResult<LearningResult>> {
     const { action, userId } = params;

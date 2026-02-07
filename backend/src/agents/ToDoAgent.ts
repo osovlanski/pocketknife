@@ -12,6 +12,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import claudeService from '../services/core/claudeService';
 import calendarService from '../services/calendar/calendarService';
@@ -102,13 +103,7 @@ interface CalendarEventForAgenda {
 }
 
 export class ToDoAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'todo',
-    name: 'ToDo Agent',
-    description: 'Manage tasks, learn routines, and sync with Google Calendar',
-    icon: '✅',
-    color: '#10B981' // Emerald green
-  };
+  readonly metadata: AgentMetadata = getManifest('todo');
 
   protected async run(params: ToDoParams): Promise<AgentResult<ToDoResult>> {
     const { action } = params;

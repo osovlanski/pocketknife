@@ -13,6 +13,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { newsService, NewsArticle, NewsSearchParams, NewsTrend } from '../services/news';
 import { configService } from '../services/core/configService';
 import { getPrisma } from '../services/core/databaseService';
@@ -89,13 +90,7 @@ interface NewsAgentResult {
 // =============================================================================
 
 export class NewsAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'news',
-    name: 'News Agent',
-    description: 'Personalized news aggregation with AI-powered learning and multi-source integration',
-    icon: '📰',
-    color: '#EF4444' // Red
-  };
+  readonly metadata: AgentMetadata = getManifest('news');
 
   protected async run(params: NewsAgentParams): Promise<AgentResult<NewsAgentResult>> {
     const { action } = params;

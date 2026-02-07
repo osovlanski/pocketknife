@@ -9,6 +9,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import { googleSearchService } from '../services/core/googleSearchService';
 
@@ -47,13 +48,7 @@ interface SolutionSearchResult {
 }
 
 export class ProblemsAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'problems',
-    name: 'Problems Agent',
-    description: 'Practice coding problems from LeetCode, Codeforces, and curated interview lists',
-    icon: '💻',
-    color: '#F59E0B' // Amber
-  };
+  readonly metadata: AgentMetadata = getManifest('problems');
 
   protected async run(params: ProblemsParams): Promise<AgentResult<ProblemsResult>> {
     const { action } = params;

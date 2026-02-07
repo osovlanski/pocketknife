@@ -11,6 +11,7 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { diyService, DIYProject, DIYProjectRequest, DIYMaterial } from '../services/diy';
 import { configService } from '../services/core/configService';
 import { SkillLevelId, DifficultyLevel, DIYCategoryId } from '../types/constants';
@@ -97,13 +98,7 @@ interface DIYAgentResult {
 // =============================================================================
 
 export class DIYAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'diy',
-    name: 'DIY Agent',
-    description: 'AI-powered DIY project generator with step-by-step instructions and shopping integration',
-    icon: '🔧',
-    color: '#F59E0B' // Amber
-  };
+  readonly metadata: AgentMetadata = getManifest('diy');
 
   constructor() {
     super({
