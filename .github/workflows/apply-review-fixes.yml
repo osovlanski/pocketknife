@@ -123,30 +123,32 @@ jobs:
                 }
               }
 
-              const prompt = `You are implementing fixes based on a code review.
-
-REVIEW FINDINGS (issue #${issueNumber}):
-${issueContent}
-
-CODEBASE CONTEXT:
-${codebaseContext}
-
-Return JSON with fixes:
-{
-  "summary": "Brief description",
-  "files": [
-    {
-      "path": "path/to/file.ts",
-      "action": "modify",
-      "description": "What this changes",
-      "search_replace": [{ "search": "old", "replace": "new" }]
-    }
-  ],
-  "skipped": [{ "item": "description", "reason": "why" }]
-}
-
-Only implement clear, actionable fixes. Skip vague or risky suggestions.
-Return only valid JSON.`;
+              const prompt = [
+                'You are implementing fixes based on a code review.',
+                '',
+                `REVIEW FINDINGS (issue #${issueNumber}):`,
+                issueContent,
+                '',
+                'CODEBASE CONTEXT:',
+                codebaseContext,
+                '',
+                'Return JSON with fixes:',
+                '{',
+                '  "summary": "Brief description",',
+                '  "files": [',
+                '    {',
+                '      "path": "path/to/file.ts",',
+                '      "action": "modify",',
+                '      "description": "What this changes",',
+                '      "search_replace": [{ "search": "old", "replace": "new" }]',
+                '    }',
+                '  ],',
+                '  "skipped": [{ "item": "description", "reason": "why" }]',
+                '}',
+                '',
+                'Only implement clear, actionable fixes. Skip vague or risky suggestions.',
+                'Return only valid JSON.'
+              ].join('\n');
 
               console.log('Calling Claude...');
               const response = await client.messages.create({
