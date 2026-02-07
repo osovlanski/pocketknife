@@ -12,9 +12,11 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import claudeService from '../services/core/claudeService';
 import calendarService from '../services/calendar/calendarService';
+import { configService } from '../services/core/configService';
 
 interface ToDoParams extends AgentParams {
   action: 
@@ -102,13 +104,7 @@ interface CalendarEventForAgenda {
 }
 
 export class ToDoAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'todo',
-    name: 'ToDo Agent',
-    description: 'Manage tasks, learn routines, and sync with Google Calendar',
-    icon: '✅',
-    color: '#10B981' // Emerald green
-  };
+  readonly metadata: AgentMetadata = getManifest('todo');
 
   protected async run(params: ToDoParams): Promise<AgentResult<ToDoResult>> {
     const { action } = params;
@@ -322,7 +318,7 @@ export class ToDoAgent extends AbstractAgent {
           { priority: 'desc' },
           { createdAt: 'desc' }
         ],
-        take: 100
+        take: configService.get('limits.todo.agent.tasks.maxResults', 100) as number
       });
 
       return { success: true, data: { tasks } };
@@ -453,7 +449,7 @@ export class ToDoAgent extends AbstractAgent {
           status: 'pending'
         },
         orderBy: { confidence: 'desc' },
-        take: 5
+        take: configService.get('limits.todo.agent.suggestedTasks.maxResults', 5) as number
       });
 
       // Get Google Calendar events for the day
@@ -676,7 +672,7 @@ export class ToDoAgent extends AbstractAgent {
           confidence: { gte: 0.6 }
         },
         orderBy: { confidence: 'desc' },
-        take: 10
+        take: configService.get('limits.todo.agent.suggestedRoutines.maxResults', 10) as number
       });
 
       return { success: true, data: { suggestedRoutines } };
@@ -760,7 +756,7 @@ export class ToDoAgent extends AbstractAgent {
           completedAt: { gte: thirtyDaysAgo }
         },
         orderBy: { completedAt: 'desc' },
-        take: 100
+        take: configService.get('limits.todo.agent.completedTasks.maxResults', 100) as number
       });
 
       if (completedTasks.length < 5) {

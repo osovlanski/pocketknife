@@ -28,9 +28,16 @@ export const PROBLEM_SOURCES = [
 ] as const;
 export type ProblemSource = typeof PROBLEM_SOURCES[number];
 
-/** Curated lists */
+/**
+ * Curated lists for type derivation.
+ * Runtime value is configurable via configService key 'problems.curatedLists'.
+ */
 export const CURATED_LISTS = ['blind75', 'neetcode150', 'grind75'] as const;
 export type CuratedList = typeof CURATED_LISTS[number];
+
+/** Get the runtime list of curated lists (supports dynamic extension via config) */
+export const getCuratedLists = (): string[] =>
+  configService.get('problems.curatedLists', [...CURATED_LISTS]) as string[];
 
 interface CodingProblem {
   id: string;
@@ -218,7 +225,7 @@ class ProblemSolvingService {
       problems = problems.filter(p => p.difficulty === difficulty);
     }
 
-    return problems.slice(0, 20).map(p => this.curatedToCodingProblem(p));
+    return problems.slice(0, configService.get('limits.problems.search.maxResults', 20) as number).map(p => this.curatedToCodingProblem(p));
   }
 
   /**
@@ -254,7 +261,7 @@ class ProblemSolvingService {
           const tagMatch = p.tags?.some((t: string) => t.toLowerCase().includes(queryLower));
           return nameMatch || tagMatch;
         })
-        .slice(0, 15);
+        .slice(0, configService.get('limits.problems.search.curated.maxResults', 15) as number);
 
       // Apply difficulty filter
       if (difficulty) {
@@ -422,7 +429,7 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
         variables: {
           categorySlug: '',
           skip: 0,
-          limit: 50,
+          limit: configService.get('limits.problems.googleSearch.limit', 50) as number,
           filters: {
             difficulty: difficulty?.toUpperCase() || undefined,
             searchKeywords: query
@@ -444,11 +451,11 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       
       const problems = questions
         .filter((q: any) => !q.paidOnly) // Only free problems
-        .slice(0, 20); // Show more problems
+        .slice(0, configService.get('limits.problems.search.display.maxResults', 20) as number); // Show more problems
 
       // Fetch detailed descriptions for the first 10 problems
       const detailedProblems = await Promise.all(
-        problems.slice(0, 10).map(async (q: any) => {
+        problems.slice(0, configService.get('limits.problems.search.batch.maxResults', 10) as number).map(async (q: any) => {
           const fullDescription = await this.getLeetCodeProblemDescription(q.titleSlug);
           return {
             id: `leetcode-${q.frontendQuestionId}`,
@@ -779,8 +786,8 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
       filteredProblems = this.leetcode75Problems;
     }
 
-    // Return up to 20 problems
-    return filteredProblems.slice(0, 20);
+    // Return up to configured limit problems
+    return filteredProblems.slice(0, configService.get('limits.problems.search.filtered.maxResults', 20) as number);
   }
 
   /**
@@ -852,7 +859,7 @@ Make the problems realistic interview questions. Return ONLY valid JSON.`
     }
 
     // Add curated problems
-    problems.push(...relevantProblems.slice(0, 10).map(p => this.curatedToCodingProblem(p)));
+    problems.push(...relevantProblems.slice(0, configService.get('limits.problems.search.relevant.maxResults', 10) as number).map(p => this.curatedToCodingProblem(p)));
 
     // Get company profile for context
     const companyProfile = getCompanyProfile(company);

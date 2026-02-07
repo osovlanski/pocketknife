@@ -269,7 +269,7 @@ class NotionService {
     return this.createDatabaseEntry(databaseId, {
       Name: { title: [{ text: { content: recipe.title } }] },
       URL: recipe.url ? { url: recipe.url } : undefined,
-      Ingredients: { multi_select: recipe.ingredients.slice(0, 100).map(ing => ({ name: ing.substring(0, 100) })) },
+      Ingredients: { multi_select: recipe.ingredients.slice(0, configService.get('limits.notion.recipes.ingredients.maxResults', 100) as number).map(ing => ({ name: ing.substring(0, 100) })) },
       Instructions: recipe.instructions ? { rich_text: [{ text: { content: recipe.instructions.substring(0, 2000) } }] } : undefined,
       'Prep Time': recipe.prepTime ? { number: recipe.prepTime } : undefined,
       'Cook Time': recipe.cookTime ? { number: recipe.cookTime } : undefined,

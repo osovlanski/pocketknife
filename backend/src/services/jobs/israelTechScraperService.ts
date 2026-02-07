@@ -2,8 +2,65 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { configService } from '../core/configService';
 
-// Get timeout from config with fallback
+// Get timeout and delay from config with fallbacks
 const SCRAPER_TIMEOUT = () => configService.get('jobs.scraper.timeoutMs', 15000);
+const SCRAPER_DELAY = () => configService.get('jobs.scrapers.requestDelayMs', 1000);
+
+/**
+ * Centralized URL lookup for all scraper sources.
+ * All URLs are configurable via configService (see apiDefaults.ts).
+ * This eliminates hardcoded URLs scattered across 15+ methods.
+ */
+const scraperUrl = {
+  geektime: {
+    api: () => configService.get('jobs.scrapers.geektime.apiUrl', 'https://www.geektime.co.il/wp-json/developer-api/get-jobs'),
+    base: () => configService.get('jobs.scrapers.geektime.baseUrl', 'https://www.geektime.co.il'),
+  },
+  geektimeInsider: {
+    jobsApi: () => configService.get('jobs.scrapers.geektimeInsider.jobsApiUrl', 'https://insider.geektime.co.il/wp-json/app/v1/rand/jobs'),
+    companyApi: () => configService.get('jobs.scrapers.geektimeInsider.companyApiUrl', 'https://insider.geektime.co.il/wp-json/app/v1/rand/company'),
+    base: () => configService.get('jobs.scrapers.geektimeInsider.baseUrl', 'https://insider.geektime.co.il'),
+  },
+  calcalist: {
+    career: () => configService.get('jobs.scrapers.calcalist.careerUrl', 'https://www.calcalist.co.il/calcalistech/category/31922'),
+    tech: () => configService.get('jobs.scrapers.calcalist.techUrl', 'https://www.calcalist.co.il/calcalistech'),
+    base: () => configService.get('jobs.scrapers.calcalist.baseUrl', 'https://www.calcalist.co.il'),
+    rss: () => configService.get('jobs.scrapers.calcalist.rssUrls', [
+      'https://www.calcalist.co.il/GeneralRSS/0,16716,L-5251,00.xml',
+      'https://www.calcalist.co.il/GeneralRSS/0,16716,L-3935,00.xml'
+    ]),
+  },
+  allJobs: {
+    base: () => configService.get('jobs.scrapers.allJobs.baseUrl', 'https://www.alljobs.co.il'),
+  },
+  goozali: {
+    api: () => configService.get('jobs.scrapers.goozali.apiUrl', 'https://script.google.com/macros/s/AKfycbwZ5m5aqYqvlvHEcjk8kQM5q8lKwfY3L3X7N4kEpB1L4qNm3YM/exec'),
+    base: () => configService.get('jobs.scrapers.goozali.baseUrl', 'https://en.goozali.com'),
+  },
+  f6s: {
+    api: () => configService.get('jobs.scrapers.f6s.apiUrl', 'https://api.f6s.com/jobs'),
+    base: () => configService.get('jobs.scrapers.f6s.baseUrl', 'https://www.f6s.com'),
+  },
+  drushim: {
+    base: () => configService.get('jobs.scrapers.drushim.baseUrl', 'https://www.drushim.co.il'),
+  },
+  wellfound: {
+    graphql: () => configService.get('jobs.scrapers.wellfound.graphqlUrl', 'https://wellfound.com/graphql'),
+    base: () => configService.get('jobs.scrapers.wellfound.baseUrl', 'https://wellfound.com'),
+  },
+  secretTelAviv: {
+    base: () => configService.get('jobs.scrapers.secretTelAviv.baseUrl', 'https://www.secrettelaviv.com'),
+  },
+  hiTechJobs: {
+    base: () => configService.get('jobs.scrapers.hiTechJobs.baseUrl', 'https://www.hitech-jobs.co.il'),
+  },
+  wallaJobs: {
+    base: () => configService.get('jobs.scrapers.wallaJobs.baseUrl', 'https://jobs.walla.co.il'),
+  },
+  jobMaster: {
+    base: () => configService.get('jobs.scrapers.jobMaster.baseUrl', 'https://www.jobmaster.co.il'),
+  },
+};
 
 interface ScrapedJob {
   id: string;
@@ -25,7 +82,6 @@ interface ScrapedJob {
  */
 class IsraelTechScraperService {
   private userAgent = 'PocketknifeJobAgent/1.0 (Educational/Personal Use)';
-  private requestDelay = 1000; // 1 second delay between requests
 
   private async delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -40,7 +96,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from Geektime...');
       
       // Geektime has an API for their job board
-      const url = 'https://www.geektime.co.il/wp-json/developer-api/get-jobs';
+      const url = scraperUrl.geektime.api();
       
       const response = await axios.get(url, {
         headers: {
@@ -61,7 +117,7 @@ class IsraelTechScraperService {
             word.length > 2 && text.includes(word.toLowerCase())
           );
         })
-        .slice(0, 50) // Increased limit for startup jobs
+        .slice(0, configService.get('limits.jobs.scrapers.geektime.maxResults', 50) as number) // Increased limit for startup jobs
         .map((job: any) => ({
           id: `geektime-${job.id}`,
           source: 'Geektime',
@@ -70,7 +126,7 @@ class IsraelTechScraperService {
           location: job.location || 'Israel',
           remote: job.remote || job.location?.toLowerCase().includes('remote') || false,
           description: this.stripHtml(job.description || job.excerpt || ''),
-          applyUrl: job.link || job.apply_url || `https://www.geektime.co.il/jobs/${job.slug}`,
+          applyUrl: job.link || job.apply_url || `${scraperUrl.geektime.base()}/jobs/${job.slug}`,
           postedAt: job.date || new Date().toISOString(),
           tags: job.categories || []
         }));
@@ -95,8 +151,8 @@ class IsraelTechScraperService {
 
       // Scrape the career/hiring section of Calcalist Tech
       const urls = [
-        'https://www.calcalist.co.il/calcalistech/category/31922', // Career section
-        'https://www.calcalist.co.il/calcalistech'                  // Main tech section
+        scraperUrl.calcalist.career(),
+        scraperUrl.calcalist.tech()
       ];
 
       const jobs: ScrapedJob[] = [];
@@ -152,7 +208,7 @@ class IsraelTechScraperService {
                 location: 'Israel',
                 remote: text.includes('remote') || text.includes('מרחוק'),
                 description: this.stripHtml(description) || title,
-                applyUrl: link.startsWith('http') ? link : `https://www.calcalist.co.il${link}`,
+                applyUrl: link.startsWith('http') ? link : `${scraperUrl.calcalist.base()}${link}`,
                 postedAt: new Date().toISOString(),
                 tags: ['calcalist', 'hiring-news']
               });
@@ -185,10 +241,7 @@ class IsraelTechScraperService {
   private async scrapeCalcalistRSS(query?: string): Promise<ScrapedJob[]> {
     try {
       // Try multiple RSS feeds - tech section and general Calcalist
-      const rssUrls = [
-        'https://www.calcalist.co.il/GeneralRSS/0,16716,L-5251,00.xml',
-        'https://www.calcalist.co.il/GeneralRSS/0,16716,L-3935,00.xml'
-      ];
+      const rssUrls = scraperUrl.calcalist.rss();
 
       const jobs: ScrapedJob[] = [];
 
@@ -261,19 +314,19 @@ class IsraelTechScraperService {
 
       // Fetch both jobs and companies in parallel for comprehensive results
       const [jobsResponse, companiesResponse] = await Promise.allSettled([
-        axios.get('https://insider.geektime.co.il/wp-json/app/v1/rand/jobs', {
+        axios.get(scraperUrl.geektimeInsider.jobsApi(), {
           headers: {
             'User-Agent': this.userAgent,
             'Accept': 'application/json',
-            'Referer': 'https://insider.geektime.co.il/'
+            'Referer': scraperUrl.geektimeInsider.base() + '/'
           },
           timeout: SCRAPER_TIMEOUT()
         }),
-        axios.get('https://insider.geektime.co.il/wp-json/app/v1/rand/company', {
+        axios.get(scraperUrl.geektimeInsider.companyApi(), {
           headers: {
             'User-Agent': this.userAgent,
             'Accept': 'application/json',
-            'Referer': 'https://insider.geektime.co.il/'
+            'Referer': scraperUrl.geektimeInsider.base() + '/'
           },
           timeout: SCRAPER_TIMEOUT()
         })
@@ -301,7 +354,7 @@ class IsraelTechScraperService {
               remote: (job.city || '').toLowerCase().includes('remote') ||
                       (job.city || '').toLowerCase().includes('מרחוק'),
               description: `${job.title} at ${job.company}${tagNames.length ? ` | ${tagNames.join(', ')}` : ''}`,
-              applyUrl: `https://insider.geektime.co.il/?company_id=${job.id_company}`,
+              applyUrl: `${scraperUrl.geektimeInsider.base()}/?company_id=${job.id_company}`,
               postedAt: new Date().toISOString(),
               tags: ['insider', ...(job.new_job ? ['new'] : []), ...tagNames]
             });
@@ -327,7 +380,7 @@ class IsraelTechScraperService {
                 location: company.city || 'Israel',
                 remote: false,
                 description: this.stripHtml(company.excerpt || '') || `${companyName} - ${company.company_size || 'Tech company'}`,
-                applyUrl: company.url || `https://insider.geektime.co.il/?company_id=${company.company_id}`,
+                applyUrl: company.url || `${scraperUrl.geektimeInsider.base()}/?company_id=${company.company_id}`,
                 postedAt: new Date().toISOString(),
                 tags: ['insider', 'company-page', ...(company.company_label ? [company.company_label] : [])]
               });
@@ -354,7 +407,7 @@ class IsraelTechScraperService {
    */
   private async scrapeGeektimeInsiderPage(query?: string): Promise<ScrapedJob[]> {
     try {
-      const url = 'https://insider.geektime.co.il/';
+      const url = scraperUrl.geektimeInsider.base() + '/';
 
       const response = await axios.get(url, {
         headers: {
@@ -389,7 +442,7 @@ class IsraelTechScraperService {
               location: location || 'Israel',
               remote: location?.toLowerCase().includes('remote') || location?.toLowerCase().includes('מרחוק'),
               description: `${title} at ${company || 'Israeli Startup'}`,
-              applyUrl: link.startsWith('http') ? link : `https://insider.geektime.co.il${link}`,
+              applyUrl: link.startsWith('http') ? link : `${scraperUrl.geektimeInsider.base()}${link}`,
               postedAt: new Date().toISOString(),
               tags: ['insider', 'premium']
             });
@@ -414,7 +467,7 @@ class IsraelTechScraperService {
       
       const searchQuery = query || 'software developer';
       // AllJobs has a public search API
-      const url = `https://www.alljobs.co.il/SearchResultsGuest.aspx?page=1&position=${encodeURIComponent(searchQuery)}&type=1`;
+      const url = `${scraperUrl.allJobs.base()}/SearchResultsGuest.aspx?page=1&position=${encodeURIComponent(searchQuery)}&type=1`;
       
       const response = await axios.get(url, {
         headers: {
@@ -445,7 +498,7 @@ class IsraelTechScraperService {
             location,
             remote: location.toLowerCase().includes('remote') || location.toLowerCase().includes('מרחוק'),
             description: description || `${title} at ${company}`,
-            applyUrl: link.startsWith('http') ? link : `https://www.alljobs.co.il${link}`,
+            applyUrl: link.startsWith('http') ? link : `${scraperUrl.allJobs.base()}${link}`,
             postedAt: new Date().toISOString()
           });
         }
@@ -468,12 +521,12 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from Goozali...');
       
       // Goozali aggregates jobs via Google Sheets - try their public data endpoint
-      const url = 'https://script.google.com/macros/s/AKfycbwZ5m5aqYqvlvHEcjk8kQM5q8lKwfY3L3X7N4kEpB1L4qNm3YM/exec';
+      const url = scraperUrl.goozali.api();
       
       const response = await axios.get(url, {
         params: {
           action: 'getJobs',
-          limit: 50
+          limit: configService.get('limits.jobs.scrapers.geektimeInsider.limit', 50) as number
         },
         headers: {
           'User-Agent': this.userAgent,
@@ -496,7 +549,7 @@ class IsraelTechScraperService {
           const text = `${job.title} ${job.company} ${job.description || ''}`.toLowerCase();
           return query.split(/\s+/).some(word => word.length > 2 && text.includes(word.toLowerCase()));
         })
-        .slice(0, 30)
+        .slice(0, configService.get('limits.jobs.scrapers.goozali.maxResults', 30) as number)
         .map((job: any, idx: number) => ({
           id: `goozali-${job.id || idx}-${Date.now()}`,
           source: 'Goozali',
@@ -505,7 +558,7 @@ class IsraelTechScraperService {
           location: job.location || 'Israel',
           remote: job.remote || job.location?.toLowerCase().includes('remote') || false,
           description: job.description || `${job.title} position at ${job.company}`,
-          applyUrl: job.url || job.apply_url || job.link || 'https://en.goozali.com',
+          applyUrl: job.url || job.apply_url || job.link || scraperUrl.goozali.base(),
           postedAt: job.date || job.posted_at || new Date().toISOString(),
           tags: ['startup', 'israel', ...(job.tags || [])]
         }));
@@ -524,7 +577,7 @@ class IsraelTechScraperService {
   private async scrapeGoozaliAlternative(query?: string): Promise<ScrapedJob[]> {
     try {
       // Goozali main website
-      const response = await axios.get('https://en.goozali.com/', {
+      const response = await axios.get(scraperUrl.goozali.base() + '/', {
         headers: {
           'User-Agent': this.userAgent,
           'Accept': 'text/html'
@@ -556,7 +609,7 @@ class IsraelTechScraperService {
               location: 'Israel',
               remote: false,
               description: `${title} position at ${company || 'Israeli Startup'}`,
-              applyUrl: link.startsWith('http') ? link : `https://en.goozali.com${link}`,
+              applyUrl: link.startsWith('http') ? link : `${scraperUrl.goozali.base()}${link}`,
               postedAt: new Date().toISOString(),
               tags: ['startup', 'israel']
             });
@@ -580,12 +633,12 @@ class IsraelTechScraperService {
     try {
       console.log('🔍 Fetching jobs from F6S...');
       
-      const url = 'https://api.f6s.com/jobs';
+      const url = scraperUrl.f6s.api();
       
       const response = await axios.get(url, {
         params: {
           location: 'Israel',
-          limit: 30
+          limit: configService.get('limits.jobs.scrapers.f6s.limit', 30) as number
         },
         headers: {
           'User-Agent': this.userAgent,
@@ -608,7 +661,7 @@ class IsraelTechScraperService {
           const text = `${job.title} ${job.company_name} ${job.description}`.toLowerCase();
           return query.split(/\s+/).some(word => word.length > 2 && text.includes(word.toLowerCase()));
         })
-        .slice(0, 30)
+        .slice(0, configService.get('limits.jobs.scrapers.f6s.maxResults', 30) as number)
         .map((job: any, idx: number) => ({
           id: `f6s-${job.id || idx}-${Date.now()}`,
           source: 'F6S',
@@ -617,7 +670,7 @@ class IsraelTechScraperService {
           location: job.location || 'Israel',
           remote: job.remote || false,
           description: job.description || '',
-          applyUrl: job.url || `https://www.f6s.com/jobs/${job.slug}`,
+          applyUrl: job.url || `${scraperUrl.f6s.base()}/jobs/${job.slug}`,
           postedAt: job.created_at || new Date().toISOString(),
           tags: ['startup', 'f6s', ...(job.tags || [])]
         }));
@@ -638,7 +691,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from Drushim...');
       
       const searchQuery = encodeURIComponent(query || 'software developer');
-      const url = `https://www.drushim.co.il/jobs/search/${searchQuery}/`;
+      const url = `${scraperUrl.drushim.base()}/jobs/search/${searchQuery}/`;
       
       const response = await axios.get(url, {
         headers: {
@@ -670,7 +723,7 @@ class IsraelTechScraperService {
             location: location || 'Israel',
             remote: location?.toLowerCase().includes('מרחוק') || location?.toLowerCase().includes('remote'),
             description: `${title} at ${company || 'Israeli Company'}`,
-            applyUrl: link.startsWith('http') ? link : `https://www.drushim.co.il${link}`,
+            applyUrl: link.startsWith('http') ? link : `${scraperUrl.drushim.base()}${link}`,
             postedAt: new Date().toISOString(),
             tags: ['israel', 'drushim']
           });
@@ -695,7 +748,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from Wellfound (AngelList)...');
       
       // Wellfound GraphQL API endpoint
-      const url = 'https://wellfound.com/graphql';
+      const url = scraperUrl.wellfound.graphql();
       
       const response = await axios.post(url, {
         operationName: 'JobSearchResults',
@@ -736,7 +789,7 @@ class IsraelTechScraperService {
           location: job.locationNames?.join(', ') || 'Israel',
           remote: job.remoteOk || false,
           description: job.description || '',
-          applyUrl: job.applyUrl || `https://wellfound.com/jobs/${job.id}`,
+          applyUrl: job.applyUrl || `${scraperUrl.wellfound.base()}/jobs/${job.id}`,
           postedAt: job.postedAt || new Date().toISOString(),
           tags: ['startup', 'wellfound']
         };
@@ -759,7 +812,7 @@ class IsraelTechScraperService {
     try {
       console.log('🔍 Fetching jobs from Secret Tel Aviv...');
       
-      const url = 'https://www.secrettelaviv.com/best/jobs';
+      const url = `${scraperUrl.secretTelAviv.base()}/best/jobs`;
       
       const response = await axios.get(url, {
         headers: {
@@ -795,7 +848,7 @@ class IsraelTechScraperService {
               location: 'Tel Aviv, Israel',
               remote: title.toLowerCase().includes('remote') || description.toLowerCase().includes('remote'),
               description: description || `${title} position`,
-              applyUrl: link.startsWith('http') ? link : `https://www.secrettelaviv.com${link}`,
+              applyUrl: link.startsWith('http') ? link : `${scraperUrl.secretTelAviv.base()}${link}`,
               postedAt: new Date().toISOString(),
               tags: ['tel-aviv', 'international', 'community']
             });
@@ -820,7 +873,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from HiTech Jobs Israel...');
       
       const searchQuery = encodeURIComponent(query || 'software developer');
-      const url = `https://www.hitech-jobs.co.il/jobs?q=${searchQuery}`;
+      const url = `${scraperUrl.hiTechJobs.base()}/jobs?q=${searchQuery}`;
       
       const response = await axios.get(url, {
         headers: {
@@ -851,7 +904,7 @@ class IsraelTechScraperService {
             location: location || 'Israel',
             remote: location?.toLowerCase().includes('remote') || location?.toLowerCase().includes('מרחוק'),
             description: `${title} at ${company || 'Israeli Tech Company'}`,
-            applyUrl: link.startsWith('http') ? link : `https://www.hitech-jobs.co.il${link}`,
+            applyUrl: link.startsWith('http') ? link : `${scraperUrl.hiTechJobs.base()}${link}`,
             postedAt: new Date().toISOString(),
             tags: ['israel', 'hitech']
           });
@@ -875,7 +928,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from Walla Jobs...');
 
       const searchQuery = encodeURIComponent(query || 'software developer');
-      const url = `https://jobs.walla.co.il/search?q=${searchQuery}&professional_field=2`; // 2 = hi-tech
+      const url = `${scraperUrl.wallaJobs.base()}/search?q=${searchQuery}&professional_field=2`; // 2 = hi-tech
 
       const response = await axios.get(url, {
         headers: {
@@ -906,7 +959,7 @@ class IsraelTechScraperService {
             location: location || 'Israel',
             remote: location?.toLowerCase().includes('remote') || location?.toLowerCase().includes('מרחוק'),
             description: `${title} at ${company || 'Israeli Company'}`,
-            applyUrl: link.startsWith('http') ? link : `https://jobs.walla.co.il${link}`,
+            applyUrl: link.startsWith('http') ? link : `${scraperUrl.wallaJobs.base()}${link}`,
             postedAt: new Date().toISOString(),
             tags: ['walla', 'israel']
           });
@@ -930,7 +983,7 @@ class IsraelTechScraperService {
       console.log('🔍 Fetching jobs from JobMaster...');
 
       const searchQuery = encodeURIComponent(query || 'software');
-      const url = `https://www.jobmaster.co.il/code/newSearch.asp?type=FREETEXT&text=${searchQuery}&branchId=37`; // 37 = hi-tech
+      const url = `${scraperUrl.jobMaster.base()}/code/newSearch.asp?type=FREETEXT&text=${searchQuery}&branchId=37`; // 37 = hi-tech
 
       const response = await axios.get(url, {
         headers: {
@@ -961,7 +1014,7 @@ class IsraelTechScraperService {
             location: location || 'Israel',
             remote: location?.toLowerCase().includes('remote') || location?.toLowerCase().includes('מרחוק'),
             description: `${title} at ${company || 'Israeli Company'}`,
-            applyUrl: link.startsWith('http') ? link : `https://www.jobmaster.co.il${link}`,
+            applyUrl: link.startsWith('http') ? link : `${scraperUrl.jobMaster.base()}${link}`,
             postedAt: new Date().toISOString(),
             tags: ['jobmaster', 'israel']
           });

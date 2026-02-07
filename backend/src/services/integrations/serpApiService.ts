@@ -113,7 +113,7 @@ class SerpApiService {
           location: options?.location,
           hl: options?.language || 'en'
         },
-        timeout: 10000
+        timeout: configService.get('serpapi.timeoutMs', 10000) as number
       });
 
       const results: SerpSearchResult[] = (response.data.organic_results || []).map((r: any, i: number) => ({
@@ -126,7 +126,7 @@ class SerpApiService {
       }));
 
       // Cache for 1 hour
-      await cacheService.set(cacheKey, results, { ttl: 3600 });
+      await cacheService.set(cacheKey, results, { ttl: configService.get('cache.serpApi.searchTtlSeconds', 3600) as number });
       
       return results;
     } catch (error: any) {
@@ -162,7 +162,7 @@ class SerpApiService {
           location: options?.location,
           tbs: this.buildPriceFilter(options?.minPrice, options?.maxPrice)
         },
-        timeout: 10000
+        timeout: configService.get('serpapi.timeoutMs', 10000) as number
       });
 
       const results: SerpShoppingResult[] = (response.data.shopping_results || []).map((r: any) => ({
@@ -176,7 +176,7 @@ class SerpApiService {
       }));
 
       // Cache for 30 minutes (prices change)
-      await cacheService.set(cacheKey, results, { ttl: 1800 });
+      await cacheService.set(cacheKey, results, { ttl: configService.get('cache.serpApi.shoppingTtlSeconds', 1800) as number });
       
       return results;
     } catch (error: any) {

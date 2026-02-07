@@ -51,12 +51,12 @@ export interface DiagramGenerationRequest {
 }
 
 // Component template mapping for validation
-const VALID_TEMPLATES = [
+const VALID_TEMPLATES = configService.get('keywords.jobs.diagrams.validTemplates', [
   'client', 'mobile', 'load_balancer', 'network', 'api_gateway', 'shield',
   'web_server', 'globe', 'database', 'cache', 'message_queue', 'message',
   'storage', 'cdn', 'cloud', 'microservice', 'server', 'worker', 'layers',
   'auth', 'search', 'notification', 'logging', 'dns', 'monitoring'
-];
+]) as string[];
 
 // Color palette for components
 const COMPONENT_COLORS: Record<string, string> = {

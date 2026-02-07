@@ -1,38 +1,32 @@
 /**
  * Evaluation Service
- * 
- * Scores AI assistant responses on multiple dimensions:
- * - Accuracy: Is the response factually correct?
- * - Helpfulness: Does it address what the user needs?
- * - Completeness: Is there sufficient detail?
- * - Clarity: Is it easy to understand?
- * - Safety: Is the content appropriate?
- * - Agent Usage: Were the right agents invoked?
+ *
+ * Scores AI assistant responses on multiple quality dimensions using
+ * Claude Haiku as a judge. Each response is evaluated for:
+ * - Accuracy: Factual correctness, no hallucinations
+ * - Helpfulness: Addresses user's actual needs
+ * - Completeness: Sufficient detail without gaps
+ * - Clarity: Easy to understand, well-structured
+ * - Safety: Appropriate and harmless content
+ * - Agent Usage: Correct agents invoked for the task
+ *
+ * Uses the project's centralized anthropicClient and configService.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { generateClaudeMessage, isAnthropicConfigured } from '../../utils/anthropicClient';
+import { configService } from '../core/configService';
 import logger from '../../utils/logger';
+import {
+  RawScoresSchema,
+  computeOverall,
+  clampScore,
+  toQuestionCategory
+} from './types';
+import type { EvaluationScores, EvaluationResult, QuestionCategory } from './types';
 
-export interface EvaluationScores {
-  accuracy: number;
-  helpfulness: number;
-  completeness: number;
-  clarity: number;
-  safety: number;
-  agentUsage: number | null;
-  overall: number;
-  feedback: string;
-}
-
-export interface EvaluationResult {
-  questionId: string;
-  question: string;
-  category: string;
-  response: string;
-  scores: EvaluationScores;
-  evaluatedAt: Date;
-}
-
+// Score dimensions prompt template.
+// Uses placeholder syntax ({question}, {response}, etc.) replaced via String.replace().
+// Scores are integers 0-5 per dimension.
 const EVALUATION_PROMPT = `You are evaluating an AI assistant response. Score each dimension 0-5.
 
 User Question: {question}
@@ -61,7 +55,17 @@ Return ONLY valid JSON:
 
 export const evaluationService = {
   /**
-   * Evaluate a single response
+   * Evaluate a single AI assistant response using Claude as a judge.
+   *
+   * Sends the question/response pair to Claude for scoring across
+   * multiple quality dimensions. Returns scores with `isError: true` on
+   * API failure so callers can distinguish errors from real evaluations.
+   *
+   * @param question - The user's original question
+   * @param response - The assistant's response text (truncated internally)
+   * @param expectedAgents - Agent IDs that should have been invoked
+   * @param actualAgents - Agent IDs that were actually invoked
+   * @returns Scores across all dimensions plus an overall average (equal-weight arithmetic mean)
    */
   evaluateResponse: async (
     question: string,
@@ -69,83 +73,75 @@ export const evaluationService = {
     expectedAgents: string[] = [],
     actualAgents: string[] = []
   ): Promise<EvaluationScores> => {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!isAnthropicConfigured()) {
       throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const client = new Anthropic();
+    const maxResponseLength = configService.get('evaluation.maxResponseLength', 2000);
+    const maxTokens = configService.get('evaluation.ai.maxTokens', 500);
+    const model = configService.get('evaluation.ai.model', 'claude-3-5-haiku-latest');
 
     const prompt = EVALUATION_PROMPT
       .replace('{question}', question)
-      .replace('{response}', response.substring(0, 2000))
+      .replace('{response}', response.substring(0, maxResponseLength))
       .replace('{expectedAgents}', expectedAgents.join(', ') || 'none')
       .replace('{actualAgents}', actualAgents.join(', ') || 'none');
 
     try {
-      const result = await client.messages.create({
-        model: 'claude-3-5-haiku-latest',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: prompt }]
-      });
+      const text = await generateClaudeMessage(prompt, { model, maxTokens });
 
-      const text = result.content[0].type === 'text' ? result.content[0].text : '';
-      
+      if (!text) {
+        throw new Error('Claude returned empty response');
+      }
+
       // Parse JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in evaluation response');
       }
 
-      const scores = JSON.parse(jsonMatch[0]) as Partial<EvaluationScores>;
-
-      // Calculate overall score
-      const dimensions = [
-        scores.accuracy ?? 3,
-        scores.helpfulness ?? 3,
-        scores.completeness ?? 3,
-        scores.clarity ?? 3,
-        scores.safety ?? 5
-      ];
-      
-      if (scores.agentUsage !== null && scores.agentUsage !== undefined) {
-        dimensions.push(scores.agentUsage);
+      // Validate with Zod schema -- clamps values to 0-5 range
+      const parsed = RawScoresSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (!parsed.success) {
+        logger.warn('Score validation failed, using clamped values', {
+          errors: parsed.error.issues
+        });
       }
 
-      const overall = dimensions.reduce((a, b) => a + b, 0) / dimensions.length;
-
-      return {
-        accuracy: scores.accuracy ?? 3,
-        helpfulness: scores.helpfulness ?? 3,
-        completeness: scores.completeness ?? 3,
-        clarity: scores.clarity ?? 3,
-        safety: scores.safety ?? 5,
-        agentUsage: scores.agentUsage ?? null,
-        overall,
-        feedback: scores.feedback ?? ''
-      };
-    } catch (error: any) {
-      logger.fail('Evaluation failed', { error: error.message });
-      
-      // Return neutral scores on error
-      return {
-        accuracy: 3,
-        helpfulness: 3,
-        completeness: 3,
-        clarity: 3,
-        safety: 5,
+      // If Zod validation fails, flag the result as an error so it's excluded from aggregation
+      const isValidationFailure = !parsed.success;
+      const scores = parsed.success ? parsed.data : {
+        accuracy: 3 as const,
+        helpfulness: 3 as const,
+        completeness: 3 as const,
+        clarity: 3 as const,
+        safety: 5 as const,
         agentUsage: null,
-        overall: 3,
-        feedback: `Evaluation error: ${error.message}`
+        feedback: 'Validation fallback — scores are not real data'
       };
-    }
-  },
 
-  /**
-   * Calculate average scores from multiple evaluations
-   */
-  calculateAverages: (results: EvaluationResult[]): EvaluationScores => {
-    if (results.length === 0) {
+      const dimensionScores = {
+        accuracy: scores.accuracy,
+        helpfulness: scores.helpfulness,
+        completeness: scores.completeness,
+        clarity: scores.clarity,
+        safety: scores.safety,
+        agentUsage: scores.agentUsage ?? null
+      };
+
+      const result: EvaluationScores = {
+        ...dimensionScores,
+        overall: computeOverall(dimensionScores),
+        feedback: scores.feedback ?? '',
+        isError: isValidationFailure
+      };
+
+      return result;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.fail('Evaluation failed', { error: message, question: question.substring(0, 50) });
+
+      // Return error-flagged scores so callers can exclude them from aggregation
       return {
         accuracy: 0,
         helpfulness: 0,
@@ -154,7 +150,36 @@ export const evaluationService = {
         safety: 0,
         agentUsage: null,
         overall: 0,
-        feedback: 'No results to average'
+        feedback: `Evaluation error: ${message}`,
+        isError: true
+      };
+    }
+  },
+
+  /**
+   * Calculate average scores from multiple evaluations.
+   * Automatically excludes error-flagged results from the average.
+   *
+   * @param results - Array of evaluation results to average
+   * @returns Averaged scores across all valid (non-error) results
+   */
+  calculateAverages: (results: EvaluationResult[]): EvaluationScores => {
+    // Filter out error results
+    const validResults = results.filter(r => !r.scores.isError);
+
+    if (validResults.length === 0) {
+      return {
+        accuracy: 0,
+        helpfulness: 0,
+        completeness: 0,
+        clarity: 0,
+        safety: 0,
+        agentUsage: null,
+        overall: 0,
+        feedback: results.length > 0
+          ? `All ${results.length} evaluations failed`
+          : 'No results to average',
+        isError: results.length > 0
       };
     }
 
@@ -169,21 +194,21 @@ export const evaluationService = {
       agentUsageCount: 0
     };
 
-    for (const r of results) {
+    for (const r of validResults) {
       sum.accuracy += r.scores.accuracy;
       sum.helpfulness += r.scores.helpfulness;
       sum.completeness += r.scores.completeness;
       sum.clarity += r.scores.clarity;
       sum.safety += r.scores.safety;
       sum.overall += r.scores.overall;
-      
+
       if (r.scores.agentUsage !== null) {
         sum.agentUsage += r.scores.agentUsage;
         sum.agentUsageCount++;
       }
     }
 
-    const count = results.length;
+    const count = validResults.length;
 
     return {
       accuracy: sum.accuracy / count,
@@ -193,20 +218,24 @@ export const evaluationService = {
       safety: sum.safety / count,
       agentUsage: sum.agentUsageCount > 0 ? sum.agentUsage / sum.agentUsageCount : null,
       overall: sum.overall / count,
-      feedback: `Average of ${count} evaluations`
+      feedback: `Average of ${count} evaluations (${results.length - count} errors excluded)`,
+      isError: false
     };
   },
 
   /**
-   * Group results by category
+   * Group evaluation results by category.
+   *
+   * @param results - Array of evaluation results to group
+   * @returns Record mapping category name to array of results
    */
-  groupByCategory: (results: EvaluationResult[]): Record<string, EvaluationResult[]> => {
-    const grouped: Record<string, EvaluationResult[]> = {};
-    
+  groupByCategory: (results: EvaluationResult[]): Partial<Record<QuestionCategory, EvaluationResult[]>> => {
+    const grouped: Partial<Record<QuestionCategory, EvaluationResult[]>> = {};
+
     for (const r of results) {
       const cat = r.category || 'general';
       if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(r);
+      grouped[cat]!.push(r);
     }
 
     return grouped;

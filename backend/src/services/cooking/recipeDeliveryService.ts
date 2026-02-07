@@ -111,7 +111,7 @@ export const recipeDeliveryService = {
    */
   fuzzyMatch(a: string, b: string): boolean {
     // Remove common words and compare
-    const stripWords = ['fresh', 'organic', 'large', 'small', 'medium', 'chopped', 'diced', 'minced'];
+    const stripWords = configService.get('keywords.cooking.matching.stripWords', ['fresh', 'organic', 'large', 'small', 'medium', 'chopped', 'diced', 'minced']) as string[];
     const cleanA = stripWords.reduce((s, w) => s.replace(w, ''), a).trim();
     const cleanB = stripWords.reduce((s, w) => s.replace(w, ''), b).trim();
     

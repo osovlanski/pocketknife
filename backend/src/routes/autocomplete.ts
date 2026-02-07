@@ -6,6 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { cacheService } from '../services/core/cacheService';
+import { configService } from '../services/core/configService';
 import { databaseService, getPrisma } from '../services/core/databaseService';
 
 const router = Router();
@@ -119,7 +120,7 @@ async function getUserSearchHistory(agent: string, query: string, limit: number)
           action: 'search'
         },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: configService.get('limits.autocomplete.activities.maxResults', 100) as number,
         distinct: ['details']
       });
 
@@ -133,7 +134,7 @@ async function getUserSearchHistory(agent: string, query: string, limit: number)
         .filter(Boolean) as string[];
 
       // Cache for 5 minutes
-      await cacheService.set(cacheKey, searches, { ttl: 300 });
+      await cacheService.set(cacheKey, searches, { ttl: configService.get('cache.autocomplete.userHistoryTtlSeconds', 300) as number });
       
       return searches.filter(s => s.includes(query)).slice(0, limit);
     } catch (error) {
@@ -156,13 +157,13 @@ async function getPopularSearches(agent: string, limit: number): Promise<string[
   }
 
   // Default popular searches per agent
-  const defaults: Record<string, string[]> = {
+  const defaults = configService.get('keywords.autocomplete.defaults', {
     learning: ['TypeScript', 'React', 'System Design', 'AWS', 'Docker', 'Kubernetes'],
     problems: ['Two Sum', 'Array', 'Dynamic Programming', 'Binary Search', 'Tree'],
     jobs: ['Software Engineer', 'Frontend', 'Backend', 'Full Stack', 'Remote'],
     travel: ['Tel Aviv', 'Paris', 'London', 'New York', 'Barcelona'],
     all: ['React', 'TypeScript', 'Software Engineer', 'System Design', 'AWS']
-  };
+  }) as Record<string, string[]>;
 
   return defaults[agent] || defaults['all'] || [];
 }
@@ -181,11 +182,11 @@ async function updatePopularSearches(query: string, agent: string): Promise<void
     existing.push({ query, count: 1 });
   }
 
-  // Keep top 100
-  const sorted = existing.sort((a, b) => b.count - a.count).slice(0, 100);
+  // Keep top results
+  const sorted = existing.sort((a, b) => b.count - a.count).slice(0, configService.get('limits.autocomplete.results.maxResults', 100) as number);
   
   // Cache for 1 hour
-  await cacheService.set(cacheKey, sorted, { ttl: 3600 });
+  await cacheService.set(cacheKey, sorted, { ttl: configService.get('cache.autocomplete.popularSearchesTtlSeconds', 3600) as number });
 }
 
 /**

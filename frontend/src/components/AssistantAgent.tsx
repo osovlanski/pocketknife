@@ -61,6 +61,7 @@ import VoiceInputButton from './common/VoiceInputButton';
 import MarkdownContent from './common/MarkdownContent';
 import { findAgentById, type AgentTagConfig } from './common/AgentTags';
 import useAssistant from '../hooks/useAssistant';
+import StructuredDataRenderer from './StructuredDataRenderer';
 import { useTranslation } from '../i18n';
 import { SUGGESTED_PROMPTS, type SavedConversation, type ThinkingStep, type ExecutionPlan, type PlanStep } from '../services/assistantApi';
 import type { ChatMessage, WorkflowStep } from '../services/assistantApi';
@@ -468,12 +469,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <p className={styles.messageText}>{message.content}</p>
         ) : (
           <>
-            <MarkdownContent 
+            <MarkdownContent
               content={message.content}
               showAgentTags={true}
               onTagClick={onTagClick}
             />
-            
+
+            {/* Structured data cards */}
+            {message.structuredData && message.structuredData.length > 0 && (
+              <StructuredDataRenderer
+                cards={message.structuredData}
+                renderHints={message.renderHints}
+              />
+            )}
+
             {/* Sources used */}
             {message.sources && message.sources.length > 0 && (
               <div className={styles.sourcesContainer}>

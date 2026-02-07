@@ -15,7 +15,9 @@ import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import { z } from 'zod';
 import { agentRegistry } from '../../agents/AgentRegistry';
 import type { AgentId } from '../../agents/types';
+import { agentOrchestratorService } from './agentOrchestratorService';
 import logger from '../../utils/logger';
+import { configService } from '../core/configService';
 
 // =============================================================================
 // TYPES
@@ -219,7 +221,7 @@ function validateToolInput(
 }
 
 /**
- * Basic input sanitization for unschemaed tools
+ * Basic input sanitization for tools without Zod schemas
  */
 function sanitizeInput(input: Record<string, unknown>): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
@@ -888,6 +890,33 @@ export const createAgentTools = (): Tool[] => {
     },
 
     // =========================================================================
+    // CROSS-CALL TOOL (invoke any agent action from within a tool loop)
+    // =========================================================================
+    {
+      name: 'agent_cross_call',
+      description: 'Invoke an action on a different agent. Use this when the current task requires coordination across agents — e.g., after finding a recipe, order its ingredients; after searching jobs, create a follow-up task. Provide the target agentId, the action name, and any required parameters.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          agentId: {
+            type: 'string',
+            enum: ['cooking', 'jobs', 'travel', 'todo', 'shopping', 'learning', 'news', 'diy', 'email', 'problems'],
+            description: 'The target agent to invoke'
+          },
+          action: {
+            type: 'string',
+            description: 'The action to execute on the target agent (must be a valid action for that agent)'
+          },
+          params: {
+            type: 'object',
+            description: 'Parameters to pass to the agent action'
+          }
+        },
+        required: ['agentId', 'action']
+      }
+    },
+
+    // =========================================================================
     // WEB SEARCH TOOL
     // =========================================================================
     {
@@ -980,7 +1009,7 @@ export const executeTool = async (
   userId?: string
 ): Promise<ToolExecutionResult> => {
   // Validate tool name is in whitelist
-  const isValidTool = toolName === 'web_search' || toolName in TOOL_MAPPING;
+  const isValidTool = toolName === 'web_search' || toolName === 'agent_cross_call' || toolName in TOOL_MAPPING;
   if (!isValidTool) {
     return {
       success: false,
@@ -1004,6 +1033,11 @@ export const executeTool = async (
   // Handle web search specially
   if (toolName === 'web_search') {
     return executeWebSearch(sanitizedInput as { query: string; type?: string });
+  }
+
+  // Handle cross-call: route to any agent dynamically
+  if (toolName === 'agent_cross_call') {
+    return executeCrossCall(sanitizedInput, userId);
   }
 
   // Look up the agent mapping
@@ -1070,6 +1104,77 @@ export const executeToolsParallel = async (
 };
 
 // =============================================================================
+// CROSS-CALL EXECUTION
+// =============================================================================
+
+/**
+ * Derive valid agent IDs from the registry at runtime.
+ * Always reads from the live registry so dynamically-registered agents are recognized.
+ * The assistant agent is excluded since it's not a cross-call target.
+ */
+const getValidAgentIds = (): Set<string> => {
+  return new Set(
+    agentRegistry.getAll()
+      .map(agent => agent.metadata.id)
+      .filter(id => id !== 'assistant')
+  );
+};
+
+/**
+ * Execute a cross-call: invoke an action on a target agent.
+ * Validates the agentId and action against the orchestrator's capability registry.
+ */
+const executeCrossCall = async (
+  input: Record<string, unknown>,
+  userId?: string
+): Promise<ToolExecutionResult> => {
+  const targetAgentId = String(input.agentId || '');
+  const targetAction = String(input.action || '');
+  const targetParams = (input.params && typeof input.params === 'object')
+    ? input.params as Record<string, unknown>
+    : {};
+
+  if (!getValidAgentIds().has(targetAgentId)) {
+    return { success: false, error: `Invalid agent: ${targetAgentId}` };
+  }
+
+  // Validate the action exists in the agent's capabilities
+  const capabilities = agentOrchestratorService.getAgentCapabilities(targetAgentId as AgentId);
+  if (!capabilities.some(cap => cap.action === targetAction)) {
+    const availableActions = capabilities.map(c => c.action).join(', ');
+    return {
+      success: false,
+      error: `Invalid action '${targetAction}' for agent '${targetAgentId}'. Available: ${availableActions}`
+    };
+  }
+
+  logger.agent(`Cross-call: ${targetAgentId}.${targetAction}`, { params: targetParams });
+
+  try {
+    const result = await agentOrchestratorService.executeAgentAction(
+      targetAgentId as AgentId,
+      targetAction,
+      targetParams,
+      userId
+    );
+
+    return {
+      success: result.success,
+      data: result.data,
+      error: result.error ? sanitizeToolError(result.error) : undefined
+    };
+  } catch (error: unknown) {
+    logger.fail(`Cross-call failed: ${targetAgentId}.${targetAction}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return {
+      success: false,
+      error: sanitizeToolError(error)
+    };
+  }
+};
+
+// =============================================================================
 // WEB SEARCH (Fallback)
 // =============================================================================
 
@@ -1090,7 +1195,7 @@ const executeWebSearch = async (
         snippet: string;
       }
 
-      const results = await googleSearchService.search(params.query, 'general', { maxResults: 5 });
+      const results = await googleSearchService.search(params.query, 'general', { maxResults: configService.get('limits.assistant.toolCalling.googleSearch.maxResults', 5) as number });
 
       return {
         success: true,

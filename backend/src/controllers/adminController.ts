@@ -905,7 +905,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'remoteok':
           await axios.default.get('https://remoteok.com/api', {
             headers: { 'User-Agent': 'JobSearchAgent/1.0' },
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent
           });
           isHealthy = true;
@@ -913,7 +913,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
           
         case 'remotive':
           await axios.default.get('https://remotive.com/api/remote-jobs', {
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent
           });
           isHealthy = true;
@@ -921,7 +921,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
           
         case 'arbeitnow':
           await axios.default.get('https://www.arbeitnow.com/api/job-board-api', {
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent
           });
           isHealthy = true;
@@ -930,7 +930,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'themuse':
           const museRes = await axios.default.get('https://www.themuse.com/api/public/jobs', {
             params: { page: 0, api_key: 'public' },
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent
           });
           isHealthy = museRes.status === 200;
@@ -939,7 +939,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'findwork':
           const findworkRes = await axios.default.get('https://findwork.dev/api/jobs/', {
             headers: { 'Authorization': 'Token public' },
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent,
             validateStatus: (s) => s < 500
           });
@@ -949,7 +949,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
           
         case 'himalayas':
           const himRes = await axios.default.get('https://himalayas.app/jobs.json', {
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent,
             validateStatus: (s) => s < 500
           });
@@ -967,7 +967,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
                 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
               },
-              timeout: 20000,
+              timeout: configService.get('admin.api.test.jsearch.timeoutMs', 20000) as number,
               httpsAgent
             });
             isHealthy = jsearchRes.status === 200;
@@ -986,7 +986,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
                 what: 'developer',
                 results_per_page: 1
               },
-              timeout: 15000,
+              timeout: configService.get('admin.api.test.adzuna.timeoutMs', 15000) as number,
               httpsAgent
             });
             isHealthy = adzunaRes.status === 200;
@@ -1063,7 +1063,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
         case 'dev_to':
           try {
             const devtoRes = await axios.default.get('https://dev.to/api/articles?per_page=1', {
-              timeout: 10000
+              timeout: configService.get('admin.api.test.timeoutMs', 10000) as number
             });
             isHealthy = devtoRes.status === 200;
           } catch {
@@ -1108,7 +1108,7 @@ export const testExternalApi = async (req: Request, res: Response) => {
           if (api.baseUrl) {
             try {
               const response = await axios.default.get(api.baseUrl, {
-                timeout: 10000,
+                timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
                 validateStatus: (s: number) => s < 500
               });
               isHealthy = response.status === 200;
@@ -1282,7 +1282,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
           const response = await axios.default.post(api.baseUrl!, 
             { query: '{ __typename }' }, // Minimal GraphQL introspection
             {
-              timeout: 10000,
+              timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
               httpsAgent,
               validateStatus: (s: number) => s < 500,
               headers: { 'Content-Type': 'application/json' }
@@ -1294,7 +1294,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         // Web scrapers - just check if site is reachable
         else if (api.authType === 'scraper') {
           const response = await axios.default.get(api.baseUrl!, {
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent,
             validateStatus: (s: number) => s < 500,
             headers: {
@@ -1330,7 +1330,7 @@ export const testAllExternalApis = async (req: Request, res: Response) => {
         // Free APIs - simple GET test
         else if (api.baseUrl) {
           const response = await axios.default.get(api.baseUrl, {
-            timeout: 10000,
+            timeout: configService.get('admin.api.test.timeoutMs', 10000) as number,
             httpsAgent,
             validateStatus: (s: number) => s < 500,
             headers: {

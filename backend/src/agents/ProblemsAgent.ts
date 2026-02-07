@@ -9,8 +9,10 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import { googleSearchService } from '../services/core/googleSearchService';
+import { configService } from '../services/core/configService';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -47,13 +49,7 @@ interface SolutionSearchResult {
 }
 
 export class ProblemsAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'problems',
-    name: 'Problems Agent',
-    description: 'Practice coding problems from LeetCode, Codeforces, and curated interview lists',
-    icon: '💻',
-    color: '#F59E0B' // Amber
-  };
+  readonly metadata: AgentMetadata = getManifest('problems');
 
   protected async run(params: ProblemsParams): Promise<AgentResult<ProblemsResult>> {
     const { action } = params;
@@ -166,7 +162,7 @@ export class ProblemsAgent extends AbstractAgent {
       const solvedProblems = await prisma.solvedProblem.findMany({
         where,
         orderBy: { solvedAt: 'desc' },
-        take: 100
+        take: configService.get('limits.problems.agent.solvedProblems.maxResults', 100) as number
       });
 
       return {
@@ -219,7 +215,7 @@ export class ProblemsAgent extends AbstractAgent {
       this.emitProgress(30);
 
       const results = await googleSearchService.searchAndParse(searchQuery, 'problems', {
-        maxResults: 10
+        maxResults: configService.get('limits.problems.agent.googleSearch.maxResults', 10) as number
       });
 
       this.emitProgress(80);

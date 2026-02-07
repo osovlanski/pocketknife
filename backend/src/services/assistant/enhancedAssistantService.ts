@@ -20,6 +20,10 @@ import {
   type ToolCallResult
 } from '../../utils/anthropicClient';
 import { createAgentTools, executeTool, executeToolsParallel } from './toolCallingService';
+import { agentOrchestratorService } from './agentOrchestratorService';
+import { buildComponentKBPrompt } from './componentRegistry';
+import type { StructuredCard, CardGroupRenderHints } from './structuredCards';
+import { extractStructuredDataFromToolCalls, buildRenderHints } from './structuredCards';
 import { conversationMemoryService } from './conversationMemoryService';
 import { configService } from '../core/configService';
 import { cacheService } from '../core/cacheService';
@@ -132,6 +136,8 @@ export interface AssistantResponse {
   sources: string[];
   suggestions: string[];
   plan?: ExecutionPlan;
+  structuredData?: StructuredCard[];
+  renderHints?: CardGroupRenderHints;
 }
 
 export interface AssistantOptions {
@@ -167,7 +173,12 @@ Guidelines:
 - If you're unsure what the user wants, ask for clarification
 - When displaying data from tools, format it nicely for the user
 - Remember context from the conversation to provide relevant help
-- If a task requires multiple steps, explain what you're doing`;
+- If a task requires multiple steps, explain what you're doing
+- For simple lookups (tasks, emails, saved items), use a single tool call and respond directly
+- Reserve multi-step reasoning for complex queries (recipes, travel planning, job searches)
+- Use the agent_cross_call tool to chain actions across agents (e.g., find a recipe then order its ingredients, or search jobs then create a follow-up task)
+
+${buildComponentKBPrompt()}`;
 
 // =============================================================================
 // SERVICE
@@ -235,13 +246,16 @@ class EnhancedAssistantService {
       }
     }
 
+    // Determine dynamic iteration limit based on message complexity
+    const maxIterations = this.getMaxIterationsForMessage(sanitizedMessage);
+
     // Execute with streaming if callbacks provided
     if (callbacks) {
-      return this.streamChat(messages, systemPrompt, userId, callbacks);
+      return this.streamChat(messages, systemPrompt, userId, callbacks, maxIterations);
     }
 
     // Non-streaming execution
-    return this.executeChat(messages, systemPrompt, userId);
+    return this.executeChat(messages, systemPrompt, userId, maxIterations);
   }
 
   /**
@@ -251,10 +265,12 @@ class EnhancedAssistantService {
     messages: MessageParam[],
     systemPrompt: string,
     userId: string,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    maxIterations?: number
   ): Promise<AssistantResponse> {
     const allToolCalls: ToolCallResult[] = [];
     const sources: string[] = [];
+    const streamToolResults: Map<string, { success: boolean; data?: unknown }> = new Map();
     let fullText = '';
 
     try {
@@ -264,6 +280,7 @@ class EnhancedAssistantService {
         async (toolCall) => {
           // Execute tool and return result
           const result = await executeTool(toolCall.name, toolCall.input, userId);
+          streamToolResults.set(toolCall.name, result);
           if (result.success) {
             sources.push(toolCall.name.replace('_', ' '));
           }
@@ -282,17 +299,21 @@ class EnhancedAssistantService {
           model: this.model,
           maxTokens: configService.get('assistant.ai.maxTokens', 4000),
           systemPrompt,
-          maxIterations: configService.get('assistant.workflow.maxIterations', 5)
+          maxIterations: maxIterations ?? configService.get('assistant.workflow.maxIterations', 5)
         }
       );
 
       fullText = result.fullText;
 
+      const structuredCards = extractStructuredDataFromToolCalls(streamToolResults);
+      const hints = structuredCards.length > 0 ? buildRenderHints(structuredCards) : undefined;
       const response: AssistantResponse = {
         message: fullText,
         toolCalls: allToolCalls,
         sources: [...new Set(sources)],
-        suggestions: this.generateSuggestions(allToolCalls)
+        suggestions: this.generateSuggestions(allToolCalls),
+        structuredData: structuredCards.length > 0 ? structuredCards : undefined,
+        renderHints: hints
       };
 
       callbacks.onComplete(response);
@@ -309,15 +330,17 @@ class EnhancedAssistantService {
   private async executeChat(
     messages: MessageParam[],
     systemPrompt: string,
-    userId: string
+    userId: string,
+    dynamicMaxIterations?: number
   ): Promise<AssistantResponse> {
     const client = getAnthropicClient();
     const allToolCalls: ToolCallResult[] = [];
     const sources: string[] = [];
+    const allToolResults: Map<string, { success: boolean; data?: unknown }> = new Map();
 
     let currentMessages = [...messages];
     let iterations = 0;
-    const maxIterations = configService.get('assistant.workflow.maxIterations', 5);
+    const maxIterations = dynamicMaxIterations ?? configService.get('assistant.workflow.maxIterations', 5);
 
     while (iterations < maxIterations) {
       iterations++;
@@ -344,11 +367,15 @@ class EnhancedAssistantService {
       if (toolCalls.length === 0) {
         // No more tool calls, return the response
         const text = extractText(response.content);
+        const structuredData = extractStructuredDataFromToolCalls(allToolResults);
+        const hints = structuredData.length > 0 ? buildRenderHints(structuredData) : undefined;
         return {
           message: text,
           toolCalls: allToolCalls,
           sources: [...new Set(sources)],
-          suggestions: this.generateSuggestions(allToolCalls)
+          suggestions: this.generateSuggestions(allToolCalls),
+          structuredData: structuredData.length > 0 ? structuredData : undefined,
+          renderHints: hints
         };
       }
 
@@ -358,10 +385,13 @@ class EnhancedAssistantService {
         userId
       );
 
-      // Record tool calls and sources
+      // Record tool calls, sources, and accumulate results for structured data
       for (const toolCall of toolCalls) {
         allToolCalls.push(toolCall);
         const result = toolResults.get(toolCall.name);
+        if (result) {
+          allToolResults.set(toolCall.name, result);
+        }
         if (result?.success) {
           sources.push(toolCall.name.replace('_', ' '));
         }
@@ -391,11 +421,15 @@ class EnhancedAssistantService {
     }
 
     // Max iterations reached
+    const structuredData = extractStructuredDataFromToolCalls(allToolResults);
+    const hints = structuredData.length > 0 ? buildRenderHints(structuredData) : undefined;
     return {
       message: 'I reached the maximum number of actions. Here\'s what I accomplished so far.',
       toolCalls: allToolCalls,
       sources: [...new Set(sources)],
-      suggestions: ['Continue', 'Start over']
+      suggestions: ['Continue', 'Start over'],
+      structuredData: structuredData.length > 0 ? structuredData : undefined,
+      renderHints: hints
     };
   }
 
@@ -633,6 +667,29 @@ Respond with JSON:
   // PRIVATE HELPERS
   // ===========================================================================
 
+  /**
+   * Determine max tool iterations based on message content.
+   * Simple-agent-targeting messages get fewer iterations to save tokens.
+   */
+  private getMaxIterationsForMessage(message: string): number {
+    const defaultMax = configService.get('assistant.workflow.maxIterations', 5);
+    const lowerMessage = message.toLowerCase();
+
+    // Keywords that signal simple, single-step lookups
+    const simpleSignals = configService.get('keywords.assistant.classification.simpleSignals', ['show my', 'list my', 'get my', 'check my', 'what tasks', 'my emails', 'my todos']) as string[];
+    const isSimple = simpleSignals.some(signal => lowerMessage.includes(signal));
+
+    // Keywords that signal deep, multi-step reasoning
+    const deepSignals = configService.get('keywords.assistant.classification.deepSignals', ['recipe', 'cook', 'plan', 'travel', 'flight', 'search for', 'find me', 'order', 'compare']) as string[];
+    const isDeep = deepSignals.some(signal => lowerMessage.includes(signal));
+
+    if (isSimple && !isDeep) {
+      return Math.min(2, defaultMax);
+    }
+
+    return defaultMax;
+  }
+
   private buildSystemPrompt(customPrompt?: string, memoryContext?: string): string {
     let prompt = customPrompt || DEFAULT_SYSTEM_PROMPT;
 
@@ -699,7 +756,7 @@ Respond with JSON:
     }
 
     // Deduplicate and limit
-    return [...new Set(suggestions)].slice(0, 4);
+    return [...new Set(suggestions)].slice(0, configService.get('limits.assistant.enhanced.suggestions.maxResults', 4) as number);
   }
 }
 

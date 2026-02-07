@@ -211,7 +211,7 @@ describe('ShoppingAgent', () => {
     });
     
     it('should have correct icon', () => {
-      expect(shoppingAgent.metadata.icon).toBe('🛒');
+      expect(shoppingAgent.metadata.icon).toBe('🛍️');
     });
     
     it('should have color defined', () => {

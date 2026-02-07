@@ -135,7 +135,7 @@ class LeetCodeService {
       };
 
       // Cache for 24 hours (problems don't change often)
-      await cacheService.set(cacheKey, problem, { ttl: 86400 });
+      await cacheService.set(cacheKey, problem, { ttl: configService.get('cache.leetcode.problemTtlSeconds', 86400) as number });
 
       return problem;
     } catch (error: any) {
@@ -221,7 +221,7 @@ class LeetCodeService {
       }));
 
       // Cache for 1 hour
-      await cacheService.set(cacheKey, problems, { ttl: 3600 });
+      await cacheService.set(cacheKey, problems, { ttl: configService.get('cache.leetcode.listTtlSeconds', 3600) as number });
 
       logger.success('Fetched LeetCode problems', { count: problems.length });
       return problems;
@@ -338,7 +338,7 @@ class LeetCodeService {
     // Fetch each problem (we could optimize with parallel requests)
     const problems: LeetCodeProblemSummary[] = [];
     
-    for (const slug of slugs.slice(0, 25)) { // Limit to avoid rate limiting
+    for (const slug of slugs.slice(0, configService.get('limits.problems.leetcode.slugs.maxResults', 25) as number)) { // Limit to avoid rate limiting
       const problem = await this.getProblem(slug);
       if (problem && !problem.isPaidOnly) {
         problems.push({
@@ -357,7 +357,7 @@ class LeetCodeService {
     }
 
     // Cache for 24 hours
-    await cacheService.set(cacheKey, problems, { ttl: 86400 });
+    await cacheService.set(cacheKey, problems, { ttl: configService.get('cache.leetcode.curatedListTtlSeconds', 86400) as number });
 
     return problems;
   }
@@ -395,7 +395,7 @@ class LeetCodeService {
         count: t.questionCount
       }));
 
-      await cacheService.set(cacheKey, tags, { ttl: 86400 });
+      await cacheService.set(cacheKey, tags, { ttl: configService.get('cache.leetcode.tagsTtlSeconds', 86400) as number });
       return tags;
     } catch (error: any) {
       logger.fail('Failed to fetch topic tags', { error: error.message });

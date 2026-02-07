@@ -81,14 +81,19 @@ export interface GroceryOrderResult {
 // STORE DEFINITIONS
 // =============================================================================
 
-const GROCERY_STORES: GroceryStore[] = [
+/**
+ * Build grocery store list from configService.
+ * URLs are configurable at runtime via configService; adding new stores
+ * requires adding their config keys to apiDefaults.ts.
+ */
+const buildGroceryStores = (): GroceryStore[] => [
   {
     id: 'wolt',
     name: 'wolt',
     displayName: 'Wolt',
-    logoUrl: 'https://wolt.com/favicon.ico',
-    baseUrl: 'https://wolt.com',
-    searchUrl: 'https://wolt.com/en/isr/search?q=',
+    logoUrl: configService.get('grocery.stores.wolt.logoUrl', 'https://wolt.com/favicon.ico'),
+    baseUrl: configService.get('grocery.stores.wolt.baseUrl', 'https://wolt.com'),
+    searchUrl: configService.get('grocery.stores.wolt.searchUrl', 'https://wolt.com/en/isr/search?q='),
     deepLinkScheme: 'wolt://',
     supportedCountries: ['IL', 'FI', 'DE', 'PL', 'CZ', 'HU', 'GR', 'CY', 'JP', 'SE', 'DK', 'NO'],
     currency: 'ILS',
@@ -98,10 +103,10 @@ const GROCERY_STORES: GroceryStore[] = [
     id: 'shufersal',
     name: 'shufersal',
     displayName: 'Shufersal Online',
-    logoUrl: 'https://www.shufersal.co.il/favicon.ico',
-    baseUrl: 'https://www.shufersal.co.il',
-    searchUrl: 'https://www.shufersal.co.il/online/he/search?q=',
-    cartUrl: 'https://www.shufersal.co.il/online/he/checkout',
+    logoUrl: configService.get('grocery.stores.shufersal.logoUrl', 'https://www.shufersal.co.il/favicon.ico'),
+    baseUrl: configService.get('grocery.stores.shufersal.baseUrl', 'https://www.shufersal.co.il'),
+    searchUrl: configService.get('grocery.stores.shufersal.searchUrl', 'https://www.shufersal.co.il/online/he/search?q='),
+    cartUrl: configService.get('grocery.stores.shufersal.cartUrl', 'https://www.shufersal.co.il/online/he/checkout'),
     supportedCountries: ['IL'],
     currency: 'ILS',
     isAvailable: true
@@ -110,10 +115,10 @@ const GROCERY_STORES: GroceryStore[] = [
     id: 'rami-levy',
     name: 'rami-levy',
     displayName: 'Rami Levy Online',
-    logoUrl: 'https://www.rami-levy.co.il/favicon.ico',
-    baseUrl: 'https://www.rami-levy.co.il',
-    searchUrl: 'https://www.rami-levy.co.il/he/online/search?q=',
-    cartUrl: 'https://www.rami-levy.co.il/he/online/cart',
+    logoUrl: configService.get('grocery.stores.ramiLevy.logoUrl', 'https://www.rami-levy.co.il/favicon.ico'),
+    baseUrl: configService.get('grocery.stores.ramiLevy.baseUrl', 'https://www.rami-levy.co.il'),
+    searchUrl: configService.get('grocery.stores.ramiLevy.searchUrl', 'https://www.rami-levy.co.il/he/online/search?q='),
+    cartUrl: configService.get('grocery.stores.ramiLevy.cartUrl', 'https://www.rami-levy.co.il/he/online/cart'),
     supportedCountries: ['IL'],
     currency: 'ILS',
     isAvailable: true
@@ -122,9 +127,9 @@ const GROCERY_STORES: GroceryStore[] = [
     id: 'victory',
     name: 'victory',
     displayName: 'Victory Online',
-    logoUrl: 'https://www.victoryonline.co.il/favicon.ico',
-    baseUrl: 'https://www.victoryonline.co.il',
-    searchUrl: 'https://www.victoryonline.co.il/search?q=',
+    logoUrl: configService.get('grocery.stores.victory.logoUrl', 'https://www.victoryonline.co.il/favicon.ico'),
+    baseUrl: configService.get('grocery.stores.victory.baseUrl', 'https://www.victoryonline.co.il'),
+    searchUrl: configService.get('grocery.stores.victory.searchUrl', 'https://www.victoryonline.co.il/search?q='),
     supportedCountries: ['IL'],
     currency: 'ILS',
     isAvailable: true
@@ -133,9 +138,9 @@ const GROCERY_STORES: GroceryStore[] = [
     id: 'yochananof',
     name: 'yochananof',
     displayName: 'Yochananof',
-    logoUrl: 'https://yochananof.co.il/favicon.ico',
-    baseUrl: 'https://yochananof.co.il',
-    searchUrl: 'https://yochananof.co.il/search?keyword=',
+    logoUrl: configService.get('grocery.stores.yochananof.logoUrl', 'https://yochananof.co.il/favicon.ico'),
+    baseUrl: configService.get('grocery.stores.yochananof.baseUrl', 'https://yochananof.co.il'),
+    searchUrl: configService.get('grocery.stores.yochananof.searchUrl', 'https://yochananof.co.il/search?keyword='),
     supportedCountries: ['IL'],
     currency: 'ILS',
     isAvailable: true
@@ -154,7 +159,7 @@ class GroceryDeepLinkProvider {
   }
 
   private initializeStores(): void {
-    for (const store of GROCERY_STORES) {
+    for (const store of buildGroceryStores()) {
       if (store.isAvailable) {
         this.stores.set(store.id, store);
       }
@@ -230,7 +235,7 @@ class GroceryDeepLinkProvider {
       const deepLink = this.generateDeepLink(store, itemNames);
 
       // Create a combined search URL for all items
-      const combinedQuery = itemNames.slice(0, 5).join(' '); // Limit to 5 items for URL length
+      const combinedQuery = itemNames.slice(0, configService.get('limits.delivery.grocery.deepLink.maxItems', 5) as number).join(' '); // Limit items for URL length
       const webUrl = this.generateSearchUrl(store, combinedQuery);
 
       return {

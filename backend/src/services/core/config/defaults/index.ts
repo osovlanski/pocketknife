@@ -16,14 +16,20 @@
 import { agentDefaults } from './agentDefaults';
 import { apiDefaults } from './apiDefaults';
 import { cacheDefaults } from './cacheDefaults';
+import { evaluationDefaults } from './evaluationDefaults';
 import { featureDefaults } from './featureDefaults';
+import { keywordDefaults } from './keywordDefaults';
+import { limitsDefaults } from './limitsDefaults';
 
 // Combine all defaults into a single object
 export const DEFAULT_CONFIG = {
   ...agentDefaults,
   ...apiDefaults,
   ...cacheDefaults,
-  ...featureDefaults
+  ...evaluationDefaults,
+  ...featureDefaults,
+  ...keywordDefaults,
+  ...limitsDefaults
 } as const;
 
 export type ConfigKey = keyof typeof DEFAULT_CONFIG;
@@ -33,4 +39,7 @@ export type ConfigValue = typeof DEFAULT_CONFIG[ConfigKey];
 export { agentDefaults } from './agentDefaults';
 export { apiDefaults } from './apiDefaults';
 export { cacheDefaults } from './cacheDefaults';
+export { evaluationDefaults } from './evaluationDefaults';
 export { featureDefaults } from './featureDefaults';
+export { keywordDefaults } from './keywordDefaults';
+export { limitsDefaults } from './limitsDefaults';

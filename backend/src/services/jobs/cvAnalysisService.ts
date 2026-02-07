@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import crypto from 'crypto';
 import { cacheService, cacheKeys } from '../core/cacheService';
+import { configService } from '../core/configService';
 
 interface CVData {
   name?: string;
@@ -34,7 +35,7 @@ interface JobPreferences {
 }
 
 // Cache TTL for CV analysis (24 hours - CV data doesn't change often)
-const CV_CACHE_TTL_SECONDS = 86400;
+const CV_CACHE_TTL_SECONDS = () => configService.get('cache.jobs.cvAnalysis.ttlSeconds', 86400) as number;
 
 class CVAnalysisService {
   private client: Anthropic | null = null;
@@ -149,7 +150,7 @@ Important:
 
     // Cache the result for future use
     await cacheService.set(cacheKey, cvData, { 
-      ttl: CV_CACHE_TTL_SECONDS,
+      ttl: CV_CACHE_TTL_SECONDS(),
       tags: ['cv', 'analysis']
     });
     console.log('💾 CV analysis cached for 24 hours');

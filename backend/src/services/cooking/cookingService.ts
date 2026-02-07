@@ -390,7 +390,7 @@ export const cookingService = {
 
     const savedRecipes = await prisma.savedRecipe.findMany({
       where,
-      take: 10,
+      take: configService.get('limits.cooking.savedRecipes.maxResults', 10) as number,
       orderBy: { rating: 'desc' }
     });
 
@@ -803,7 +803,7 @@ Respond with just the category name, nothing else.`
         status: { in: ['low', 'out_of_stock'] }
       },
       select: { name: true },
-      take: 10
+      take: configService.get('limits.cooking.lowStockItems.maxResults', 10) as number
     });
 
     return lowStockItems.map(item => item.name);

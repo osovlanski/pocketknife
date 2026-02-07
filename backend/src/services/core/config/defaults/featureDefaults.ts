@@ -27,5 +27,13 @@ export const featureDefaults = {
   'ruleEngine.evaluation.maxRulesPerRequest': 100,
   'ruleEngine.evaluation.timeoutMs': 5000,
   'ruleEngine.cache.ttlSeconds': 300,
-  'ruleEngine.audit.enabled': true
+  'ruleEngine.audit.enabled': true,
+
+  // ==========================================================================
+  // EXTENSIBLE TYPE CONSTANTS
+  // ==========================================================================
+  /** Supported programming languages for code problems (extend without code changes) */
+  'problems.supportedLanguages': ['javascript', 'python', 'java', 'typescript', 'cpp', 'go'],
+  /** Curated coding problem lists (extend without code changes) */
+  'problems.curatedLists': ['blind75', 'neetcode150', 'grind75'],
 } as const;

@@ -11,7 +11,7 @@ import { configService } from './configService';
 import logger from '../../utils/logger';
 
 // Cache TTL for API configs (5 minutes)
-const API_CONFIG_CACHE_TTL = 300;
+const API_CONFIG_CACHE_TTL = () => configService.get('cache.externalApi.configTtlSeconds', 300) as number;
 
 export interface ExternalApiConfig {
   id: string;
@@ -796,7 +796,7 @@ export const externalApiService = {
         hasApiKey: config.apiKeyEnvVar ? !!process.env[config.apiKeyEnvVar] : true
       }));
 
-      await cacheService.set(cacheKey, enrichedConfigs, { ttl: API_CONFIG_CACHE_TTL });
+      await cacheService.set(cacheKey, enrichedConfigs, { ttl: API_CONFIG_CACHE_TTL() });
       return enrichedConfigs;
     } catch (error: any) {
       if (error.code === 'P2021') {
@@ -837,7 +837,7 @@ export const externalApiService = {
           ...config,
           hasApiKey: config.apiKeyEnvVar ? !!process.env[config.apiKeyEnvVar] : true
         };
-        await cacheService.set(cacheKey, enriched, { ttl: API_CONFIG_CACHE_TTL });
+        await cacheService.set(cacheKey, enriched, { ttl: API_CONFIG_CACHE_TTL() });
         return enriched;
       }
     } catch (error: any) {
@@ -971,8 +971,8 @@ export const externalApiService = {
           currentUsage: { increment: 1 }
         }
       });
-    } catch {
-      // Silently fail
+    } catch (error: unknown) {
+      logger.debug('Usage tracking increment failed', { name, error: error instanceof Error ? error.message : String(error) });
     }
   },
 
@@ -988,8 +988,8 @@ export const externalApiService = {
           usageResetAt: new Date()
         }
       });
-    } catch {
-      // Silently fail
+    } catch (error: unknown) {
+      logger.debug('Usage tracking reset failed', { name, error: error instanceof Error ? error.message : String(error) });
     }
   },
 

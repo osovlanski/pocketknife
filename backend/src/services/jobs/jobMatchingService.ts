@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { configService } from '../core/configService';
 
 interface JobListing {
   id: string;
@@ -82,7 +83,7 @@ Desired Roles: ${desiredRoles.length > 0 ? desiredRoles.join(', ') : 'Not specif
 Years of Experience: ${yearsOfExperience || 'Not specified'}
 Seniority Level: ${actualCVData.seniorityLevel || 'Not specified'}
 Current Role: ${actualCVData.currentRole || 'Not specified'}
-Recent Experience: ${experience.length > 0 ? experience.slice(0, 2).map((e: any) => `${e.title || e.role} at ${e.company}`).join(', ') : 'Not specified'}
+Recent Experience: ${experience.length > 0 ? experience.slice(0, configService.get('limits.jobs.matching.experience.maxResults', 2) as number).map((e: any) => `${e.title || e.role} at ${e.company}`).join(', ') : 'Not specified'}
 
 ANALYSIS INSTRUCTIONS:
 1. Calculate match score (0-100) based on:
@@ -153,7 +154,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     });
     
     // Check for common tech keywords in job that candidate doesn't have
-    const commonTech = ['python', 'java', 'javascript', 'typescript', 'react', 'node', 'aws', 'docker', 'kubernetes', 'sql', 'mongodb', 'go', 'rust'];
+    const commonTech = configService.get('keywords.jobs.matching.commonTech', ['python', 'java', 'javascript', 'typescript', 'react', 'node', 'aws', 'docker', 'kubernetes', 'sql', 'mongodb', 'go', 'rust']) as string[];
     commonTech.forEach(tech => {
       if (jobText.includes(tech) && !skills.some((s: string) => s.toLowerCase().includes(tech))) {
         missingSkills.push(tech);
@@ -177,11 +178,11 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     
     // Bonus for seniority match
     if (seniorityLevel) {
-      const seniorityKeywords: Record<string, string[]> = {
+      const seniorityKeywords = configService.get('keywords.jobs.matching.seniorityKeywords', {
         'senior': ['senior', 'sr.', 'lead', 'principal', 'staff'],
         'mid': ['mid', 'intermediate', '3-5 years'],
         'junior': ['junior', 'jr.', 'entry', 'graduate']
-      };
+      }) as Record<string, string[]>;
       const seniorMatch = seniorityKeywords[seniorityLevel]?.some(kw => jobText.includes(kw));
       if (seniorMatch) {
         matchScore += 15;
@@ -189,7 +190,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     }
     
     // Bonus for tech company indicators
-    const techIndicators = ['startup', 'tech', 'software', 'engineering', 'developer', 'engineer'];
+    const techIndicators = configService.get('keywords.jobs.matching.techIndicators', ['startup', 'tech', 'software', 'engineering', 'developer', 'engineer']) as string[];
     if (techIndicators.some(ind => jobText.includes(ind))) {
       matchScore += 10;
     }
@@ -203,8 +204,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     
     return {
       matchScore,
-      matchedSkills: matchedSkills.slice(0, 10),
-      missingSkills: missingSkills.slice(0, 5),
+      matchedSkills: matchedSkills.slice(0, configService.get('limits.jobs.matching.matchedSkills.maxResults', 10) as number),
+      missingSkills: missingSkills.slice(0, configService.get('limits.jobs.matching.missingSkills.maxResults', 5) as number),
       reasoning
     };
   }

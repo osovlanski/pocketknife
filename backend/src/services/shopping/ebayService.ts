@@ -180,7 +180,7 @@ class EbayService {
       try {
         const products = await this.searchViaRapidApi(params);
         if (products.length > 0) {
-          await cacheService.set(cacheKey, products, { ttl: 1800 }); // 30 min cache
+          await cacheService.set(cacheKey, products, { ttl: configService.get('cache.shopping.ebay.searchTtlSeconds', 1800) as number }); // 30 min cache
           return products;
         }
       } catch (error: any) {
@@ -193,7 +193,7 @@ class EbayService {
       try {
         const products = await this.searchViaDirectApi(params);
         if (products.length > 0) {
-          await cacheService.set(cacheKey, products, { ttl: 1800 });
+          await cacheService.set(cacheKey, products, { ttl: configService.get('cache.shopping.ebay.searchTtlSeconds', 1800) as number });
           return products;
         }
       } catch (error: any) {

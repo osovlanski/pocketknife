@@ -13,9 +13,20 @@ const { mockAgentRegistry, mockConfigService } = vi.hoisted(() => {
     metadata: {
       id: 'cooking',
       name: 'Cooking Agent',
-      description: 'Handle recipes and cooking tasks',
+      description: 'Manage kitchen inventory, find recipes, and track shopping lists',
       icon: '🍳',
-      color: '#F59E0B'
+      color: '#22C55E',
+      keywords: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen'],
+      agentType: 'deep' as const,
+      capabilities: [
+        {
+          action: 'find-recipes',
+          description: 'Search for recipes',
+          parameters: [
+            { name: 'query', type: 'string', required: true, description: 'Search query' }
+          ]
+        }
+      ]
     },
     execute: vi.fn().mockResolvedValue({ success: true, data: {} }),
     isRunning: vi.fn().mockReturnValue(false),
@@ -62,6 +73,54 @@ import { agentOrchestratorService } from '../../src/services/assistant/agentOrch
 describe('AgentOrchestratorService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore mock return values after clearAllMocks resets them
+    mockAgentRegistry.getAll.mockReturnValue([{
+      metadata: {
+        id: 'cooking',
+        name: 'Cooking Agent',
+        description: 'Manage kitchen inventory, find recipes, and track shopping lists',
+        icon: '🍳',
+        color: '#22C55E',
+        keywords: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen'],
+        agentType: 'deep' as const,
+        capabilities: [
+          {
+            action: 'find-recipes',
+            description: 'Search for recipes',
+            parameters: [
+              { name: 'query', type: 'string', required: true, description: 'Search query' }
+            ]
+          }
+        ]
+      },
+      execute: vi.fn().mockResolvedValue({ success: true, data: {} }),
+      isRunning: vi.fn().mockReturnValue(false),
+      getState: vi.fn().mockReturnValue('idle')
+    }]);
+    mockAgentRegistry.get.mockReturnValue({
+      metadata: {
+        id: 'cooking',
+        name: 'Cooking Agent',
+        description: 'Manage kitchen inventory, find recipes, and track shopping lists',
+        icon: '🍳',
+        color: '#22C55E',
+        keywords: ['#recipe', '#cooking', '#food', '#ingredient', '#meal', '#kitchen'],
+        agentType: 'deep' as const,
+        capabilities: [
+          {
+            action: 'find-recipes',
+            description: 'Search for recipes',
+            parameters: [
+              { name: 'query', type: 'string', required: true, description: 'Search query' }
+            ]
+          }
+        ]
+      },
+      execute: vi.fn().mockResolvedValue({ success: true, data: {} }),
+      isRunning: vi.fn().mockReturnValue(false),
+      getState: vi.fn().mockReturnValue('idle')
+    });
+    mockAgentRegistry.has.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -82,6 +141,7 @@ describe('AgentOrchestratorService', () => {
     });
 
     it('should return empty array for unknown agent', () => {
+      mockAgentRegistry.get.mockReturnValueOnce(undefined);
       const keywords = agentOrchestratorService.getAgentKeywords('unknown' as any);
       expect(keywords).toEqual([]);
     });
@@ -107,6 +167,7 @@ describe('AgentOrchestratorService', () => {
     });
 
     it('should return empty array for unknown agent', () => {
+      mockAgentRegistry.get.mockReturnValueOnce(undefined);
       const capabilities = agentOrchestratorService.getAgentCapabilities('unknown' as any);
       expect(capabilities).toEqual([]);
     });
@@ -114,14 +175,25 @@ describe('AgentOrchestratorService', () => {
 
   describe('buildCapabilitiesPrompt', () => {
     it('should generate capabilities prompt string', () => {
-      // Ensure mock returns array
+      // Ensure mock returns array with full manifest metadata
       mockAgentRegistry.getAll.mockReturnValue([{
         metadata: {
           id: 'cooking',
           name: 'Cooking Agent',
           description: 'Handle recipes',
           icon: '🍳',
-          color: '#F59E0B'
+          color: '#22C55E',
+          keywords: ['#recipe', '#cooking'],
+          agentType: 'deep' as const,
+          capabilities: [
+            {
+              action: 'find-recipes',
+              description: 'Search for recipes',
+              parameters: [
+                { name: 'query', type: 'string', required: true, description: 'Search query' }
+              ]
+            }
+          ]
         },
         isRunning: vi.fn().mockReturnValue(false),
         getState: vi.fn().mockReturnValue('idle')

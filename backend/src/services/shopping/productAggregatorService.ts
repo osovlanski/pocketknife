@@ -424,7 +424,7 @@ class ProductAggregatorService {
 - Shipping value
 
 Products:
-${products.slice(0, 20).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''} | Rating: ${p.rating || 'N/A'} | Source: ${p.source}`).join('\n')}
+${products.slice(0, configService.get('limits.shopping.productAggregator.display.maxResults', 20) as number).map((p, i) => `${i + 1}. "${p.title}" - $${p.price} ${p.originalPrice ? `(was $${p.originalPrice}, ${p.discount}% off)` : ''} | Rating: ${p.rating || 'N/A'} | Source: ${p.source}`).join('\n')}
 
 Respond ONLY with valid JSON:
 {
@@ -515,7 +515,7 @@ Respond ONLY with valid JSON:
       logger.warn('Relevance filter too strict, relaxing threshold', { query });
       return scoredProducts
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
-        .slice(0, Math.ceil(products.length / 2))
+        .slice(0, configService.get('limits.shopping.productAggregator.search.maxResults', 50) as number)
         .map(sp => sp.product);
     }
 
@@ -586,7 +586,7 @@ Respond ONLY with valid JSON:
       query,
       sources: ['ebay', 'amazon', 'aliexpress'],
       sortBy: 'price_asc',
-      limit: 10
+      limit: configService.get('limits.shopping.productAggregator.limit', 10) as number
     });
 
     const products = result.products;

@@ -140,7 +140,7 @@ class FlightSearchService {
           max_stopovers: params.directFlightsOnly ? 0 : undefined,
           price_to: params.maxPrice,
           curr: params.currency || 'USD',
-          limit: 20,
+          limit: configService.get('limits.travel.flights.search.limit', 20) as number,
           sort: 'price'
         }
       });
@@ -150,7 +150,7 @@ class FlightSearchService {
       );
 
       // Cache for 15 minutes (flight prices change frequently)
-      await cacheService.set(cacheKey, flights, { ttl: 900 });
+      await cacheService.set(cacheKey, flights, { ttl: configService.get('cache.flights.searchTtlSeconds', 900) as number });
 
       logger.success('Flight search completed', { count: flights.length });
       return flights;
@@ -188,7 +188,7 @@ class FlightSearchService {
           date_from: this.formatDate(dateFrom),
           date_to: this.formatDate(dateTo),
           curr: currency,
-          limit: 30,
+          limit: configService.get('limits.travel.flights.search.maxLimit', 30) as number,
           sort: 'price',
           one_for_city: 0,
           one_per_date: 1  // Best price per departure date
@@ -199,7 +199,7 @@ class FlightSearchService {
         this.mapKiwiResult(item, currency)
       );
 
-      await cacheService.set(cacheKey, flights, { ttl: 1800 });
+      await cacheService.set(cacheKey, flights, { ttl: configService.get('cache.flights.cheapestTtlSeconds', 1800) as number });
       return flights;
     } catch (error: any) {
       logger.fail('Cheapest flight search failed', { error: error.message });
@@ -236,7 +236,7 @@ class FlightSearchService {
           departureDate: legs[0].date,
           currency
         });
-        allFlights.push(...flights.slice(0, 5));
+        allFlights.push(...flights.slice(0, configService.get('limits.travel.flights.search.batch.maxResults', 5) as number));
       }
 
       return allFlights;
@@ -261,7 +261,7 @@ class FlightSearchService {
         params: {
           term: query,
           location_types: type,
-          limit: 10
+          limit: configService.get('limits.travel.flights.locations.limit', 10) as number
         }
       });
 
@@ -274,7 +274,7 @@ class FlightSearchService {
         timezone: loc.timezone
       }));
 
-      await cacheService.set(cacheKey, locations, { ttl: 86400 });
+      await cacheService.set(cacheKey, locations, { ttl: configService.get('cache.locations.ttlSeconds', 86400) as number });
       return locations;
     } catch (error: any) {
       logger.fail('Location search failed', { error: error.message });
@@ -328,7 +328,7 @@ class FlightSearchService {
         .sort((a, b) => a.averagePrice - b.averagePrice)
         .slice(0, limit);
 
-      await cacheService.set(cacheKey, routes, { ttl: 3600 });
+      await cacheService.set(cacheKey, routes, { ttl: configService.get('cache.flights.popularRoutesTtlSeconds', 3600) as number });
       return routes;
     } catch (error: any) {
       logger.fail('Popular routes search failed', { error: error.message });

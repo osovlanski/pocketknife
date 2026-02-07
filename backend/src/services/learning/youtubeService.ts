@@ -153,7 +153,7 @@ class YouTubeService {
       );
 
       // Cache for 1 hour
-      await cacheService.set(cacheKey, videos, { ttl: 3600 });
+      await cacheService.set(cacheKey, videos, { ttl: configService.get('cache.youtube.searchTtlSeconds', 3600) as number });
 
       logger.success('YouTube search completed', { count: videos.length });
       return videos;
@@ -215,7 +215,7 @@ class YouTubeService {
       if (items.length === 0) return null;
 
       const video = this.mapVideoResult(items[0]);
-      await cacheService.set(cacheKey, video, { ttl: 86400 });
+      await cacheService.set(cacheKey, video, { ttl: configService.get('cache.youtube.detailsTtlSeconds', 86400) as number });
 
       return video;
     } catch (error: any) {
@@ -256,7 +256,7 @@ class YouTubeService {
         url: `https://www.youtube.com/channel/${item.id}`
       };
 
-      await cacheService.set(cacheKey, channel, { ttl: 86400 });
+      await cacheService.set(cacheKey, channel, { ttl: configService.get('cache.youtube.channelTtlSeconds', 86400) as number });
       return channel;
     } catch (error: any) {
       logger.fail('Failed to get channel', { channelId, error: error.message });
@@ -360,7 +360,7 @@ class YouTubeService {
     const allVideos: YouTubeVideo[] = [];
 
     // Search a few channels to avoid hitting rate limits
-    const selectedChannels = channels.slice(0, 3);
+    const selectedChannels = channels.slice(0, configService.get('limits.learning.youtube.channels.maxResults', 3) as number);
 
     for (const channel of selectedChannels) {
       const videos = await this.searchVideos({

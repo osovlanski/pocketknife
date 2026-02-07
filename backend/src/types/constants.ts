@@ -100,6 +100,10 @@ export const PROBLEM_DIFFICULTIES = ['Easy', 'Medium', 'Hard'] as const;
 /** Type-safe problem difficulty */
 export type ProblemDifficulty = typeof PROBLEM_DIFFICULTIES[number];
 
+/**
+ * Supported languages for type derivation.
+ * Runtime value is configurable via configService key 'problems.supportedLanguages'.
+ */
 export const SUPPORTED_LANGUAGES = ['javascript', 'python', 'java', 'typescript', 'cpp', 'go'] as const;
 
 /** Type-safe programming language */

@@ -18,6 +18,8 @@ import { cacheService } from '../core/cacheService';
 import { agentOrchestratorService, WorkflowStep, WorkflowResult } from './agentOrchestratorService';
 import logger from '../../utils/logger';
 import type { AgentId } from '../../agents/types';
+import type { StructuredCard, CardGroupRenderHints } from './structuredCards';
+import { extractStructuredData, buildRenderHints } from './structuredCards';
 
 // =============================================================================
 // TYPES
@@ -38,6 +40,7 @@ export interface IntentAnalysis {
   extractedParams: Record<string, unknown>;
   isMultiStep: boolean;
   clarificationNeeded?: string;
+  selectedActions?: Record<string, string>;
 }
 
 export interface ExecutionPlan {
@@ -51,6 +54,8 @@ export interface AssistantResponse {
   workflowResult?: WorkflowResult;
   suggestions?: string[];
   sources?: string[];
+  structuredData?: StructuredCard[];
+  renderHints?: CardGroupRenderHints;
 }
 
 export interface WebSearchResult {
@@ -343,9 +348,15 @@ Respond with a JSON object:
       "param1": "value1"
     }
   },
+  "selectedActions": {
+    "agentId1": "best-matching-action-name",
+    "agentId2": "best-matching-action-name"
+  },
   "isMultiStep": true/false,
   "clarificationNeeded": "Optional - if you need more info to proceed"
 }
+
+IMPORTANT: For "selectedActions", choose the single best action from each agent's available actions listed above. The action name must exactly match one of the agent's defined actions.
 
 Respond ONLY with valid JSON (no markdown, no backticks):`;
 
@@ -386,8 +397,14 @@ Respond ONLY with valid JSON (no markdown, no backticks):`;
       const capabilities = agentOrchestratorService.getAgentCapabilities(agentId);
       const agentParams = intent.extractedParams[agentId] || {};
 
-      // Determine the best action based on intent
-      const action = this.determineAction(agentId, intent.intent, capabilities);
+      // Prefer LLM-selected action, validate it exists in capabilities, fallback to keyword matching
+      let action: string | null = null;
+      const llmSelectedAction = intent.selectedActions?.[agentId];
+      if (llmSelectedAction && capabilities.some(c => c.action === llmSelectedAction)) {
+        action = llmSelectedAction;
+      } else {
+        action = this.determineAction(agentId, intent.intent, capabilities);
+      }
 
       if (action) {
         steps.push({
@@ -674,11 +691,19 @@ Keep the response concise (2-4 sentences). Don't use JSON or code formatting.`;
       workflowResult
     );
 
+    // Extract structured cards from workflow results
+    const structuredData = workflowResult
+      ? extractStructuredData(workflowResult.steps)
+      : [];
+    const renderHints = structuredData.length > 0 ? buildRenderHints(structuredData) : undefined;
+
     return {
       message: response,
       workflowResult: workflowResult || undefined,
       sources: aggregatedData.sources,
-      suggestions: this.generateSuggestions(workflowResult || { success: true, steps: [] })
+      suggestions: this.generateSuggestions(workflowResult || { success: true, steps: [] }),
+      structuredData: structuredData.length > 0 ? structuredData : undefined,
+      renderHints
     };
   }
 

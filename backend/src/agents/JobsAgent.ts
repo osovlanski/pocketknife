@@ -9,6 +9,7 @@
 
 import { AbstractAgent, AgentConfig } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import { getPrisma } from '../services/core/databaseService';
 import { configService } from '../services/core/configService';
 import mockInterviewService, { InterviewQuestion, InterviewAnswer } from '../services/jobs/mockInterviewService';
@@ -162,13 +163,7 @@ interface JobsResult {
 }
 
 export class JobsAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'jobs',
-    name: 'Jobs Agent',
-    description: 'Search for jobs, match against your CV with AI, and track applications',
-    icon: '💼',
-    color: '#8B5CF6' // Purple
-  };
+  readonly metadata: AgentMetadata = getManifest('jobs');
 
   // Register validation schemas for each action
   protected validationSchemas = JobsSchemas as Record<string, z.ZodSchema>;

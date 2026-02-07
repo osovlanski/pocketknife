@@ -8,11 +8,13 @@
 
 import { AbstractAgent } from './AbstractAgent';
 import { AgentMetadata, AgentResult, AgentParams } from './types';
+import { getManifest } from './manifests';
 import travelSearchService from '../services/travel/travelSearchService';
 import tripPlanningService from '../services/travel/tripPlanningService';
 import specializedTravelService from '../services/travel/specializedTravelService';
 import israelTravelService from '../services/travel/israelTravelService';
 import { getPrisma } from '../services/core/databaseService';
+import { configService } from '../services/core/configService';
 import { googleSearchService } from '../services/core/googleSearchService';
 import { TripSearchRequest } from '../types/travel';
 import type { 
@@ -90,13 +92,7 @@ interface LocalSearchResult {
 }
 
 export class TravelAgent extends AbstractAgent {
-  readonly metadata: AgentMetadata = {
-    id: 'travel',
-    name: 'Travel Agent',
-    description: 'Find flights, hotels, ski deals, and generate AI-powered trip plans',
-    icon: '✈️',
-    color: '#3B82F6' // Blue
-  };
+  readonly metadata: AgentMetadata = getManifest('travel');
 
   protected async run(params: TravelParams): Promise<AgentResult<TravelResult>> {
     const { action } = params;
@@ -366,7 +362,7 @@ export class TravelAgent extends AbstractAgent {
       const trips = await prisma.tripPlan.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: 50
+        take: configService.get('limits.travel.agent.tripPlans.maxResults', 50) as number
       });
 
       return {
@@ -428,7 +424,7 @@ export class TravelAgent extends AbstractAgent {
       this.emitProgress(30);
 
       const results = await googleSearchService.searchAndParse(searchQuery, 'travel', {
-        maxResults: 10
+        maxResults: configService.get('limits.travel.agent.googleSearch.maxResults', 10) as number
       });
 
       this.emitProgress(80);
