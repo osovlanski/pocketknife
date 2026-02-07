@@ -1,14 +1,10 @@
 # Daily Automated Code Review with Claude
 #
-# This workflow runs Claude Code to perform a daily tech lead review
-# of the codebase and creates a GitHub issue with the findings.
+# This workflow uses the Anthropic API (@anthropic-ai/sdk) to perform
+# a daily tech lead review and creates a GitHub issue with findings.
 #
 # Prerequisites:
 # 1. Add ANTHROPIC_API_KEY to repository secrets
-# 2. Ensure Claude Code is available (npm install @anthropic-ai/claude-code)
-#
-# Note: This is a template - Claude Code CLI availability may vary.
-# Alternative: Use Anthropic API directly with a custom script.
 
 name: Daily Code Review
 
@@ -42,7 +38,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Note: cache: 'npm' removed - no package-lock.json in repo root
+          # No npm cache - package-lock.json is in subdirectories, not root
 
       - name: Get date for issue title
         id: date
@@ -130,7 +126,10 @@ jobs:
                 messages: [{ role: 'user', content: prompt }]
               });
 
-              const review = response.content[0].text;
+              if (!response.content || response.content.length === 0) {
+                throw new Error('Claude returned empty response content');
+              }
+              const review = response.content[0].type === 'text' ? response.content[0].text : '';
               fs.writeFileSync('DAILY_REVIEW.md', review);
               console.log('Review completed successfully');
             } catch (error) {
@@ -168,15 +167,3 @@ jobs:
           name: daily-review-${{ github.run_number }}
           path: DAILY_REVIEW.md
           retention-days: 30
-
-  # Optional: Send notification to Slack/Discord
-  notify:
-    needs: code-review
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Notify on failure
-        if: needs.code-review.result == 'failure'
-        run: |
-          echo "Code review workflow failed. Check GitHub Actions logs."
-          # Add Slack/Discord webhook notification here if needed

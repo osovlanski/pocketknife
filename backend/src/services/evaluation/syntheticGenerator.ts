@@ -1,26 +1,18 @@
 /**
  * Synthetic Question Generator
- * 
+ *
  * Generates new test questions focusing on weak areas identified
  * in previous evaluations. Uses Claude Haiku for cost efficiency.
+ *
+ * Questions are validated at parse time to ensure difficulty is within
+ * 1-5 range and categories are known values.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { generateClaudeMessage, isAnthropicConfigured } from '../../utils/anthropicClient';
+import { configService } from '../core/configService';
 import logger from '../../utils/logger';
-
-export interface BenchmarkQuestion {
-  id: string;
-  question: string;
-  category: string;
-  difficulty: number;
-  expectedAgents: string[];
-}
-
-export interface GenerationContext {
-  weakCategories: string[];
-  currentDifficulty: number;
-  recentQuestions: string[];
-}
+import { RawQuestionSchema, toQuestionCategory, toDifficulty } from './types';
+import type { BenchmarkQuestion, GenerationContext, Difficulty, QuestionCategory } from './types';
 
 const GENERATION_PROMPT = `Generate {count} diverse test questions for an AI assistant.
 
@@ -51,35 +43,43 @@ Return ONLY valid JSON array:
 
 export const syntheticGenerator = {
   /**
-   * Generate synthetic test questions
+   * Generate synthetic test questions using Claude.
+   *
+   * Calls Claude Haiku with context about weak areas to produce targeted
+   * test questions. Validates all generated questions with Zod schemas.
+   * Returns empty array on API failure (logged, not thrown).
+   *
+   * @param count - Number of questions to generate
+   * @param context - Generation context with weak categories, difficulty, and recent questions
+   * @returns Array of validated benchmark questions, or empty array on failure
    */
   generateQuestions: async (
     count: number,
     context: GenerationContext
   ): Promise<BenchmarkQuestion[]> => {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
+    if (!isAnthropicConfigured()) {
+      logger.warn('Cannot generate synthetic questions: ANTHROPIC_API_KEY not configured');
+      return [];
     }
 
-    const client = new Anthropic();
+    const maxTokens = configService.get('evaluation.synthetic.maxTokens', 2000);
+    const model = configService.get('evaluation.ai.model', 'claude-3-5-haiku-latest');
+    const recentLimit = configService.get('evaluation.recentQuestionsLimit', 10);
 
     const prompt = GENERATION_PROMPT
       .replace('{count}', count.toString())
       .replace('{weakCategories}', context.weakCategories.join(', ') || 'general')
       .replace('{difficulty}', context.currentDifficulty.toString())
-      .replace('{recentQuestions}', context.recentQuestions.slice(0, 10).join('; ') || 'none');
+      .replace('{recentQuestions}', context.recentQuestions.slice(0, recentLimit).join('; ') || 'none');
 
     try {
-      logger.search('Generating synthetic questions', { count, context });
+      logger.search('Generating synthetic questions', { count, weakCategories: context.weakCategories });
 
-      const result = await client.messages.create({
-        model: 'claude-3-5-haiku-latest',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      });
+      const text = await generateClaudeMessage(prompt, { model, maxTokens });
 
-      const text = result.content[0].type === 'text' ? result.content[0].text : '';
+      if (!text) {
+        throw new Error('Claude returned empty response');
+      }
 
       // Parse JSON array from response
       const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -87,27 +87,46 @@ export const syntheticGenerator = {
         throw new Error('No JSON array found in generation response');
       }
 
-      const questions = JSON.parse(jsonMatch[0]) as Array<Omit<BenchmarkQuestion, 'id'>>;
+      const rawQuestions = JSON.parse(jsonMatch[0]) as unknown[];
 
-      // Add IDs to questions
+      // Validate each question with Zod and map to typed BenchmarkQuestion
       const timestamp = Date.now();
-      return questions.map((q, i) => ({
-        id: `synthetic-${timestamp}-${i}`,
-        question: q.question,
-        category: q.category || 'general',
-        difficulty: q.difficulty || context.currentDifficulty,
-        expectedAgents: q.expectedAgents || []
-      }));
-    } catch (error: any) {
-      logger.fail('Failed to generate questions', { error: error.message });
+      const validQuestions: BenchmarkQuestion[] = [];
+
+      for (let i = 0; i < rawQuestions.length; i++) {
+        const parsed = RawQuestionSchema.safeParse(rawQuestions[i]);
+        if (parsed.success) {
+          validQuestions.push({
+            id: `synthetic-${timestamp}-${i}`,
+            question: parsed.data.question,
+            category: toQuestionCategory(parsed.data.category),
+            difficulty: parsed.data.difficulty,
+            expectedAgents: parsed.data.expectedAgents
+          });
+        } else {
+          logger.warn('Skipping invalid generated question', { index: i, errors: parsed.error.issues });
+        }
+      }
+
+      logger.success('Generated synthetic questions', { requested: count, valid: validQuestions.length });
+      return validQuestions;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.fail('Failed to generate questions', { error: message });
       return [];
     }
   },
 
   /**
-   * Calculate recommended difficulty based on average score
+   * Calculate recommended difficulty level based on average evaluation score.
+   *
+   * Lower scores produce easier questions to build confidence;
+   * higher scores produce harder questions to challenge the assistant.
+   *
+   * @param avgScore - Average overall score from previous evaluations (0-5)
+   * @returns Recommended difficulty level (1-5)
    */
-  calculateDifficulty: (avgScore: number): number => {
+  calculateDifficulty: (avgScore: number): Difficulty => {
     if (avgScore < 2.5) return 1;
     if (avgScore < 3.0) return 2;
     if (avgScore < 3.5) return 3;
@@ -116,16 +135,22 @@ export const syntheticGenerator = {
   },
 
   /**
-   * Identify weak categories from evaluation results
+   * Identify categories scoring below the weakness threshold.
+   *
+   * @param categoryScores - Map of category names to average scores
+   * @param threshold - Score below which a category is considered weak (default: 3.5, i.e. 70%)
+   * @returns Array of weak category names, sorted from weakest to strongest
    */
   identifyWeakCategories: (
     categoryScores: Record<string, number>,
-    threshold: number = 3.5
-  ): string[] => {
+    threshold?: number
+  ): QuestionCategory[] => {
+    const weakThreshold = threshold ?? (configService.get('evaluation.weakCategoryThreshold', 3.5) as number);
+
     return Object.entries(categoryScores)
-      .filter(([_, score]) => score < threshold)
+      .filter(([_, score]) => score < weakThreshold)
       .sort((a, b) => a[1] - b[1])
-      .map(([category]) => category);
+      .map(([category]) => toQuestionCategory(category));
   }
 };
 

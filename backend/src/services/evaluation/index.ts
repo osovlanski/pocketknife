@@ -1,11 +1,31 @@
 /**
  * Evaluation Services
- * 
- * Export all evaluation-related services for quality tracking.
+ *
+ * Export all evaluation-related services and types for quality tracking.
  */
 
 export { evaluationService } from './evaluationService';
-export type { EvaluationScores, EvaluationResult } from './evaluationService';
-
 export { syntheticGenerator } from './syntheticGenerator';
-export type { BenchmarkQuestion, GenerationContext } from './syntheticGenerator';
+
+// Re-export all types from centralized types module
+export type {
+  EvaluationScores,
+  EvaluationResult,
+  BenchmarkQuestion,
+  BenchmarkFile,
+  GenerationContext,
+  ChatExecutionResult,
+  QuestionCategory,
+  Difficulty,
+  ScoreValue,
+  AgentType
+} from './types';
+
+export {
+  RawScoresSchema,
+  RawQuestionSchema,
+  clampScore,
+  computeOverall,
+  toQuestionCategory,
+  toDifficulty
+} from './types';

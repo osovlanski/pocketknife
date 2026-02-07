@@ -60,7 +60,7 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma generate 2>&1 || echo "::warning::Prisma generate failed"
+        run: npx prisma generate 2>&1 || { echo "::error::Prisma generate failed - evaluation will use defaults"; exit 1; }
 
       - name: Run evaluation
         if: steps.check-secrets.outputs.has_secrets == 'true'
@@ -70,7 +70,13 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           QUESTION_COUNT: ${{ github.event.inputs.question_count }}
         run: |
-          npm run evaluate:daily --if-present || node scripts/dailyEvaluation.js
+          # Try npm script first, fall back to tsx if not defined
+          if npm run evaluate:daily 2>/dev/null; then
+            echo "Ran via npm script"
+          else
+            echo "Falling back to direct tsx execution"
+            npx tsx src/scripts/dailyEvaluation.ts
+          fi
 
       - name: Create skip report
         if: steps.check-secrets.outputs.has_secrets != 'true'
@@ -91,7 +97,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/quality-reports/ 2>/dev/null || true
+          git add docs/quality-reports/ || echo "No report files to commit"
           if ! git diff --staged --quiet; then
             git commit -m "chore: daily quality report $(date +%Y-%m-%d)"
             git push

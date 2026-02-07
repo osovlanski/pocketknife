@@ -16,6 +16,7 @@
 import { agentDefaults } from './agentDefaults';
 import { apiDefaults } from './apiDefaults';
 import { cacheDefaults } from './cacheDefaults';
+import { evaluationDefaults } from './evaluationDefaults';
 import { featureDefaults } from './featureDefaults';
 
 // Combine all defaults into a single object
@@ -23,6 +24,7 @@ export const DEFAULT_CONFIG = {
   ...agentDefaults,
   ...apiDefaults,
   ...cacheDefaults,
+  ...evaluationDefaults,
   ...featureDefaults
 } as const;
 
@@ -33,4 +35,5 @@ export type ConfigValue = typeof DEFAULT_CONFIG[ConfigKey];
 export { agentDefaults } from './agentDefaults';
 export { apiDefaults } from './apiDefaults';
 export { cacheDefaults } from './cacheDefaults';
+export { evaluationDefaults } from './evaluationDefaults';
 export { featureDefaults } from './featureDefaults';
