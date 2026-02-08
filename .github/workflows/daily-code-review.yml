@@ -101,24 +101,26 @@ jobs:
                 } catch (_) { /* file may not exist */ }
               }
 
-              const prompt = `You are a strict principal tech lead reviewing a codebase.
-
-          Focus Area: ${focusArea}
-          Recently Changed Files:
-          ${changedFiles}
-
-          Key Files Context:
-          ${context}
-
-          Provide a concise daily review focusing on:
-          1. Any critical issues that need immediate attention
-          2. Code quality concerns
-          3. Security vulnerabilities
-          4. Performance bottlenecks
-          5. Technical debt items
-
-          Format as markdown suitable for a GitHub issue.
-          Keep the review actionable and under 2000 words.`;
+              const prompt = [
+                'You are a strict principal tech lead reviewing a codebase.',
+                '',
+                `Focus Area: ${focusArea}`,
+                'Recently Changed Files:',
+                changedFiles,
+                '',
+                'Key Files Context:',
+                context,
+                '',
+                'Provide a concise daily review focusing on:',
+                '1. Any critical issues that need immediate attention',
+                '2. Code quality concerns',
+                '3. Security vulnerabilities',
+                '4. Performance bottlenecks',
+                '5. Technical debt items',
+                '',
+                'Format as markdown suitable for a GitHub issue.',
+                'Keep the review actionable and under 2000 words.'
+              ].join('\n');
 
               const response = await client.messages.create({
                 model: 'claude-sonnet-4-20250514',
