@@ -8,9 +8,10 @@
 #
 # Usage:
 # 1. Go to Actions > Apply Review Fixes
-# 2. Enter the issue number from a daily review
-# 3. Click "Run workflow"
-# 4. Review the generated PR before merging
+# 2. Select the "main" branch
+# 3. Enter the issue number from a daily review
+# 4. Click "Run workflow"
+# 5. Review the generated PR before merging
 
 name: Apply Review Fixes
 
@@ -28,7 +29,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      issues: read
+      issues: write
 
     steps:
       - name: Checkout repository
@@ -41,27 +42,44 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Fetch issue content
+      - name: Validate issue exists
         id: issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
           echo "Fetching issue #$ISSUE_NUMBER..."
-          gh issue view "$ISSUE_NUMBER" --json body,title -q '.' > issue-data.json
-          jq -r '.body' issue-data.json > issue-content.md
-          echo "Issue content saved"
+          if ! gh issue view "$ISSUE_NUMBER" --json body,title -q '.' > issue-data.json; then
+            echo "::error::Issue #$ISSUE_NUMBER not found or not accessible"
+            exit 1
+          fi
+          BODY=$(jq -r '.body // empty' issue-data.json)
+          if [ -z "$BODY" ]; then
+            echo "::error::Issue #$ISSUE_NUMBER has no body content"
+            exit 1
+          fi
+          echo "$BODY" > issue-content.md
+          TITLE=$(jq -r '.title' issue-data.json)
+          echo "Issue: $TITLE"
+          echo "Content length: $(wc -c < issue-content.md) bytes"
 
       - name: Create fix branch
         id: branch
         env:
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
-          BRANCH_NAME="fix/daily-review-issue-${ISSUE_NUMBER}-$(date +%Y%m%d)"
+          BRANCH_NAME="fix/review-${ISSUE_NUMBER}-$(date +%Y%m%d-%H%M%S)"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH_NAME"
+          echo "Created branch: $BRANCH_NAME"
+
+      - name: Ensure automated-fix label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "automated-fix" --description "Applied by automated review fix workflow" --color "1d76db" 2>/dev/null || true
 
       - name: Implement fixes with Claude
         env:
@@ -87,7 +105,6 @@ jobs:
               const issueContent = fs.readFileSync('issue-content.md', 'utf8');
               const issueNumber = process.env.ISSUE_NUMBER;
 
-              // Scan allowed directories only for security (no .github/, no root configs)
               const ALLOWED_DIRS = ['backend/src', 'frontend/src'];
               const getFiles = (dir, files = []) => {
                 try {
@@ -100,7 +117,7 @@ jobs:
                     else if (/\.(ts|tsx|js|json)$/.test(item)) files.push(fullPath);
                   }
                 } catch (e) {
-                  if (e.code !== 'ENOENT') console.warn(`Warning: could not read ${dir}: ${e.message}`);
+                  if (e.code !== 'ENOENT') console.warn('Warning: could not read ' + dir + ': ' + e.message);
                 }
                 return files;
               };
@@ -109,48 +126,63 @@ jobs:
               for (const dir of ALLOWED_DIRS) {
                 allFiles = allFiles.concat(getFiles(dir));
               }
-              const codebaseFiles = allFiles.slice(0, 30);
+              console.log('Found ' + allFiles.length + ' source files');
+
+              const codebaseFiles = allFiles.slice(0, 40);
               let codebaseContext = '';
+              let filesIncluded = 0;
               for (const file of codebaseFiles) {
                 try {
                   const content = fs.readFileSync(file, 'utf8');
-                  // Skip large files to stay within API context limits
-                  if (content.length < 3000) {
-                    codebaseContext += `\n--- ${file} ---\n${content}\n`;
+                  if (content.length < 5000) {
+                    codebaseContext += '\n--- ' + file + ' ---\n' + content + '\n';
+                    filesIncluded++;
                   }
                 } catch (e) {
-                  if (e.code !== 'ENOENT') console.warn(`Warning: could not read ${file}: ${e.message}`);
+                  if (e.code !== 'ENOENT') console.warn('Warning: could not read ' + file + ': ' + e.message);
                 }
+              }
+              console.log('Included ' + filesIncluded + ' files in context');
+
+              if (filesIncluded === 0) {
+                console.log('No source files found to analyze');
+                fs.writeFileSync('PR_BODY.md', '## No Changes\n\nNo source files found in allowed directories.');
+                process.exit(0);
               }
 
               const prompt = [
                 'You are implementing fixes based on a code review.',
+                'You MUST respond with ONLY a valid JSON object. No markdown, no explanation, no code fences.',
                 '',
-                `REVIEW FINDINGS (issue #${issueNumber}):`,
+                'REVIEW FINDINGS (issue #' + issueNumber + '):',
                 issueContent,
                 '',
                 'CODEBASE CONTEXT:',
                 codebaseContext,
                 '',
-                'Return JSON with fixes:',
+                'Return a JSON object with this exact structure:',
                 '{',
-                '  "summary": "Brief description",',
+                '  "summary": "Brief description of changes",',
                 '  "files": [',
                 '    {',
-                '      "path": "path/to/file.ts",',
+                '      "path": "backend/src/path/to/file.ts",',
                 '      "action": "modify",',
                 '      "description": "What this changes",',
-                '      "search_replace": [{ "search": "old", "replace": "new" }]',
+                '      "search_replace": [{ "search": "exact old text", "replace": "exact new text" }]',
                 '    }',
                 '  ],',
-                '  "skipped": [{ "item": "description", "reason": "why" }]',
+                '  "skipped": [{ "item": "description", "reason": "why skipped" }]',
                 '}',
                 '',
-                'Only implement clear, actionable fixes. Skip vague or risky suggestions.',
-                'Return only valid JSON.'
+                'Rules:',
+                '- Only modify files in backend/src/ or frontend/src/',
+                '- The "search" field must be an EXACT substring of the current file content',
+                '- Only implement clear, actionable, low-risk fixes',
+                '- Skip vague suggestions or changes that could break functionality',
+                '- If no fixes are safe to apply, return {"summary": "No safe fixes", "files": [], "skipped": [...]}'
               ].join('\n');
 
-              console.log('Calling Claude...');
+              console.log('Calling Claude API...');
               const response = await client.messages.create({
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 8000,
@@ -158,26 +190,48 @@ jobs:
               });
 
               if (!response.content || response.content.length === 0) {
-                throw new Error('Claude returned empty response content');
+                throw new Error('Claude returned empty response');
               }
               const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+              console.log('Response length: ' + responseText.length + ' chars');
 
               let fixes;
               try {
                 fixes = JSON.parse(responseText);
-              } catch (e) {
-                const match = responseText.match(/```json\n?([\s\S]*?)\n?```/);
-                if (match) fixes = JSON.parse(match[1]);
-                else throw new Error('Could not parse response');
+              } catch (e1) {
+                var jsonBlockMatch = responseText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+                if (jsonBlockMatch) {
+                  try {
+                    fixes = JSON.parse(jsonBlockMatch[1].trim());
+                  } catch (e2) {
+                    throw new Error('Could not parse JSON from code block: ' + e2.message);
+                  }
+                } else {
+                  var jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    try {
+                      fixes = JSON.parse(jsonMatch[0]);
+                    } catch (e3) {
+                      throw new Error('Could not parse JSON from response: ' + e3.message);
+                    }
+                  } else {
+                    throw new Error('No JSON found in response');
+                  }
+                }
               }
 
-              // Only allow modifications to files in safe directories
+              console.log('Summary: ' + (fixes.summary || 'none'));
+              console.log('Files to modify: ' + (fixes.files || []).length);
+              console.log('Skipped items: ' + (fixes.skipped || []).length);
+
               const SAFE_PREFIXES = ['backend/src/', 'frontend/src/'];
               let changesApplied = 0;
+              let changesSkipped = 0;
               for (const file of fixes.files || []) {
-                const isSafe = SAFE_PREFIXES.some(p => file.path.startsWith(p));
+                var isSafe = SAFE_PREFIXES.some(function(p) { return file.path.startsWith(p); });
                 if (!isSafe) {
-                  console.log(`Skipping ${file.path}: outside allowed directories`);
+                  console.log('SKIP (unsafe path): ' + file.path);
+                  changesSkipped++;
                   continue;
                 }
 
@@ -189,6 +243,9 @@ jobs:
                       if (content.includes(sr.search)) {
                         content = content.split(sr.search).join(sr.replace);
                         fileChanged = true;
+                        console.log('APPLIED: ' + file.path + ' - matched search pattern');
+                      } else {
+                        console.log('NO MATCH: ' + file.path + ' - search pattern not found in file');
                       }
                     }
                     if (fileChanged) {
@@ -196,25 +253,38 @@ jobs:
                       changesApplied++;
                     }
                   } catch (e) {
-                    console.log(`Skipping ${file.path}: ${e.message}`);
+                    console.log('ERROR: ' + file.path + ': ' + e.message);
                   }
                 }
               }
 
-              let prBody = `## Automated Fix for Issue #${issueNumber}\n\n`;
-              prBody += `### Summary\n${fixes.summary}\n\n`;
-              prBody += `### Changes (${changesApplied})\n`;
-              for (const f of fixes.files || []) prBody += `- **${f.path}**: ${f.description}\n`;
-              if (fixes.skipped?.length) {
-                prBody += `\n### Skipped\n`;
-                for (const s of fixes.skipped) prBody += `- ${s.item}: *${s.reason}*\n`;
+              console.log('Results: ' + changesApplied + ' files changed, ' + changesSkipped + ' skipped');
+
+              let prBody = '## Automated Fix for Issue #' + issueNumber + '\n\n';
+              prBody += '### Summary\n' + (fixes.summary || 'No summary provided') + '\n\n';
+
+              if (changesApplied > 0) {
+                prBody += '### Changes Applied (' + changesApplied + ')\n';
+                for (const f of fixes.files || []) {
+                  var fSafe = SAFE_PREFIXES.some(function(p) { return f.path.startsWith(p); });
+                  if (fSafe) prBody += '- **' + f.path + '**: ' + f.description + '\n';
+                }
+              } else {
+                prBody += '### No Changes Applied\n';
+                prBody += 'Claude suggested fixes but none matched the current codebase.\n';
               }
-              
+
+              if (fixes.skipped && fixes.skipped.length > 0) {
+                prBody += '\n### Skipped Items\n';
+                for (const s of fixes.skipped) prBody += '- ' + s.item + ': *' + s.reason + '*\n';
+              }
+
+              prBody += '\n---\n*Generated by Apply Review Fixes workflow*\n';
               fs.writeFileSync('PR_BODY.md', prBody);
-              console.log(`Applied ${changesApplied} changes`);
             } catch (error) {
               console.error('Failed:', error.message);
-              fs.writeFileSync('PR_BODY.md', `## Failed\n\nError: ${error.message}`);
+              if (error.stack) console.error(error.stack);
+              fs.writeFileSync('PR_BODY.md', '## Failed\n\nError: ' + error.message);
               process.exit(1);
             }
           })();
@@ -229,10 +299,9 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
           BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
         run: |
-          # Only stage files in safe directories (never .github/, root configs, etc.)
           git add backend/src/ frontend/src/ 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "No changes"
+            echo "No file changes to commit"
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             git commit -m "fix: implement review findings from issue #${ISSUE_NUMBER}"
@@ -248,15 +317,43 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
           gh pr create \
-            --title "Fix: Daily Review #${ISSUE_NUMBER}" \
+            --title "fix: apply review findings from issue #${ISSUE_NUMBER}" \
             --body-file PR_BODY.md \
             --base main \
             --label "automated-fix"
+
+      - name: Comment on source issue
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
+        run: |
+          PR_URL=$(gh pr view "$BRANCH_NAME" --json url -q '.url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body "Automated fixes have been created in PR: $PR_URL"
+          fi
+
+      - name: Summary
+        if: always()
+        env:
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          echo "## Apply Review Fixes Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Issue**: #$ISSUE_NUMBER" >> $GITHUB_STEP_SUMMARY
+          if [ -f PR_BODY.md ]; then
+            cat PR_BODY.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- No output generated" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: fix-log-${{ github.event.inputs.issue_number }}
-          path: PR_BODY.md
+          path: |
+            PR_BODY.md
+            issue-data.json
           retention-days: 7
