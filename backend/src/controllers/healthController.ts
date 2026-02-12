@@ -52,14 +52,36 @@ export const health = (_req: Request, res: Response): void => {
  */
 export const ready = async (_req: Request, res: Response): Promise<void> => {
   try {
-    // Check database health
+    // Check database health with timeout and error recovery
     const dbConfigured = databaseService.isConfigured();
-    const dbHealthy = dbConfigured ? await databaseService.healthCheck() : true;
+    let dbHealthy = true;
+    
+    if (dbConfigured) {
+      try {
+        const healthCheckPromise = databaseService.healthCheck();
+        const timeoutPromise = new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('Database health check timeout')), 5000)
+        );
+        dbHealthy = await Promise.race([healthCheckPromise, timeoutPromise]);
+      } catch (dbError: any) {
+        logger.error('Database health check failed', { error: dbError.message });
+        dbHealthy = false;
+      }
+    }
 
-    // Check cache health
-    const cacheStats = cacheService.getStats();
-    const memoryHealthy = true; // Memory cache is always available
-    const redisHealthy = !cacheStats.redis.available || cacheStats.redis.connected;
+    // Check cache health with error recovery
+    let cacheStats;
+    let memoryHealthy = true;
+    let redisHealthy = true;
+    
+    try {
+      cacheStats = cacheService.getStats();
+      redisHealthy = !cacheStats.redis.available || cacheStats.redis.connected;
+    } catch (cacheError: any) {
+      logger.error('Cache health check failed', { error: cacheError.message });
+      memoryHealthy = false;
+      redisHealthy = false;
+    }
 
     const allHealthy = dbHealthy && memoryHealthy && redisHealthy;
 

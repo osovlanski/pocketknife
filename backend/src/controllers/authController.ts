@@ -12,21 +12,30 @@ export const getGoogleAuthStatus = async (req: Request, res: Response) => {
     
     if (isAuthenticated) {
       // Try to get user info (will refresh token if needed)
-      userInfo = await googleAuthService.getUserInfo();
+      try {
+        userInfo = await googleAuthService.getUserInfo();
+      } catch (userInfoError: any) {
+        console.warn('Failed to get user info:', userInfoError.message);
+      }
       
       // If userInfo is null (API call failed), try to get email from tokens
       if (!userInfo) {
-        const email = await googleAuthService.getEmailFromTokens();
-        if (email) {
-          userInfo = { email };
+        try {
+          const email = await googleAuthService.getEmailFromTokens();
+          if (email) {
+            userInfo = { email };
+          }
+        } catch (emailError: any) {
+          console.warn('Failed to get email from tokens:', emailError.message);
         }
       }
     } else {
       // Provide auth URL for unauthenticated users
       try {
         authUrl = googleAuthService.getAuthUrl();
-      } catch {
-        // OAuth not configured
+      } catch (authUrlError: any) {
+        console.warn('Failed to get auth URL:', authUrlError.message);
+        // OAuth not configured - this is expected in some environments
       }
     }
     
@@ -43,7 +52,7 @@ export const getGoogleAuthStatus = async (req: Request, res: Response) => {
     console.error('Error getting Google auth status:', error);
     res.status(500).json({
       authenticated: false,
-      error: error.message
+      error: error?.message || 'Unknown authentication error'
     });
   }
 };
@@ -79,13 +88,14 @@ export const initiateGoogleAuth = async (req: Request, res: Response) => {
 export const handleGoogleCallback = async (req: Request, res: Response) => {
   const { code, error } = req.query;
   
+  // Input validation and sanitization
   if (error) {
-    // User denied access or other error
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=${encodeURIComponent(error as string)}`);
+    const sanitizedError = typeof error === 'string' ? error.slice(0, 200) : 'Unknown error';
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=${encodeURIComponent(sanitizedError)}`);
   }
   
-  if (!code || typeof code !== 'string') {
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=No authorization code received`);
+  if (!code || typeof code !== 'string' || code.length > 1000) {
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}?auth=error&message=Invalid authorization code`);
   }
   
   try {
