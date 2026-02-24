@@ -46,4 +46,9 @@ router.post('/interview/system-design/evaluate', jobController.evaluateSystemDes
 router.get('/interview/system-design/questions', jobController.getSystemDesignQuestions);
 router.post('/interview/system-design/generate', jobController.generateSystemDesignDiagram);
 
+// Apply AI
+router.post('/apply-ai', jobController.generateJobApplication);
+router.post('/application/track', jobController.trackJobApplication);
+router.get('/applications', jobController.getJobApplications);
+
 export default router;

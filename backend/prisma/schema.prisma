@@ -296,6 +296,11 @@ model SavedJob {
   // Company enrichment
   companyInfo Json?    // Crunchbase-like data
 
+  // Application package (AI-generated)
+  coverLetter     String?  @db.Text
+  emailTemplate   String?  @db.Text
+  applicationDocs Json?    // Additional uploaded resources metadata
+
   // Status
   status      String   @default("saved") // "saved", "applied", "interviewing", "rejected", "accepted"
   appliedAt   DateTime?

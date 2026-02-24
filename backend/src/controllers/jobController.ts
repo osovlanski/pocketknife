@@ -8,6 +8,7 @@ import israelTechScraperService from '../services/jobs/israelTechScraperService'
 import companyEnrichmentService from '../services/jobs/companyEnrichmentService';
 import processControlService from '../services/core/processControlService';
 import { databaseService } from '../services/core/databaseService';
+import jobApplicationService from '../services/jobs/jobApplicationService';
 import logger from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
@@ -805,6 +806,120 @@ export const getTrendingCompanies = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.fail('Get trending companies error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// =============================================================================
+// APPLY AI ENDPOINTS
+// =============================================================================
+
+export const generateJobApplication = async (req: Request, res: Response) => {
+  try {
+    const { jobData, tone, additionalContext } = req.body;
+
+    if (!jobData) {
+      return res.status(400).json({ error: 'jobData is required' });
+    }
+
+    const cvDataPath = path.join(__dirname, '../../data/cv-data.json');
+    if (!fs.existsSync(cvDataPath)) {
+      return res.status(400).json({ error: 'Please upload your CV first' });
+    }
+
+    const fileContent = JSON.parse(fs.readFileSync(cvDataPath, 'utf-8'));
+    const cvData = fileContent.cvData || fileContent;
+
+    const applicationPackage = await jobApplicationService.generateApplicationPackage(
+      jobData,
+      cvData,
+      { tone, additionalContext }
+    );
+
+    res.json({ success: true, ...applicationPackage });
+  } catch (error: any) {
+    logger.fail('Generate job application error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const trackJobApplication = async (req: Request, res: Response) => {
+  try {
+    const { jobId, jobData, status, notes, appliedAt } = req.body;
+
+    if (!jobId) {
+      return res.status(400).json({ error: 'jobId is required' });
+    }
+
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(400).json({ error: 'No user found' });
+    }
+
+    const prisma = databaseService.getClient();
+    if (!prisma) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const jobSource = jobData?.source || 'unknown';
+
+    const savedJob = await prisma.savedJob.upsert({
+      where: {
+        userId_jobId_source: { userId: user.id, jobId, source: jobSource }
+      },
+      update: {
+        status: status || 'applied',
+        notes: notes || undefined,
+        appliedAt: appliedAt ? new Date(appliedAt) : (status === 'applied' ? new Date() : undefined),
+        updatedAt: new Date()
+      },
+      create: {
+        userId: user.id,
+        jobId,
+        title: jobData?.title || 'Unknown',
+        company: jobData?.company || 'Unknown',
+        location: jobData?.location,
+        salary: jobData?.salary,
+        description: jobData?.description,
+        url: jobData?.applyUrl,
+        source: jobSource,
+        matchScore: jobData?.matchScore,
+        status: status || 'applied',
+        notes,
+        appliedAt: status === 'applied' ? new Date() : undefined
+      }
+    });
+
+    res.json({ success: true, savedJob });
+  } catch (error: any) {
+    logger.fail('Track job application error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getJobApplications = async (req: Request, res: Response) => {
+  try {
+    const user = await databaseService.getDefaultUser();
+    if (!user) {
+      return res.status(400).json({ error: 'No user found' });
+    }
+
+    const prisma = databaseService.getClient();
+    if (!prisma) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const applications = await prisma.savedJob.findMany({
+      where: {
+        userId: user.id,
+        status: { not: 'saved' }
+      },
+      orderBy: { appliedAt: 'desc' }
+    });
+
+    res.json({ success: true, applications });
+  } catch (error: any) {
+    logger.fail('Get job applications error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 };

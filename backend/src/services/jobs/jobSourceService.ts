@@ -4,6 +4,7 @@ import israeliJobsService from './israeliJobsService';
 import comeetCareersService from './comeetCareersService';
 import israeliTechCommunityService from './israeliTechCommunityService';
 import israelTechScraperService from './israelTechScraperService';
+import startupNationCentralService from './startupNationCentralService';
 import { googleSearchService } from '../core/googleSearchService';
 import { configService } from '../core/configService';
 
@@ -541,7 +542,7 @@ class JobSourceService {
           query: searchQuery,
           page: '1',
           num_pages: '1',
-          date_posted: 'month', // Last month instead of 'all' for fresher results
+          date_posted: 'week', // Last 7 days only — much more likely to be open
           remote_jobs_only: location ? 'false' : 'false', // Changed to false to get more results
           employment_types: 'FULLTIME,CONTRACTOR,PARTTIME'
         }
@@ -663,12 +664,10 @@ class JobSourceService {
       } else if (location?.toLowerCase().includes('germany')) {
         countryCode = 'de';
       } else if (location?.toLowerCase().includes('israel') || location?.toLowerCase().includes('tel aviv')) {
-        countryCode = 'il';
-      }
-      else{
-        console.log(`ℹ️ Adzuna does not support Country ${countryCode}. Skipping...`);
+        console.log('ℹ️ Adzuna does not support Israel. Skipping...');
         return [];
       }
+      // All other locations default to 'us'
 
       const response = await axios.get(
         `https://api.adzuna.com/v1/api/jobs/${countryCode}/search/1`,
@@ -1091,11 +1090,12 @@ ${[...new Set(jobs.map(j => j.location))].slice(0, configService.get('limits.job
     );
     
     // Additional APIs (may have mixed remote/office jobs)
-    apiList.push('The Muse', 'Findwork.dev', 'Himalayas');
+    apiList.push('The Muse', 'Findwork.dev', 'Himalayas', 'Jobicy');
     promises.push(
       additionalJobAPIs.fetchTheMuse(finalQuery, searchOptions.location).then(jobs => ({ source: 'The Muse', jobs })),
       additionalJobAPIs.fetchFindwork(finalQuery).then(jobs => ({ source: 'Findwork.dev', jobs })),
-      additionalJobAPIs.fetchHimalayas(finalQuery).then(jobs => ({ source: 'Himalayas', jobs }))
+      additionalJobAPIs.fetchHimalayas(finalQuery).then(jobs => ({ source: 'Himalayas', jobs })),
+      additionalJobAPIs.fetchJobicy(finalQuery).then(jobs => ({ source: 'Jobicy', jobs }))
     );
     
     // Add Israeli tech companies if location is Israel
@@ -1133,19 +1133,25 @@ ${[...new Set(jobs.map(j => j.location))].slice(0, configService.get('limits.job
       }
     }
     
+    // StartupNationCentral — Israeli startup ecosystem discovery (all searches)
+    apiList.push('StartupNationCentral');
+    promises.push(
+      startupNationCentralService.searchStartups(finalQuery).then(jobs => ({ source: 'StartupNationCentral', jobs }))
+    );
+
     // Notify about which APIs will be used
     if (socketIo) {
       const apiCount = apiList.length;
-      const modeText = searchOptions.remoteOnly === true ? ' (Remote Only)' : 
+      const modeText = searchOptions.remoteOnly === true ? ' (Remote Only)' :
                        searchOptions.remoteOnly === false ? ' (Office Only)' : '';
-      socketIo.emit('log', { 
-        message: `📡 Using ${apiCount} APIs${modeText}: ${apiList.join(' + ')}`, 
-        type: 'info' 
+      socketIo.emit('log', {
+        message: `📡 Using ${apiCount} APIs${modeText}: ${apiList.join(' + ')}`,
+        type: 'info'
       });
     }
-    
+
     // Execute all API calls
-    
+
     // Add premium APIs if configured
     if (process.env.RAPIDAPI_KEY) {
       promises.push(

@@ -4,6 +4,7 @@ import * as configApi from '../services/configApi';
 import type { JobThresholds } from '../services/configApi';
 import { API_BASE_URL } from '../config';
 import logger from '../services/logger';
+import ApplyAIModal from './ApplyAIModal';
 
 interface CompanyInfo {
   name: string;
@@ -46,6 +47,8 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
   const [companyInfo, setCompanyInfo] = useState<Record<string, CompanyInfo>>({});
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [loadingCompanies, setLoadingCompanies] = useState<Set<string>>(new Set());
+  const [applyModalJob, setApplyModalJob] = useState<Job | null>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   
   // Configurable thresholds
   const [thresholds, setThresholds] = useState<JobThresholds>({
@@ -199,6 +202,7 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
   };
 
   return (
+    <>
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -290,6 +294,15 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
                 {company?.heatScore && company.heatScore >= 7 && (
                   <span className="bg-orange-500/20 px-2 py-0.5 rounded-full text-xs text-orange-300 flex items-center gap-1">
                     🔥 Hot
+                  </span>
+                )}
+                {(job.source.includes('LinkedIn') || job.source === 'JSearch') &&
+                  getJobFreshness(job.postedAt).daysAgo > 7 && (
+                  <span
+                    className="bg-yellow-500/10 px-2 py-0.5 rounded-full text-xs text-yellow-400 flex items-center gap-1 border border-yellow-500/20"
+                    title="LinkedIn listings expire quickly. Verify before applying."
+                  >
+                    ⚠️ May be expired
                   </span>
                 )}
               </div>
@@ -445,7 +458,7 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
             </p>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <a
                 href={job.applyUrl}
                 target="_blank"
@@ -455,6 +468,18 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
                 <ExternalLink className="w-4 h-4" />
                 View & Apply
               </a>
+              <button
+                onClick={() => setApplyModalJob(job)}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors text-sm font-semibold"
+              >
+                <Briefcase className="w-4 h-4" />
+                Apply with AI
+              </button>
+              {appliedJobIds.has(job.id) && (
+                <span className="flex items-center gap-1.5 bg-green-500/20 text-green-300 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-500/30">
+                  ✓ Applied
+                </span>
+              )}
               {(() => {
                 const freshness = getJobFreshness(job.postedAt);
                 return (
@@ -475,6 +500,18 @@ const JobListings: React.FC<JobListingsProps> = ({ jobs }) => {
         );
       })}
     </div>
+
+    {applyModalJob && (
+      <ApplyAIModal
+        job={applyModalJob}
+        onClose={() => setApplyModalJob(null)}
+        onMarkedApplied={(jobId) => {
+          setAppliedJobIds(prev => new Set([...prev, jobId]));
+          setApplyModalJob(null);
+        }}
+      />
+    )}
+    </>
   );
 };
 
