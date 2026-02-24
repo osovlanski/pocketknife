@@ -229,6 +229,71 @@ class AdditionalJobAPIs {
   }
 
   /**
+   * Fetch jobs from Jobicy (FREE, no auth required)
+   * Remote tech jobs with tag-based search
+   * API: https://jobicy.com/api/v2/remote-jobs
+   */
+  async fetchJobicy(query: string): Promise<JobListing[]> {
+    try {
+      console.log('🔍 Fetching jobs from Jobicy...');
+
+      // Jobicy uses tag-based search — use first meaningful keyword
+      const keyword = query.split(' ').find(word => word.length > 3) || query;
+
+      const response = await axios.get('https://jobicy.com/api/v2/remote-jobs', {
+        params: {
+          count: 50,
+          tag: keyword
+        },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        timeout: JOB_API_TIMEOUT(),
+        validateStatus: (status) => status < 500
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        console.log('⚠️ Jobicy API blocked - skipping');
+        return [];
+      }
+
+      const jobs: any[] = response.data?.jobs || [];
+
+      const queryLower = query.toLowerCase();
+      const formatted = jobs
+        .filter((job: any) => {
+          const text = `${job.jobTitle} ${job.jobDescription}`.toLowerCase();
+          return text.includes(queryLower) ||
+                 queryLower.split(' ').some(word => word.length > 3 && text.includes(word));
+        })
+        .slice(0, configService.get('limits.jobs.apis.himalayas.maxResults', 20) as number)
+        .map((job: any) => ({
+          id: `jobicy-${job.id}`,
+          source: 'Jobicy',
+          title: job.jobTitle,
+          company: job.companyName || 'Unknown',
+          location: job.jobGeo || 'Remote',
+          remote: true,
+          description: job.jobDescription || '',
+          applyUrl: job.url || `https://jobicy.com/jobs/${job.id}`,
+          salary: job.annualSalaryMin && job.annualSalaryMax
+            ? `$${Number(job.annualSalaryMin).toLocaleString()} - $${Number(job.annualSalaryMax).toLocaleString()}`
+            : undefined,
+          postedAt: job.pubDate || new Date().toISOString(),
+          tags: job.jobIndustry ? [job.jobIndustry] : [],
+          companySize: this.detectCompanySize(undefined),
+          experienceLevel: this.detectExperienceLevel(job.jobTitle, job.jobDescription)
+        }));
+
+      console.log(`✅ Found ${formatted.length} jobs from Jobicy`);
+      return formatted;
+    } catch (error: any) {
+      console.error('❌ Error fetching from Jobicy:', error.message);
+      return [];
+    }
+  }
+
+  /**
    * Detect company size from text
    */
   private detectCompanySize(size?: string): 'startup' | 'midsize' | 'enterprise' | undefined {
