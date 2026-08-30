@@ -2,39 +2,26 @@
   "name": "pocketknife",
   "version": "2.0.0",
   "description": "Pocketknife - Multi-agent AI platform for emails, jobs, travel, and learning",
-  "main": "backend/src/index.ts",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "start": "node backend/dist/index.js",
-    "build": "tsc -p backend/tsconfig.json",
-    "dev": "cd backend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "frontend": "cd frontend && npm run dev",
-    "frontend:build": "cd frontend && npm run build",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "dev": "npm run dev --prefix backend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "frontend": "npm run dev --prefix frontend",
+    "frontend:build": "npm run build --prefix frontend",
     "test": "node scripts/run-tests.js",
     "test:all": "node scripts/run-tests.js",
     "test:coverage": "node scripts/run-tests.js --coverage",
-    "test:backend": "cd backend && npm run test",
-    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "npm run test --prefix backend",
+    "test:frontend": "npm run test --prefix frontend",
     "quality-check": "node scripts/check-quality.js",
     "review": "node scripts/check-quality.js"
-  },
-  "dependencies": {
-    "express": "^4.17.1",
-    "dotenv": "^10.0.0",
-    "axios": "^0.21.1",
-    "twilio": "^3.66.0",
-    "winston": "^3.3.3",
-    "googleapis": "^39.2.0",
-    "typescript": "^4.4.3"
-  },
-  "devDependencies": {
-    "ts-node": "^10.0.0",
-    "ts-node-dev": "^1.1.8",
-    "typescript": "^4.4.3",
-    "vite": "^2.5.0",
-    "tailwindcss": "^2.2.19",
-    "postcss": "^8.3.6"
   },
   "repository": {
     "type": "git",

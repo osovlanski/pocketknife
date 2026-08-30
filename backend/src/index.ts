@@ -75,6 +75,7 @@ import {
 
 // Health controller imports
 import { ready, healthDetailed } from './controllers/healthController';
+import { integrationReadiness } from './controllers/integrationReadinessController';
 
 const app = express();
 const server = createServer(app);
@@ -220,6 +221,9 @@ app.get('/health/capabilities', (req, res) => {
     res.status(500).json({ error: err.message });
   });
 });
+
+// Configuration-only readiness; never returns credential values.
+app.get('/health/integrations', integrationReadiness);
 
 // Readiness probe endpoint (public - for Kubernetes/load balancers)
 app.get('/ready', ready);
