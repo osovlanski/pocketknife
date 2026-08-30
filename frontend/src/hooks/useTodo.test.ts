@@ -379,13 +379,13 @@ describe('useTodo', () => {
       
       const { result } = renderHook(() => useTodo());
       
+      // Wait for the derived values, not merely the first agenda assignment.
+      // The hook loads agenda/tasks/routines concurrently and CI scheduling can
+      // otherwise observe the initial empty derived state.
       await waitFor(() => {
-        expect(result.current.agenda).toBeDefined();
+        expect(result.current.completedCount).toBe(2);
+        expect(result.current.progress).toBe(50);
       });
-      
-      // 2 completed out of 4 = 50%
-      expect(result.current.completedCount).toBe(2);
-      expect(result.current.progress).toBe(50);
     });
     
     it('should format date correctly', () => {
@@ -396,4 +396,3 @@ describe('useTodo', () => {
     });
   });
 });
-
